@@ -1,0 +1,32 @@
+**PC에서 API테스트**
+1.터미널    node proxy_server.js
+2.새터미널 cmd /c npx http-server . -p 8081
+3. http://localhost:8081
+
+
+
+
+node proxy_server.js
+
+powershell -ExecutionPolicy Bypass -Command "npx serve ."
+
+
+# 웹 서버와 프록시 서버를 각각 별도의 프로세스로 실행
+Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command "npx serve ."' ; node proxy.js
+
+
+
+
+
+
+http://localhost:3000
+
+키 = kgA1yoaXkd7iVJkKR9Ze5iA7zZ3WWI1UJHn1SQk9QLI
+
+
+
+이해도 1,4,7번 - 명중 치명
+
+이해도 2,5,8번 - 추공 최공
+
+이해도 3,6,9번 - 강타, 피증, 피내

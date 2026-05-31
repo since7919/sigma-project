@@ -1,0 +1,26 @@
+<script>
+async function fetchSignalData() {
+    const SERVICE_KEY = 'kgA1yoaXkd7iVJkKR9Ze5iA7zZ3WWI1UJHn1SQk9QLI'; // 인증키 입력 [cite: 5, 146]
+    const regionCode = 'L02'; // 지역코드 (예: 인천 L02) [cite: 17, 157]
+    const itstNm = encodeURIComponent('신광4거리'); // 테스트 교차로명 [cite: 1, 149]
+
+    const originalUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?serviceKey=${SERVICE_KEY}&regionCode=${regionCode}&itstNm=${itstNm}&type=json`;
+    const proxyUrl = `http://localhost:3001/proxy?url=${encodeURIComponent(originalUrl)}`;
+
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('네트워크 응답 에러');
+
+        const data = await response.json(); // JSON 형식 수신 [cite: 2, 147]
+        
+        // 데이터 출력
+        const items = Array.isArray(data) ? data : (data.body && data.body.items ? data.body.items : data);
+        console.log("수신 데이터:", items);
+        document.body.innerHTML += `<pre id="api-result">${JSON.stringify(items, null, 2)}</pre>`;
+    } catch (error) {
+        console.error('오류 발생:', error.message);
+        document.body.innerHTML += `<div id="api-error">${error.message}</div>`;
+    }
+}
+window.onload = fetchSignalData;
+</script>

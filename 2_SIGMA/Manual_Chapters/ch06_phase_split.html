@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Ch 06. PHASE/SPLIT 설정 - SIGMA Manual</title>
+    <link rel="stylesheet" href="manual_style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <a href="index.html" class="sidebar-link" style="margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:15px; font-weight:bold;">📊 Master Index</a>
+            <h4>Part 1. Operations</h4>
+            <a href="ch01_overview.html" class="sidebar-link">Ch 01. 시스템 개요</a>
+            <a href="ch02_nema.html" class="sidebar-link">Ch 02. NEMA Dual-Ring</a>
+            <a href="ch03_ui_controls.html" class="sidebar-link">Ch 03. UI 및 조작법</a>
+            <a href="ch04_db_center.html" class="sidebar-link">Ch 04. DB CENTER</a>
+            <a href="ch05_node_link.html" class="sidebar-link">Ch 05. NODE/LINK 분석</a>
+            <a href="ch06_phase_split.html" class="sidebar-link active">Ch 06. PHASE/SPLIT 설정</a>
+            <a href="ch07_yearbook.html" class="sidebar-link">Ch 07. YEARBOOK 민원</a>
+            <a href="ch08_tsd.html" class="sidebar-link">Ch 08. TSD 시공도</a>
+            <h4>Part 2. Theory</h4>
+            <a href="ch09_glossary.html" class="sidebar-link">Ch 09. 용어 정의 사전</a>
+            <a href="ch10_timing_design.html" class="sidebar-link">Ch 10. 신호 타이밍 설계</a>
+            <a href="ch11_actuated_control.html" class="sidebar-link">Ch 11. 감응 제어 이론</a>
+            <a href="ch12_capacity_los.html" class="sidebar-link">Ch 12. 용량 및 LOS</a>
+            <a href="ch13_coordination.html" class="sidebar-link">Ch 13. 연동 제어 이론</a>
+            <a href="ch14_pedestrian.html" class="sidebar-link">Ch 14. 보행자 설계</a>
+            <h4>Part 3. System</h4>
+            <a href="ch15_excel.html" class="sidebar-link">Ch 15. 엑셀 파이프라인</a>
+            <a href="ch16_ai_copilot.html" class="sidebar-link">Ch 16. AI Copilot</a>
+            <a href="ch17_history.html" class="sidebar-link">Ch 17. 업데이트 이력</a>
+        </nav>
+
+        <div class="main-content">
+            <h1>🚦 Ch 06. PHASE/SPLIT & 운영 설정</h1>
+            <section id="section6">
+                <h2>6. PHASE/SPLIT & 운영 설정 (Signal Planning)</h2>
+                <p>교차로의 물리적 특성에 최적화된 신호 시간(Split)을 설계하고 운영 정책을 결정합니다.</p>
+                
+            <h3 id="section6_1">6.1 16개 표준 이동류 정의 (The 16 Movements)</h3>
+            <p>SIGMA는 국제 표준인 8개 차량 이동류와 그에 대응하는 8개 보행 이동류를 합쳐 총 16개의 이동류 체계를 가집니다.</p>
+            
+            <h4>(1) 차량 이동류 (Vehicle Movements: 1~8)</h4>
+            <table>
+                <thead>
+                    <tr style="background: rgba(0, 212, 255, 0.2); color: #fff;">
+                        <th>ID</th>
+                        <th>축(Axis)</th>
+                        <th>동작 (Movement)</th>
+                        <th>표준 각도</th>
+                        <th>비고</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><b>1</b></td><td>주도로</td><td>동측 좌회전 (EB Left)</td><td>270°</td><td>Ring A</td></tr>
+                    <tr><td><b>2</b></td><td>주도로</td><td>서측 직진 (WB Thru)</td><td>45°</td><td>Ring A (주직진)</td></tr>
+                    <tr><td><b>3</b></td><td>부도로</td><td>남측 좌회전 (SB Left)</td><td>0°</td><td>Ring A</td></tr>
+                    <tr><td><b>4</b></td><td>부도로</td><td>북측 직진 (NB Thru)</td><td>135°</td><td>Ring A (부직진)</td></tr>
+                    <tr><td><b>5</b></td><td>주도로</td><td>서측 좌회전 (WB Left)</td><td>90°</td><td>Ring B</td></tr>
+                    <tr><td><b>6</b></td><td>주도로</td><td>동측 직진 (EB Thru)</td><td>225°</td><td>Ring B (주직진)</td></tr>
+                    <tr><td><b>7</b></td><td>부도로</td><td>북측 좌회전 (NB Left)</td><td>180°</td><td>Ring B</td></tr>
+                    <tr><td><b>8</b></td><td>부도로</td><td>남측 직진 (SB Thru)</td><td>315°</td><td>Ring B (부직진)</td></tr>
+                </tbody>
+            </table>
+
+            <h4>(2) 보행 이동류 (Pedestrian Movements: 101~108)</h4>
+            <p>보행 신호는 대응하는 차량 직진 신호 번호에 <span class="highlight">100을 더한 번호</span>를 사용합니다.</p>
+            <ul style="font-size:13px; color:#aaa; line-height:1.8;">
+                <li><b>102 / 106</b>: 주도로 횡단보도 (차량 2, 6번 직진 시 함께 개시)</li>
+                <li><b>104 / 108</b>: 부도로 횡단보도 (차량 4, 8번 직진 시 함께 개시)</li>
+                <li><b>매핑 로직</b>: 2번 직진 차량과 상충하지 않는 횡단보도는 102번으로 정의되어 안전한 동시 신호를 보장합니다.</li>
+            </ul>
+
+            <div class="logic-box" style="background: rgba(0, 212, 255, 0.05); margin-top:15px;">
+                <b>💡 팁:</b> 지도에서 교차로를 선택하고 마우스를 이동류 번호 위에 올리면, 해당 방향의 화살표가 지도상에 <b>네온색으로 강조</b>되어 방향을 직관적으로 확인할 수 있습니다.
+            </div>
+
+                <h3>6.3 스플릿 검증</h3>
+                <div class="logic-box" style="border-color: #e74c3c;">
+                    <b>⚠️ 최소 녹색 경고</b>: 입력값이 보행 시간 합계보다 작으면 셀이 붉은색으로 변합니다.
+                </div>
+
+                <h3 id="section6_5">6.5 Phase/Split 테이블 상세 정의 (Field Definitions)</h3>
+                <p>신호 계획 테이블의 각 헤더는 실제 현장 제어기(Controller)의 파라미터와 1:1로 매핑됩니다. <b>Displayed Green</b>은 녹색등이 들어와 있는 시각적 시간이며, <b>Effective Green</b>은 실제 차량이 통과하는 효율적 시간(통상 Displayed Green + 황색 일부)을 의미합니다.</p>
+                
+                <div class="logic-box" style="background: rgba(0, 212, 255, 0.05);">
+                    <table style="font-size:12.5px;">
+                        <thead>
+                            <tr style="background: rgba(0, 212, 255, 0.3); color: #fff;">
+                                <th style="width:100px;">항목 (Header)</th>
+                                <th>상세 정의 및 운영 규칙</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">현시 (Phase)</td>
+                                <td>신호가 부여되는 순서(1~16). NEMA Dual-Ring 구조에 따라 병렬로 실행됩니다.</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">이동류 (Mov)</td>
+                                <td>해당 현시에 움직이는 차량/보행의 번호입니다. (예: 2번=주직진, 102번=주직진 보행)</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">스플릿 (Split)</td>
+                                <td><b>녹색 + 황색 + 전적색</b>을 모두 합친 총 부여 시간입니다. 주기를 나누는 기준이 됩니다.</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">황색 (Yellow)</td>
+                                <td>녹색 신호 종료 후 정지선 전 차량이 멈추거나 통과할 수 있게 주는 경고 시간 (보통 3~4초).</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">전적색 (All Red)</td>
+                                <td>교차로 내 잔류 차량을 완전히 소거하기 위해 모든 방향에 적색을 켜는 시간 (보통 1~2초).</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">보행진입 (Walk)</td>
+                                <td>보행자 신호등에 초록불이 켜져서 횡단을 시작할 수 있는 시간입니다.</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">보행소거 (Flash)</td>
+                                <td>초록불이 깜빡이며 "빨리 건너거나 진입하지 마시오"라고 알리는 시간 (소거 시간).</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--accent); font-weight:bold;">보행전시간 (Pre)</td>
+                                <td>보행 신호가 꺼진 후 차량 신호가 바뀌기 전까지의 안전 여유 시간입니다.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            <h3 id="section6_7">6.7 신호 운영 스케줄링 체계 (Daily Plan & Maps)</h3>
+            <p>교통량은 시간에 따라 변하므로, SIGMA는 다중 맵 체계를 통해 최적의 신호를 제공합니다.</p>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
+                <!-- 일반맵 -->
+                <div class="logic-box" style="margin:0; border-color:#3498db;">
+                    <h4 style="color:#3498db; margin-top:0;">📋 일반맵 (Normal/Pattern Map)</h4>
+                    <p style="font-size:12.5px; color:#ccc;"><b>물리적 패턴</b>: 각 이동류별 스플릿(녹색, 황색 등)의 절대 초 단위 정보가 저장된 패턴 데이터입니다. (예: 맵 1번, 맵 2번)</p>
+                </div>
+                <!-- 시차맵 -->
+                <div class="logic-box" style="margin:0; border-color:#e67e22;">
+                    <h4 style="color:#e67e22; margin-top:0;">🕒 시차맵 (TOD/Offset Map)</h4>
+                    <p style="font-size:12.5px; color:#ccc;"><b>운영 매핑</b>: 특정 시간대에 어떤 <b>일반맵</b>을 사용할지 선택하고, 연동을 위한 <b>오프셋(Offset)</b> 값을 결합한 데이터입니다.</p>
+                </div>
+            </div>
+
+            <div class="logic-box" style="margin-top:20px; border-left: 5px solid #2ecc71;">
+                <h4 style="margin:0; color:#2ecc71;">📅 일계획 (Daily Plan / TOD Schedule)</h4>
+                <p style="font-size:13px; color:#eee;">24시간을 여러 슬롯(보통 8~16개)으로 나누어, 각 시간대별로 실행할 <b>시차맵 번호</b>를 정의한 전체 스케줄입니다.</p>
+                <ul style="font-size:12px; color:#aaa; margin-top:10px;">
+                    <li><b>07:00 ~ 09:00</b>: 오전 피크 시차맵 (패턴 1 + 오프셋 20초)</li>
+                    <li><b>09:00 ~ 17:00</b>: 평시 시차맵 (패턴 2 + 오프셋 45초)</li>
+                    <li><b>23:00 ~ 06:00</b>: 심야 시차맵 (패턴 8 + 점멸 또는 감응)</li>
+                </ul>
+            </div>
+
+            <h3>6.8 데이터 계층 구조 요약</h3>
+            <div class="logic-box" style="text-align:center; background: rgba(0, 212, 255, 0.05);">
+                <p style="font-size:14px; font-weight:bold; color:var(--accent); margin-bottom:10px;">[주간/요일 계획] → [일계획] → [시차맵] → [일반맵 + 오프셋]</p>
+                <p style="font-size:12px; color:#888;">상위 스케줄부터 하위 물리 데이터까지 체계적인 상속 구조를 가집니다.</p>
+            </div>
+
+            <h3 id="section6_9">6.9 경찰청 R29 표준 데이터베이스 매핑 (KNPA Standard)</h3>
+            <p>SIGMA의 설정 데이터는 경찰청 R29 표준 규격의 제어기 내부 데이터베이스 구조와 1:1로 매핑됩니다.</p>
+            
+            <div class="logic-box" style="border-left: 5px solid #e74c3c; background: rgba(231, 76, 60, 0.05);">
+                <h4 style="margin:0; color:#e74c3c;">📌 R29 제어기 레지스터 매칭 (154p~158p 참조)</h4>
+                <table style="margin-top:10px; font-size:12.5px;">
+                    <thead>
+                        <tr style="background: rgba(231, 76, 60, 0.2); color: #fff;">
+                            <th>구분</th>
+                            <th>R29 표준 명칭</th>
+                            <th>SIGMA 필드</th>
+                            <th>설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><b>계획</b></td><td>Plan Number</td><td>TOD Plan ID</td><td>시간대별 운영 번호 (1~16)</td></tr>
+                        <tr><td><b>패턴</b></td><td>Pattern Number</td><td>Normal Map ID</td><td>현시별 스플릿 데이터 번호</td></tr>
+                        <tr><td><b>오프셋</b></td><td>Offset Value</td><td>Offset (off)</td><td>연동을 위한 기준 시점 (초)</td></tr>
+                        <tr><td><b>링모드</b></td><td>Dual Ring Enable</td><td>Ring Configuration</td><td>NEMA 듀얼링 사용 여부</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="logic-box" style="margin-top:20px; border: 1px dashed #f1c40f;">
+                <p style="margin:0; font-size:13px; color:#ccc;"><b>⚠️ 실무 주의사항:</b> R29 표준에 따라 <b>주기(Cycle)</b>는 해당 패턴에 속한 모든 현시(Stage) 시간의 합과 반드시 일치해야 하며, 오프셋은 주기 값을 초과할 수 없습니다. SIGMA 검증 엔진은 이를 실시간으로 체크합니다.</p>
+            </div>
+
+            <div class="logic-box" style="background: rgba(0, 212, 255, 0.05); margin-top:20px;">
+                <b>🤖 AI 챗봇 가이드:</b> 챗봇은 "R29 규격에 맞춰 맵 1번 데이터 검증해줘"라는 요청을 받으면, 154~158p의 표준 데이터 제약 조건을 기준으로 현재 입력된 값의 무결성을 검사합니다.
+            </div>
+        </section>
+            <div class="nav-links">
+                <a href="ch05_node_link.html">← Ch 05. NODE/LINK 분석</a>
+                <a href="ch07_yearbook.html">Ch 07. YEARBOOK 민원 →</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "type": "Other",
+  "failureCode": 10005,
+  "responseCode": 429,
+  "message": "Rate limit exceeded.",
+  "headers": {
+    "X-RateLimit-Limit": "1000",
+    "X-RateLimit-Remaining": "-1",
+    "X-RateLimit-Reset": "3005"
+  }
+}

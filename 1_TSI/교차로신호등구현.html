@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3분할 모바일 교차로 관제 시스템 (표준 신호 및 픽토그램 복원)</title>
+    
+    <!-- Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        :root {
+            --map-bg: #111;
+            --main-blue: #00ecff;
+            --main-purple: #a29bfe;
+            --sig-red: #ff2a2a;
+            --sig-yellow: #ffb300;
+            --sig-green: #00b894;
+            --sig-dark: #1b1b1f;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            background-color: var(--map-bg); overflow: hidden;
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 🗺️ 1층: 상단 선택 메인 맵 (40%) */
+        #top-selector-view {
+            width: 100%;
+            height: 40%;
+            border-bottom: 2px solid #333;
+            position: relative;
+        }
+
+        /* 📊 2층: 하단 상세 관제 구역 (60%) */
+        .bottom-control-view {
+            width: 100%;
+            height: 60%;
+            display: flex;
+            flex-direction: row;
+        }
+
+        .sub-panel {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            box-sizing: border-box;
+            background: #151518;
+        }
+        #panel-left { border-right: 1px solid #333; }
+
+        .sub-bg-map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+
+        /* 📍 상단 맵 마커 */
+        .master-marker {
+            width: 24px; height: 24px;
+            background: #222; border: 2px solid #fff; border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+            display: flex; align-items: center; justify-content: center;
+            transform: translate(-50%, -50%); cursor: pointer;
+        }
+        .master-marker::after { content: '🚦'; font-size: 11px; }
+        .master-marker.active-L { border-color: var(--main-blue); box-shadow: 0 0 12px var(--main-blue); }
+        .master-marker.active-R { border-color: var(--main-purple); box-shadow: 0 0 12px var(--main-purple); }
+
+        /* 원형 컴패스 오버레이 */
+        .compass-center-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 155px; height: 155px;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(2px);
+            border-radius: 50%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        #panel-left .compass-center-overlay { border: 2px solid var(--main-blue); box-shadow: 0 0 15px rgba(0,236,255,0.4); }
+        #panel-right .compass-center-overlay { border: 2px solid var(--main-purple); box-shadow: 0 0 15px rgba(162,155,254,0.4); }
+
+        /* 라벨 시스템 */
+        .panel-tag {
+            position: absolute; top: 8px; left: 8px; 
+            z-index: 10000;
+            font-size: 10px; font-weight: bold; padding: 4px 7px; border-radius: 3px; color: #fff;
+            max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        #panel-left .panel-tag { background: rgba(0, 236, 255, 0.85); color: #000; }
+        #panel-right .panel-tag { background: rgba(162, 155, 254, 0.85); color: #fff; }
+
+        /* 🧭 8방향 신호 기기 인프라 슬롯 */
+        .signal-slot { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        .signal-mount-frame {
+            position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+        .component-block { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+        /* 🛠️ [순서 정렬] 차량등 하우징 (적, 황, 화살표, 녹 순서 가로 배열) */
+        .car-housing-box {
+            background: #050505; padding: 2px 3px; border-radius: 3px;
+            border: 0.5px solid #444; display: flex; justify-content: center; gap: 1px;
+        }
+        /* 🛠️ [사람 형태 복원] 보행등 하우징 */
+        .ped-housing-box {
+            background: #050505; padding: 2px 3px; border-radius: 3px;
+            border: 0.5px solid #444; display: flex; justify-content: center; gap: 2px;
+        }
+
+        /* 렌즈 기본 소켓 공정 */
+        .lens { 
+            width: 7px; height: 7px; background-color: var(--sig-dark); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        /* 화살표용 렌즈 커스텀 (내부 화살표 모양 투과 마스크) */
+        .lens.c-arrow {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="%231b1b1f"/></svg>');
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            border-radius: 0;
+        }
+
+        /* 🧍 보행등 전용 SVG 픽토그램 렌즈 소켓 */
+        .ped-lens {
+            width: 7px; height: 9px;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+        }
+        /* 대기(적색 서있는 사람) / 보행(녹색 걷는 사람) 기본 암전 상태 */
+        .ped-lens.p-red {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2" fill="%231b1b1f"/><path d="M12 7c-1.1 0-2 .9-2 2v5h2v6h2v-6h2V9c0-1.1-.9-2-2-2z" fill="%231b1b1f"/></svg>');
+        }
+        .ped-lens.p-green {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="14" cy="3" r="2" fill="%231b1b1f"/><path d="M14 6c-1.1 0-2 .9-2 2v3.9l-2.1 2.1-1.4-1.4L11 10.1V8c0-2.2-1.8-4-4-4H4v2h3c1.1 0 2 .9 2 2v3.2L5.8 14.4l1.4 1.4 2.8-2.8V22h2v-6h2v6h2v-8.5l2.8 2.8 1.4-1.4L14 11.2V8c0-1.1.9-2 2-2h2V4h-4z" fill="%231b1b1f"/></svg>');
+        }
+
+        /* 🔥 실시간 고휘도 점등 제어 라인 */
+        .lens.c-red.on    { background-color: var(--sig-red); box-shadow: 0 0 5px var(--sig-red); }
+        .lens.c-yellow.on { background-color: var(--sig-yellow); box-shadow: 0 0 5px var(--sig-yellow); }
+        .lens.c-green.on  { background-color: var(--sig-green); box-shadow: 0 0 5px var(--sig-green); }
+        /* 화살표 점등 시 투명 아이콘 색상 주입 변경 */
+        .lens.c-arrow.on  { 
+            background-color: transparent;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="%2300ecff"/></svg>');
+            filter: drop-shadow(0px 0px 3px #00ecff);
+        }
+        /* 보행인 신호 점등 시 고대비 컬러 인젝션 */
+        .ped-lens.p-red.on {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2" fill="%23ff2a2a"/><path d="M12 7c-1.1 0-2 .9-2 2v5h2v6h2v-6h2V9c0-1.1-.9-2-2-2z" fill="%23ff2a2a"/></svg>');
+            filter: drop-shadow(0px 0px 3px var(--sig-red));
+        }
+        .ped-lens.p-green.on {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="14" cy="3" r="2" fill="%2300b894"/><path d="M14 6c-1.1 0-2 .9-2 2v3.9l-2.1 2.1-1.4-1.4L11 10.1V8c0-2.2-1.8-4-4-4H4v2h3c1.1 0 2 .9 2 2v3.2L5.8 14.4l1.4 1.4 2.8-2.8V22h2v-6h2v6h2v-8.5l2.8 2.8 1.4-1.4L14 11.2V8c0-1.1.9-2 2-2h2V4h-4z" fill="%2300b894"/></svg>');
+            filter: drop-shadow(0px 0px 3px var(--sig-green));
+        }
+
+        /* 마이크로 타이머 */
+        .micro-timer { font-family: monospace; font-size: 7px; font-weight: bold; line-height: 1; margin-top: 1px; }
+        .car-timer { color: #00ecff; }
+        .ped-timer { color: #00ffa2; }
+
+        /* 8방향 회전 물리 각도 축 */
+        .slot-N  { transform: rotate(180deg); } 
+        .slot-NE { transform: rotate(-135deg); }
+        .slot-E  { transform: rotate(-90deg); }  
+        .slot-SE { transform: rotate(-45deg); }
+        .slot-S  { transform: rotate(0deg); }    
+        .slot-SW { transform: rotate(45deg); }
+        .slot-W  { transform: rotate(90deg); }   
+        .slot-NW { transform: rotate(135deg); }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- 🗺️ 1단: 상단 선택 메인 맵 -->
+        <div id="top-selector-view"></div>
+
+        <!-- 📊 2단: 하단 좌우 독립 모니터 패널 -->
+        <div class="bottom-control-view">
+            <div class="sub-panel" id="panel-left">
+                <div class="panel-tag" id="tag-L">교차로 1: 미선택</div>
+                <div id="sub-map-L" class="sub-bg-map"></div>
+                <div class="compass-center-overlay" id="compass-L"></div>
+            </div>
+            
+            <div class="sub-panel" id="panel-right">
+                <div class="panel-tag" id="tag-R">교차로 2: 미선택</div>
+                <div id="sub-map-R" class="sub-bg-map"></div>
+                <div class="compass-center-overlay" id="compass-R"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const mockMasterData = [
+            { name: "광화문 사거리", id: "CROSS-01", lat: 37.5715, lng: 126.9764 },
+            { name: "강남역 사거리", id: "CROSS-02", lat: 37.4979, lng: 127.0276 },
+            { name: "시청 광장 교차로", id: "CROSS-03", lat: 37.5665, lng: 126.9780 },
+            { name: "신촌 오거리", id: "CROSS-04", lat: 37.5553, lng: 126.9369 }
+        ];
+
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        let activeNodes = { L: null, R: null };
+        let nextTargetSlot = 'L';
+
+        // 1. 메인 지도 인스턴스 초기화
+        const mainMap = L.map('top-selector-view', { zoomControl: false }).setView([37.541, 126.986], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);
+
+        // 2. 하단 서브 고배율 지도 인스턴스 초기화
+        const subMapL = L.map('sub-map-L', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([37.5715, 126.9764], 19);
+        const subMapR = L.map('sub-map-R', { zoomControl: false, dragging: false, touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([37.4979, 127.0276], 19);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(subMapL);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(subMapR);
+
+        // 3. 상단 맵 마커 배포 및 인터랙션 리스너
+        mockMasterData.forEach(node => {
+            const htmlContent = `<div class="master-marker" id="mm-${node.id}"></div>`;
+            const customIcon = L.divIcon({ html: htmlContent, className: '', iconSize: [24, 24] });
+            
+            node.layer = L.marker([node.lat, node.lng], { icon: customIcon }).addTo(mainMap);
+            node.layer.on('click', () => dispatchNodeToSubPanel(node));
+        });
+
+        function dispatchNodeToSubPanel(node) {
+            if (activeNodes.L && activeNodes.L.id === node.id) return;
+            if (activeNodes.R && activeNodes.R.id === node.id) return;
+
+            const currentSlot = nextTargetSlot;
+
+            if (activeNodes[currentSlot]) {
+                const prevNodeId = activeNodes[currentSlot].id;
+                const activeClassName = currentSlot === 'L' ? 'active-L' : 'active-R';
+                const markerEl = document.getElementById(`mm-${prevNodeId}`);
+                if (markerEl) markerEl.classList.remove(activeClassName);
+            }
+
+            activeNodes[currentSlot] = node;
+
+            const newMarkerEl = document.getElementById(`mm-${node.id}`);
+            if (newMarkerEl) {
+                newMarkerEl.classList.add(currentSlot === 'L' ? 'active-L' : 'active-R');
+            }
+
+            if (currentSlot === 'L') {
+                document.getElementById('tag-L').innerText = node.name;
+                subMapL.setView([node.lat, node.lng], 19);
+                nextTargetSlot = 'R';
+            } else {
+                document.getElementById('tag-R').innerText = node.name;
+                subMapR.setView([node.lat, node.lng], 19);
+                nextTargetSlot = 'L';
+            }
+        }
+
+        // 4. 하단 정밀 컴패스 마운트 프레임 빌더
+        function buildCompassDOM(panelKey) {
+            const container = document.getElementById(`compass-${panelKey}`);
+            let html = '';
+            
+            directions.forEach(dir => {
+                html += `
+                    <div class="signal-slot slot-${dir}">
+                        <div class="signal-mount-frame">
+                            <!-- 🚗 차량등 컴포넌트 블록: 적 -> 황 -> 화살표 -> 녹 정렬 -->
+                            <div class="component-block">
+                                <div class="car-housing-box">
+                                    <div class="lens c-red" id="cr-${panelKey}-${dir}"></div>
+                                    <div class="lens c-yellow" id="cy-${panelKey}-${dir}"></div>
+                                    <div class="lens c-arrow" id="ca-${panelKey}-${dir}"></div>
+                                    <div class="lens c-green" id="cg-${panelKey}-${dir}"></div>
+                                </div>
+                                <div class="micro-timer car-timer" id="tc-${panelKey}-${dir}">-</div>
+                            </div>
+                            <!-- 🧍 보행등 컴포넌트 블록: 고대비 SVG 픽토그램 매핑 -->
+                            <div class="component-block">
+                                <div class="ped-housing-box">
+                                    <div class="ped-lens p-red" id="pr-${panelKey}-${dir}"></div>
+                                    <div class="ped-lens p-green" id="pg-${panelKey}-${dir}"></div>
+                                </div>
+                                <div class="micro-timer ped-timer" id="tp-${panelKey}-${dir}">-</div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        buildCompassDOM('L');
+        buildCompassDOM('R');
+
+        // 5. 런타임 신호 주기 변환 시뮬레이터
+        setInterval(() => {
+            ['L', 'R'].forEach(panelKey => {
+                if (!activeNodes[panelKey]) return;
+
+                directions.forEach(dir => {
+                    const cr = document.getElementById(`cr-${panelKey}-${dir}`);
+                    const cy = document.getElementById(`cy-${panelKey}-${dir}`);
+                    const ca = document.getElementById(`ca-${panelKey}-${dir}`);
+                    const cg = document.getElementById(`cg-${panelKey}-${dir}`);
+                    const pr = document.getElementById(`pr-${panelKey}-${dir}`);
+                    const pg = document.getElementById(`pg-${panelKey}-${dir}`);
+                    
+                    const tc = document.getElementById(`tc-${panelKey}-${dir}`);
+                    const tp = document.getElementById(`tp-${panelKey}-${dir}`);
+
+                    if (!cr || !cy || !ca || !cg || !pr || !pg) return;
+
+                    // 상태 클래스 오프
+                    cr.classList.remove('on'); cy.classList.remove('on'); ca.classList.remove('on'); cg.classList.remove('on');
+                    pr.classList.remove('on'); pg.classList.remove('on');
+
+                    const rand = Math.random();
+                    let cTime = Math.floor(Math.random() * 20) + 5;
+                    let pTime = Math.floor(Math.random() * 12) + 4;
+
+                    if (rand < 0.4) {
+                        cg.classList.add('on'); pr.classList.add('on');
+                        pTime = cTime + 1;
+                    } else if (rand < 0.75) {
+                        cr.classList.add('on'); pg.classList.add('on');
+                        cTime = pTime + 3;
+                    } else if (rand < 0.9) {
+                        // 좌회전 신호 가동
+                        cr.classList.add('on'); ca.classList.add('on'); pr.classList.add('on');
+                    } else {
+                        cy.classList.add('on'); pr.classList.add('on');
+                        cTime = Math.floor(Math.random() * 3) + 1;
+                    }
+
+                    tc.innerText = `C:${cTime}`;
+                    tp.innerText = `P:${pTime}`;
+                });
+            });
+        }, 2000);
+
+        // 디폴트 선행 데이터 주입 처리
+        dispatchNodeToSubPanel(mockMasterData[0]);
+        dispatchNodeToSubPanel(mockMasterData[1]);
+    </script>
+</body>
+</html>
