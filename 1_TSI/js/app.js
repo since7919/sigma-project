@@ -1,10 +1,10 @@
 window.fetchData = async function(targetUrl) {
-    if (!API_CONFIG.useProxy) {
-        return await fetch(targetUrl);
-    }
-    // 닷홈 WAF 우회: HTTP/HTTPS 문자열을 치환하여 GET 방식(safeurl)으로 우회
-    const safeUrl = targetUrl.replace('http://', '_HTTP_').replace('https://', '_HTTPS_');
-    return await fetch('/api_bridge.php?safeurl=' + encodeURIComponent(safeUrl));
+    // 닷홈 WAF 우회 및 CORS 해결을 위해 백엔드 범용 프록시(/api/proxy/utic) 사용
+    // 서울시 API 등 utic이 아닌 경우엔 원래 URL을 프록시로 넘기거나 별도 처리 가능
+    // 여기서는 모든 요청을 백엔드 프록시로 보냄
+    const proxyUrl = `/api/proxy/utic?url=${encodeURIComponent(targetUrl)}`;
+    
+    return await fetch(proxyUrl);
 };
 
 const REGIONS = [
@@ -377,45 +377,29 @@ async function fetchIntersections(searchQuery = '', container = null, forceRefre
         }
     }
 
-    listContainer.innerHTML = '<p class="placeholder" style="padding:10px;">데이터 수신 중...</p>';
+    listContainer.innerHTML = '<p class="placeholder" style="padding:10px;">데이터베이스 연동 중...</p>';
 
     try {
-        const targetUrl = `${API_CONFIG.baseUrl}?serviceKey=${API_CONFIG.serviceKey}&type=json&srchCTId=${currentRegionCode}&itstNm=${encodeURIComponent(searchQuery)}&pageNo=1&numOfRows=9999`;
         const startTime = performance.now();
-        const response = await window.fetchData(targetUrl);
+        // 백엔드 DB API에서 전체 교차로 목록 조회
+        const targetUrl = `/api/intersections`;
+        const response = await fetch(targetUrl);
         const endTime = performance.now();
         
         if (!response.ok) throw new Error('Network response was not ok');
         
-        const rawText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(rawText);
-            console.log('UTIC Response Data:', data);
-        } catch (jsonErr) {
-            console.error('Failed to parse UTIC JSON:', jsonErr, '\nRaw Text:', rawText);
-            listContainer.innerHTML = '<p class="placeholder" style="padding:10px; color:#ef4444;">데이터 형식이 올바르지 않습니다. 콘솔을 확인해주세요.</p>';
-            return;
-        }
-
-        updateApiStatus('utic', true, 'Connected', endTime - startTime);
-
-        // JSON 구조 처리 (다양한 응답 형태 지원)
-        let rawItems = [];
-        if (Array.isArray(data)) {
-            rawItems = data.slice(1);
-        } else if (data && data.body && data.body.items) {
-            rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
-        } else if (data && data.items) {
-            rawItems = Array.isArray(data.items) ? data.items : [data.items];
-        } else if (data && data.PlanCRRSInfo) {
-            rawItems = Array.isArray(data.PlanCRRSInfo) ? data.PlanCRRSInfo : [data.PlanCRRSInfo];
-        } else if (data && data.response && data.response.body && data.response.body.items) {
-            rawItems = Array.isArray(data.response.body.items) ? data.response.body.items : [data.response.body.items];
-        }
+        const allData = await response.json();
         
+        // 프론트엔드에서 regionCode와 검색어로 필터링
+        let rawItems = allData.filter(item => {
+            const matchRegion = currentRegionCode ? (item.region_code === currentRegionCode || item.regionCode === currentRegionCode || item.ctpt_id === currentRegionCode) : true;
+            const matchName = searchQuery ? (item.itst_nm || item.itstNm || item.itst_name || '').includes(searchQuery) : true;
+            return matchRegion && matchName;
+        });
+        
+        updateApiStatus('utic', true, 'Connected to DB', endTime - startTime);
+
         if (!rawItems || rawItems.length === 0) {
-            console.warn('UTIC API returned no items. Raw data:', data);
             listContainer.innerHTML = '<p class="placeholder" style="padding:10px; color:var(--text-muted);">검색된 교차로 데이터가 없습니다.</p>';
             return;
         }
@@ -425,15 +409,15 @@ async function fetchIntersections(searchQuery = '', container = null, forceRefre
         const seenIds = new Set();
 
         rawItems.forEach(item => {
-            const itstId = item.INT_NO || item.itstId;
+            const itstId = item.INT_NO || item.itstId || item.itst_id || item.ctpt_id;
             if (!itstId || seenIds.has(itstId)) return;
             
             seenIds.add(itstId);
-            const name = item.INT_NM || item.itstNm;
+            const name = item.INT_NM || item.itstNm || item.itst_nm || item.itst_name;
             
             // 좌표 보정 로직 (인천 L02 한정)
-            let la = item.Y_COORD || item.la;
-            let lo = item.X_COORD || item.lo;
+            let la = item.Y_COORD || item.la || item.lat || item.y_coord || item.mapCtptIntLat;
+            let lo = item.X_COORD || item.lo || item.lng || item.x_coord || item.mapCtptIntLot;
             
             if (!la && currentRegionCode === 'L02' && typeof L02_DATA !== 'undefined') {
                 const localInfo = L02_DATA.find(l => l.itstId === itstId);
@@ -445,11 +429,11 @@ async function fetchIntersections(searchQuery = '', container = null, forceRefre
 
             items.push({
                 itstId: itstId,
-                nodeId: item.NODE_ID,
+                nodeId: item.NODE_ID || item.node_id,
                 itstNm: name,
                 la: parseFloat(la),
                 lo: parseFloat(lo),
-                updateTime: item.COLLCT_DTIME
+                updateTime: item.COLLCT_DTIME || item.updated_at
             });
         });
 

@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const path = require('path');
 const supabase = require('./db');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// 1_TSI 폴더를 정적 파일로 서빙
+app.use('/', express.static(path.join(__dirname, '../1_TSI')));
 
 const PORT = process.env.PORT || 3000;
 const UTIC_API_KEY = process.env.UTIC_API_KEY;
@@ -34,21 +38,18 @@ app.get('/api/intersections', async (req, res) => {
   }
 });
 
-// 2. UTIC 실시간 신호정보 프록시 라우트 (닷홈 브릿지 경유)
+// 2. UTIC 실시간 신호정보 범용 프록시 라우트 (닷홈 브릿지 경유)
 app.get('/api/proxy/utic', async (req, res) => {
-  const { regionCode, itstNm } = req.query;
+  const { url } = req.query;
   
-  if (!regionCode || !itstNm) {
-    return res.status(400).json({ error: 'regionCode와 itstNm 파라미터가 필요합니다.' });
+  if (!url) {
+    return res.status(400).json({ error: 'url 파라미터가 필요합니다.' });
   }
   
   try {
-    // 최종 목적지 URL
-    const targetUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${regionCode}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
-    
     // 닷홈 브릿지 호출 (X-Secret-Token 전달)
     const response = await axios.get(DOTHOME_BRIDGE_URL, {
-      params: { url: targetUrl },
+      params: { url: url },
       headers: {
         'X-Secret-Token': BRIDGE_SECRET_KEY
       }
