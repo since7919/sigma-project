@@ -65,18 +65,37 @@ function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
   );
 }
 
-// [2] 8방향 시그널 렌즈
-function OctagonLens({ phase }) {
-  const directions = ['N', 'E', 'S', 'W', 'NE', 'SE', 'SW', 'NW'];
+// [2] 8방향 시그널 렌즈 컴포넌트 (원본 TSI 완벽 이식)
+function OctagonLens({ phase, activeDirections }) {
+  // 0(북), 45(북동), 90(동), 135(남동), 180(남), 225(남서), 270(서), 315(북서)
+  const allDirections = [0, 45, 90, 135, 180, 225, 270, 315];
+  
+  // 데이터가 있는 방향만 필터링 (수신되지 않는 방향은 숨김 처리)
+  const renderDirections = allDirections.filter(dir => activeDirections.includes(dir));
+
   return (
-    <div className="octagon-lens-container">
-      <div className="center-node"><div className="center-inner"></div></div>
-      {directions.map(dir => (
-        <div key={dir} className={`directional-lens-group dir-${dir}`}>
-          <div className={`lens red ${phase % 2 !== 0 ? 'on' : ''}`}></div>
-          <div className={`lens yellow ${phase === 3 ? 'on' : ''}`}></div>
-          <div className={`lens arrow ${dir === 'N' || dir === 'S' ? 'on' : ''}`}></div>
-          <div className={`lens green ${phase % 2 === 0 ? 'on' : ''}`}></div>
+    <div className="signal-board">
+      <div className="center-label">
+        <span style={{fontSize:'0.8rem', color:'#94a3b8'}}>PHASE</span>
+        <span className="accent" style={{fontSize:'2rem'}}>{phase}</span>
+      </div>
+      
+      {renderDirections.map(dir => (
+        <div key={dir} className={`direction-signal dir-${dir}`}>
+          <div className="signal-cluster">
+            {/* 보행자 신호등 */}
+            <div className="pedestrian-box">
+              <div className={`sig-unit p-red ${phase % 2 !== 0 ? 'active-p red' : ''}`}><div className="icon-mock"></div></div>
+              <div className={`sig-unit p-green ${phase % 2 === 0 ? 'active-p green flash' : ''}`}><div className="icon-mock"></div></div>
+            </div>
+            {/* 차량 신호등 (4구) */}
+            <div className="vehicle-box">
+              <div className={`sig-unit v-red ${phase % 2 !== 0 ? 'active-l red' : ''}`}></div>
+              <div className={`sig-unit v-yellow ${phase === 3 ? 'active-l yellow' : ''}`}></div>
+              <div className={`sig-unit v-arrow ${dir === 0 || dir === 180 ? 'active-l green' : ''}`}></div>
+              <div className={`sig-unit v-green ${phase % 2 === 0 ? 'active-l green' : ''}`}></div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -113,10 +132,11 @@ function SingleDetailOverlay({ intersection, onClose }) {
             <button className="toolbar-btn">맵 확대 모드</button>
             <span style={{color:'#10b981', marginLeft:20, fontWeight:'bold'}}>잔여시간: {remainTime}초</span>
           </div>
-          <MapContainer center={[intersection.y_coord, intersection.x_coord]} zoom={18} style={{width:'100%', height:'100%'}} zoomControl={false}>
+          <MapContainer center={[intersection.y_coord, intersection.x_coord]} zoom={19} style={{width:'100%', height:'100%'}} zoomControl={false}>
             <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}" />
           </MapContainer>
-          <OctagonLens phase={phase} />
+          {/* 십자 직진 방향(0, 90, 180, 270)만 수신되었다고 가정 (데이터 없으면 숨김) */}
+          <OctagonLens phase={phase} activeDirections={[0, 90, 180, 270]} />
         </div>
 
         <div className="modal-bottom-data">
