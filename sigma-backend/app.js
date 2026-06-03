@@ -11,6 +11,8 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const UTIC_API_KEY = process.env.UTIC_API_KEY;
 const SEOUL_API_KEY = process.env.SEOUL_API_KEY;
+const DOTHOME_BRIDGE_URL = process.env.DOTHOME_BRIDGE_URL || 'http://your-dothome-domain/api_bridge.php';
+const BRIDGE_SECRET_KEY = process.env.BRIDGE_SECRET_KEY || 'sigma-secure-token-2026';
 
 // 헬스 체크 엔드포인트 (Render 절전 방지용)
 app.get('/health', (req, res) => {
@@ -32,7 +34,7 @@ app.get('/api/intersections', async (req, res) => {
   }
 });
 
-// 2. UTIC 실시간 신호정보 프록시 라우트
+// 2. UTIC 실시간 신호정보 프록시 라우트 (닷홈 브릿지 경유)
 app.get('/api/proxy/utic', async (req, res) => {
   const { regionCode, itstNm } = req.query;
   
@@ -41,13 +43,21 @@ app.get('/api/proxy/utic', async (req, res) => {
   }
   
   try {
-    const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?serviceKey=${UTIC_API_KEY}&regionCode=${regionCode}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
+    // 최종 목적지 URL
+    const targetUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${regionCode}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
     
-    const response = await axios.get(url);
+    // 닷홈 브릿지 호출 (X-Secret-Token 전달)
+    const response = await axios.get(DOTHOME_BRIDGE_URL, {
+      params: { url: targetUrl },
+      headers: {
+        'X-Secret-Token': BRIDGE_SECRET_KEY
+      }
+    });
+    
     res.json(response.data);
   } catch (error) {
-    console.error('UTIC API 호출 에러:', error.message);
-    res.status(500).json({ error: 'UTIC API 통신 실패' });
+    console.error('UTIC 브릿지 호출 에러:', error.message);
+    res.status(500).json({ error: 'UTIC(닷홈 브릿지 경유) 통신 실패' });
   }
 });
 

@@ -2,10 +2,21 @@
 // CORS 설정
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Secret-Token");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
+    exit;
+}
+
+// 1. 오픈 프록시 방지 (보안 토큰 검증)
+$secret_token = "sigma-secure-token-2026"; // 백엔드와 동일하게 맞춰야 하는 비밀번호
+$headers = apache_request_headers();
+$provided_token = isset($headers['X-Secret-Token']) ? $headers['X-Secret-Token'] : (isset($_GET['token']) ? $_GET['token'] : '');
+
+if ($provided_token !== $secret_token) {
+    http_response_code(403);
+    echo "Forbidden: Invalid Secret Token.";
     exit;
 }
 
@@ -15,10 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($input['target_url'])) {
         $url = $input['target_url'];
     }
-} elseif (isset($_GET['safeurl'])) {
-    $url = str_replace(array('_HTTP_', '_HTTPS_'), array('http://', 'https://'), $_GET['safeurl']);
-} elseif (isset($_GET['b64url'])) {
-    $url = base64_decode($_GET['b64url']);
 } elseif (isset($_GET['url'])) {
     $url = $_GET['url'];
 }
@@ -29,13 +36,10 @@ if (empty($url)) {
     exit;
 }
 
-$seoul_api_key = "a6a8e58e-7215-4025-b453-2d33cdd09eb2";
+// UTIC 전용 프록시로 제한
 $utic_api_key = "9rKirej7S3pv112cEGe6Cotf9ybxRrvEuKXJCOU";
 
-if (strpos($url, 't-data.seoul.go.kr') !== false) {
-    $separator = (strpos($url, '?') !== false) ? '&' : '?';
-    $url .= $separator . "apikey=" . $seoul_api_key;
-} elseif (strpos($url, 'tsihub.utic.go.kr') !== false) {
+if (strpos($url, 'tsihub.utic.go.kr') !== false) {
     if (preg_match('/([?&])serviceKey=[^&]*/', $url)) {
         $url = preg_replace('/([?&])serviceKey=[^&]*/', '$1serviceKey=' . $utic_api_key, $url);
     } else {
@@ -44,7 +48,7 @@ if (strpos($url, 't-data.seoul.go.kr') !== false) {
     }
 } else {
     http_response_code(403);
-    echo "Error: Not allowed domain.";
+    echo "Error: Not allowed domain. This bridge is for UTIC only.";
     exit;
 }
 
