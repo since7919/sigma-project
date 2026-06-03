@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
@@ -6,10 +6,20 @@ import './index.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-// [1] 마커 최적화 렌더링 컴포넌트
-function IntersectionMarkers({ intersections, onDetailClick }) {
+// [1] 마커 최적화 렌더링 및 클릭 이벤트
+function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
+
+  // 사이드바에서 교차로 선택시 지도 위치 이동 (flyTo)
+  useEffect(() => {
+    if (targetId) {
+      const target = intersections.find(i => i.id === targetId);
+      if (target) {
+        map.flyTo([target.y_coord, target.x_coord], 16, { duration: 1 });
+      }
+    }
+  }, [targetId, intersections, map]);
 
   useEffect(() => {
     const onZoom = () => setZoomLevel(map.getZoom());
@@ -21,40 +31,41 @@ function IntersectionMarkers({ intersections, onDetailClick }) {
 
   return (
     <>
-      {intersections.map((intersection) => (
-        <CircleMarker
-          key={intersection.id}
-          center={[intersection.y_coord, intersection.x_coord]}
-          radius={6}
-          fillColor="#64748b"
-          color="#334155"
-          weight={2}
-          fillOpacity={0.8}
-        >
-          {/* 마커 툴팁 (이름 표출용) */}
-          {showTooltip && (
-            <Tooltip direction="top" offset={[0, -10]} permanent className="map-label">
-              {intersection.int_nm}
-            </Tooltip>
-          )}
-          
-          {/* 클릭 시 나타나는 팝업 (첫 번째 캡처 화면 복원) */}
-          <Popup className="custom-popup" closeButton={true}>
-            <div className="popup-content">
-              <h3>{intersection.int_nm}</h3>
-              <button className="btn-detail" onClick={(e) => {
-                e.stopPropagation();
-                onDetailClick(intersection);
-              }}>상세보기</button>
-            </div>
-          </Popup>
-        </CircleMarker>
-      ))}
+      {intersections.map((intersection) => {
+        const isSelected = intersection.id === targetId;
+        return (
+          <CircleMarker
+            key={intersection.id}
+            center={[intersection.y_coord, intersection.x_coord]}
+            radius={isSelected ? 10 : 6}
+            fillColor={isSelected ? "#38bdf8" : "#64748b"}
+            color={isSelected ? "#fff" : "#334155"}
+            weight={isSelected ? 3 : 2}
+            fillOpacity={0.8}
+          >
+            {showTooltip && (
+              <Tooltip direction="top" offset={[0, -10]} permanent className="map-label">
+                {intersection.int_nm}
+              </Tooltip>
+            )}
+            
+            <Popup className="custom-popup" closeButton={true}>
+              <div className="popup-content">
+                <h3>{intersection.int_nm}</h3>
+                <button className="btn-detail" onClick={(e) => {
+                  e.stopPropagation();
+                  onDetailClick(intersection);
+                }}>상세보기</button>
+              </div>
+            </Popup>
+          </CircleMarker>
+        );
+      })}
     </>
   );
 }
 
-// [2] 8방향 시그널 렌즈 컴포넌트 (모달 위성 지도 중앙 배치용)
+// [2] 8방향 시그널 렌즈
 function OctagonLens({ phase }) {
   const directions = ['N', 'E', 'S', 'W', 'NE', 'SE', 'SW', 'NW'];
   return (
@@ -72,13 +83,17 @@ function OctagonLens({ phase }) {
   );
 }
 
-// [3] 단일 교차로 상세 모니터링 (Single Detail Overlay)
+// [3] 단일 교차로 상세 모니터링 모달
 function SingleDetailOverlay({ intersection, onClose }) {
   const [activeTab, setActiveTab] = useState('detail');
   const [phase, setPhase] = useState(1);
+  const [remainTime, setRemainTime] = useState(25);
 
   useEffect(() => {
-    const interval = setInterval(() => setPhase(p => (p % 8) + 1), 3000);
+    const interval = setInterval(() => {
+      setPhase(p => (p % 8) + 1);
+      setRemainTime(r => r > 0 ? r - 1 : 25);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -87,17 +102,16 @@ function SingleDetailOverlay({ intersection, onClose }) {
   return (
     <div className="detail-modal-overlay">
       <div className="detail-modal-content">
-        {/* 상단 헤더 */}
         <header className="modal-header">
           <h2>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
           <button className="btn-close" onClick={onClose}>×</button>
         </header>
 
-        {/* 상단 55%: 위성 지도 및 시그널 렌즈 */}
         <div className="modal-top-map">
           <div className="overlay-toolbar">
             <button className="toolbar-btn active">전체 정보 모드</button>
             <button className="toolbar-btn">맵 확대 모드</button>
+            <span style={{color:'#10b981', marginLeft:20, fontWeight:'bold'}}>잔여시간: {remainTime}초</span>
           </div>
           <MapContainer center={[intersection.y_coord, intersection.x_coord]} zoom={18} style={{width:'100%', height:'100%'}} zoomControl={false}>
             <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}" />
@@ -105,48 +119,32 @@ function SingleDetailOverlay({ intersection, onClose }) {
           <OctagonLens phase={phase} />
         </div>
 
-        {/* 하단 45%: 상세 탭, 테이블, 운영정보 */}
         <div className="modal-bottom-data">
           <div className="tabs-header">
             <button className={`tab-btn ${activeTab === 'detail' ? 'active' : ''}`} onClick={() => setActiveTab('detail')}>상세 신호정보</button>
             <button className={`tab-btn ${activeTab === 'signalmap' ? 'active' : ''}`} onClick={() => setActiveTab('signalmap')}>시그널맵 (LSU & Step)</button>
           </div>
-
           <div className="detail-tab-content custom-scroll">
             {activeTab === 'detail' && (
               <table className="detail-grid-table">
                 <thead>
-                  <tr>
-                    <th>방향정보</th><th>보행자</th><th>뱅크코드</th><th>시간제신호</th><th>출력형태</th><th>신호등상태</th>
-                  </tr>
+                  <tr><th>방향정보</th><th>보행자</th><th>뱅크코드</th><th>시간제신호</th><th>출력형태</th><th>신호등상태</th></tr>
                 </thead>
                 <tbody>
                   <tr><td className="action-type">북</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">직진(1)</span></td><td>대기 중</td></tr>
                   <tr><td className="action-type">북</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">보행(3)</span></td><td>대기 중</td></tr>
                   <tr><td className="action-type">북동</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">좌회전(2)</span></td><td>대기 중</td></tr>
                   <tr><td className="action-type">동</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">보행(3)</span></td><td>대기 중</td></tr>
-                  <tr><td className="action-type">남</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">직진(1)</span></td><td>대기 중</td></tr>
-                  <tr><td className="action-type">남서</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">좌회전(2)</span></td><td>대기 중</td></tr>
                 </tbody>
               </table>
             )}
-            {activeTab === 'signalmap' && (
-              <div style={{padding:20, color:'#94a3b8', textAlign:'center'}}>
-                시그널맵(LSU & Step) 데이터 준비중...
-              </div>
-            )}
           </div>
-
-          {/* 최하단 운영정보 */}
           <footer className="operation-footer">
             <div className="op-items">
               <div className="op-item"><span className="op-label">운영정보</span><span className="op-val" style={{color:'#38bdf8'}}>주기 미연동</span></div>
               <div className="op-item"><span className="op-label">오프셋</span><span className="op-val">-</span></div>
               <div className="op-item"><span className="op-label">전이</span><span className="op-val">OFF</span></div>
               <div className="op-item"><span className="op-label">감응</span><span className="op-val">OFF</span></div>
-              <div className="op-item"><span className="op-label">소등</span><span className="op-val">OFF</span></div>
-              <div className="op-item"><span className="op-label">점멸</span><span className="op-val">OFF</span></div>
-              <div className="op-item"><span className="op-label">수동</span><span className="op-val">OFF</span></div>
             </div>
             <button className="btn-download">📄 운영계획(TOD) 다운로드</button>
           </footer>
@@ -156,10 +154,106 @@ function SingleDetailOverlay({ intersection, onClose }) {
   );
 }
 
-// [4] 메인 애플리케이션 레이아웃
+// [4] 사이드바 트리 (Accordion) 컴포넌트
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId }) {
+  // 데이터 그룹화 로직 (useMemo 활용)
+  const { tdataList, uticGroups } = useMemo(() => {
+    const tdata = [];
+    const utic = {};
+
+    intersections.forEach(item => {
+      // origin_type 판별 (가정: '서울tdata', 'tdata' 또는 'UTIC', 'utic')
+      const isTdata = item.origin_type?.toLowerCase().includes('tdata');
+      if (isTdata) {
+        tdata.push(item);
+      } else {
+        const region = item.region_cd || '기타지역';
+        if (!utic[region]) utic[region] = [];
+        utic[region].push(item);
+      }
+    });
+    return { tdataList: tdata, uticGroups: utic };
+  }, [intersections]);
+
+  // 아코디언 상태 관리
+  const [tdataOpen, setTdataOpen] = useState(true);
+  const [uticOpen, setUticOpen] = useState(true);
+  const [openRegions, setOpenRegions] = useState({});
+
+  const toggleRegion = (region) => {
+    setOpenRegions(prev => ({ ...prev, [region]: !prev[region] }));
+  };
+
+  return (
+    <div className="accordion-wrapper custom-scroll">
+      
+      {/* 1. 서울 Tdata 그룹 */}
+      <div className="acc-group">
+        <div className="acc-header" onClick={() => setTdataOpen(!tdataOpen)}>
+          <span className="acc-icon">{tdataOpen ? '▼' : '▶'}</span>
+          🏛️ 서울Tdata 개방데이터 <span className="acc-count">({tdataList.length})</span>
+        </div>
+        {tdataOpen && (
+          <div className="acc-body">
+            {tdataList.map(item => (
+              <div 
+                key={item.id} 
+                className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
+                onClick={() => onNodeClick(item.id)}
+              >
+                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#64748b'}}></div>
+                <span className="id-label">[{item.int_no}]</span>
+                <span className="name-label">{item.int_nm}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2. UTIC 그룹 */}
+      <div className="acc-group">
+        <div className="acc-header" onClick={() => setUticOpen(!uticOpen)}>
+          <span className="acc-icon">{uticOpen ? '▼' : '▶'}</span>
+          🚓 경찰청 UTIC 개방데이터
+        </div>
+        {uticOpen && (
+          <div className="acc-body">
+            {Object.entries(uticGroups).map(([region, list]) => (
+              <div key={region} className="acc-subgroup">
+                <div className="acc-sub-header" onClick={() => toggleRegion(region)}>
+                  <span className="acc-icon">{openRegions[region] ? '▼' : '▶'}</span>
+                  📍 {region} 지역 <span className="acc-count">({list.length})</span>
+                </div>
+                {openRegions[region] && (
+                  <div className="acc-sub-body">
+                    {list.map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
+                        onClick={() => onNodeClick(item.id)}
+                      >
+                        <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#64748b'}}></div>
+                        <span className="id-label">[{item.int_no}]</span>
+                        <span className="name-label">{item.int_nm}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+    </div>
+  );
+}
+
+// [5] 메인 레이아웃
 function App() {
   const [intersections, setIntersections] = useState([]);
-  const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기 타겟
+  const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
+  const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
 
   useEffect(() => {
     const fetchIntersections = async () => {
@@ -172,6 +266,10 @@ function App() {
     };
     fetchIntersections();
   }, []);
+
+  const handleNodeClick = (id) => {
+    setActiveNodeId(id);
+  };
 
   const openDetail = (intersection) => {
     setDetailIntersection(intersection);
@@ -187,16 +285,14 @@ function App() {
           <input type="text" placeholder="교차로명 검색..." />
           <button>🔍</button>
         </div>
-        <div className="tree-container custom-scroll">
-          <div style={{color:'var(--accent-primary)', fontSize:'0.8rem', marginBottom:'10px', fontWeight:700}}>▼ 전체 교차로 목록 ({intersections.length})</div>
-          {intersections.slice(0, 200).map(item => (
-            <div key={item.id} className="tree-item" onClick={() => openDetail(item)}>
-              <div className="status-dot" style={{background: '#64748b'}}></div>
-              <span className="id-label">[{item.int_no}]</span>
-              <span className="name-label">{item.int_nm}</span>
-            </div>
-          ))}
-        </div>
+        
+        {/* 트리뷰 컴포넌트 연결 */}
+        <SidebarAccordion 
+          intersections={intersections} 
+          onNodeClick={handleNodeClick} 
+          activeNodeId={activeNodeId} 
+        />
+        
       </aside>
 
       <main className="main-content">
@@ -206,6 +302,7 @@ function App() {
             <IntersectionMarkers 
               intersections={intersections} 
               onDetailClick={openDetail}
+              targetId={activeNodeId}
             />
           </MapContainer>
         </div>
@@ -226,7 +323,7 @@ function App() {
               </thead>
               <tbody>
                 {intersections.slice(0, 10).map(item => (
-                  <tr key={item.id}>
+                  <tr key={item.id} style={{background: activeNodeId === item.id ? 'rgba(56, 189, 248, 0.1)' : ''}}>
                     <td>-</td>
                     <td style={{color:'var(--accent-primary)', fontWeight:'bold'}}>{item.int_no}</td>
                     <td style={{fontWeight:'bold'}}>{item.int_nm}</td>
@@ -246,7 +343,6 @@ function App() {
         </div>
       </main>
 
-      {/* 상세보기 모달 렌더링 */}
       {detailIntersection && (
         <SingleDetailOverlay intersection={detailIntersection} onClose={() => setDetailIntersection(null)} />
       )}
