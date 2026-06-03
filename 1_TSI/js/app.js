@@ -331,16 +331,34 @@ async function forceRefreshUtic(event) {
         alert('먼저 갱신할 UTIC 지역을 선택해주세요.');
         return;
     }
+    
+    if (!confirm('UTIC 서버에서 최신 데이터를 가져와 데이터베이스를 동기화하시겠습니까? (시간이 다소 소요될 수 있습니다)')) {
+        return;
+    }
+    
     const searchInput = document.getElementById('intersection-search');
     const query = searchInput ? searchInput.value : '';
     
-    // 강제 갱신 전 기존 캐시 삭제
-    const cacheKey = `utic_intersections_${currentRegionCode}_${query}`;
-    localStorage.removeItem(cacheKey);
-    localStorage.removeItem(cacheKey + '_date');
+    const listContainer = document.getElementById(`content-${currentRegionCode}`);
+    if (listContainer) {
+        listContainer.innerHTML = '<p class="placeholder" style="padding:10px;">UTIC 데이터베이스 동기화 중... 잠시만 기다려주세요.</p>';
+    }
     
-    await fetchIntersections(query, null, true);
-    alert('교차로 목록 갱신을 완료했습니다.');
+    try {
+        const res = await fetch(`/api/intersections/sync?regionCode=${currentRegionCode}`);
+        if (!res.ok) throw new Error('Sync failed');
+        const data = await res.json();
+        if (data.success) {
+            alert(`교차로 목록 갱신을 완료했습니다. (${data.count}건 동기화 됨)`);
+            await fetchIntersections(query, null, false);
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (e) {
+        console.error('Force Refresh Error:', e);
+        alert('동기화 중 오류가 발생했습니다: ' + e.message);
+        if (listContainer) listContainer.innerHTML = '<p class="placeholder" style="padding:10px; color:#ef4444;">동기화 실패</p>';
+    }
 }
 window.forceRefreshUtic = forceRefreshUtic;
 
@@ -356,33 +374,12 @@ async function fetchIntersections(searchQuery = '', container = null, forceRefre
     const listContainer = container || document.getElementById(`content-${currentRegionCode}`);
     if (!listContainer || !currentRegionCode) return;
 
-    // LocalStorage 캐시 로직 추가
-    const cacheKey = `utic_intersections_${currentRegionCode}_${searchQuery}`;
-    const cacheDateKey = `${cacheKey}_date`;
-    const today = new Date().toISOString().split('T')[0];
-
-    if (!forceRefresh) {
-        const cachedDate = localStorage.getItem(cacheDateKey);
-        const cachedData = localStorage.getItem(cacheKey);
-
-        if (cachedDate === today && cachedData) {
-            try {
-                const items = JSON.parse(cachedData);
-                renderTreeItems(items, listContainer);
-                updateApiStatus('utic', true, 'Cached');
-                return;
-            } catch (e) {
-                console.warn('Failed to parse cached UTIC data', e);
-            }
-        }
-    }
-
     listContainer.innerHTML = '<p class="placeholder" style="padding:10px;">데이터베이스 연동 중...</p>';
 
     try {
         const startTime = performance.now();
-        // 백엔드 DB API에서 전체 교차로 목록 조회
-        const targetUrl = `/api/intersections`;
+        // 백엔드 DB API에서 해당 지역 교차로 목록 조회 (자동 동기화 포함)
+        const targetUrl = `/api/intersections?regionCode=${currentRegionCode}`;
         const response = await fetch(targetUrl);
         const endTime = performance.now();
         
@@ -390,11 +387,10 @@ async function fetchIntersections(searchQuery = '', container = null, forceRefre
         
         const allData = await response.json();
         
-        // 프론트엔드에서 regionCode와 검색어로 필터링
+        // 프론트엔드에서 검색어로 필터링
         let rawItems = allData.filter(item => {
-            const matchRegion = currentRegionCode ? (item.region_code === currentRegionCode || item.regionCode === currentRegionCode || item.ctpt_id === currentRegionCode) : true;
             const matchName = searchQuery ? (item.itst_nm || item.itstNm || item.itst_name || '').includes(searchQuery) : true;
-            return matchRegion && matchName;
+            return matchName;
         });
         
         updateApiStatus('utic', true, 'Connected to DB', endTime - startTime);
@@ -596,58 +592,118 @@ function renderTreeItems(items, container) {
     // 가상 스크롤(Virtual Scrolling) 구현
     const ITEM_HEIGHT = 38; // CSS .tree-item의 높이(padding, margin 등 포함)
     const BUFFER = 10; // 스크롤 시 위아래로 미리 그려놓을 여유 아이템 개수
+    
+    container.style.position = 'relative';
+    container.style.overflowY = 'auto';
+    container.style.maxHeight = '60vh';
 
     function renderVirtualList() {
         const scrollTop = container.scrollTop;
-        const containerHeight = container.clientHeight || 400; // 폴백 높이
+        const containerHeight = Math.min(container.clientHeight, window.innerHeight) || 400; // 폴백 방어
         
-        // 현재 화면에 보여야 할 아이템들의 인덱스 계산
         const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER);
         const endIndex = Math.min(items.length, Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + BUFFER);
-        
         const visibleItems = items.slice(startIndex, endIndex);
         
-        const contentHtml = visibleItems.map(item => {
-            const statInfo = getIntersectionStatusAndColor(item.itstId, item.isSeoul);
-            const dotColor = statInfo.style.fillColor === 'transparent' ? statInfo.style.color : statInfo.style.fillColor;
-            const isChecked = selectedIntersections.some(x => x.itstId === item.itstId && !!x.isSeoul === !!item.isSeoul) ? 'checked' : '';
-            return `
-                <div class="tree-item ${isChecked ? 'selected-multi' : ''}" data-id="${item.itstId}" data-node-id="${item.nodeId || ''}" data-la="${item.la}" data-lo="${item.lo}" data-name="${item.itstNm}" data-update-time="${item.updateTime || ''}" data-is-seoul="${item.isSeoul ? 'true' : ''}">
-                    <input type="checkbox" class="tree-item-checkbox" data-id="${item.itstId}" data-is-seoul="${item.isSeoul ? 'true' : ''}" ${isChecked} onclick="event.stopPropagation(); handleCheckboxChange(this)" style="margin-right: 8px; cursor: pointer; accent-color: var(--accent-primary); width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3);">
-                    <span class="status-dot" style="background-color: ${dotColor}; box-shadow: 0 0 8px ${dotColor};"></span>
-                    <span class="id-label">[${item.itstId}]</span>
-                    <span class="name-label">${item.itstNm}</span>
-                </div>
-            `;
-        }).join('');
-        
         let contentDiv = container.querySelector('.vs-content');
+        let spacer = container.querySelector('.vs-spacer');
+        
         if (!contentDiv) {
-            // 처음 렌더링 시 전체 높이를 잡는 빈 공간(spacer)과 실제 내용물(content) 구조 셋팅
-            container.innerHTML = `
-                <div class="vs-spacer" style="height: ${items.length * ITEM_HEIGHT}px; width: 1px;"></div>
-                <div class="vs-content" style="position: absolute; top: 0; left: 0; width: 100%;"></div>
-            `;
-            container.style.position = 'relative'; 
-            contentDiv = container.querySelector('.vs-content');
-        } else {
-            // 검색 필터링 등으로 항목 개수가 달라질 경우 spacer 높이 갱신
-            container.querySelector('.vs-spacer').style.height = `${items.length * ITEM_HEIGHT}px`;
+            container.innerHTML = ''; // 기존 내용 지우기
+            spacer = document.createElement('div');
+            spacer.className = 'vs-spacer';
+            spacer.style.width = '1px';
+            
+            contentDiv = document.createElement('div');
+            contentDiv.className = 'vs-content';
+            contentDiv.style.position = 'absolute';
+            contentDiv.style.top = '0';
+            contentDiv.style.left = '0';
+            contentDiv.style.width = '100%';
+            
+            container.appendChild(spacer);
+            container.appendChild(contentDiv);
         }
         
-        // 스크롤 위치에 맞춰 내용물을 Y축으로 이동 (마치 스크롤되는 것처럼 보이게)
+        spacer.style.height = `${items.length * ITEM_HEIGHT}px`;
         contentDiv.style.transform = `translateY(${startIndex * ITEM_HEIGHT}px)`;
-        contentDiv.innerHTML = contentHtml;
+        
+        // DOM Pooling: 필요한 만큼만 생성하고 재사용
+        const existingNodes = Array.from(contentDiv.children);
+        const neededNodes = visibleItems.length;
+        
+        // 부족하면 추가
+        for (let i = existingNodes.length; i < neededNodes; i++) {
+            const el = document.createElement('div');
+            el.className = 'tree-item';
+            el.innerHTML = `
+                <input type="checkbox" class="tree-item-checkbox" onclick="event.stopPropagation(); handleCheckboxChange(this)" style="margin-right: 8px; cursor: pointer; accent-color: var(--accent-primary); width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3);">
+                <span class="status-dot"></span>
+                <span class="id-label"></span>
+                <span class="name-label"></span>
+            `;
+            contentDiv.appendChild(el);
+            existingNodes.push(el);
+        }
+        
+        // 남으면 숨기기
+        for (let i = neededNodes; i < existingNodes.length; i++) {
+            existingNodes[i].style.display = 'none';
+        }
+        
+        // 데이터 바인딩
+        visibleItems.forEach((item, index) => {
+            const el = existingNodes[index];
+            el.style.display = 'flex'; // 혹은 flex 컨테이너라면 flex로 설정 (원래 tree-item은 display 속성을 가짐)
+            
+            // 데이터 속성 업데이트
+            el.dataset.id = item.itstId;
+            el.dataset.nodeId = item.nodeId || '';
+            el.dataset.la = item.la;
+            el.dataset.lo = item.lo;
+            el.dataset.name = item.itstNm;
+            el.dataset.updateTime = item.updateTime || '';
+            el.dataset.isSeoul = item.isSeoul ? 'true' : '';
+            
+            const statInfo = getIntersectionStatusAndColor(item.itstId, item.isSeoul);
+            const dotColor = statInfo.style.fillColor === 'transparent' ? statInfo.style.color : statInfo.style.fillColor;
+            const isChecked = selectedIntersections.some(x => x.itstId === item.itstId && !!x.isSeoul === !!item.isSeoul);
+            
+            if (isChecked) el.classList.add('selected-multi');
+            else el.classList.remove('selected-multi');
+            
+            const checkbox = el.querySelector('.tree-item-checkbox');
+            checkbox.dataset.id = item.itstId;
+            checkbox.dataset.isSeoul = item.isSeoul ? 'true' : '';
+            checkbox.checked = isChecked;
+            
+            const dot = el.querySelector('.status-dot');
+            dot.style.backgroundColor = dotColor;
+            dot.style.boxShadow = `0 0 8px ${dotColor}`;
+            
+            el.querySelector('.id-label').textContent = `[${item.itstId}]`;
+            el.querySelector('.name-label').textContent = item.itstNm;
+        });
     }
 
     // 최초 렌더링
     renderVirtualList();
 
-    // 중복 스크롤 이벤트 리스너 방지
+    // 중복 스크롤 이벤트 및 프레임(layout thrashing) 방지를 위한 최적화
     if (container._vsHandler) {
         container.removeEventListener('scroll', container._vsHandler);
     }
-    container._vsHandler = () => requestAnimationFrame(renderVirtualList);
+    
+    let ticking = false;
+    container._vsHandler = () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                renderVirtualList();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    };
     container.addEventListener('scroll', container._vsHandler);
 
     // 이벤트 위임(Event Delegation)을 통한 교차로 클릭 성능 최적화

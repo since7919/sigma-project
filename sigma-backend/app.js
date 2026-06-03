@@ -23,14 +23,126 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Sigma Backend is running' });
 });
 
-// 1. 교차로 마스터 데이터 조회 (Supabase)
-app.get('/api/intersections', async (req, res) => {
+async function fetchUrl(url) {
+  if (DOTHOME_BRIDGE_URL && !DOTHOME_BRIDGE_URL.includes('your-dothome-domain')) {
+    return await axios.get(DOTHOME_BRIDGE_URL, {
+      params: { url: url },
+      headers: { 'X-Secret-Token': BRIDGE_SECRET_KEY }
+    });
+  }
+  // 브릿지 설정이 없으면 백엔드(Node.js)에서 직접 호출 (CORS 제한 없음)
+  return await axios.get(url);
+}
+
+async function syncUticIntersections(regionCode) {
+  const getPageUrl = (page) => `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?serviceKey=${UTIC_API_KEY}&type=json&srchCTId=${regionCode}&pageNo=${page}&numOfRows=1000`;
+  
+  // 첫 페이지 조회하여 전체 페이지 수 확인
+  const firstPage = await fetchUrl(getPageUrl(1));
+  let data = firstPage.data;
+  let rawItems = [];
+  
+  if (Array.isArray(data)) rawItems = data.slice(1);
+  else if (data?.body?.items) rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
+  else if (data?.items) rawItems = Array.isArray(data.items) ? data.items : [data.items];
+  else if (data?.PlanCRRSInfo) rawItems = Array.isArray(data.PlanCRRSInfo) ? data.PlanCRRSInfo : [data.PlanCRRSInfo];
+  
+  if (!rawItems || rawItems.length === 0) {
+    throw new Error('UTIC API에서 교차로 데이터를 찾을 수 없습니다.');
+  }
+
+  // 배열 첫 번째 요소에 메타데이터가 있는 구조 처리
+  let meta = Array.isArray(data) ? data[0] : (data?.header || rawItems[0]);
+  const totPage = meta?.totPage ? parseInt(meta.totPage, 10) : 1;
+
+  console.log(`[Sync] ${regionCode} - Total pages: ${totPage}`);
+
+  // 나머지 페이지 병렬 호출 (청크 단위로)
+  const pagePromises = [];
+  for (let i = 2; i <= totPage; i++) {
+    pagePromises.push(fetchUrl(getPageUrl(i)).then(res => {
+      let rData = res.data;
+      if (Array.isArray(rData)) return rData.slice(1);
+      if (rData?.body?.items) return Array.isArray(rData.body.items) ? rData.body.items : [rData.body.items];
+      if (rData?.items) return Array.isArray(rData.items) ? rData.items : [rData.items];
+      if (rData?.PlanCRRSInfo) return Array.isArray(rData.PlanCRRSInfo) ? rData.PlanCRRSInfo : [rData.PlanCRRSInfo];
+      return [];
+    }).catch(e => {
+      console.warn(`[Sync] Page ${i} fetch failed:`, e.message);
+      return [];
+    }));
+  }
+  
+  // 모든 페이지 결과를 합침
+  const restItems = await Promise.all(pagePromises);
+  rawItems = rawItems.concat(...restItems);
+
+  const seenIds = new Set();
+  const records = [];
+  const now = new Date().toISOString();
+  
+  rawItems.forEach(item => {
+    if (!item) return;
+    const int_no = item.INT_NO || item.itstId;
+    if (!int_no || seenIds.has(int_no)) return;
+    seenIds.add(int_no);
+    
+    records.push({
+      region_cd: regionCode,
+      int_no: parseInt(int_no, 10),
+      int_nm: item.INT_NM || item.itstNm,
+      x_coord: parseFloat(item.X_COORD || item.lo || 0),
+      y_coord: parseFloat(item.Y_COORD || item.la || 0),
+      node_id: item.NODE_ID || null,
+      origin_type: 'UTIC',
+      updated_at: now
+    });
+  });
+  
+  // 기존 지역 데이터 삭제 후 1000개씩 청크로 나누어 삽입
+  await supabase.from('utic_intersections').delete().eq('region_cd', regionCode);
+  
+  const chunkSize = 1000;
+  for (let i = 0; i < records.length; i += chunkSize) {
+    const chunk = records.slice(i, i + chunkSize);
+    const { error } = await supabase.from('utic_intersections').insert(chunk);
+    if (error) console.error('Insert chunk error:', error);
+  }
+  
+  return records;
+}
+
+// 1-1. 교차로 마스터 데이터 수동 갱신 (UTIC -> DB)
+app.get('/api/intersections/sync', async (req, res) => {
+  const { regionCode } = req.query;
+  if (!regionCode) return res.status(400).json({ error: 'regionCode가 필요합니다.' });
   try {
-    const { data, error } = await supabase
-      .from('utic_intersections')
-      .select('*');
-      
+    const records = await syncUticIntersections(regionCode);
+    res.json({ success: true, count: records.length, data: records });
+  } catch (error) {
+    console.error('교차로 동기화 에러:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 1-2. 교차로 마스터 데이터 조회 (Supabase)
+app.get('/api/intersections', async (req, res) => {
+  const { regionCode } = req.query;
+  try {
+    let query = supabase.from('utic_intersections').select('*');
+    if (regionCode) {
+      query = query.eq('region_cd', regionCode);
+    }
+    const { data, error } = await query;
     if (error) throw error;
+    
+    // 데이터가 없거나 24시간이 지났으면 자동 갱신
+    if (regionCode && (data.length === 0 || (new Date() - new Date(data[0].updated_at) > 24 * 60 * 60 * 1000))) {
+      console.log(`[Sync] ${regionCode} 교차로 데이터 자동 갱신 수행`);
+      const syncedData = await syncUticIntersections(regionCode);
+      return res.json(syncedData);
+    }
+    
     res.json(data);
   } catch (error) {
     console.error('DB 조회 에러:', error.message);
@@ -38,27 +150,25 @@ app.get('/api/intersections', async (req, res) => {
   }
 });
 
-// 2. UTIC 실시간 신호정보 범용 프록시 라우트 (닷홈 브릿지 경유)
+// 2. UTIC 실시간 신호정보 범용 프록시 라우트
 app.get('/api/proxy/utic', async (req, res) => {
-  const { url } = req.query;
+  let { url, regionCode, itstNm } = req.query;
   
+  // URL 파라미터가 없으면 기존 구버전 요청(React 앱 등)을 위해 조립
   if (!url) {
-    return res.status(400).json({ error: 'url 파라미터가 필요합니다.' });
+    if (regionCode && itstNm) {
+      url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${regionCode}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
+    } else {
+      return res.status(400).json({ error: 'url 파라미터 또는 regionCode와 itstNm이 필요합니다.' });
+    }
   }
   
   try {
-    // 닷홈 브릿지 호출 (X-Secret-Token 전달)
-    const response = await axios.get(DOTHOME_BRIDGE_URL, {
-      params: { url: url },
-      headers: {
-        'X-Secret-Token': BRIDGE_SECRET_KEY
-      }
-    });
-    
+    const response = await fetchUrl(url);
     res.json(response.data);
   } catch (error) {
-    console.error('UTIC 브릿지 호출 에러:', error.message);
-    res.status(500).json({ error: 'UTIC(닷홈 브릿지 경유) 통신 실패' });
+    console.error('UTIC API 호출 에러:', error.message);
+    res.status(500).json({ error: 'UTIC 통신 실패' });
   }
 });
 
