@@ -97,38 +97,39 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .op-val { font-size: 0.9rem; font-weight: bold; color: #fff; }
 .btn-download { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; }
 
-/* 중앙 8방향 렌즈 UI (TSI 원본 기반) */
-.signal-board { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; height: 250px; background: radial-gradient(circle, rgba(15, 23, 42, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%); border-radius: 50%; border: 2px solid var(--glass-border); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0,0,0,0.5); z-index: 1000; pointer-events: none; }
+/* 중앙 8방향 렌즈 UI (TSI 원본 SVG 디자인 이식) */
+.signal-board { position: relative; width: 250px; height: 250px; margin: 20px auto; background: radial-gradient(circle, rgba(15, 23, 42, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%); border-radius: 50%; border: 2px solid var(--glass-border); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
 .center-label { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0f172a; width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent-primary); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); z-index: 2; pointer-events: auto; }
-.direction-signal { position: absolute; width: 50px; height: 60px; display: flex; align-items: center; justify-content: center; }
+.direction-signal { position: absolute; width: 50px; height: 60px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
-/* Positioning for 8 directions (반지름 125px 컨테이너 기준) */
-.dir-0   { top: -20px; left: 50%; transform: translateX(-50%); } 
-.dir-45  { top: 20px; right: 20px; } 
-.dir-90  { top: 50%; right: -20px; transform: translateY(-50%); } 
-.dir-135 { bottom: 20px; right: 20px; } 
-.dir-180 { bottom: -20px; left: 50%; transform: translateX(-50%); } 
-.dir-225 { bottom: 20px; left: 20px; } 
-.dir-270 { top: 50%; left: -20px; transform: translateY(-50%); } 
-.dir-315 { top: 20px; left: 20px; } 
+/* Positioning for 8 directions (반지름 125px 컨테이너 기준, 원본 위치 정확히 반영) */
+.dir-0   { top: 5px; left: 50%; transform: translateX(-50%); } 
+.dir-45  { top: 35px; right: 35px; } 
+.dir-90  { top: 50%; right: 5px; transform: translateY(-50%); } 
+.dir-135 { bottom: 35px; right: 35px; } 
+.dir-180 { bottom: 5px; left: 50%; transform: translateX(-50%); } 
+.dir-225 { bottom: 35px; left: 35px; } 
+.dir-270 { top: 50%; left: 5px; transform: translateY(-50%); } 
+.dir-315 { top: 35px; left: 35px; } 
 
 .signal-cluster { display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: auto; }
 .vehicle-box { display: flex; gap: 2px; background: #0a0f1e; padding: 3px; border-radius: 4px; border: 1px solid #1e293b; }
-.pedestrian-box { display: flex; gap: 2px; background: #0a0f1e; padding: 3px; border-radius: 4px; border: 1px solid #1e293b; }
-.sig-unit { width: 14px; height: 14px; border-radius: 50%; background: #0f172a; border: 1px solid #1e293b; }
+.pedestrian-box { width: 22px; height: 26px; background: #0a0f1e; border-radius: 3px; border: 1px solid #1e293b; display: flex; align-items: center; justify-content: center; }
+.sig-unit { width: 18px; height: 18px; border-radius: 50%; background: #0f172a; display: flex; align-items: center; justify-content: center; }
 
-/* Active States Animation */
-.active-p.green { background: #10b981; box-shadow: 0 0 10px #10b981; }
-.active-p.red { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-.active-l.green { background: #10b981; box-shadow: 0 0 10px #10b981; }
-.active-l.red { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
-.active-l.yellow { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+/* SVG Styles */
+.sig-unit svg, .pedestrian-box svg { width: 12px; height: 12px; fill: #1e293b; transition: all 0.3s ease; }
+
+/* Active States Animation (SVG fill & filter) */
+.active-s.green svg, .active-l.green svg, .active-p.green svg { fill: #10b981; filter: drop-shadow(0 0 5px #10b981); }
+.active-s.red svg, .active-l.red svg, .active-p.red svg { fill: #ef4444; filter: drop-shadow(0 0 5px #ef4444); }
+.active-s.yellow svg, .active-l.yellow svg { fill: #f59e0b; filter: drop-shadow(0 0 5px #f59e0b); }
 
 @keyframes flash-green {
-    0%, 49% { background: #10b981; box-shadow: 0 0 10px #10b981; }
-    50%, 100% { background: #0f172a; box-shadow: none; }
+    0%, 49% { fill: #10b981; filter: drop-shadow(0 0 5px #10b981); }
+    50%, 100% { fill: #1e293b; filter: none; }
 }
-.active-p.flash { animation: flash-green 0.5s infinite; }
+.active-p.flash svg { animation: flash-green 0.5s infinite; }
 
 /* Custom Scrollbar */
 .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }

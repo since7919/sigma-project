@@ -80,24 +80,31 @@ function OctagonLens({ phase, activeDirections }) {
         <span className="accent" style={{fontSize:'2rem'}}>{phase}</span>
       </div>
       
-      {renderDirections.map(dir => (
-        <div key={dir} className={`direction-signal dir-${dir}`}>
-          <div className="signal-cluster">
-            {/* 보행자 신호등 */}
-            <div className="pedestrian-box">
-              <div className={`sig-unit p-red ${phase % 2 !== 0 ? 'active-p red' : ''}`}><div className="icon-mock"></div></div>
-              <div className={`sig-unit p-green ${phase % 2 === 0 ? 'active-p green flash' : ''}`}><div className="icon-mock"></div></div>
-            </div>
-            {/* 차량 신호등 (4구) */}
-            <div className="vehicle-box">
-              <div className={`sig-unit v-red ${phase % 2 !== 0 ? 'active-l red' : ''}`}></div>
-              <div className={`sig-unit v-yellow ${phase === 3 ? 'active-l yellow' : ''}`}></div>
-              <div className={`sig-unit v-arrow ${dir === 0 || dir === 180 ? 'active-l green' : ''}`}></div>
-              <div className={`sig-unit v-green ${phase % 2 === 0 ? 'active-l green' : ''}`}></div>
+      {renderDirections.map(dir => {
+        // 더미 상태 시뮬레이션 (이후 실제 phase 연동 시 변경 가능)
+        // 원본과 동일하게 3가지(직진, 좌회전, 보행) 상태 제어
+        let sState = phase % 2 !== 0 ? 'red' : 'green';
+        let lState = phase === 3 || phase === 4 ? 'green' : 'red';
+        let pState = phase % 2 === 0 ? 'flash' : 'red';
+        
+        return (
+          <div key={dir} className={`direction-signal dir-${dir}`}>
+            <div className="signal-cluster" style={{ transform: `rotate(${dir}deg)` }}>
+              <div className="vehicle-box">
+                <div className={`sig-unit s-light active-s ${sState}`} title="직진">
+                  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6l-8-8z"/></svg>
+                </div>
+                <div className={`sig-unit l-light active-l ${lState}`} title="좌회전">
+                  <svg viewBox="0 0 24 24" style={{ transform: 'rotate(-45deg)' }}><path d="M12 4l-8 8h6v8h4v-8h6l-8-8z"/></svg>
+                </div>
+              </div>
+              <div className={`pedestrian-box p-light active-p ${pState}`} title="보행">
+                <svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2V15l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
