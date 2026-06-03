@@ -65,46 +65,69 @@ function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
   );
 }
 
-// [2] 8방향 시그널 렌즈 컴포넌트 (원본 TSI 완벽 이식)
-function OctagonLens({ phase, activeDirections }) {
-  // 0(북), 45(북동), 90(동), 135(남동), 180(남), 225(남서), 270(서), 315(북서)
-  const allDirections = [0, 45, 90, 135, 180, 225, 270, 315];
-  
-  // 데이터가 있는 방향만 필터링 (수신되지 않는 방향은 숨김 처리)
-  const renderDirections = allDirections.filter(dir => activeDirections.includes(dir));
+// [2] 8방향 실시간 신호등 오버레이 컴포넌트
+function CompassOverlay({ phase, remainTime, activeDirections = [0, 90, 180, 270] }) {
+  const directions = [
+    { key: 'N', deg: 0 },
+    { key: 'NE', deg: 45 },
+    { key: 'E', deg: 90 },
+    { key: 'SE', deg: 135 },
+    { key: 'S', deg: 180 },
+    { key: 'SW', deg: 225 },
+    { key: 'W', deg: 270 },
+    { key: 'NW', deg: 315 }
+  ];
 
   return (
-    <div className="signal-board">
-      <div className="center-label">
-        <span style={{fontSize:'0.8rem', color:'#94a3b8'}}>PHASE</span>
-        <span className="accent" style={{fontSize:'2rem'}}>{phase}</span>
-      </div>
-      
-      {renderDirections.map(dir => {
-        // 더미 상태 시뮬레이션 (이후 실제 phase 연동 시 변경 가능)
-        // 원본과 동일하게 3가지(직진, 좌회전, 보행) 상태 제어
-        let sState = phase % 2 !== 0 ? 'red' : 'green';
-        let lState = phase === 3 || phase === 4 ? 'green' : 'red';
-        let pState = phase % 2 === 0 ? 'flash' : 'red';
-        
-        return (
-          <div key={dir} className={`direction-signal dir-${dir}`}>
-            <div className="signal-cluster" style={{ transform: `rotate(${dir}deg)` }}>
-              <div className="vehicle-box">
-                <div className={`sig-unit s-light active-s ${sState}`} title="직진">
-                  <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6l-8-8z"/></svg>
-                </div>
-                <div className={`sig-unit l-light active-l ${lState}`} title="좌회전">
-                  <svg viewBox="0 0 24 24" style={{ transform: 'rotate(-45deg)' }}><path d="M12 4l-8 8h6v8h4v-8h6l-8-8z"/></svg>
+    <div className="compass-center-overlay-wrapper" style={{
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%) scale(1.5)',
+      width: '155px',
+      height: '155px',
+      pointerEvents: 'none',
+      zIndex: 9999
+    }}>
+      <div className="compass-center-overlay">
+        {directions.map(({ key, deg }) => {
+          if (!activeDirections.includes(deg)) return null;
+
+          // 실시간 신호 제어 시뮬레이션
+          let isGreen = phase % 2 === 0;
+          let isYellow = !isGreen && remainTime <= 3;
+          let isRed = !isGreen && !isYellow;
+          let isArrow = phase === 3 || phase === 4;
+          
+          let pedGreen = phase % 2 !== 0;
+          let pedRed = !pedGreen;
+
+          return (
+            <div key={key} className={`signal-slot slot-${key}`} id={`slot-${key}`}>
+              <div className="signal-mount-frame">
+                <div className="component-block">
+                  <div className="car-housing-box">
+                    <div className={`lens c-red ${isRed ? 'on' : ''}`}></div>
+                    <div className={`lens c-yellow ${isYellow ? 'on' : ''}`}></div>
+                    <div className={`lens c-arrow ${isArrow ? 'on' : ''}`}></div>
+                    <div className={`lens c-green ${isGreen ? 'on' : ''}`}></div>
+                  </div>
+                  <div className="micro-timer car-timer">{remainTime}s</div>
                 </div>
               </div>
-              <div className={`pedestrian-box p-light active-p ${pState}`} title="보행">
-                <svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2V15l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>
+              <div className="ped-mount-container">
+                <div className="ped-mount-frame">
+                  <div className="ped-housing-box">
+                    <div className={`ped-lens p-red ${pedRed ? 'on' : ''}`}></div>
+                    <div className={`ped-lens p-green ${pedGreen ? 'on' : ''}`}></div>
+                  </div>
+                  <div className="micro-timer ped-timer">{remainTime}s</div>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -117,9 +140,14 @@ function SingleDetailOverlay({ intersection, onClose }) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setPhase(p => (p % 8) + 1);
-      setRemainTime(r => r > 0 ? r - 1 : 25);
-    }, 3000);
+      setRemainTime(r => {
+        if (r <= 1) {
+          setPhase(p => (p % 8) + 1);
+          return 25;
+        }
+        return r - 1;
+      });
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -137,13 +165,37 @@ function SingleDetailOverlay({ intersection, onClose }) {
           <div className="overlay-toolbar">
             <button className="toolbar-btn active">전체 정보 모드</button>
             <button className="toolbar-btn">맵 확대 모드</button>
-            <span style={{color:'#10b981', marginLeft:20, fontWeight:'bold'}}>잔여시간: {remainTime}초</span>
           </div>
-          <MapContainer center={[intersection.y_coord, intersection.x_coord]} zoom={19} style={{width:'100%', height:'100%'}} zoomControl={false}>
-            <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}" />
-          </MapContainer>
-          {/* 십자 직진 방향(0, 90, 180, 270)만 수신되었다고 가정 (데이터 없으면 숨김) */}
-          <OctagonLens phase={phase} activeDirections={[0, 90, 180, 270]} />
+          <div style={{position: 'absolute', top: '10px', right: '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 14px', borderRadius: '20px', border: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{fontSize: '10px'}}>제어 상태:</span>
+            <span style={{color:'#10b981', fontWeight:'bold', fontSize: '11px', textShadow: '0 0 10px #10b981'}}>실시간 연동 중</span>
+          </div>
+          <div style={{position: 'relative', width: '100%', height: '100%'}}>
+            <MapContainer 
+              center={[intersection.y_coord, intersection.x_coord]} 
+              zoom={19} 
+              style={{width:'100%', height:'100%'}} 
+              zoomControl={false}
+              dragging={false}
+              touchZoom={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              boxZoom={false}
+              keyboard={false}
+            >
+              <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
+              <CircleMarker
+                center={[intersection.y_coord, intersection.x_coord]}
+                radius={8}
+                fillColor="#00ecff"
+                color="#fff"
+                weight={2}
+                fillOpacity={0.8}
+              />
+            </MapContainer>
+            {/* 위성 지도 위에 4색/2색 신호등을 정확한 방향 각도에 맞춰 오버레이 */}
+            <CompassOverlay phase={phase} remainTime={remainTime} activeDirections={[0, 90, 180, 270]} />
+          </div>
         </div>
 
         <div className="modal-bottom-data">
@@ -155,25 +207,84 @@ function SingleDetailOverlay({ intersection, onClose }) {
             {activeTab === 'detail' && (
               <table className="detail-grid-table">
                 <thead>
-                  <tr><th>방향정보</th><th>보행자</th><th>뱅크코드</th><th>시간제신호</th><th>출력형태</th><th>신호등상태</th></tr>
+                  <tr>
+                    <th>방향정보</th>
+                    <th>보행자</th>
+                    <th>뱅크코드</th>
+                    <th>시간제신호</th>
+                    <th>출력형태</th>
+                    <th>신호등상태</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  <tr><td className="action-type">북</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">직진(1)</span></td><td>대기 중</td></tr>
-                  <tr><td className="action-type">북</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">보행(3)</span></td><td>대기 중</td></tr>
-                  <tr><td className="action-type">북동</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">좌회전(2)</span></td><td>대기 중</td></tr>
-                  <tr><td className="action-type">동</td><td>-</td><td>-</td><td>-</td><td><span className="status-badge">보행(3)</span></td><td>대기 중</td></tr>
+                  <tr>
+                    <td className="action-type">북</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>직진(1)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
+                  <tr>
+                    <td className="action-type">북</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>보행(3)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
+                  <tr>
+                    <td className="action-type">북동</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>좌회전(2)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
+                  <tr>
+                    <td className="action-type">동</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>보행(3)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
+                  <tr>
+                    <td className="action-type">남</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>직진(1)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
+                  <tr>
+                    <td className="action-type">남서</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span className="status-badge" style={{color:'#60a5fa'}}>좌회전(2)</span></td>
+                    <td><span style={{color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(148, 163, 184, 0.2)', fontSize: '11px'}}>소등</span></td>
+                  </tr>
                 </tbody>
               </table>
             )}
           </div>
-          <footer className="operation-footer">
-            <div className="op-items">
-              <div className="op-item"><span className="op-label">운영정보</span><span className="op-val" style={{color:'#38bdf8'}}>주기 미연동</span></div>
+          <footer className="operation-footer" style={{flexDirection: 'column', gap: '15px', alignItems: 'stretch', padding: '15px 20px'}}>
+            <div className="op-items" style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'}}>
+              <div className="op-item"><span className="op-label" style={{color: '#38bdf8', fontWeight: 'bold'}}>운영정보</span><span className="op-val" style={{color: '#38bdf8'}}>주기 미연동</span></div>
               <div className="op-item"><span className="op-label">오프셋</span><span className="op-val">-</span></div>
-              <div className="op-item"><span className="op-label">전이</span><span className="op-val">OFF</span></div>
-              <div className="op-item"><span className="op-label">감응</span><span className="op-val">OFF</span></div>
+              <div className="op-item"><span className="op-label">전이</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
+              <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
+              <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
+              <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
+              <div className="op-item"><span className="op-label">수동</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
             </div>
-            <button className="btn-download">📄 운영계획(TOD) 다운로드</button>
+            <button className="btn-download" style={{width: '100%', padding: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
+              📄 운영계획(TOD) 다운로드
+            </button>
+            <div style={{marginTop: '5px'}}>
+              <a href="#more" style={{color: '#38bdf8', fontSize: '11px', textDecoration: 'none'}}>추가 상세 정보</a>
+            </div>
           </footer>
         </div>
       </div>
