@@ -46,7 +46,17 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 /* 우측 메인 영역 */
 .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
 .top-map-wrapper { flex: 1; position: relative; }
-.map-label { background: transparent !important; border: none !important; box-shadow: none !important; color: #fff; font-weight: 700; font-size: 0.75rem; text-shadow: 0 0 5px #000; }
+.map-label { 
+    background: rgba(15, 23, 42, 0.85) !important; 
+    border: 1px solid #38bdf8 !important; 
+    border-radius: 4px !important;
+    color: #fff !important; 
+    font-weight: 700 !important; 
+    font-size: 0.75rem !important; 
+    padding: 3px 6px !important;
+    text-shadow: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6) !important;
+}
 .map-label::before { display: none !important; }
 
 /* 마커 팝업 커스텀 */
