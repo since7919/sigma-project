@@ -27,7 +27,7 @@ function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
     return () => map.off('zoomend', onZoom);
   }, [map]);
 
-  const showTooltip = zoomLevel >= 13;
+  const showTooltip = zoomLevel >= 11;
 
   return (
     <>
