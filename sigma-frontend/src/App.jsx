@@ -647,7 +647,22 @@ function SingleDetailOverlay({ intersection, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh }) {
+  const forceRefreshUtic = async (e) => {
+    e.stopPropagation();
+    if (!window.confirm('UTIC 서버에서 최신 교차로 기반정보를 다운로드 받아 데이터베이스를 갱신하시겠습니까? (약 1~2초 소요)')) return;
+    
+    try {
+      const res = await axios.get(`${API_BASE}/api/intersections/sync?regionCode=L02`);
+      if (res.data.success) {
+        alert(`교차로 목록 갱신이 완료되었습니다. (${res.data.count}건)`);
+        if (onRefresh) onRefresh();
+      }
+    } catch (err) {
+      alert('동기화 중 오류가 발생했습니다: ' + err.message);
+    }
+  };
+
   // 데이터 그룹화 로직 (useMemo 활용)
   const { tdataList, uticGroups } = useMemo(() => {
     const tdata = [];
@@ -704,9 +719,16 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId }) {
 
       {/* 2. UTIC 그룹 */}
       <div className="acc-group">
-        <div className="acc-header" onClick={() => setUticOpen(!uticOpen)}>
+        <div className="acc-header" onClick={() => setUticOpen(!uticOpen)} style={{ position: 'relative' }}>
           <span className="acc-icon">{uticOpen ? '▼' : '▶'}</span>
           🚓 경찰청 UTIC 개방데이터
+          <button 
+            onClick={forceRefreshUtic} 
+            style={{ position: 'absolute', right: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', padding: '2px 6px' }}
+            title="목록 강제 갱신"
+          >
+            🔄 갱신
+          </button>
         </div>
         {uticOpen && (
           <div className="acc-body">
@@ -780,15 +802,16 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const fetchIntersections = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/intersections`);
+      setIntersections(response.data);
+    } catch (error) {
+      console.error("교차로 데이터 로드 실패", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchIntersections = async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/api/intersections`);
-        setIntersections(response.data);
-      } catch (error) {
-        console.error("교차로 데이터 로드 실패", error);
-      }
-    };
     fetchIntersections();
   }, []);
 
@@ -816,6 +839,7 @@ function App() {
           intersections={intersections} 
           onNodeClick={handleNodeClick} 
           activeNodeId={activeNodeId} 
+          onRefresh={fetchIntersections}
         />
         
       </aside>
