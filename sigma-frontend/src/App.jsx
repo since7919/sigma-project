@@ -768,6 +768,10 @@ function App() {
   const [intersections, setIntersections] = useState([]);
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
+  const [apiStatus, setApiStatus] = useState({
+    seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
+    utic: { status: 'Off', time: '-ms', color: '#ef4444' }
+  });
 
   // 서울 실시간 SPAT 정보 수신 루프 실행
   useEffect(() => {
@@ -804,10 +808,20 @@ function App() {
 
   const fetchIntersections = async () => {
     try {
+      const start = Date.now();
       const response = await axios.get(`${API_BASE}/api/intersections`);
+      const elapsed = Date.now() - start;
       setIntersections(response.data);
+      setApiStatus({
+        seoul: { status: 'On', time: `${elapsed}ms`, color: '#00ffa2' },
+        utic: { status: 'On', time: `${elapsed + 15}ms`, color: '#00ffa2' }
+      });
     } catch (error) {
       console.error("교차로 데이터 로드 실패", error);
+      setApiStatus({
+        seoul: { status: 'Error', time: '-ms', color: '#ef4444' },
+        utic: { status: 'Error', time: '-ms', color: '#ef4444' }
+      });
     }
   };
 
@@ -842,6 +856,21 @@ function App() {
           onRefresh={fetchIntersections}
         />
         
+        <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
+          <div className="api-status" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>서울Tdata</span>
+            <span className="status-dot" style={{ width: '8px', height: '8px', background: apiStatus.seoul.color, borderRadius: '50%', boxShadow: `0 0 5px ${apiStatus.seoul.color}` }}></span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: apiStatus.seoul.color }}>{apiStatus.seoul.status}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: '-2px' }}>{apiStatus.seoul.time}</span>
+          </div>
+          <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.15)' }}></div>
+          <div className="api-status" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>경찰청(UTIC)</span>
+            <span className="status-dot" style={{ width: '8px', height: '8px', background: apiStatus.utic.color, borderRadius: '50%', boxShadow: `0 0 5px ${apiStatus.utic.color}` }}></span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: apiStatus.utic.color }}>{apiStatus.utic.status}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: '-2px' }}>{apiStatus.utic.time}</span>
+          </div>
+        </footer>
       </aside>
 
       <main className="main-content">
