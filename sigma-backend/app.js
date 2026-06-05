@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const xlsx = require('xlsx');
 const supabase = require('./db');
 require('dotenv').config();
 
@@ -35,54 +36,38 @@ async function fetchUrl(url) {
 }
 
 async function syncUticIntersections(regionCode) {
-  const getPageUrl = (page) => `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?serviceKey=${UTIC_API_KEY}&type=json&srchCTId=${regionCode}&pageNo=${page}&numOfRows=1000`;
+  // UTIC 교차로 기초정보 엑셀 파일 다운로드 URL
+  const excelUrl = `http://tsihub.utic.go.kr/tsi/api/CrossRoadInfoService/download/crossInfo?serviceKey=${UTIC_API_KEY}&srchCTId=${regionCode}`;
   
-  // 첫 페이지 조회하여 전체 페이지 수 확인
-  const firstPage = await fetchUrl(getPageUrl(1));
-  let data = firstPage.data;
-  let rawItems = [];
-  
-  if (Array.isArray(data)) rawItems = data.slice(1);
-  else if (data?.body?.items) rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
-  else if (data?.items) rawItems = Array.isArray(data.items) ? data.items : [data.items];
-  else if (data?.PlanCRRSInfo) rawItems = Array.isArray(data.PlanCRRSInfo) ? data.PlanCRRSInfo : [data.PlanCRRSInfo];
-  
+  let res;
+  try {
+    res = await axios.get(excelUrl, { responseType: 'arraybuffer' });
+  } catch (err) {
+    throw new Error('UTIC 교차로 엑셀 데이터를 가져오는데 실패했습니다: ' + err.message);
+  }
+
+  const workbook = xlsx.read(res.data, { type: 'buffer' });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rawItems = xlsx.utils.sheet_to_json(sheet);
+
   if (!rawItems || rawItems.length === 0) {
-    throw new Error('UTIC API에서 교차로 데이터를 찾을 수 없습니다.');
+    throw new Error('UTIC 교차로 엑셀 데이터가 비어있습니다.');
   }
-
-  // 배열 첫 번째 요소에 메타데이터가 있는 구조 처리
-  let meta = Array.isArray(data) ? data[0] : (data?.header || rawItems[0]);
-  const totPage = meta?.totPage ? parseInt(meta.totPage, 10) : 1;
-
-  console.log(`[Sync] ${regionCode} - Total pages: ${totPage}`);
-
-  // 나머지 페이지 병렬 호출 (청크 단위로)
-  const pagePromises = [];
-  for (let i = 2; i <= totPage; i++) {
-    pagePromises.push(fetchUrl(getPageUrl(i)).then(res => {
-      let rData = res.data;
-      if (Array.isArray(rData)) return rData.slice(1);
-      if (rData?.body?.items) return Array.isArray(rData.body.items) ? rData.body.items : [rData.body.items];
-      if (rData?.items) return Array.isArray(rData.items) ? rData.items : [rData.items];
-      if (rData?.PlanCRRSInfo) return Array.isArray(rData.PlanCRRSInfo) ? rData.PlanCRRSInfo : [rData.PlanCRRSInfo];
-      return [];
-    }).catch(e => {
-      console.warn(`[Sync] Page ${i} fetch failed:`, e.message);
-      return [];
-    }));
-  }
-  
-  // 모든 페이지 결과를 합침
-  const restItems = await Promise.all(pagePromises);
-  rawItems = rawItems.concat(...restItems);
 
   const seenIds = new Set();
   const records = [];
   const now = new Date().toISOString();
   
+  const parseCoord = (val, intDigits) => {
+    if (!val) return 0;
+    let s = String(val).trim();
+    if (s.includes('.')) return parseFloat(s);
+    if (s.length > intDigits) s = s.substring(0, intDigits) + '.' + s.substring(intDigits);
+    return parseFloat(s) || 0;
+  };
+  
   rawItems.forEach(item => {
-    if (!item) return;
     const int_no = item.INT_NO || item.itstId;
     if (!int_no || seenIds.has(int_no)) return;
     seenIds.add(int_no);
@@ -91,8 +76,8 @@ async function syncUticIntersections(regionCode) {
       region_cd: regionCode,
       int_no: parseInt(int_no, 10),
       int_nm: item.INT_NM || item.itstNm,
-      x_coord: parseFloat(item.X_COORD || item.lo || 0),
-      y_coord: parseFloat(item.Y_COORD || item.la || 0),
+      x_coord: parseCoord(item.X_COORD || item.lo, 3),
+      y_coord: parseCoord(item.Y_COORD || item.la, 2),
       node_id: item.NODE_ID || null,
       origin_type: 'UTIC',
       updated_at: now
@@ -161,6 +146,10 @@ app.get('/api/proxy/utic', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'url 파라미터 또는 regionCode와 itstNm이 필요합니다.' });
     }
+  }
+
+  if (!url.includes('serviceKey=')) {
+    url += (url.includes('?') ? '&' : '?') + 'serviceKey=' + UTIC_API_KEY;
   }
   
   try {
