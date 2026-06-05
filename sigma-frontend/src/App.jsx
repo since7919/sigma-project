@@ -291,9 +291,8 @@ function SingleDetailOverlay({ intersection, onClose }) {
     const fetchCROP = async () => {
       try {
         const regionCode = intersection.region_cd || 'L02';
-        const res = await axios.get(`${API_BASE}/api/proxy/utic`, {
-          params: { regionCode, itstNm: intersection.int_nm }
-        });
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=json&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=10`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
         
         const data = res.data;
         let rawItems = [];
