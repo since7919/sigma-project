@@ -7,7 +7,7 @@ import './index.css';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
+function IntersectionMarkers({ intersections, onDetailClick, targetId, uticUpdateTick }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
 
@@ -33,12 +33,14 @@ function IntersectionMarkers({ intersections, onDetailClick, targetId }) {
     <>
       {intersections.map((intersection) => {
         const isSelected = intersection.id === targetId;
+        const uticSpat = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no];
+        const baseColor = uticSpat ? "#3b82f6" : "#64748b";
         return (
           <CircleMarker
             key={intersection.id}
             center={[intersection.y_coord, intersection.x_coord]}
             radius={isSelected ? 10 : 6}
-            fillColor={isSelected ? "#38bdf8" : "#64748b"}
+            fillColor={isSelected ? "#38bdf8" : baseColor}
             color={isSelected ? "#fff" : "#334155"}
             weight={isSelected ? 3 : 2}
             fillOpacity={0.8}
@@ -647,7 +649,7 @@ function SingleDetailOverlay({ intersection, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick }) {
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
     if (!window.confirm('UTIC 서버에서 최신 교차로 기반정보를 다운로드 받아 데이터베이스를 갱신하시겠습니까? (약 1~2초 소요)')) return;
@@ -746,7 +748,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh 
                         className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                         onClick={() => onNodeClick(item.id)}
                       >
-                        <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#64748b'}}></div>
+                        <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                         <span className="id-label">[{item.int_no}]</span>
                         <span className="name-label">{item.int_nm}</span>
                       </div>
@@ -768,6 +770,7 @@ function App() {
   const [intersections, setIntersections] = useState([]);
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
+  const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
@@ -803,6 +806,53 @@ function App() {
 
     fetchSeoulSpat();
     const intervalId = setInterval(fetchSeoulSpat, 3000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // UTIC 제어기 상태(CRST) 주기적 수신 루프 실행
+  useEffect(() => {
+    window.UTIC_SPAT_MAP = window.UTIC_SPAT_MAP || {};
+    window.UTIC_SPAT_LAST_UPDATE = window.UTIC_SPAT_LAST_UPDATE || null;
+
+    const fetchUticSpat = async () => {
+      try {
+        const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRSTInfo?type=json&srchCTId=L02&pageNo=1&numOfRows=9999`;
+        const start = performance.now();
+        const response = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(url)}`);
+        const end = performance.now();
+        
+        let data = response.data;
+        let rawItems = [];
+        if (Array.isArray(data)) rawItems = data.slice(1);
+        else if (data && data.body && data.body.items) rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
+        else if (data && data.items) rawItems = Array.isArray(data.items) ? data.items : [data.items];
+        else if (data && data.PlanCRSTInfo) rawItems = Array.isArray(data.PlanCRSTInfo) ? data.PlanCRSTInfo : [data.PlanCRSTInfo];
+        else if (data && data.response && data.response.body && data.response.body.items) {
+            rawItems = Array.isArray(data.response.body.items) ? data.response.body.items : [data.response.body.items];
+        }
+        
+        if (rawItems && rawItems.length > 0) {
+          const newMap = {};
+          rawItems.forEach(item => {
+            const id = item.INT_NO || item.itstId;
+            if (id) {
+              item.opMode = item.OP_MODE || '수신';
+              newMap[id] = item;
+            }
+          });
+          window.UTIC_SPAT_MAP = newMap;
+          window.UTIC_SPAT_LAST_UPDATE = new Date();
+          setApiStatus(prev => ({...prev, utic: { status: 'Connected', time: `${Math.round(end-start)}ms`, color: '#3b82f6' }}));
+          setUticUpdateTick(t => t + 1);
+        }
+      } catch (error) {
+        console.error('UTIC CRST 폴링 에러:', error);
+        setApiStatus(prev => ({...prev, utic: { status: 'Error', time: '-ms', color: '#ef4444' }}));
+      }
+    };
+
+    fetchUticSpat();
+    const intervalId = setInterval(fetchUticSpat, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -854,6 +904,7 @@ function App() {
           onNodeClick={handleNodeClick} 
           activeNodeId={activeNodeId} 
           onRefresh={fetchIntersections}
+          uticUpdateTick={uticUpdateTick}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -881,6 +932,7 @@ function App() {
               intersections={intersections} 
               onDetailClick={openDetail}
               targetId={activeNodeId}
+              uticUpdateTick={uticUpdateTick}
             />
           </MapContainer>
         </div>
