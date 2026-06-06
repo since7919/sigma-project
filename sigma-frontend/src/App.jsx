@@ -882,15 +882,27 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
     const tdata = [];
     const utic = {};
 
+    const REGION_MAP = {
+      'L01': '서울시', 'L02': '인천시', 'L03': '부천시', 'L04': '광명시',
+      'L05': '안양시', 'L06': '과천시', 'L07': '안산시', 'L08': '용인시',
+      'L09': '성남시', 'L10': '고양시', 'L11': '시흥시', 'L12': '파주시',
+      'L13': '양주시', 'L14': '의정부시', 'L15': '김포시', 'L16': '의왕시',
+      'L17': '군포시', 'L18': '남양주시', 'L19': '수원시', 'L20': '광주시',
+      'L21': '구리시', 'L22': '하남시', 'L23': '부산시', 'L24': '양산시',
+      'L25': '창원시', 'L26': '김해시', 'L28': '거제시', 'L29': '대구시',
+      'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
+    };
+
     intersections.forEach(item => {
       // origin_type 판별 (가정: '서울tdata', 'tdata' 또는 'UTIC', 'utic')
       const isTdata = item.origin_type?.toLowerCase().includes('tdata');
       if (isTdata) {
         tdata.push(item);
       } else {
-        const region = item.region_cd || '기타지역';
-        if (!utic[region]) utic[region] = [];
-        utic[region].push(item);
+        const rCode = item.region_cd || '기타';
+        const rName = REGION_MAP[rCode] || rCode;
+        if (!utic[rName]) utic[rName] = [];
+        utic[rName].push(item);
       }
     });
     return { tdataList: tdata, uticGroups: utic };
