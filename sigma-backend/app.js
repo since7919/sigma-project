@@ -114,21 +114,36 @@ app.get('/api/intersections/sync', async (req, res) => {
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
   try {
-    let query = supabase.from('utic_intersections').select('*');
-    if (regionCode) {
-      query = query.eq('region_cd', regionCode);
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase.from('utic_intersections').select('*').range(from, from + step - 1);
+      if (regionCode) {
+        query = query.eq('region_cd', regionCode);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) hasMore = false;
+        else from += step;
+      } else {
+        hasMore = false;
+      }
     }
-    const { data, error } = await query;
-    if (error) throw error;
     
     // 데이터가 없거나 24시간이 지났으면 자동 갱신
-    if (regionCode && (data.length === 0 || (new Date() - new Date(data[0].updated_at) > 24 * 60 * 60 * 1000))) {
+    if (regionCode && (allData.length === 0 || (new Date() - new Date(allData[0].updated_at) > 24 * 60 * 60 * 1000))) {
       console.log(`[Sync] ${regionCode} 교차로 데이터 자동 갱신 수행`);
       const syncedData = await syncUticIntersections(regionCode);
       return res.json(syncedData);
     }
     
-    res.json(data);
+    res.json(allData);
   } catch (error) {
     console.error('DB 조회 에러:', error.message);
     res.status(500).json({ error: error.message });
