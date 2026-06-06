@@ -291,15 +291,22 @@ function SingleDetailOverlay({ intersection, onClose }) {
     const fetchCROP = async () => {
       try {
         const regionCode = intersection.region_cd || 'L02';
-        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=json&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=10`;
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=10`;
         const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
         
-        const data = res.data;
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
+        
         let rawItems = [];
-        if (Array.isArray(data)) rawItems = data.slice(1);
-        else if (data && data.body && data.body.items) rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
-        else if (data && data.items) rawItems = Array.isArray(data.items) ? data.items : [data.items];
-        else if (data && data.PlanCROPInfo) rawItems = Array.isArray(data.PlanCROPInfo) ? data.PlanCROPInfo : [data.PlanCROPInfo];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const obj = {};
+          for (let j = 0; j < item.children.length; j++) {
+            obj[item.children[j].tagName] = item.children[j].textContent;
+          }
+          rawItems.push(obj);
+        }
 
         let matched = null;
         for (let item of rawItems) {
