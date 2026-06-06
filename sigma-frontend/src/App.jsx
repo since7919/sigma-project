@@ -964,7 +964,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
               <div key={region} className="acc-subgroup">
                 <div className="acc-sub-header" onClick={() => toggleRegion(region)}>
                   <span className="acc-icon">{openRegions[region] ? '▼' : '▶'}</span>
-                  📍 {region} 지역 <span className="acc-count">({list.length})</span>
+                  📍 {region} <span className="acc-count">({list.length})</span>
                 </div>
                 {openRegions[region] && (
                   <div className="acc-sub-body">
