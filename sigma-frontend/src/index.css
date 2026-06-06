@@ -263,3 +263,17 @@ details.footer-section summary::marker { content: ''; }
     display: none !important;
   }
 }
+
+
+/* SigMap Table Styles */
+.sigmap-container { overflow-x: auto; padding: 10px; }
+.sigmap-ring-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; margin-bottom: 15px; }
+.sigmap-ring-table th, .sigmap-ring-table td { border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px; }
+.sigmap-ring-table th { background: rgba(255, 255, 255, 0.1); color: #9ca3af; }
+.cell-gray { background-color: #374151; color: #9ca3af; }
+.cell-green { background-color: #10b981; color: #fff; font-weight: bold; }
+.cell-red { background-color: #ef4444; color: #fff; font-weight: bold; }
+.cell-yellow { background-color: #f59e0b; color: #fff; font-weight: bold; }
+.cell-flash { background-color: #f59e0b; color: #fff; animation: blink 1s infinite; }
+.cell-yellow-flash { background-color: #f59e0b; color: #fff; animation: blink 1s infinite; }
+.cell-red-flash { background-color: #ef4444; color: #fff; animation: blink 1s infinite; }

@@ -271,6 +271,33 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
   );
 }
 
+const toHex = (v) => {
+  if (v === 0 || v === '0' || !v) return '00';
+  if (v === 16 || v === '16' || v === 22 || v === '22') return '10';
+  if (v === 32 || v === '32' || v === 50 || v === '50') return '20';
+  return typeof v === 'number' ? v.toString(16).padStart(2, '0').toUpperCase() : String(v);
+};
+
+const getCellClass = (val, type) => {
+  const hex = toHex(val);
+  if (hex === '00') return 'cell-gray';
+  if (type === 'car') {
+    if (hex === '01' || hex === '04') return 'cell-green';
+    if (hex === '02') return 'cell-yellow';
+    if (hex === '08') return 'cell-red';
+    if (hex === '20') return 'cell-yellow-flash';
+    if (hex === '10') return 'cell-red-flash';
+  } else {
+    if (hex === '01') return 'cell-green';
+    if (hex === '08' || hex === '02') return 'cell-red';
+    if (hex === '05') return 'cell-flash';
+  }
+  const num = parseInt(hex, 16);
+  if (num & 0x55) return 'cell-green';
+  if (num & 0xAA) return 'cell-yellow';
+  return 'cell-red';
+};
+
 // [3] 단일 교차로 상세 모니터링 모달
 function SingleDetailOverlay({ intersection, onClose }) {
   const [activeTab, setActiveTab] = useState('detail');
@@ -280,6 +307,8 @@ function SingleDetailOverlay({ intersection, onClose }) {
   const [remainA, setRemainA] = useState(0);
   const [remainB, setRemainB] = useState(0);
   const [currentTimeStr, setCurrentTimeStr] = useState('-');
+  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+  const [isSigMapLoading, setIsSigMapLoading] = useState(false);
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -340,6 +369,59 @@ function SingleDetailOverlay({ intersection, onClose }) {
       }
     };
     fetchCROP();
+  }, [intersection, isSeoul]);
+
+  // SigMap 정보 조회
+  useEffect(() => {
+    if (isSeoul) {
+      setSigMapData({ ringA: [], ringB: [] });
+      return;
+    }
+    const fetchSigMap = async () => {
+      setIsSigMapLoading(true);
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
+        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+
+        const ringA = [];
+        const ringB = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
+          if (String(intNo) === String(intersection.int_no)) {
+            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
+            const step = {
+              stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
+              minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
+              maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
+              eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
+            };
+            for (let k = 1; k <= 8; k++) {
+              step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
+              step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
+            }
+            if (ringNo === 1) ringA.push(step);
+            else if (ringNo === 2) ringB.push(step);
+          }
+        }
+        ringA.sort((a, b) => a.stepNo - b.stepNo);
+        ringB.sort((a, b) => a.stepNo - b.stepNo);
+        
+        setSigMapData({ ringA, ringB });
+      } catch (err) {
+        console.error('Error fetching SigMap:', err);
+        setSigMapData({ ringA: [], ringB: [] });
+      } finally {
+        setIsSigMapLoading(false);
+      }
+    };
+    fetchSigMap();
   }, [intersection, isSeoul]);
 
   // 실시간 신호 연동 시각 연산 루프
@@ -623,6 +705,88 @@ function SingleDetailOverlay({ intersection, onClose }) {
                   )}
                 </tbody>
               </table>
+            )}
+            {activeTab === 'signalmap' && (
+              <div className="sigmap-container">
+                {isSigMapLoading ? (
+                  <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
+                ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
+                  <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
+                ) : (
+                  <>
+                    {sigMapData.ringA.length > 0 && (
+                      <>
+                        <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>A-RING</h4>
+                        <table className="sigmap-ring-table">
+                          <thead>
+                            <tr>
+                              <th rowSpan="2">Step</th>
+                              {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={i}>{i}</th>)}
+                              <th rowSpan="2">Min</th>
+                              <th rowSpan="2">Max</th>
+                              <th rowSpan="2">EOP</th>
+                            </tr>
+                            <tr>
+                              {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sigMapData.ringA.map(step => (
+                              <tr key={step.stepNo}>
+                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{step.stepNo}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`td-${i}`}>
+                                    <td className={getCellClass(step[`car${i}`], 'car')}>{toHex(step[`car${i}`])}</td>
+                                    <td className={getCellClass(step[`ped${i}`], 'ped')}>{toHex(step[`ped${i}`])}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{step.minTm}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{step.maxTm}</td>
+                                <td className={step.eop === 1 ? 'cell-red' : ''}>{step.eop === 1 ? 'Y' : ''}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
+                    {sigMapData.ringB.length > 0 && (
+                      <>
+                        <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>B-RING</h4>
+                        <table className="sigmap-ring-table">
+                          <thead>
+                            <tr>
+                              <th rowSpan="2">Step</th>
+                              {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={i}>{i}</th>)}
+                              <th rowSpan="2">Min</th>
+                              <th rowSpan="2">Max</th>
+                              <th rowSpan="2">EOP</th>
+                            </tr>
+                            <tr>
+                              {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sigMapData.ringB.map(step => (
+                              <tr key={step.stepNo}>
+                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{step.stepNo}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`td-${i}`}>
+                                    <td className={getCellClass(step[`car${i}`], 'car')}>{toHex(step[`car${i}`])}</td>
+                                    <td className={getCellClass(step[`ped${i}`], 'ped')}>{toHex(step[`ped${i}`])}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{step.minTm}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{step.maxTm}</td>
+                                <td className={step.eop === 1 ? 'cell-red' : ''}>{step.eop === 1 ? 'Y' : ''}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
           <footer className="operation-footer" style={{flexDirection: 'column', gap: '15px', alignItems: 'stretch', padding: '15px 20px'}}>
