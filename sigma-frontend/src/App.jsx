@@ -864,12 +864,13 @@ function SingleDetailOverlay({ intersection, onClose }) {
 function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick }) {
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
-    if (!window.confirm('UTIC 서버에서 최신 교차로 기반정보를 다운로드 받아 데이터베이스를 갱신하시겠습니까? (약 1~2초 소요)')) return;
+    const rCode = window.prompt('DB에 동기화할 지역 코드를 입력하세요 (예: L01, L02, L19...)\n* 입력한 지역의 교차로가 다운로드되어 트리에 표시됩니다.', 'L02');
+    if (!rCode) return;
     
     try {
-      const res = await axios.get(`${API_BASE}/api/intersections/sync?regionCode=L02`);
+      const res = await axios.get(`${API_BASE}/api/intersections/sync?regionCode=${rCode.toUpperCase()}`);
       if (res.data.success) {
-        alert(`교차로 목록 갱신이 완료되었습니다. (${res.data.count}건)`);
+        alert(`[${rCode.toUpperCase()}] 지역 교차로 목록 갱신이 완료되었습니다. (${res.data.count}건)`);
         if (onRefresh) onRefresh();
       }
     } catch (err) {
@@ -900,9 +901,10 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
         tdata.push(item);
       } else {
         const rCode = item.region_cd || '기타';
-        const rName = REGION_MAP[rCode] || rCode;
-        if (!utic[rName]) utic[rName] = [];
-        utic[rName].push(item);
+        const rName = REGION_MAP[rCode] || '';
+        const groupKey = rName ? `${rCode} ${rName}` : rCode;
+        if (!utic[groupKey]) utic[groupKey] = [];
+        utic[groupKey].push(item);
       }
     });
     return { tdataList: tdata, uticGroups: utic };
