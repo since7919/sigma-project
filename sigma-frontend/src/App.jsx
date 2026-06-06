@@ -309,6 +309,9 @@ function SingleDetailOverlay({ intersection, onClose }) {
   const [currentTimeStr, setCurrentTimeStr] = useState('-');
   const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
+  const [planDay, setPlanDay] = useState('-');
+  const [reservCtrl, setReservCtrl] = useState('-');
+  const [reservCode, setReservCode] = useState(0);
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -422,6 +425,56 @@ function SingleDetailOverlay({ intersection, onClose }) {
       }
     };
     fetchSigMap();
+  }, [intersection, isSeoul]);
+
+  // CRWD (계획요일) & CRRS (예약제어) 정보 조회
+  useEffect(() => {
+    if (isSeoul) {
+      setPlanDay('-');
+      setReservCtrl('-');
+      return;
+    }
+    const fetchPlanAndReserv = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const crNm = encodeURIComponent(intersection.int_nm);
+        
+        // 1. 계획요일 조회 (CRWD)
+        const wdUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRWDInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=1`;
+        const wdRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(wdUrl)}`);
+        let parser = new DOMParser();
+        let xmlDoc = parser.parseFromString(wdRes.data, "text/xml");
+        let dyNode = xmlDoc.getElementsByTagName("PLAN_DY")[0];
+        if (dyNode) {
+          const days = ['-', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+          const dyInt = parseInt(dyNode.textContent, 10);
+          setPlanDay(days[dyInt] || '-');
+        } else {
+          setPlanDay('-');
+        }
+
+        // 2. 예약제어 조회 (CRRS)
+        const rsUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=1`;
+        const rsRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(rsUrl)}`);
+        xmlDoc = parser.parseFromString(rsRes.data, "text/xml");
+        let rsNode = xmlDoc.getElementsByTagName("RESRV_CONTRL_CD")[0];
+        if (rsNode) {
+          const cd = parseInt(rsNode.textContent, 10);
+          setReservCode(cd);
+          const rsMap = {
+            1: '조광 제어', 2: '점멸 제어', 3: '소등 제어', 4: '시차 제어', 5: '감응 제어',
+            6: '보행 활성', 7: '음향 발생', 8: '감응+푸시', 9: '시차+감응+푸시', 10: 'PPC제어', 11: '단독 앞막힘'
+          };
+          setReservCtrl(cd === 0 ? '일반 제어' : (rsMap[cd] || `알수없음(${cd})`));
+        } else {
+          setReservCode(0);
+          setReservCtrl('-');
+        }
+      } catch (err) {
+        console.error('Error fetching CRWD/CRRS:', err);
+      }
+    };
+    fetchPlanAndReserv();
   }, [intersection, isSeoul]);
 
   // 실시간 신호 연동 시각 연산 루프
@@ -782,11 +835,17 @@ function SingleDetailOverlay({ intersection, onClose }) {
                 <span className="op-label">오프셋</span>
                 <span className="op-val">{cropData ? `${cropData.offset}초` : '-'}</span>
               </div>
-              <div className="op-item"><span className="op-label">전이</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
-              <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
-              <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
-              <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
-              <div className="op-item"><span className="op-label">수동</span><span className="op-val" style={{color: '#64748b'}}>OFF</span></div>
+              <div className="op-item">
+                <span className="op-label">계획요일</span>
+                <span className="op-val">{planDay}</span>
+              </div>
+              <div className="op-item">
+                <span className="op-label">예약제어</span>
+                <span className="op-val">{reservCtrl}</span>
+              </div>
+              <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal'}}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</span></div>
+              <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal'}}>{reservCode === 3 ? 'ON' : 'OFF'}</span></div>
+              <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal'}}>{reservCode === 2 ? 'ON' : 'OFF'}</span></div>
             </div>
             <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
               📄 운영계획(TOD) 다운로드
