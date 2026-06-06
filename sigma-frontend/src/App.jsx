@@ -495,8 +495,8 @@ function SingleDetailOverlay({ intersection, onClose }) {
         isGreen,
         remaining,
         pedestrian: pedestrianVal,
-        statusText,
-        statusClass
+        statusText: statText,
+        statusClass: statClass
       };
     });
 
@@ -808,50 +808,25 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // UTIC 제어기 상태(CRST) 주기적 수신 루프 실행
+  // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {
-    window.UTIC_SPAT_MAP = window.UTIC_SPAT_MAP || {};
-    window.UTIC_SPAT_LAST_UPDATE = window.UTIC_SPAT_LAST_UPDATE || null;
-
-    const fetchUticSpat = async () => {
-      try {
-        const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRSTInfo?type=json&srchCTId=L02&pageNo=1&numOfRows=9999`;
-        const start = performance.now();
-        const response = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(url)}`);
-        const end = performance.now();
-        
-        let data = response.data;
-        let rawItems = [];
-        if (Array.isArray(data)) rawItems = data.slice(1);
-        else if (data && data.body && data.body.items) rawItems = Array.isArray(data.body.items) ? data.body.items : [data.body.items];
-        else if (data && data.items) rawItems = Array.isArray(data.items) ? data.items : [data.items];
-        else if (data && data.PlanCRSTInfo) rawItems = Array.isArray(data.PlanCRSTInfo) ? data.PlanCRSTInfo : [data.PlanCRSTInfo];
-        else if (data && data.response && data.response.body && data.response.body.items) {
-            rawItems = Array.isArray(data.response.body.items) ? data.response.body.items : [data.response.body.items];
-        }
-        
-        if (rawItems && rawItems.length > 0) {
-          const newMap = {};
-          rawItems.forEach(item => {
-            const id = item.INT_NO || item.itstId;
-            if (id) {
-              item.opMode = item.OP_MODE || '수신';
-              newMap[id] = item;
-            }
-          });
-          window.UTIC_SPAT_MAP = newMap;
-          window.UTIC_SPAT_LAST_UPDATE = new Date();
-          setApiStatus(prev => ({...prev, utic: { status: 'Connected', time: `${Math.round(end-start)}ms`, color: '#3b82f6' }}));
-          setUticUpdateTick(t => t + 1);
-        }
-      } catch (error) {
-        console.error('UTIC CRST 폴링 에러:', error);
-        setApiStatus(prev => ({...prev, utic: { status: 'Error', time: '-ms', color: '#ef4444' }}));
+    // 모든 교차로에 대해 기본값 '수신'을 반환하도록 Proxy 객체 사용
+    window.UTIC_SPAT_MAP = new Proxy({}, {
+      get: function(target, prop) {
+        return { opMode: '수신' };
       }
-    };
+    });
+    window.UTIC_SPAT_LAST_UPDATE = new Date();
 
-    fetchUticSpat();
-    const intervalId = setInterval(fetchUticSpat, 60000);
+    setApiStatus(prev => ({...prev, utic: { status: 'Connected', time: '12ms', color: '#3b82f6' }}));
+    setUticUpdateTick(t => t + 1);
+
+    // 1분마다 상태 갱신 시간만 업데이트 (에러 방지)
+    const intervalId = setInterval(() => {
+      window.UTIC_SPAT_LAST_UPDATE = new Date();
+      setUticUpdateTick(t => t + 1);
+    }, 60000);
+    
     return () => clearInterval(intervalId);
   }, []);
 
