@@ -406,8 +406,8 @@ function SingleDetailOverlay({ intersection, onClose }) {
               step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
               step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
             }
-            if (ringNo === 1) ringA.push(step);
-            else if (ringNo === 2) ringB.push(step);
+            if (ringNo === 0) ringA.push(step);
+            else if (ringNo === 1) ringB.push(step);
           }
         }
         ringA.sort((a, b) => a.stepNo - b.stepNo);
