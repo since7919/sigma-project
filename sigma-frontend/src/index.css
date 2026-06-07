@@ -34,9 +34,9 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 /* 개별 트리 아이템 (교차로 리스트) */
 .acc-sub-body .tree-item { padding-left: 50px; }
 .acc-body > .tree-item { padding-left: 30px; }
-.tree-item { display: flex; align-items: center; padding: 8px 15px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); }
+.tree-item { display: flex; align-items: center; padding: 8px 15px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); border-left: 3px solid transparent; }
 .tree-item:hover { background: rgba(255,255,255,0.05); }
-.tree-item.selected { background: rgba(56, 189, 248, 0.2); border-left: 3px solid var(--accent-primary); padding-left: calc(100% - var(--padding-left) - 3px); }
+.tree-item.selected { background: rgba(56, 189, 248, 0.2); border-left-color: var(--accent-primary); }
 
 .tree-item .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; }
 .tree-item .id-label { color: var(--text-muted); font-size: 0.75rem; margin-right: 5px; min-width: 40px;}
