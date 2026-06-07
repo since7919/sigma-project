@@ -895,7 +895,7 @@ function DualDetailOverlay({ intersections, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick }) {
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
     const rCode = window.prompt('DB에 동기화할 지역 코드를 입력하세요 (예: L01, L02, L19...)\n* 입력한 지역의 교차로가 다운로드되어 트리에 표시됩니다.', 'L02');
@@ -975,6 +975,16 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                 className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                 onClick={() => onNodeClick(item.id)}
               >
+                <input 
+                  type="checkbox" 
+                  checked={dualSelection.some(d => d.id === item.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onDualClick(item);
+                  }}
+                  style={{ marginRight: '6px', cursor: 'pointer' }}
+                  title="듀얼 모니터링 담기/빼기"
+                />
                 <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#64748b'}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
@@ -1013,6 +1023,16 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                         className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                         onClick={() => onNodeClick(item.id)}
                       >
+                        <input 
+                          type="checkbox" 
+                          checked={dualSelection.some(d => d.id === item.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            onDualClick(item);
+                          }}
+                          style={{ marginRight: '6px', cursor: 'pointer' }}
+                          title="듀얼 모니터링 담기/빼기"
+                        />
                         <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                         <span className="id-label">[{item.int_no}]</span>
                         <span className="name-label">{item.int_nm}</span>
@@ -1154,6 +1174,8 @@ function App() {
           activeNodeId={activeNodeId} 
           onRefresh={fetchIntersections}
           uticUpdateTick={uticUpdateTick}
+          dualSelection={dualSelection}
+          onDualClick={handleDualClick}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
