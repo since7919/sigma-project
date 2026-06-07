@@ -123,7 +123,6 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
   const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
 
   let sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
-  const hasConf = !!conf || isSeoul;
 
   if (conf) {
     for (let i = 1; i <= 8; i++) {
@@ -136,8 +135,8 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
         }
       });
     }
-  } else if (isSeoul) {
-    // 서울 시뮬레이션 기본 구성 매핑
+  } else {
+    // 전국 공통(또는 기본) 시뮬레이션 기본 구성 매핑
     const mockConf = {
       'A_RING_1_PHASE_CONF_CD': 'S0000300',
       'A_RING_2_PHASE_CONF_CD': 'L0450200',
