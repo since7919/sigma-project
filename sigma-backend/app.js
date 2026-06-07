@@ -128,7 +128,7 @@ app.get('/api/intersections', async (req, res) => {
     let hasMore = true;
 
     while (hasMore) {
-      let query = supabase.from('utic_intersections').select('*').range(from, from + step - 1);
+      let query = supabase.from('utic_intersections').select('*').range(from, from + step - 1).order('region_cd').order('int_no');
       if (regionCode) {
         query = query.eq('region_cd', regionCode);
       }
