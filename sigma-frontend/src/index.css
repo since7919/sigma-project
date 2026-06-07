@@ -337,7 +337,21 @@ details.footer-section summary::marker { content: ''; }
   background: transparent !important;
 }
 @media (max-width: 768px) {
-  .dual-overlay-content { flex-direction: column; }
-  .dual-panel { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-  .dual-panel:last-child { border-bottom: none; }
+  .dual-overlay-content { 
+    flex-direction: column; 
+    overflow-y: auto; 
+    display: block; 
+  }
+  .dual-panel { 
+    height: 100vh; 
+    border-right: none; 
+    border-bottom: 4px solid rgba(56, 189, 248, 0.5); 
+    display: block;
+  }
+  .dual-panel:last-child { 
+    border-bottom: none; 
+  }
+  .dual-panel .overlay {
+    position: relative !important;
+  }
 }
