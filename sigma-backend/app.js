@@ -43,16 +43,24 @@ async function syncUticIntersections(regionCode) {
   try {
     res = await axios.get(excelUrl, { responseType: 'arraybuffer' });
   } catch (err) {
-    throw new Error('UTIC 교차로 엑셀 데이터를 가져오는데 실패했습니다: ' + err.message);
+    console.log(`[Sync] ${regionCode} 데이터가 없습니다 (API Error).`);
+    return [];
   }
 
-  const workbook = xlsx.read(res.data, { type: 'buffer' });
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const rawItems = xlsx.utils.sheet_to_json(sheet);
+  let rawItems = [];
+  try {
+    const workbook = xlsx.read(res.data, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    rawItems = xlsx.utils.sheet_to_json(sheet);
+  } catch (err) {
+    console.log(`[Sync] ${regionCode} 엑셀 파싱 에러 (데이터가 없을 수 있음).`);
+    return [];
+  }
 
   if (!rawItems || rawItems.length === 0) {
-    throw new Error('UTIC 교차로 엑셀 데이터가 비어있습니다.');
+    console.log(`[Sync] ${regionCode} 교차로 데이터가 0건입니다.`);
+    return [];
   }
 
   const seenIds = new Set();
