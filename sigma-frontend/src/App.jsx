@@ -543,7 +543,7 @@ function SingleDetailOverlay({ intersection, onClose }) {
         if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
         return acc;
       }, []);
-    } else if (isSeoul) {
+    } else {
       const mockConf = {
         'A_RING_1_PHASE_CONF_CD': 'S0000300',
         'A_RING_2_PHASE_CONF_CD': 'L0450200',
