@@ -289,3 +289,55 @@ details.footer-section summary::marker { content: ''; }
   .op-item { font-size: 11px; }
   .modal-header h2 { font-size: 1.1rem; }
 }
+
+/* 듀얼 모니터링 레이아웃 */
+.dual-overlay-wrapper {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: var(--bg-dark);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+.dual-overlay-header {
+  height: 50px;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+.dual-overlay-content {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+.dual-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dual-panel:last-child {
+  border-right: none;
+}
+.dual-panel .overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+@media (max-width: 768px) {
+  .dual-overlay-content { flex-direction: column; }
+  .dual-panel { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  .dual-panel:last-child { border-bottom: none; }
+}

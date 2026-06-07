@@ -7,7 +7,7 @@ import './index.css';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkers({ intersections, onDetailClick, targetId, uticUpdateTick }) {
+function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
 
@@ -54,10 +54,16 @@ function IntersectionMarkers({ intersections, onDetailClick, targetId, uticUpdat
             <Popup className="custom-popup" closeButton={true}>
               <div className="popup-content">
                 <h3>{intersection.int_nm}</h3>
-                <button className="btn-detail" onClick={(e) => {
-                  e.stopPropagation();
-                  onDetailClick(intersection);
-                }}>상세보기</button>
+                <div style={{display:'flex', flexDirection:'column', gap:'5px', marginTop:'10px'}}>
+                  <button className="btn-detail" onClick={(e) => {
+                    e.stopPropagation();
+                    onDetailClick(intersection);
+                  }}>상세보기</button>
+                  <button className="btn-detail" style={{background:'#6366f1', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+                    e.stopPropagation();
+                    onDualClick(intersection);
+                  }}>듀얼 비교선택 담기</button>
+                </div>
               </div>
             </Popup>
           </CircleMarker>
@@ -299,7 +305,7 @@ const getCellClass = (val, type) => {
 };
 
 // [3] 단일 교차로 상세 모니터링 모달
-function SingleDetailOverlay({ intersection, onClose }) {
+function SingleDetailOverlay({ intersection, onClose, isDual }) {
   const [activeTab, setActiveTab] = useState('detail');
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -667,8 +673,8 @@ function SingleDetailOverlay({ intersection, onClose }) {
   };
 
   return (
-    <div className="detail-modal-overlay">
-      <div className="detail-modal-content">
+    <div className={isDual ? "overlay" : "detail-modal-overlay"}>
+      <div className="detail-modal-content" style={isDual ? {width:'100%', height:'100%', borderRadius:0} : {}}>
         <header className="modal-header">
           <h2>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
           <button className="btn-close" onClick={onClose}>×</button>
@@ -860,6 +866,34 @@ function SingleDetailOverlay({ intersection, onClose }) {
   );
 }
 
+// [3.5] 듀얼 모니터링 모달
+function DualDetailOverlay({ intersections, onClose }) {
+  return (
+    <div className="dual-overlay-wrapper">
+      <header className="dual-overlay-header">
+        <span>⚖️ 듀얼 모니터링 모드</span>
+        <button onClick={onClose} style={{background:'transparent', color:'#fff', border:'none', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
+      </header>
+      <div className="dual-overlay-content">
+        <div className="dual-panel">
+          <SingleDetailOverlay intersection={intersections[0]} onClose={onClose} isDual={true} />
+        </div>
+        <div className="dual-panel">
+          {intersections[1] ? (
+            <SingleDetailOverlay intersection={intersections[1]} onClose={() => {}} isDual={true} />
+          ) : (
+            <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#94a3b8', fontSize:'1.1rem', flexDirection:'column', gap:'15px'}}>
+              <span>맵이나 트리에서 두 번째 교차로의 [듀얼 비교선택 담기]를 클릭하세요.</span>
+              <div className="spinner" style={{width:'30px', height:'30px', border:'3px solid #334155', borderTopColor:'#38bdf8', borderRadius:'50%', animation:'spin 1s linear infinite'}}></div>
+              <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // [4] 사이드바 트리 (Accordion) 컴포넌트
 function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick }) {
   const forceRefreshUtic = async (e) => {
@@ -1000,6 +1034,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
 function App() {
   const [intersections, setIntersections] = useState([]);
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
+  const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
@@ -1093,6 +1128,14 @@ function App() {
     setDetailIntersection(intersection);
   };
 
+  const handleDualClick = (intersection) => {
+    setDualSelection(prev => {
+      if (prev.length === 0) return [intersection];
+      if (prev.length === 1 && prev[0].id !== intersection.id) return [prev[0], intersection];
+      return prev;
+    });
+  };
+
   return (
     <>
       <aside className="sidebar glass">
@@ -1137,6 +1180,7 @@ function App() {
             <IntersectionMarkers 
               intersections={intersections} 
               onDetailClick={openDetail}
+              onDualClick={handleDualClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
             />
@@ -1171,9 +1215,20 @@ function App() {
         </div>
       </main>
 
-      {detailIntersection && (
-        <SingleDetailOverlay intersection={detailIntersection} onClose={() => setDetailIntersection(null)} />
+      {detailIntersection && dualSelection.length === 0 && (
+        <SingleDetailOverlay 
+          intersection={detailIntersection} 
+          onClose={() => setDetailIntersection(null)} 
+        />
       )}
+
+      {dualSelection.length > 0 && (
+        <DualDetailOverlay
+          intersections={dualSelection}
+          onClose={() => setDualSelection([])}
+        />
+      )}
+
     </>
   );
 }
