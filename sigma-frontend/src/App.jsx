@@ -891,7 +891,7 @@ function DualDetailOverlay({ intersections, onClose }) {
   const [dualZoomMode, setDualZoomMode] = useState(false);
 
   return (
-    <div className="dual-overlay-wrapper">
+    <div className={`dual-overlay-wrapper ${dualZoomMode ? 'zoom-mode' : ''}`}>
       <header className="dual-overlay-header" style={{flexWrap: 'wrap', gap: '10px'}}>
         <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
           <span>⚖️ 듀얼 모니터링 모드</span>

@@ -340,18 +340,21 @@ details.footer-section summary::marker { content: ''; }
   .dual-overlay-content { 
     flex-direction: column; 
     overflow-y: auto; 
-    display: block; 
+    display: flex; 
   }
   .dual-panel { 
     height: 100vh; 
+    flex: none;
     border-right: none; 
     border-bottom: 4px solid rgba(56, 189, 248, 0.5); 
-    display: block;
+    display: flex;
+    flex-direction: column;
   }
-  .dual-panel:last-child { 
-    border-bottom: none; 
-  }
-  .dual-panel .overlay {
-    position: relative !important;
-  }
+  .dual-panel:last-child { border-bottom: none; }
+  .dual-panel .overlay { position: relative !important; flex: 1; }
+  
+  /* zoom-mode: 상하 분할 (맵 확대 모드) 시 스크롤 없이 50%씩 차지 */
+  .dual-overlay-wrapper.zoom-mode .dual-overlay-content { overflow-y: hidden; }
+  .dual-overlay-wrapper.zoom-mode .dual-panel { height: auto; flex: 1; border-bottom: 2px solid rgba(255,255,255,0.1); }
+  .dual-overlay-wrapper.zoom-mode .dual-panel .overlay { position: absolute !important; }
 }
