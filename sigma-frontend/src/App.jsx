@@ -289,7 +289,7 @@ const getCellClass = (val, type) => {
   if (hex === '00') return 'cell-gray';
   if (type === 'car') {
     if (hex === '01' || hex === '04') return 'cell-green';
-    if (hex === '02') return 'cell-yellow';
+    else if (hex === '02') return 'cell-yellow';
     if (hex === '08') return 'cell-red';
     if (hex === '20') return 'cell-yellow-flash';
     if (hex === '10') return 'cell-red-flash';
@@ -305,7 +305,7 @@ const getCellClass = (val, type) => {
 };
 
 // [3] 단일 교차로 상세 모니터링 모달
-function SingleDetailOverlay({ intersection, onClose, isDual }) {
+function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom }) {
   const [activeTab, setActiveTab] = useState('detail');
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -318,7 +318,9 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
   const [planDay, setPlanDay] = useState('-');
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
-  const [mapZoomMode, setMapZoomMode] = useState(false);
+  const [localZoomMode, setLocalZoomMode] = useState(false);
+  
+  const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -682,11 +684,13 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
         </header>
 
         <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
-          <div className="overlay-toolbar">
-            <button className={`toolbar-btn ${!mapZoomMode ? 'active' : ''}`} onClick={() => setMapZoomMode(false)}>전체 정보 모드</button>
-            <button className={`toolbar-btn ${mapZoomMode ? 'active' : ''}`} onClick={() => setMapZoomMode(true)}>맵 확대 모드</button>
-          </div>
-          <div style={{position: 'absolute', top: '10px', right: '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 14px', borderRadius: '20px', border: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '6px'}}>
+          {!isDual && (
+            <div className="overlay-toolbar">
+              <button className={`toolbar-btn ${!localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(false)}>전체 정보 모드</button>
+              <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
+            </div>
+          )}
+          <div style={{position: 'absolute', top: '10px', right: isDual ? '10px' : '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 10px', borderRadius: '20px', border: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '6px'}}>
             <span style={{fontSize: '10px'}}>제어 상태:</span>
             <span style={{color:'#10b981', fontWeight:'bold', fontSize: '11px', textShadow: '0 0 10px #10b981'}}>
               {isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no] ? '실시간 연동 중' : 'API 연동 대기 중') : (cropData ? '실시간 연동 중' : '대기 중')}
@@ -871,19 +875,33 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
 
 // [3.5] 듀얼 모니터링 모달
 function DualDetailOverlay({ intersections, onClose }) {
+  const [dualZoomMode, setDualZoomMode] = useState(false);
+
   return (
     <div className="dual-overlay-wrapper">
-      <header className="dual-overlay-header">
-        <span>⚖️ 듀얼 모니터링 모드</span>
+      <header className="dual-overlay-header" style={{flexWrap: 'wrap', gap: '10px'}}>
+        <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+          <span>⚖️ 듀얼 모니터링 모드</span>
+          <div style={{display:'flex', gap:'5px', background:'rgba(0,0,0,0.5)', padding:'4px', borderRadius:'8px'}}>
+            <button 
+              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'0.8rem', background: !dualZoomMode ? '#38bdf8' : 'transparent', color: !dualZoomMode ? '#fff' : '#94a3b8'}}
+              onClick={() => setDualZoomMode(false)}
+            >좌우 분할 (전체 정보)</button>
+            <button 
+              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'0.8rem', background: dualZoomMode ? '#38bdf8' : 'transparent', color: dualZoomMode ? '#fff' : '#94a3b8'}}
+              onClick={() => setDualZoomMode(true)}
+            >상하 분할 (맵 확대)</button>
+          </div>
+        </div>
         <button onClick={onClose} style={{background:'transparent', color:'#fff', border:'none', fontSize:'1.5rem', cursor:'pointer'}}>×</button>
       </header>
-      <div className="dual-overlay-content">
-        <div className="dual-panel">
-          <SingleDetailOverlay intersection={intersections[0]} onClose={onClose} isDual={true} />
+      <div className="dual-overlay-content" style={dualZoomMode ? { flexDirection: 'column' } : {}}>
+        <div className="dual-panel" style={dualZoomMode ? { flex: 1, borderRight: 'none', borderBottom: '2px solid rgba(255,255,255,0.1)' } : {}}>
+          <SingleDetailOverlay intersection={intersections[0]} onClose={onClose} isDual={true} forceZoom={dualZoomMode} />
         </div>
-        <div className="dual-panel">
+        <div className="dual-panel" style={dualZoomMode ? { flex: 1 } : {}}>
           {intersections[1] ? (
-            <SingleDetailOverlay intersection={intersections[1]} onClose={() => {}} isDual={true} />
+            <SingleDetailOverlay intersection={intersections[1]} onClose={() => {}} isDual={true} forceZoom={dualZoomMode} />
           ) : (
             <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'#94a3b8', fontSize:'1.1rem', flexDirection:'column', gap:'15px'}}>
               <span>맵이나 트리에서 두 번째 교차로의 [듀얼 비교선택 담기]를 클릭하세요.</span>
