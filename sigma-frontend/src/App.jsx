@@ -318,6 +318,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
   const [planDay, setPlanDay] = useState('-');
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
+  const [mapZoomMode, setMapZoomMode] = useState(false);
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -680,10 +681,10 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
           <button className="btn-close" onClick={onClose}>×</button>
         </header>
 
-        <div className="modal-top-map">
+        <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
           <div className="overlay-toolbar">
-            <button className="toolbar-btn active">전체 정보 모드</button>
-            <button className="toolbar-btn">맵 확대 모드</button>
+            <button className={`toolbar-btn ${!mapZoomMode ? 'active' : ''}`} onClick={() => setMapZoomMode(false)}>전체 정보 모드</button>
+            <button className={`toolbar-btn ${mapZoomMode ? 'active' : ''}`} onClick={() => setMapZoomMode(true)}>맵 확대 모드</button>
           </div>
           <div style={{position: 'absolute', top: '10px', right: '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 14px', borderRadius: '20px', border: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '6px'}}>
             <span style={{fontSize: '10px'}}>제어 상태:</span>
@@ -726,8 +727,9 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
           </div>
         </div>
 
-        <div className="modal-bottom-data">
-          <div className="tabs-header">
+        {!mapZoomMode && (
+          <div className="modal-bottom-data">
+            <div className="tabs-header">
             <button className={`tab-btn ${activeTab === 'detail' ? 'active' : ''}`} onClick={() => setActiveTab('detail')}>상세 신호정보</button>
             <button className={`tab-btn ${activeTab === 'signalmap' ? 'active' : ''}`} onClick={() => setActiveTab('signalmap')}>시그널맵 (LSU & Step)</button>
           </div>
@@ -861,6 +863,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual }) {
             </div>
           </footer>
         </div>
+        )}
       </div>
     </div>
   );
