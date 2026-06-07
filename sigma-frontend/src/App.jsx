@@ -1244,7 +1244,14 @@ function App() {
         />
       )}
 
-      {dualSelection.length > 0 && (
+      {dualSelection.length === 1 && (
+        <div style={{position:'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', background:'rgba(56, 189, 248, 0.9)', color:'#fff', padding:'12px 24px', borderRadius:'30px', zIndex:10000, fontWeight:'bold', boxShadow:'0 4px 15px rgba(0,0,0,0.3)', display:'flex', alignItems:'center', gap:'10px'}}>
+          <span>⚖️ 첫 번째 교차로 <b>[{dualSelection[0].int_nm}]</b> 선택됨. 비교할 두 번째 교차로를 선택해 주세요.</span>
+          <button onClick={() => setDualSelection([])} style={{background:'rgba(0,0,0,0.2)', border:'none', color:'#fff', padding:'4px 8px', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}}>취소</button>
+        </div>
+      )}
+
+      {dualSelection.length === 2 && (
         <DualDetailOverlay
           intersections={dualSelection}
           onClose={() => setDualSelection([])}
