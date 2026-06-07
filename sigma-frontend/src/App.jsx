@@ -897,13 +897,15 @@ function DualDetailOverlay({ intersections, onClose }) {
           <span>⚖️ 듀얼 모니터링 모드</span>
           <div style={{display:'flex', gap:'5px', background:'rgba(0,0,0,0.5)', padding:'4px', borderRadius:'8px'}}>
             <button 
-              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'0.8rem', background: !dualZoomMode ? '#38bdf8' : 'transparent', color: !dualZoomMode ? '#fff' : '#94a3b8'}}
+              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'1rem', fontWeight:'bold', background: !dualZoomMode ? '#38bdf8' : 'transparent', color: !dualZoomMode ? '#fff' : '#94a3b8'}}
               onClick={() => setDualZoomMode(false)}
-            >좌우 분할 (전체 정보)</button>
+              title="좌우 분할 (전체 정보)"
+            >◫</button>
             <button 
-              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'0.8rem', background: dualZoomMode ? '#38bdf8' : 'transparent', color: dualZoomMode ? '#fff' : '#94a3b8'}}
+              style={{padding:'4px 10px', borderRadius:'4px', border:'none', cursor:'pointer', fontSize:'1rem', fontWeight:'bold', background: dualZoomMode ? '#38bdf8' : 'transparent', color: dualZoomMode ? '#fff' : '#94a3b8'}}
               onClick={() => setDualZoomMode(true)}
-            >상하 분할 (맵 확대)</button>
+              title="상하 분할 (맵 확대)"
+            >⊟</button>
           </div>
         </div>
         <button onClick={onClose} style={{background:'transparent', color:'#fff', border:'none', fontSize:'1.5rem', cursor:'pointer'}}>×</button>

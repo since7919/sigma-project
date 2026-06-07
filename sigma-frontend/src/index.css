@@ -337,6 +337,11 @@ details.footer-section summary::marker { content: ''; }
   background: transparent !important;
 }
 @media (max-width: 768px) {
+  .dual-overlay-header { height: 40px; padding: 0 10px; font-size: 0.9rem; }
+  .modal-header { padding: 5px 10px; }
+  .modal-header h2 { font-size: 0.9rem; margin: 0; }
+  .btn-close { font-size: 1.2rem; top: 5px; right: 10px; }
+
   .dual-overlay-content { 
     flex-direction: column; 
     overflow-y: auto; 
