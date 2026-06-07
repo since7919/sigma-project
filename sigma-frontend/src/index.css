@@ -293,11 +293,14 @@ details.footer-section summary::marker { content: ''; }
 /* 듀얼 모니터링 레이아웃 */
 .dual-overlay-wrapper {
   position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
+  top: 0; left: 0; width: 100vw; height: 100dvh;
   background: var(--bg-dark);
   z-index: 9999;
   display: flex;
   flex-direction: column;
+}
+.compass-center-overlay-wrapper {
+  transform: translate(-50%, -50%) scale(1.5);
 }
 .dual-overlay-header {
   height: 50px;
@@ -337,6 +340,7 @@ details.footer-section summary::marker { content: ''; }
   background: transparent !important;
 }
 @media (max-width: 768px) {
+  .compass-center-overlay-wrapper { transform: translate(-50%, -50%) scale(1.1); }
   .dual-overlay-header { height: 40px; padding: 0 10px; font-size: 0.9rem; }
   .modal-header { padding: 5px 10px; }
   .modal-header h2 { font-size: 0.9rem; margin: 0; }
