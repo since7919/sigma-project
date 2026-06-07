@@ -73,6 +73,18 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
   );
 }
 
+// 지도 크기 변경 시 중앙정렬을 다시 맞춰주는 컴포넌트
+function MapResizer({ mapZoomMode }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 300); // 레이아웃 전환 애니메이션 후 실행
+    return () => clearTimeout(timer);
+  }, [mapZoomMode, map]);
+  return null;
+}
+
 // [2] 8방향 실시간 신호 분석 파서 및 오버레이 컴포넌트
 function parsePhaseCode(code) {
   if (!code) return null;
@@ -709,6 +721,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom }) {
               boxZoom={false}
               keyboard={false}
             >
+              <MapResizer mapZoomMode={mapZoomMode} />
               <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
               <CircleMarker
                 center={[intersection.y_coord, intersection.x_coord]}
