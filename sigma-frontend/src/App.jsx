@@ -123,6 +123,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
   const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
 
   let sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
+  const hasConf = true;
 
   if (conf) {
     for (let i = 1; i <= 8; i++) {
