@@ -894,6 +894,11 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
       'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
     };
 
+    // Initialize all 31 regions to guarantee they appear in the tree
+    Object.entries(REGION_MAP).forEach(([rCode, rName]) => {
+      utic[`${rCode} ${rName}`] = [];
+    });
+
     intersections.forEach(item => {
       // origin_type 판별 (가정: '서울tdata', 'tdata' 또는 'UTIC', 'utic')
       const isTdata = item.origin_type?.toLowerCase().includes('tdata');
