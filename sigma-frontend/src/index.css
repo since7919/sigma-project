@@ -168,6 +168,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .car-housing-box {
     background: #050505; padding: 3px 4px; border-radius: 4px;
     border: 0.5px solid #444; display: flex; justify-content: center; gap: 1px;
+    flex-direction: row-reverse;
 }
 .ped-housing-box {
     background: #050505; padding: 3px 4px; border-radius: 4px;
