@@ -40,7 +40,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
     if (activeTab === 'tdata' && !isSeoul) return false;
     if (activeTab === 'utic' && isSeoul) return false;
 
-    return bounds.contains([intersection.y_coord, intersection.x_coord]);
+    return true;
   });
 
   const showTooltip = zoomLevel >= 11 && visibleIntersections.length <= 150;
@@ -1301,7 +1301,7 @@ function App() {
       <main className="main-content">
         <div className="top-map-wrapper">
           <MapContainer center={[37.5665, 126.9780]} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
             <IntersectionMarkers 
               intersections={intersections} 
               onDetailClick={openDetail}
