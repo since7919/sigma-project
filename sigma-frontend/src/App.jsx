@@ -600,23 +600,29 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom }) {
         else if (p.angle === 270) pfx = 'wt';
         else if (p.angle === 315) pfx = 'nw';
 
-        if (spat && pfx) {
+        if (spat && spat.status && pfx) {
           let pedPfxMap = { 'nt': 'wt', 'ne': 'nw', 'et': 'nt', 'se': 'ne', 'st': 'et', 'sw': 'se', 'wt': 'st', 'nw': 'sw' };
           let field = pfx + 'StsgStatNm';
-          if (p.type === 'L') field = pfx + 'LtsgStatNm';
-          if (p.type === 'P') field = pedPfxMap[pfx] + 'PdsgStatNm';
-          const val = spat[field];
-
-          if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed') {
+          let timeField = pfx + 'StsgRmdrCs';
+          if (p.type === 'L') { field = pfx + 'LtsgStatNm'; timeField = pfx + 'LtsgRmdrCs'; }
+          if (p.type === 'P') { field = pedPfxMap[pfx] + 'PdsgStatNm'; timeField = pedPfxMap[pfx] + 'PdsgRmdrCs'; }
+          
+          const val = spat.status[field];
+          const remVal = spat.timing ? spat.timing[timeField] : null;
+          
+          if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed' || val === '녹색' || val === '녹색화살표' || val === '청색') {
             isGreen = true;
             statText = '진행';
             statClass = 'sig-status-green';
-          } else if (val === 'stop-And-Remain') {
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
+          } else if (val === 'stop-And-Remain' || val === '적색') {
             statText = '정지';
             statClass = 'sig-status-red';
-          } else if (val === 'protected-clearance' || val === 'permissive-clearance') {
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
+          } else if (val === 'protected-clearance' || val === 'permissive-clearance' || val === '황색' || val === '적-황색') {
             statText = '주의';
             statClass = 'sig-status-yellow';
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
           }
         }
       } else {
@@ -1102,33 +1108,45 @@ function App() {
     window.SEOUL_SPAT_MAP = window.SEOUL_SPAT_MAP || {};
     window.SEOUL_SPAT_LAST_UPDATE = window.SEOUL_SPAT_LAST_UPDATE || null;
 
+    let isFetching = false;
     const fetchSeoulSpat = async () => {
+      if (isFetching) return;
+      const activeIds = new Set();
+      if (detailIntersection && detailIntersection.origin_type === '서울tdata') activeIds.add(detailIntersection.int_no);
+      dualSelection.forEach(item => {
+        if (item.origin_type === '서울tdata') activeIds.add(item.int_no);
+      });
+      
+      const idsToFetch = Array.from(activeIds);
+      if (idsToFetch.length === 0) return;
+      
+      isFetching = true;
       try {
-        const response = await axios.get('/seoul_spat_mock.json');
-        const dataArray = response.data.value || response.data;
-        const newMap = {};
-        const states = ['stop-And-Remain', 'protected-Movement-Allowed', 'protected-clearance'];
-        
-        dataArray.forEach(item => {
-          ['nt', 'ne', 'et', 'se', 'st', 'sw', 'wt', 'nw'].forEach(dir => {
-            if (item[dir + 'StsgStatNm']) item[dir + 'StsgStatNm'] = states[Math.floor(Math.random() * states.length)];
-            if (item[dir + 'LtsgStatNm']) item[dir + 'LtsgStatNm'] = states[Math.floor(Math.random() * states.length)];
-            if (item[dir + 'PdsgStatNm']) item[dir + 'PdsgStatNm'] = states[Math.floor(Math.random() * 2) === 0 ? 'stop-And-Remain' : 'protected-Movement-Allowed'];
-          });
-          newMap[item.itstId] = item;
-        });
+        const start = Date.now();
+        const newMap = { ...window.SEOUL_SPAT_MAP };
+        await Promise.all(idsToFetch.map(async (id) => {
+          const response = await axios.get(`/api/proxy/seoul?intersectionId=${id}`);
+          if (response.data && response.data.status) {
+             newMap[id] = response.data;
+          }
+        }));
 
         window.SEOUL_SPAT_MAP = newMap;
         window.SEOUL_SPAT_LAST_UPDATE = new Date();
+        const elapsed = Date.now() - start;
+        setApiStatus(prev => ({...prev, seoul: { status: 'Connected', time: `${elapsed}ms`, color: '#3b82f6' }}));
+        setUticUpdateTick(t => t + 1); // 리렌더링 트리거
       } catch (error) {
-        console.error('Seoul mock SPAT 로딩 에러:', error);
+        console.error('Seoul SPAT 로딩 에러:', error);
+      } finally {
+        isFetching = false;
       }
     };
 
     fetchSeoulSpat();
-    const intervalId = setInterval(fetchSeoulSpat, 3000);
+    const intervalId = setInterval(fetchSeoulSpat, 5000); // 5초 주기로 폴링 (테스트용)
     return () => clearInterval(intervalId);
-  }, []);
+  }, [detailIntersection, dualSelection]);
 
   // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {

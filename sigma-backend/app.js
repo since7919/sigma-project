@@ -3,6 +3,9 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 const xlsx = require('xlsx');
+const fs = require('fs');
+const csv = require('csv-parser');
+const iconv = require('iconv-lite');
 const supabase = require('./db');
 require('dotenv').config();
 
@@ -118,6 +121,71 @@ app.get('/api/intersections/sync', async (req, res) => {
   }
 });
 
+// 1-1-S. 서울 T-Data 교차로 마스터 데이터 수동 갱신 (CSV -> DB)
+app.get('/api/intersections/sync-seoul', async (req, res) => {
+  const results = [];
+  const seoulCsvPath = path.join(__dirname, '../1_TSI/data/seoul_map.csv');
+  
+  if (!fs.existsSync(seoulCsvPath)) {
+    return res.status(404).json({ error: 'seoul_map.csv 파일을 찾을 수 없습니다.' });
+  }
+
+  const parseCoord = (val) => {
+    if (!val) return 0;
+    const num = parseFloat(val);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const now = new Date();
+  
+  fs.createReadStream(seoulCsvPath)
+    .pipe(csv())
+    .on('data', (data) => {
+      // BOM 제거 처리
+      const keys = Object.keys(data);
+      keys.forEach(k => {
+        if (k.charCodeAt(0) === 0xFEFF) {
+          data[k.substring(1)] = data[k];
+        }
+      });
+
+      const itstId = data.itstId || data['교차로ID'];
+      if (!itstId) return;
+
+      results.push({
+        region_cd: 'seoul',
+        int_no: parseInt(itstId, 10),
+        int_nm: data.itstNm || data['교차로명'],
+        x_coord: parseCoord(data.mapCtptIntLot || data['경도']),
+        y_coord: parseCoord(data.mapCtptIntLat || data['위도']),
+        node_id: data.rgtrId || null,
+        origin_type: '서울tdata',
+        updated_at: now
+      });
+    })
+    .on('end', async () => {
+      try {
+        // 기존 서울 데이터 삭제
+        await supabase.from('utic_intersections').delete().eq('origin_type', '서울tdata');
+        
+        const chunkSize = 1000;
+        let insertedCount = 0;
+        
+        for (let i = 0; i < results.length; i += chunkSize) {
+          const chunk = results.slice(i, i + chunkSize);
+          const { error } = await supabase.from('utic_intersections').insert(chunk);
+          if (error) console.error('Seoul Insert chunk error:', error);
+          else insertedCount += chunk.length;
+        }
+        
+        res.json({ success: true, count: insertedCount });
+      } catch (err) {
+        console.error('서울 교차로 동기화 에러:', err.message);
+        res.status(500).json({ error: err.message });
+      }
+    });
+});
+
 // 1-2. 교차로 마스터 데이터 조회 (Supabase)
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
@@ -184,16 +252,28 @@ app.get('/api/proxy/utic', async (req, res) => {
   }
 });
 
-// 3. 서울 T-Data 실시간 신호정보 프록시 라우트
+// 3. 서울 T-Data 실시간 신호정보 프록시 (10119 상태 + 10120 잔여시간 통합)
 app.get('/api/proxy/seoul', async (req, res) => {
-  // 실제 서울시 API 엔드포인트에 맞춰 수정 필요
   const { intersectionId } = req.query;
+  if (!intersectionId) return res.status(400).json({ error: 'intersectionId required' });
   
+  if (!SEOUL_API_KEY) {
+    return res.status(500).json({ error: 'SEOUL_API_KEY가 설정되지 않았습니다.' });
+  }
+
+  const url10119 = `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`;
+  const url10120 = `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`;
+
   try {
-    // 임시 엔드포인트 예시
-    const url = `http://t-data.seoul.go.kr/api/example?apikey=${SEOUL_API_KEY}&id=${intersectionId}`;
-    const response = await axios.get(url);
-    res.json(response.data);
+    const [resStatus, resTiming] = await Promise.all([
+      axios.get(url10119).catch(e => { console.error('Seoul 10119 error:', e.message); return { data: [] }; }),
+      axios.get(url10120).catch(e => { console.error('Seoul 10120 error:', e.message); return { data: [] }; })
+    ]);
+
+    res.json({
+      status: resStatus.data,
+      timing: resTiming.data
+    });
   } catch (error) {
     console.error('Seoul API 호출 에러:', error.message);
     res.status(500).json({ error: '서울 T-Data API 통신 실패' });
