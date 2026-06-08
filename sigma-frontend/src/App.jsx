@@ -42,8 +42,18 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
     <>
       {visibleIntersections.map((intersection) => {
         const isSelected = intersection.id === targetId;
-        const uticSpat = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no];
-        const baseColor = uticSpat ? "#3b82f6" : "#64748b";
+        const isSeoul = intersection.origin_type === '서울tdata';
+        
+        const isUticActive = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no];
+        const isSeoulActive = window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(intersection.int_no);
+        
+        let baseColor = "#64748b";
+        if (isSeoul) {
+          if (isSeoulActive) baseColor = "#3b82f6";
+        } else {
+          if (isUticActive) baseColor = "#3b82f6";
+        }
+        
         return (
           <CircleMarker
             key={intersection.id}
@@ -1145,7 +1155,8 @@ function App() {
         const start = Date.now();
         const newMap = { ...window.SEOUL_SPAT_MAP };
         await Promise.all(idsToFetch.map(async (id) => {
-          const response = await axios.get(`/api/proxy/seoul?intersectionId=${id}`);
+          const seoulLocalId = (window.SEOUL_ID_MAP && window.SEOUL_ID_MAP[id]) ? window.SEOUL_ID_MAP[id] : id;
+          const response = await axios.get(`/api/proxy/seoul?intersectionId=${seoulLocalId}`);
           if (response.data && response.data.status) {
              newMap[id] = response.data;
           }
@@ -1200,10 +1211,17 @@ function App() {
       try {
         const seoulRes = await axios.get(`/api/proxy/seoul`);
         if (seoulRes.data && seoulRes.data.status) {
-           window.SEOUL_ACTIVE_IDS = seoulRes.data.status.map(s => s.itstId);
+           window.SEOUL_ACTIVE_IDS = [];
+           window.SEOUL_ID_MAP = {};
+           seoulRes.data.status.forEach(s => {
+             const stdId = s.eqmnId ? s.eqmnId.replace(/[^0-9]/g, '') : s.itstId;
+             window.SEOUL_ACTIVE_IDS.push(stdId);
+             window.SEOUL_ID_MAP[stdId] = s.itstId;
+           });
         }
       } catch (e) {
         window.SEOUL_ACTIVE_IDS = [];
+        window.SEOUL_ID_MAP = {};
       }
 
       setApiStatus({
