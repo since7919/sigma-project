@@ -339,9 +339,9 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                 
                 if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                   const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                  const activeSteps = ringData.filter(step => step[`ped${phaseIdx}`] === 2 || step[`ped${phaseIdx}`] === 4);
+                  const activeSteps = ringData.filter(step => step[`ped${phaseIdx}`] === 1 || step[`ped${phaseIdx}`] === 5);
                   if (activeSteps.length > 0) {
-                    pedDuration = activeSteps.reduce((acc, step) => acc + step.maxTm, 0);
+                    pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
                   } else {
                     // SigMap은 있으나 해당 보행 현시 데이터가 없는 경우 휴리스틱 (차량보다 5초 일찍 종료)
                     pedDuration = Math.max(0, pedDuration - 5);
@@ -938,9 +938,9 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
             // 보행 표출시간: SigMap에서 보행 녹색 총 시간 계산
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = p.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const activeSteps = ringData.filter(s => s[`ped${p.idx}`] === 2 || s[`ped${p.idx}`] === 4);
+              const activeSteps = ringData.filter(s => s[`ped${p.idx}`] === 1 || s[`ped${p.idx}`] === 5);
               if (activeSteps.length > 0) {
-                displayTime = activeSteps.reduce((acc, s) => acc + s.maxTm, 0) + 's';
+                displayTime = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0) + 's';
               } else {
                 displayTime = Math.max(0, phaseVal - 5) + 's'; // 휴리스틱 적용
               }
