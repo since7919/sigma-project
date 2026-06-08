@@ -36,7 +36,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
     
     // 탭에 따른 필터링 (activeTab이 null이면 모두 숨김)
     if (!activeTab) return false;
-    const isSeoul = intersection.origin_type === '서울tdata';
+    const isSeoul = intersection.origin_type?.toLowerCase().includes('tdata');
     if (activeTab === 'tdata' && !isSeoul) return false;
     if (activeTab === 'utic' && isSeoul) return false;
 
@@ -49,7 +49,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
     <>
       {visibleIntersections.map((intersection) => {
         const isSelected = intersection.id === targetId;
-        const isSeoul = intersection.origin_type === '서울tdata';
+        const isSeoul = intersection.origin_type?.toLowerCase().includes('tdata');
         
         const isUticActive = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no];
         const isSeoulActive = window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(intersection.int_no));
