@@ -7,7 +7,7 @@ import './index.css';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick }) {
+function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -33,6 +33,13 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
 
   const visibleIntersections = intersections.filter(intersection => {
     if (!intersection.y_coord || !intersection.x_coord) return false;
+    
+    // 탭에 따른 필터링 (activeTab이 null이면 모두 숨김)
+    if (!activeTab) return false;
+    const isSeoul = intersection.origin_type === '서울tdata';
+    if (activeTab === 'tdata' && !isSeoul) return false;
+    if (activeTab === 'utic' && isSeoul) return false;
+
     return bounds.contains([intersection.y_coord, intersection.x_coord]);
   });
 
@@ -1127,6 +1134,7 @@ function App() {
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
+  const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
@@ -1269,6 +1277,8 @@ function App() {
           uticUpdateTick={uticUpdateTick}
           dualSelection={dualSelection}
           onDualClick={handleDualClick}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -1298,6 +1308,7 @@ function App() {
               onDualClick={handleDualClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
+              activeTab={activeTab}
             />
           </MapContainer>
 
