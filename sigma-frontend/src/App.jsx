@@ -332,11 +332,10 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
               if (checkActive(sPhaseMap)) { s = 'green'; carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); }
               if (checkActive(lPhaseMap)) { l = 'green'; carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); }
 
-              if (checkActive(pPhaseMap)) { 
-                const conf = pPhaseMap[deg];
+              const calcPedestrian = (conf, map) => {
                 const phaseIdx = conf.idx;
                 const elapsed = conf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-                let pedDuration = getCountdown(pPhaseMap) + elapsed;
+                let pedDuration = getCountdown(map) + elapsed;
                 
                 if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                   const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
@@ -353,8 +352,14 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                 } else {
                   p = 'red';
                 }
+              };
+
+              if (checkActive(pPhaseMap)) { 
+                calcPedestrian(pPhaseMap[deg], pPhaseMap);
               }
-              else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) { p = 'green'; }
+              else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) { 
+                calcPedestrian(sPhaseMap[deg], sPhaseMap);
+              }
             }
 
             if (s === 'green' && carCountdown <= 3) s = 'yellow';
