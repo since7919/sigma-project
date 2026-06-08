@@ -774,24 +774,48 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
       }, []);
     }
 
-    const mapped = phases.map(p => {
+    const uniqueMovementsMap = new Map();
+    phases.forEach(p => {
+      const key = `${p.angle}_${p.type}`;
+      if (!uniqueMovementsMap.has(key)) {
+        uniqueMovementsMap.set(key, { ...p, confs: [] });
+      }
+      uniqueMovementsMap.get(key).confs.push(p);
+    });
+
+    if (!isSeoul) {
+      phases.filter(p => p.type === 'S').forEach(p => {
+        const pedKey = `${p.angle}_P`;
+        if (!uniqueMovementsMap.has(pedKey)) {
+           uniqueMovementsMap.set(pedKey, {
+             ...p,
+             type: 'P',
+             outputType: '보행자(3)',
+             confs: []
+           });
+        }
+        uniqueMovementsMap.get(pedKey).confs.push(p);
+      });
+    }
+
+    const mapped = Array.from(uniqueMovementsMap.values()).map(m => {
       let isGreen = false;
       let statText = '소등';
       let statClass = 'sig-status-gray';
       let remaining = '-';
-      let pedestrianVal = '-';
+      let displayTime = '-';
 
       if (isSeoul) {
         let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
         let pfx = '';
-        if (p.angle === 0) pfx = 'nt';
-        else if (p.angle === 45) pfx = 'ne';
-        else if (p.angle === 90) pfx = 'et';
-        else if (p.angle === 135) pfx = 'se';
-        else if (p.angle === 180) pfx = 'st';
-        else if (p.angle === 225) pfx = 'sw';
-        else if (p.angle === 270) pfx = 'wt';
-        else if (p.angle === 315) pfx = 'nw';
+        if (m.angle === 0) pfx = 'nt';
+        else if (m.angle === 45) pfx = 'ne';
+        else if (m.angle === 90) pfx = 'et';
+        else if (m.angle === 135) pfx = 'se';
+        else if (m.angle === 180) pfx = 'st';
+        else if (m.angle === 225) pfx = 'sw';
+        else if (m.angle === 270) pfx = 'wt';
+        else if (m.angle === 315) pfx = 'nw';
 
         if (spat && spat.status && pfx) {
           const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
@@ -799,87 +823,42 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
           
           let field = pfx + 'StsgStatNm';
           let timeField = pfx + 'StsgRmdrCs';
-          if (p.type === 'L') { field = pfx + 'LtsgStatNm'; timeField = pfx + 'LtsgRmdrCs'; }
-          if (p.type === 'P') { field = pfx + 'PdsgStatNm'; timeField = pfx + 'PdsgRmdrCs'; }
+          if (m.type === 'L') { field = pfx + 'LtsgStatNm'; timeField = pfx + 'LtsgRmdrCs'; }
+          if (m.type === 'P') { field = pfx + 'PdsgStatNm'; timeField = pfx + 'PdsgRmdrCs'; }
           
           const val = statObj[field];
           const remVal = timingObj[timeField];
           
           if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed' || val === '녹색' || val === '녹색화살표' || val === '청색') {
             isGreen = true;
-            statText = p.type === 'P' ? '녹색 점등(3)' : '녹색 점등(3)';
+            statText = m.type === 'P' ? '녹색 점등(3)' : '녹색 점등(3)';
             statClass = 'sig-status-green';
-            if (remVal) {
-              const seconds = Math.floor(remVal / 10) + 's';
-              remaining = seconds;
-              if (p.type === 'P') pedestrianVal = seconds;
-            }
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
           } else if (val === 'stop-And-Remain' || val === '적색') {
-            statText = p.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
+            statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
             statClass = 'sig-status-red';
-            if (remVal) {
-              const seconds = Math.floor(remVal / 10) + 's';
-              remaining = seconds;
-            }
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
           } else if (val === 'protected-clearance' || val === 'permissive-clearance' || val === '황색' || val === '적-황색' || val === 'protected-clearance') {
-            statText = p.type === 'P' ? '보행 점멸(3)' : '황색 점등(2)';
-            statClass = p.type === 'P' ? 'sig-status-flash' : 'sig-status-yellow';
-            if (remVal) {
-              const seconds = Math.floor(remVal / 10) + 's';
-              remaining = seconds;
-              if (p.type === 'P') pedestrianVal = seconds;
-            }
-          }
-        } else {
-          // 실시간 수신 데이터가 오기 전이거나 Fallback 상태인 경우에도 cropData(또는 mockConf 기반 타이머) 작동
-          if (cropData) {
-            const isActive = p.ring === 'A' ? (p.idx === phaseA) : (p.idx === phaseB);
-            const remainingTime = p.ring === 'A' ? remainA : remainB;
-            const isPedestrian = p.type === 'P' || (p.outputType && p.outputType.includes('보행'));
-
-            if (isActive) {
-              isGreen = true;
-              remaining = remainingTime + 's';
-              if (isPedestrian) {
-                pedestrianVal = remainingTime + 's';
-                if (remainingTime <= 7) {
-                  statText = '보행 점멸(3)';
-                  statClass = 'sig-status-flash';
-                } else {
-                  statText = '녹색 점등(3)';
-                  statClass = 'sig-status-green';
-                }
-              } else {
-                if (remainingTime <= 3) {
-                  statText = '황색 점등(2)';
-                  statClass = 'sig-status-yellow';
-                } else {
-                  statText = '녹색 점등(3)';
-                  statClass = 'sig-status-green';
-                }
-              }
-            } else {
-              statText = isPedestrian ? '적색 점등(1)' : '적색 점등(1)';
-              statClass = 'sig-status-red';
-            }
+            statText = m.type === 'P' ? '보행 점멸(3)' : '황색 점등(2)';
+            statClass = m.type === 'P' ? 'sig-status-flash' : 'sig-status-yellow';
+            if (remVal) remaining = Math.floor(remVal / 10) + 's';
           }
         }
       } else {
-        if (cropData) {
-          const isActive = p.ring === 'A' ? (p.idx === phaseA) : (p.idx === phaseB);
-          const remainingTime = p.ring === 'A' ? remainA : remainB;
-          const isPedestrian = p.type === 'P' || (p.outputType && p.outputType.includes('보행'));
-          const phaseIdx = p.ring === 'A' ? phaseA : phaseB;
-          const elapsed = p.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-
-          if (isActive) {
+        if (cropData && m.confs.length > 0) {
+          const activeConf = m.confs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
+          
+          if (activeConf) {
             isGreen = true;
-            remaining = remainingTime + 's';
-            if (isPedestrian) {
-              let pedDuration = remainingTime + elapsed;
+            const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
+            const elapsed = activeConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+            const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+
+            if (m.type === 'P') {
+              let pedDuration = phaseVal;
               if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-                const ringData = p.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                const activeSteps = ringData.filter(s => s[`ped${phaseIdx}`] === 1 || s[`ped${phaseIdx}`] === 5);
+                const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                const activeSteps = ringData.filter(s => s[`ped${activeConf.idx}`] === 1 || s[`ped${activeConf.idx}`] === 5);
                 if (activeSteps.length > 0) {
                   pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
                 } else {
@@ -888,10 +867,11 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               } else {
                 pedDuration = Math.max(0, pedDuration - 5);
               }
+              displayTime = pedDuration + 's';
               const pedRemain = Math.max(0, pedDuration - elapsed);
 
               if (pedRemain > 0) {
-                pedestrianVal = pedRemain + 's';
+                remaining = pedRemain + 's';
                 if (pedRemain <= 7) {
                   statText = '보행 점멸(3)';
                   statClass = 'sig-status-flash';
@@ -900,12 +880,14 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                   statClass = 'sig-status-green';
                 }
               } else {
-                pedestrianVal = '-';
+                isGreen = false;
+                remaining = '-';
                 statText = '적색 점등(1)';
                 statClass = 'sig-status-red';
-                isGreen = false;
               }
             } else {
+              displayTime = phaseVal + 's';
+              remaining = remainingTime + 's';
               if (remainingTime <= 3) {
                 statText = '황색 점등(2)';
                 statClass = 'sig-status-yellow';
@@ -915,54 +897,39 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               }
             }
           } else {
-            statText = isPedestrian ? '적색 점등(1)' : '적색 점등(1)';
-            statClass = 'sig-status-red';
             isGreen = false;
-          }
-        }
-      }
-
-      // 보행등의 잔여시간 처리
-      if (p.type === 'P' || (p.outputType && p.outputType.includes('보행'))) {
-        if (statClass !== 'sig-status-red' && (pedestrianVal === '-' || pedestrianVal === 0 || !pedestrianVal)) {
-          pedestrianVal = remaining;
-        } else if (statClass === 'sig-status-red') {
-          pedestrianVal = '-';
-        }
-        // 보행 잔여시간을 잔여시간 컬럼에도 표시
-        remaining = pedestrianVal;
-      }
-
-      // 표출시간(해당 현시의 총 할당 시간) 계산
-      let displayTime = '-';
-      if (!isSeoul && cropData && p.ring && p.idx) {
-        const phaseVal = cropData[`${p.ring}_RING_${p.idx}_PHASE_VAL`] || 0;
-        if (phaseVal > 0) {
-          if (p.type === 'P' || (p.outputType && p.outputType.includes('보행'))) {
-            // 보행 표출시간: SigMap에서 보행 녹색 총 시간 계산
-            if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-              const ringData = p.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const activeSteps = ringData.filter(s => s[`ped${p.idx}`] === 1 || s[`ped${p.idx}`] === 5);
-              if (activeSteps.length > 0) {
-                displayTime = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0) + 's';
+            statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
+            statClass = 'sig-status-red';
+            remaining = '-';
+            
+            const firstConf = m.confs[0];
+            const phaseVal = cropData[`${firstConf.ring}_RING_${firstConf.idx}_PHASE_VAL`] || 0;
+            if (m.type === 'P') {
+              let pedDuration = phaseVal;
+              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                const ringData = firstConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                const activeSteps = ringData.filter(s => s[`ped${firstConf.idx}`] === 1 || s[`ped${firstConf.idx}`] === 5);
+                if (activeSteps.length > 0) {
+                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
+                }
               } else {
-                displayTime = Math.max(0, phaseVal - 5) + 's'; // 휴리스틱 적용
+                pedDuration = Math.max(0, pedDuration - 5);
               }
+              displayTime = pedDuration + 's';
             } else {
-              displayTime = Math.max(0, phaseVal - 5) + 's'; // 휴리스틱 적용
+              displayTime = phaseVal + 's';
             }
-          } else {
-            displayTime = phaseVal + 's';
           }
         }
       }
 
       return {
-        ...p,
+        ...m,
         isGreen,
         remaining,
         displayTime,
-        pedestrian: pedestrianVal,
         statusText: statText,
         statusClass: statClass
       };
@@ -1066,7 +1033,6 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                     <th>신호등상태</th>
                     <th>잔여시간</th>
                     <th>표출시간</th>
-                    <th>보행자</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1080,9 +1046,6 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                       </td>
                       <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
                         {p.displayTime || '-'}
-                      </td>
-                      <td style={{fontFamily: 'monospace', color: p.pedestrian !== '-' ? '#38bdf8' : '#64748b'}}>
-                        {p.pedestrian}
                       </td>
                     </tr>
                   ))}
