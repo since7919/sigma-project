@@ -190,26 +190,33 @@ app.get('/api/intersections/sync-seoul', async (req, res) => {
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
   try {
-    let allData = [];
-    let from = 0;
-    const step = 1000;
-    let hasMore = true;
+    let countQuery = supabase.from('utic_intersections').select('*', { count: 'exact', head: true });
+    if (regionCode) countQuery = countQuery.eq('region_cd', regionCode);
+    const { count, error: countError } = await countQuery;
+    if (countError) throw countError;
 
-    while (hasMore) {
-      let query = supabase.from('utic_intersections').select('*').range(from, from + step - 1).order('region_cd').order('int_no');
+    if (!count || count === 0) {
       if (regionCode) {
-        query = query.eq('region_cd', regionCode);
+        console.log(`[Sync] ${regionCode} 교차로 데이터 자동 갱신 수행`);
+        const syncedData = await syncUticIntersections(regionCode);
+        return res.json(syncedData);
       }
-      const { data, error } = await query;
-      if (error) throw error;
+      return res.json([]);
+    }
 
-      if (data && data.length > 0) {
-        allData = allData.concat(data);
-        if (data.length < step) hasMore = false;
-        else from += step;
-      } else {
-        hasMore = false;
-      }
+    const step = 1000;
+    const promises = [];
+    for (let i = 0; i < count; i += step) {
+      let q = supabase.from('utic_intersections').select('*').range(i, i + step - 1).order('region_cd').order('int_no');
+      if (regionCode) q = q.eq('region_cd', regionCode);
+      promises.push(q);
+    }
+
+    const results = await Promise.all(promises);
+    let allData = [];
+    for (const r of results) {
+      if (r.error) throw r.error;
+      if (r.data) allData = allData.concat(r.data);
     }
     
     // 데이터가 없거나 24시간이 지났으면 자동 갱신
