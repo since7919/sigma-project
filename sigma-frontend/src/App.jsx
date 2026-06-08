@@ -879,10 +879,14 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               let pedDuration = remainingTime + elapsed;
               if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                 const ringData = p.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                const activeSteps = ringData.filter(s => s[`ped${phaseIdx}`] === 2 || s[`ped${phaseIdx}`] === 4);
+                const activeSteps = ringData.filter(s => s[`ped${phaseIdx}`] === 1 || s[`ped${phaseIdx}`] === 5);
                 if (activeSteps.length > 0) {
-                  pedDuration = activeSteps.reduce((acc, s) => acc + s.maxTm, 0);
+                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
                 }
+              } else {
+                pedDuration = Math.max(0, pedDuration - 5);
               }
               const pedRemain = Math.max(0, pedDuration - elapsed);
 
