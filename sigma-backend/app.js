@@ -262,14 +262,18 @@ app.get('/api/proxy/utic', async (req, res) => {
 // 3. 서울 T-Data 실시간 신호정보 프록시 (10119 상태 + 10120 잔여시간 통합)
 app.get('/api/proxy/seoul', async (req, res) => {
   const { intersectionId } = req.query;
-  if (!intersectionId) return res.status(400).json({ error: 'intersectionId required' });
   
   if (!SEOUL_API_KEY) {
     return res.status(500).json({ error: 'SEOUL_API_KEY가 설정되지 않았습니다.' });
   }
 
-  const url10119 = `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`;
-  const url10120 = `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`;
+  const url10119 = intersectionId 
+    ? `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`
+    : `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json`;
+
+  const url10120 = intersectionId 
+    ? `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`
+    : `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json`;
 
   try {
     const [resStatus, resTiming] = await Promise.all([

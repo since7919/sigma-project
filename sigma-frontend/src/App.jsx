@@ -10,6 +10,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
+  const [bounds, setBounds] = useState(map.getBounds());
 
   // 사이드바에서 교차로 선택시 지도 위치 이동 (flyTo)
   useEffect(() => {
@@ -22,16 +23,24 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
   }, [targetId, intersections, map]);
 
   useEffect(() => {
-    const onZoom = () => setZoomLevel(map.getZoom());
-    map.on('zoomend', onZoom);
-    return () => map.off('zoomend', onZoom);
+    const updateMapState = () => {
+      setZoomLevel(map.getZoom());
+      setBounds(map.getBounds());
+    };
+    map.on('zoomend moveend', updateMapState);
+    return () => map.off('zoomend moveend', updateMapState);
   }, [map]);
 
-  const showTooltip = zoomLevel >= 11;
+  const visibleIntersections = intersections.filter(intersection => {
+    if (!intersection.y_coord || !intersection.x_coord) return false;
+    return bounds.contains([intersection.y_coord, intersection.x_coord]);
+  });
+
+  const showTooltip = zoomLevel >= 11 && visibleIntersections.length <= 150;
 
   return (
     <>
-      {intersections.map((intersection) => {
+      {visibleIntersections.map((intersection) => {
         const isSelected = intersection.id === targetId;
         const uticSpat = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no];
         const baseColor = uticSpat ? "#3b82f6" : "#64748b";
@@ -202,9 +211,10 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
             if (spat) {
               const prefixMap = { 'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se', 'S': 'st', 'SW': 'sw', 'W': 'wt', 'NW': 'nw' };
               const pfx = prefixMap[key];
-              const stsg = spat[pfx + 'StsgStatNm'];
-              const ltsg = spat[pfx + 'LtsgStatNm'];
-              const pdsg = spat[pfx + 'PdsgStatNm'];
+              const statObj = (spat.status && spat.status[0]) ? spat.status[0] : {};
+              const stsg = statObj[pfx + 'StsgStatNm'];
+              const ltsg = statObj[pfx + 'LtsgStatNm'];
+              const pdsg = statObj[pfx + 'PdsgStatNm'];
 
               let stOn = false, ltOn = false;
               if (stsg === 'protected-Movement-Allowed' || stsg === 'permissive-Movement-Allowed') { s = 'green'; stOn = true; }
@@ -994,6 +1004,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
   const [tdataOpen, setTdataOpen] = useState(true);
   const [uticOpen, setUticOpen] = useState(true);
   const [openRegions, setOpenRegions] = useState({});
+  const [tdataLimit, setTdataLimit] = useState(100);
 
   const toggleRegion = (region) => {
     setOpenRegions(prev => ({ ...prev, [region]: !prev[region] }));
@@ -1010,7 +1021,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
         </div>
         {tdataOpen && (
           <div className="acc-body">
-            {tdataList.map(item => (
+            {tdataList.slice(0, tdataLimit).map(item => (
               <div 
                 key={item.id} 
                 className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
@@ -1026,11 +1037,20 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   style={{ marginRight: '6px', cursor: 'pointer' }}
                   title="듀얼 모니터링 담기/빼기"
                 />
-                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#64748b'}}></div>
+                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(item.int_no) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
               </div>
             ))}
+            {tdataList.length > tdataLimit && (
+              <div 
+                className="tree-item" 
+                style={{ textAlign: 'center', color: '#3b82f6', cursor: 'pointer', justifyContent: 'center' }}
+                onClick={() => setTdataLimit(l => l + 200)}
+              >
+                + 더보기 ({tdataLimit} / {tdataList.length})
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1176,6 +1196,16 @@ function App() {
       const response = await axios.get(`${API_BASE}/api/intersections`);
       const elapsed = Date.now() - start;
       setIntersections(response.data);
+      
+      try {
+        const seoulRes = await axios.get(`/api/proxy/seoul`);
+        if (seoulRes.data && seoulRes.data.status) {
+           window.SEOUL_ACTIVE_IDS = seoulRes.data.status.map(s => s.itstId);
+        }
+      } catch (e) {
+        window.SEOUL_ACTIVE_IDS = [];
+      }
+
       setApiStatus({
         seoul: { status: 'On', time: `${elapsed}ms`, color: '#00ffa2' },
         utic: { status: 'On', time: `${elapsed + 15}ms`, color: '#00ffa2' }
