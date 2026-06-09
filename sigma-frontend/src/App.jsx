@@ -1422,7 +1422,7 @@ function App() {
         const start = Date.now();
         const newMap = { ...window.SEOUL_SPAT_MAP };
         await Promise.all(idsToFetch.map(async (id) => {
-          const response = await axios.get(`${API_BASE}/api/proxy/seoul?intersectionId=${id}`);
+          const response = await axios.get(`${API_BASE}/api/proxy/seoul?intersectionId=${id}&_t=${Date.now()}`);
           if (response.data && response.data.status) {
              newMap[id] = response.data;
           }
