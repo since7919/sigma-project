@@ -1400,48 +1400,82 @@ function App() {
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
 
-  // 서울 실시간 SPAT 정보 수신 루프 실행
+  // 서울 실시간 SPAT 정보 수신 루프 실행 (Supabase Realtime 기반)
   useEffect(() => {
     window.SEOUL_SPAT_MAP = window.SEOUL_SPAT_MAP || {};
     window.SEOUL_SPAT_LAST_UPDATE = window.SEOUL_SPAT_LAST_UPDATE || null;
 
-    let isFetching = false;
-    const fetchSeoulSpat = async () => {
-      if (isFetching) return;
-      const activeIds = new Set();
-      if (detailIntersection && detailIntersection.origin_type?.toLowerCase().includes('tdata')) activeIds.add(detailIntersection.int_no);
-      dualSelection.forEach(item => {
-        if (item.origin_type?.toLowerCase().includes('tdata')) activeIds.add(item.int_no);
-      });
-      
-      const idsToFetch = Array.from(activeIds);
-      if (idsToFetch.length === 0) return;
-      
-      isFetching = true;
-      try {
-        const start = Date.now();
-        const newMap = { ...window.SEOUL_SPAT_MAP };
-        await Promise.all(idsToFetch.map(async (id) => {
-          const response = await axios.get(`${API_BASE}/api/proxy/seoul?intersectionId=${id}&_t=${Date.now()}`);
-          if (response.data && response.data.status) {
-             newMap[id] = response.data;
-          }
-        }));
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
 
-        window.SEOUL_SPAT_MAP = newMap;
-        window.SEOUL_SPAT_LAST_UPDATE = new Date();
-        const elapsed = Date.now() - start;
-        setApiStatus(prev => ({...prev, seoul: { status: 'Connected', time: `${elapsed}ms`, color: '#3b82f6' }}));
-        setUticUpdateTick(t => t + 1); // 리렌더링 트리거
-      } catch (error) {
-        console.error('Seoul SPAT 로딩 에러:', error);
-      } finally {
-        isFetching = false;
+    // 초기 상태 통신 완료 상태 표시
+    setApiStatus(prev => ({...prev, seoul: { status: 'Connected (WS)', time: 'Realtime', color: '#3b82f6' }}));
+
+    import('@supabase/supabase-js').then(({ createClient }) => {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      
+      // 채널 생성 및 구독
+      const channel = supabase
+        .channel('seoul-spat-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'seoul_spat_realtime' },
+          (payload) => {
+            const updatedRow = payload.new;
+            // payload.new에 데이터(data)가 실려있는 경우만 렌더링용 맵에 갱신 (프론트 핑 목적의 빈 데이터는 스킵)
+            if (updatedRow && updatedRow.itstId && updatedRow.data) {
+              window.SEOUL_SPAT_MAP[updatedRow.itstId] = {
+                status: updatedRow.data,
+                timing: updatedRow.data
+              };
+              window.SEOUL_SPAT_LAST_UPDATE = new Date();
+              setUticUpdateTick(t => t + 1); // 리렌더링 트리거
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Supabase Realtime 구독 완료');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('❌ Supabase Realtime 구독 에러:', status);
+          }
+        });
+
+      window.SUPABASE_CHANNEL = channel;
+      window.SUPABASE_CLIENT = supabase;
+    });
+
+    return () => {
+      if (window.SUPABASE_CHANNEL && window.SUPABASE_CLIENT) {
+        window.SUPABASE_CLIENT.removeChannel(window.SUPABASE_CHANNEL);
+      }
+    };
+  }, []);
+
+  // 현재 관심 대상인 활성 교차로를 백엔드에 주기적으로 Ping 등록 (데이터 필터링 및 Sleep 방지용)
+  useEffect(() => {
+    const activeIds = [];
+    if (detailIntersection && detailIntersection.origin_type?.toLowerCase().includes('tdata')) {
+      activeIds.push(String(detailIntersection.int_no));
+    }
+    dualSelection.forEach(item => {
+      if (item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
+    });
+
+    if (activeIds.length === 0) return;
+
+    const sendPing = async () => {
+      try {
+        await axios.post(`${API_BASE}/api/ping`, { ids: activeIds });
+      } catch (e) {
+        // ignore network failures
       }
     };
 
-    fetchSeoulSpat();
-    const intervalId = setInterval(fetchSeoulSpat, 5000); // 5초 주기로 폴링 (테스트용)
+    sendPing();
+    const intervalId = setInterval(sendPing, 10000); // 10초 주기 핑
+
     return () => clearInterval(intervalId);
   }, [detailIntersection, dualSelection]);
 
@@ -1486,26 +1520,18 @@ function App() {
       
       const elapsed = Date.now() - start;
       setIntersections(data);
-      
-      try {
-        const seoulRes = await axios.get(`${API_BASE}/api/proxy/seoul`);
-        if (seoulRes.data && seoulRes.data.status) {
-           window.SEOUL_ACTIVE_IDS = seoulRes.data.status.map(s => String(s.itstId));
-        }
-      } catch (e) {
-        window.SEOUL_ACTIVE_IDS = [];
-      }
+      window.SEOUL_ACTIVE_IDS = [];
 
-      setApiStatus({
-        seoul: { status: 'On', time: `${elapsed}ms`, color: '#00ffa2' },
+      setApiStatus(prev => ({
+        ...prev,
         utic: { status: 'On', time: `${elapsed + 15}ms`, color: '#00ffa2' }
-      });
+      }));
     } catch (error) {
       console.error("교차로 데이터 로드 실패", error);
-      setApiStatus({
-        seoul: { status: 'Error', time: '-ms', color: '#ef4444' },
+      setApiStatus(prev => ({
+        ...prev,
         utic: { status: 'Error', time: '-ms', color: '#ef4444' }
-      });
+      }));
     }
   };
 

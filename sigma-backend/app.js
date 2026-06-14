@@ -19,16 +19,40 @@ app.use('/', express.static(path.join(__dirname, '../1_TSI')));
 const PORT = process.env.PORT || 3000;
 const UTIC_API_KEY = process.env.UTIC_API_KEY;
 const SEOUL_API_KEY = process.env.SEOUL_API_KEY;
-const DOTHOME_BRIDGE_URL = process.env.DOTHOME_BRIDGE_URL || 'http://your-dothome-domain/api_bridge.php';
-const BRIDGE_SECRET_KEY = process.env.BRIDGE_SECRET_KEY || 'sigma-secure-token-2026';
+const DOTHOME_BRIDGE_URL = process.env.DOTHOME_BRIDGE_URL || '';
+const BRIDGE_SECRET_KEY = process.env.BRIDGE_SECRET_KEY;
 
 // 헬스 체크 엔드포인트 (Render 절전 방지용)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Sigma Backend is running' });
 });
 
+function isValidProxyUrl(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    const allowedHosts = ['tsihub.utic.go.kr', 't-data.seoul.go.kr'];
+    return allowedHosts.includes(parsed.hostname);
+  } catch (e) {
+    return false;
+  }
+}
+
+function sendErrorResponse(res, error, defaultMessage = '서버 내부 오류가 발생했습니다.') {
+  console.error(error);
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(500).json({
+    error: isDev ? error.message : defaultMessage
+  });
+}
+
 async function fetchUrl(url) {
-  if (DOTHOME_BRIDGE_URL && !DOTHOME_BRIDGE_URL.includes('your-dothome-domain')) {
+  if (!isValidProxyUrl(url)) {
+    throw new Error('허용되지 않은 외부 URL 요청입니다.');
+  }
+  if (DOTHOME_BRIDGE_URL && !DOTHOME_BRIDGE_URL.includes('your-dothome-domain') && DOTHOME_BRIDGE_URL.trim() !== '') {
+    if (!BRIDGE_SECRET_KEY) {
+      throw new Error('BRIDGE_SECRET_KEY가 설정되지 않았습니다.');
+    }
     return await axios.get(DOTHOME_BRIDGE_URL, {
       params: { url: url },
       headers: { 'X-Secret-Token': BRIDGE_SECRET_KEY }
@@ -116,8 +140,7 @@ app.get('/api/intersections/sync', async (req, res) => {
     const records = await syncUticIntersections(regionCode);
     res.json({ success: true, count: records.length, data: records });
   } catch (error) {
-    console.error('교차로 동기화 에러:', error.message);
-    res.status(500).json({ error: error.message });
+    sendErrorResponse(res, error, '교차로 동기화에 실패했습니다.');
   }
 });
 
@@ -180,8 +203,7 @@ app.get('/api/intersections/sync-seoul', async (req, res) => {
         
         res.json({ success: true, count: insertedCount });
       } catch (err) {
-        console.error('서울 교차로 동기화 에러:', err.message);
-        res.status(500).json({ error: err.message });
+        sendErrorResponse(res, err, '서울 교차로 동기화에 실패했습니다.');
       }
     });
 });
@@ -228,8 +250,7 @@ app.get('/api/intersections', async (req, res) => {
     
     res.json(allData);
   } catch (error) {
-    console.error('DB 조회 에러:', error.message);
-    res.status(500).json({ error: error.message });
+    sendErrorResponse(res, error, '교차로 정보 조회에 실패했습니다.');
   }
 });
 
@@ -250,14 +271,21 @@ app.get('/api/proxy/utic', async (req, res) => {
     url += (url.includes('?') ? '&' : '?') + 'serviceKey=' + UTIC_API_KEY;
   }
   
+  if (!isValidProxyUrl(url)) {
+    return res.status(400).json({ error: '허용되지 않은 외부 URL 요청입니다.' });
+  }
+  
   try {
     const response = await fetchUrl(url);
     res.json(response.data);
   } catch (error) {
-    console.error('UTIC API 호출 에러:', error.message);
-    res.status(500).json({ error: 'UTIC 통신 실패' });
+    sendErrorResponse(res, error, 'UTIC API 통신에 실패했습니다.');
   }
 });
+
+const https = require('https');
+const seoulHttpsAgent = new https.Agent({ keepAlive: true });
+const seoulCache = new Map();
 
 // 3. 서울 T-Data 실시간 신호정보 프록시 (10119 상태 + 10120 잔여시간 통합)
 app.get('/api/proxy/seoul', async (req, res) => {
@@ -267,30 +295,120 @@ app.get('/api/proxy/seoul', async (req, res) => {
     return res.status(500).json({ error: 'SEOUL_API_KEY가 설정되지 않았습니다.' });
   }
 
-  const url10119 = intersectionId 
-    ? `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`
-    : `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json`;
+  const cacheKey = intersectionId || 'all';
+  const now = Date.now();
 
-  const url10120 = intersectionId 
-    ? `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}`
-    : `http://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json`;
+  // 1초(1000ms) 캐싱: 1Hz 폴링을 완벽하게 지원하면서도 서버 부하를 최소화
+  if (seoulCache.has(cacheKey)) {
+    const cached = seoulCache.get(cacheKey);
+    if (now - cached.timestamp < 1000) {
+      try {
+        const data = await cached.promise;
+        return res.json(data);
+      } catch (err) { }
+    }
+  }
+
+  const fetchPromise = (async () => {
+    const url10339 = intersectionId 
+      ? `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&itstId=${intersectionId}&numOfRows=1`
+      : `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&numOfRows=100`;
+
+    const resFusion = await axios.get(url10339, { httpsAgent: seoulHttpsAgent, timeout: 3000 }).catch(e => { return { data: [] }; });
+
+    return {
+      status: resFusion.data,
+      timing: resFusion.data
+    };
+  })();
+
+  seoulCache.set(cacheKey, { timestamp: now, promise: fetchPromise });
 
   try {
-    const [resStatus, resTiming] = await Promise.all([
-      axios.get(url10119).catch(e => { console.error('Seoul 10119 error:', e.message); return { data: [] }; }),
-      axios.get(url10120).catch(e => { console.error('Seoul 10120 error:', e.message); return { data: [] }; })
-    ]);
-
-    res.json({
-      status: resStatus.data,
-      timing: resTiming.data
-    });
+    const data = await fetchPromise;
+    res.json(data);
   } catch (error) {
-    console.error('Seoul API 호출 에러:', error.message);
-    res.status(500).json({ error: '서울 T-Data API 통신 실패' });
+    sendErrorResponse(res, error, '서울 T-Data API 통신에 실패했습니다.');
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Sigma Backend Server is running on port ${PORT}`);
+// --- HTTP Ping ---
+global.activeIntersections = {};
+
+app.post('/api/ping', express.json(), (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids)) return res.json({ success: false });
+  
+  const now = Date.now();
+  ids.forEach(id => {
+    global.activeIntersections[String(id)] = now;
+  });
+  
+  res.json({ success: true });
+});
+
+// --- Supabase Realtime Worker ---
+// 최근 15초 이내에 활성화된 교차로 정보만 필터링하여 Supabase에 Upsert 합니다.
+let lastMsgCreatDs = {};
+const startSeoulSpatWorker = () => {
+  const POLLING_INTERVAL = 2000; // 2초 주기
+  setInterval(async () => {
+    if (!SEOUL_API_KEY) return;
+    try {
+      const now = Date.now();
+      
+      // 1. 활성 교차로 조회 (메모리에서 최근 15초 이내 핑된 교차로 필터링)
+      const activeIds = Object.keys(global.activeIntersections).filter(id => {
+        const isActive = (now - global.activeIntersections[id]) < 15000;
+        if (!isActive) delete global.activeIntersections[id]; // 만료된 교차로 메모리 정리
+        return isActive;
+      });
+
+      if (activeIds.length === 0) {
+        return; // 활성화된 교차로가 없으면 불필요한 서울시 API 호출 및 DB 쓰기를 방지합니다.
+      }
+
+      // 2. 서울시 API 호출 (10339)
+      const url10339 = `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&numOfRows=1000`;
+      const response = await axios.get(url10339, { httpsAgent: seoulHttpsAgent, timeout: 4000 });
+      if (!response.data || !Array.isArray(response.data)) return;
+
+      const upsertPayload = [];
+      const now = new Date().toISOString();
+
+      response.data.forEach(item => {
+        const id = String(item.itstId);
+        // 활성 교차로이면서 타임스탬프가 변경된 경우만 선별
+        if (activeIds.includes(id)) {
+          const ds = item.msgCreatDs;
+          if (lastMsgCreatDs[id] !== ds) {
+            lastMsgCreatDs[id] = ds;
+            upsertPayload.push({
+              itstId: id,
+              data: item,
+              msgCreatDs: ds,
+              updated_at: now
+            });
+          }
+        }
+      });
+
+      if (upsertPayload.length > 0) {
+        const { error } = await supabase.from('seoul_spat_realtime').upsert(upsertPayload, { onConflict: 'itstId' });
+        if (error) {
+          console.error('Supabase Upsert Error:', error.message);
+        }
+      }
+    } catch (err) {
+      // ignore timeout/network errors
+    }
+  }, POLLING_INTERVAL);
+};
+startSeoulSpatWorker();
+// --------------------------------
+
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Sigma Backend Server is running on http://${HOST}:${PORT}`);
 });
