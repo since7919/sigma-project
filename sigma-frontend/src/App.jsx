@@ -994,7 +994,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               keyboard={false}
             >
               <MapResizer mapZoomMode={mapZoomMode} />
-              <TileLayer url="http://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
+              <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
               <CircleMarker
                 center={[intersection.y_coord, intersection.x_coord]}
                 radius={8}
