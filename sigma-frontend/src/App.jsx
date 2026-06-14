@@ -1506,17 +1506,10 @@ function App() {
       const start = Date.now();
       let data = [];
       
-      // Supabase REST API로 직접 교차로 마스터 데이터 조회 (Vercel 배포 호환)
-      if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-        const response = await axios.get(
-          `${SUPABASE_URL}/rest/v1/utic_intersections?select=*&order=region_cd,int_no&limit=10000`,
-          { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-        );
-        data = response.data;
-      } else {
-        const response = await axios.get(`${API_BASE}/api/intersections`);
-        data = response.data;
-      }
+      // Supabase PostgREST 기본 제한(1000건)을 우회하기 위해 항상 백엔드에서 전체 교차로 마스터(약 6000건) 데이터를 받아옵니다.
+      // (백엔드는 메모리에 캐싱된 데이터를 즉시 반환하므로 빠르며, 동시에 Sleep 중인 백엔드를 깨우는 효과도 있습니다)
+      const response = await axios.get(`${API_BASE}/api/intersections`);
+      data = response.data;
       
       const elapsed = Date.now() - start;
       setIntersections(data);
