@@ -374,7 +374,7 @@ const startSeoulSpatWorker = () => {
       if (!response.data || !Array.isArray(response.data)) return;
 
       const upsertPayload = [];
-      const now = new Date().toISOString();
+      const timestampISO = new Date().toISOString();
 
       response.data.forEach(item => {
         const id = String(item.itstId);
@@ -387,7 +387,7 @@ const startSeoulSpatWorker = () => {
               itstId: id,
               data: item,
               msgCreatDs: ds,
-              updated_at: now
+              updated_at: timestampISO
             });
           }
         }
