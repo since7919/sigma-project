@@ -9,6 +9,82 @@ const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_S
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
+function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick }) {
+  const markerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (markerRef.current) {
+      const el = markerRef.current.getElement();
+      if (el) {
+        el.setAttribute('draggable', 'true');
+        el.style.pointerEvents = 'auto';
+        el.style.cursor = 'grab';
+        
+        const handleDragStart = (e) => {
+          e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+        };
+        
+        el.addEventListener('dragstart', handleDragStart);
+        return () => {
+          el.removeEventListener('dragstart', handleDragStart);
+        };
+      }
+    }
+  }, [intersection]);
+
+  return (
+    <CircleMarker
+      ref={markerRef}
+      center={[intersection.y_coord, intersection.x_coord]}
+      radius={isSelected ? 10 : 6}
+      fillColor={isSelected ? "#38bdf8" : baseColor}
+      color={isSelected ? "#fff" : "#334155"}
+      weight={isSelected ? 3 : 2}
+      fillOpacity={0.8}
+    >
+      {showTooltip && (
+        <Tooltip direction="top" offset={[0, -10]} permanent interactive={true} className="map-label">
+          <div 
+            draggable={true} 
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+            }}
+            style={{ cursor: 'grab', display: 'inline-block' }}
+          >
+            {intersection.int_nm}
+          </div>
+        </Tooltip>
+      )}
+      
+      <Popup className="custom-popup" closeButton={true}>
+        <div className="popup-content">
+          <h3 
+            draggable={true} 
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+            }}
+            style={{ cursor: 'grab' }}
+          >
+            {intersection.int_nm}
+          </h3>
+          <div style={{display:'flex', flexDirection:'column', gap:'5px', marginTop:'10px'}}>
+            <button className="btn-detail" onClick={(e) => {
+              e.stopPropagation();
+              onDetailClick(intersection);
+            }}>상세보기</button>
+            <button className="btn-detail" style={{background:'#6366f1', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+              e.stopPropagation();
+              onDualClick(intersection);
+            }}>듀얼 비교선택 담기</button>
+          </div>
+        </div>
+      </Popup>
+    </CircleMarker>
+  );
+}
+
 function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
@@ -68,37 +144,15 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
         }
         
         return (
-          <CircleMarker
+          <IntersectionMarkerItem
             key={intersection.id}
-            center={[intersection.y_coord, intersection.x_coord]}
-            radius={isSelected ? 10 : 6}
-            fillColor={isSelected ? "#38bdf8" : baseColor}
-            color={isSelected ? "#fff" : "#334155"}
-            weight={isSelected ? 3 : 2}
-            fillOpacity={0.8}
-          >
-            {showTooltip && (
-              <Tooltip direction="top" offset={[0, -10]} permanent className="map-label">
-                {intersection.int_nm}
-              </Tooltip>
-            )}
-            
-            <Popup className="custom-popup" closeButton={true}>
-              <div className="popup-content">
-                <h3>{intersection.int_nm}</h3>
-                <div style={{display:'flex', flexDirection:'column', gap:'5px', marginTop:'10px'}}>
-                  <button className="btn-detail" onClick={(e) => {
-                    e.stopPropagation();
-                    onDetailClick(intersection);
-                  }}>상세보기</button>
-                  <button className="btn-detail" style={{background:'#6366f1', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
-                    e.stopPropagation();
-                    onDualClick(intersection);
-                  }}>듀얼 비교선택 담기</button>
-                </div>
-              </div>
-            </Popup>
-          </CircleMarker>
+            intersection={intersection}
+            isSelected={isSelected}
+            baseColor={baseColor}
+            showTooltip={showTooltip}
+            onDetailClick={onDetailClick}
+            onDualClick={onDualClick}
+          />
         );
       })}
     </>
