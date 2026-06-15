@@ -351,58 +351,60 @@ app.post('/api/ping', express.json(), (req, res) => {
 // 최근 15초 이내에 활성화된 교차로 정보만 필터링하여 Supabase에 Upsert 합니다.
 let lastMsgCreatDs = {};
 const startSeoulSpatWorker = () => {
-  const POLLING_INTERVAL = 2000; // 2초 주기
-  setInterval(async () => {
-    if (!SEOUL_API_KEY) return;
+  const POLLING_INTERVAL = 1500; // 1.5초 대기 (이전 요청 완료 후)
+  
+  const pollSeoulApi = async () => {
+    if (!SEOUL_API_KEY) {
+      setTimeout(pollSeoulApi, POLLING_INTERVAL);
+      return;
+    }
     try {
       const now = Date.now();
       
-      // 1. 활성 교차로 조회 (메모리에서 최근 15초 이내 핑된 교차로 필터링)
       const activeIds = Object.keys(global.activeIntersections).filter(id => {
         const isActive = (now - global.activeIntersections[id]) < 15000;
-        if (!isActive) delete global.activeIntersections[id]; // 만료된 교차로 메모리 정리
+        if (!isActive) delete global.activeIntersections[id];
         return isActive;
       });
 
-      if (activeIds.length === 0) {
-        return; // 활성화된 교차로가 없으면 불필요한 서울시 API 호출 및 DB 쓰기를 방지합니다.
-      }
+      if (activeIds.length > 0) {
+        const url10339 = `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&numOfRows=1000`;
+        const response = await axios.get(url10339, { httpsAgent: seoulHttpsAgent, timeout: 4000 });
+        
+        if (response.data && Array.isArray(response.data)) {
+          const upsertPayload = [];
+          const timestampISO = new Date().toISOString();
 
-      // 2. 서울시 API 호출 (10339)
-      const url10339 = `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&numOfRows=1000`;
-      const response = await axios.get(url10339, { httpsAgent: seoulHttpsAgent, timeout: 4000 });
-      if (!response.data || !Array.isArray(response.data)) return;
+          response.data.forEach(item => {
+            const id = String(item.itstId);
+            if (activeIds.includes(id)) {
+              const ds = item.msgCreatDs;
+              if (lastMsgCreatDs[id] !== ds) {
+                lastMsgCreatDs[id] = ds;
+                upsertPayload.push({
+                  itstId: id,
+                  data: item,
+                  msgCreatDs: ds,
+                  updated_at: timestampISO
+                });
+              }
+            }
+          });
 
-      const upsertPayload = [];
-      const timestampISO = new Date().toISOString();
-
-      response.data.forEach(item => {
-        const id = String(item.itstId);
-        // 활성 교차로이면서 타임스탬프가 변경된 경우만 선별
-        if (activeIds.includes(id)) {
-          const ds = item.msgCreatDs;
-          if (lastMsgCreatDs[id] !== ds) {
-            lastMsgCreatDs[id] = ds;
-            upsertPayload.push({
-              itstId: id,
-              data: item,
-              msgCreatDs: ds,
-              updated_at: timestampISO
-            });
+          if (upsertPayload.length > 0) {
+            const { error } = await supabase.from('seoul_spat_realtime').upsert(upsertPayload, { onConflict: 'itstId' });
+            if (error) console.error('Supabase Upsert Error:', error.message);
           }
-        }
-      });
-
-      if (upsertPayload.length > 0) {
-        const { error } = await supabase.from('seoul_spat_realtime').upsert(upsertPayload, { onConflict: 'itstId' });
-        if (error) {
-          console.error('Supabase Upsert Error:', error.message);
         }
       }
     } catch (err) {
       // ignore timeout/network errors
+    } finally {
+      setTimeout(pollSeoulApi, POLLING_INTERVAL);
     }
-  }, POLLING_INTERVAL);
+  };
+
+  pollSeoulApi();
 };
 startSeoulSpatWorker();
 // --------------------------------
