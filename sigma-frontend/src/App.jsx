@@ -1038,24 +1038,47 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                   </tr>
                 </thead>
                 <tbody>
-                  {updatedPhases.map((p, idx) => (
-                    <tr key={idx}>
-                      <td className="action-type">{p.direction}</td>
-                      <td><span className="status-badge" style={{color:'#60a5fa'}}>{p.outputType}</span></td>
-                      <td><span className={p.statusClass}>{p.statusText}</span></td>
-                      <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: p.isGreen ? '#10b981' : '#94a3b8'}}>
-                        {p.remaining !== '-' ? p.remaining : '-'}
-                      </td>
-                      <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
-                        {p.displayTime || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                  {updatedPhases.length === 0 && (
-                    <tr>
-                      <td colSpan="6" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td>
-                    </tr>
-                  )}
+                  {(() => {
+                    if (updatedPhases.length === 0) {
+                      return <tr><td colSpan="5" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td></tr>;
+                    }
+                    
+                    const grouped = updatedPhases.reduce((acc, p) => {
+                      if (!acc[p.direction]) acc[p.direction] = [];
+                      acc[p.direction].push(p);
+                      return acc;
+                    }, {});
+
+                    return Object.entries(grouped).map(([dir, phases]) => (
+                      <React.Fragment key={dir}>
+                        <tr>
+                          <td rowSpan={phases.length} className="action-type" style={{background: 'rgba(255,255,255,0.05)', fontWeight: 'bold', borderRight: '1px solid #334155', verticalAlign: 'middle'}}>
+                            {dir}측
+                          </td>
+                          <td><span className="status-badge" style={{color:'#60a5fa'}}>{phases[0].outputType}</span></td>
+                          <td><span className={phases[0].statusClass}>{phases[0].statusText}</span></td>
+                          <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: phases[0].isGreen ? '#10b981' : '#94a3b8'}}>
+                            {phases[0].remaining !== '-' ? phases[0].remaining : '-'}
+                          </td>
+                          <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                            {phases[0].displayTime || '-'}
+                          </td>
+                        </tr>
+                        {phases.slice(1).map((p, idx) => (
+                          <tr key={`${dir}-${idx}`}>
+                            <td><span className="status-badge" style={{color:'#60a5fa'}}>{p.outputType}</span></td>
+                            <td><span className={p.statusClass}>{p.statusText}</span></td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: p.isGreen ? '#10b981' : '#94a3b8'}}>
+                              {p.remaining !== '-' ? p.remaining : '-'}
+                            </td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                              {p.displayTime || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    ));
+                  })()}
                 </tbody>
               </table>
             )}
