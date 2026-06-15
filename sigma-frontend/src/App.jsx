@@ -58,7 +58,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
         
         let baseColor = "#64748b"; // 기본 회색
         if (isSeoul) {
-          if (isSeoulActive) baseColor = "#3b82f6"; // 서울Tdata 수신 시 파란색
+          baseColor = "#3b82f6"; // 서울Tdata(API 연동 가능) 교차로는 상시 파란색으로 표시
         } else {
           if (isUticActive) baseColor = "#3b82f6"; // UTIC 수신 시 파란색
         }
