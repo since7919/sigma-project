@@ -1322,6 +1322,10 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                 key={item.id} 
                 className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                 onClick={() => onNodeClick(item.id)}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/json', JSON.stringify(item));
+                }}
               >
                 <input 
                   type="checkbox" 
@@ -1388,6 +1392,10 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                         key={item.id} 
                         className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                         onClick={() => onNodeClick(item.id)}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('application/json', JSON.stringify(item));
+                        }}
                       >
                         <input 
                           type="checkbox" 
@@ -1416,6 +1424,199 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
   );
 }
 
+// [4.5] 멀티스크린용 개별 교차로 신호 카드 컴포넌트
+function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
+  const [cropData, setCropData] = useState(null);
+  const [phaseA, setPhaseA] = useState(1);
+  const [phaseB, setPhaseB] = useState(1);
+  const [remainA, setRemainA] = useState(0);
+  const [remainB, setRemainB] = useState(0);
+  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+
+  const isSeoul = useMemo(() => {
+    return intersection.origin_type?.toLowerCase().includes('tdata') || false;
+  }, [intersection]);
+
+  // CROP TOD 계획 정보 조회
+  useEffect(() => {
+    if (isSeoul) return;
+    const fetchCROP = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
+        
+        let rawItems = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const obj = {};
+          for (let j = 0; j < item.children.length; j++) {
+            obj[item.children[j].tagName] = item.children[j].textContent;
+          }
+          rawItems.push(obj);
+        }
+
+        let matched = null;
+        for (let item of rawItems) {
+          const intNo = item.INT_NO || item.itstId;
+          if (String(intNo) === String(intersection.int_no)) {
+            matched = {
+              planNo: item.INT_PLAN_NO || item.planNo,
+              cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
+              offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
+            };
+            let sumA = 0;
+            let sumB = 0;
+            for (let i = 1; i <= 8; i++) {
+              matched[`A_RING_${i}_PHASE_VAL`] = parseInt(item[`A_RING_${i}_PHASE_VAL`] || 0);
+              matched[`B_RING_${i}_PHASE_VAL`] = parseInt(item[`B_RING_${i}_PHASE_VAL`] || 0);
+              sumA += matched[`A_RING_${i}_PHASE_VAL`];
+              sumB += matched[`B_RING_${i}_PHASE_VAL`];
+            }
+            const calculatedCycle = Math.max(sumA, sumB);
+            if (calculatedCycle > 0) {
+              matched.cycle = calculatedCycle;
+            }
+            break;
+          }
+        }
+        if (matched) {
+          setCropData(matched);
+        }
+      } catch (err) {
+        console.error('Error fetching CROP plan for mini card:', err);
+      }
+    };
+    fetchCROP();
+  }, [intersection, isSeoul]);
+
+  // SigMap 정보 조회
+  useEffect(() => {
+    if (isSeoul) return;
+    const fetchSigMap = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
+        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+
+        const ringA = [];
+        const ringB = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
+          if (String(intNo) === String(intersection.int_no)) {
+            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
+            const step = {
+              stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
+              minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
+              maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
+              eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
+            };
+            for (let k = 1; k <= 8; k++) {
+              step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
+              step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
+            }
+            if (ringNo === 0) ringA.push(step);
+            else if (ringNo === 1) ringB.push(step);
+          }
+        }
+        ringA.sort((a, b) => a.stepNo - b.stepNo);
+        ringB.sort((a, b) => a.stepNo - b.stepNo);
+        setSigMapData({ ringA, ringB });
+      } catch (err) {
+        console.error('Error fetching SigMap for mini card:', err);
+      }
+    };
+    fetchSigMap();
+  }, [intersection, isSeoul]);
+
+  // 실시간 신호 연동 시각 연산 루프
+  useEffect(() => {
+    if (isSeoul) return;
+    const updateRealtime = () => {
+      if (!cropData || !cropData.cycle) return;
+
+      const cycle = cropData.cycle;
+      const offset = cropData.offset || 0;
+      
+      const now = new Date();
+      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
+      
+      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+
+      const calcRingState = (ringPrefix) => {
+        let cumulativeTime = 0;
+        let currentPhaseIdx = 1;
+        let remainingTime = 0;
+        for (let i = 1; i <= 8; i++) {
+          const split = cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0;
+          if (split === 0) continue;
+          if (timeInCycle < cumulativeTime + split) {
+            currentPhaseIdx = i;
+            remainingTime = (cumulativeTime + split) - timeInCycle;
+            break;
+          }
+          cumulativeTime += split;
+        }
+        return { currentPhaseIdx, remainingTime };
+      };
+
+      const ringA = calcRingState('A_RING');
+      const ringB = calcRingState('B_RING');
+
+      setPhaseA(ringA.currentPhaseIdx);
+      setRemainA(ringA.remainingTime);
+      setPhaseB(ringB.currentPhaseIdx);
+      setRemainB(ringB.remainingTime);
+    };
+
+    updateRealtime();
+    const interval = setInterval(updateRealtime, 1000);
+    return () => clearInterval(interval);
+  }, [cropData, isSeoul]);
+
+  const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
+
+  return (
+    <div className="multi-card">
+      <header className="multi-card-header">
+        <span className="card-title" title={intersection.int_nm}>{intersection.int_nm}</span>
+        <span className="card-id">#{intersection.int_no}</span>
+        <button className="btn-card-close" onClick={onRemove}>×</button>
+      </header>
+      <div className="multi-card-body">
+        <CompassOverlay 
+          intersection={intersection}
+          cropData={cropData}
+          phaseA={phaseA}
+          phaseB={phaseB}
+          remainA={remainA}
+          remainB={remainB}
+          isSeoul={isSeoul}
+          sigMapData={sigMapData}
+        />
+      </div>
+      <footer className="multi-card-footer">
+        <span>{isSeoul ? '서울 T-data' : `${intersection.region_cd || 'UTIC'}`}</span>
+        <span className={`api-indicator ${isApiOn ? 'on' : 'off'}`}>
+          API: {isApiOn ? 'ON' : 'OFF'}
+        </span>
+      </footer>
+    </div>
+  );
+}
+
 // [5] 메인 레이아웃
 function App() {
   const [intersections, setIntersections] = useState([]);
@@ -1428,6 +1629,35 @@ function App() {
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
+
+  // 멀티스크린 상태
+  const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
+  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  const handleDropOnSlot = (e, index) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+    try {
+      const dataStr = e.dataTransfer.getData('application/json');
+      if (!dataStr) return;
+      const intersection = JSON.parse(dataStr);
+      
+      // 중복 체크
+      if (multiScreenItems.some(item => item && item.id === intersection.id)) {
+        alert('이미 멀티스크린에 등록된 교차로입니다.');
+        return;
+      }
+      
+      setMultiScreenItems(prev => {
+        const next = [...prev];
+        next[index] = intersection;
+        return next;
+      });
+    } catch (err) {
+      console.error('Drop error:', err);
+    }
+  };
 
   // 서울 실시간 SPAT 정보 수신 루프 실행 (Supabase Realtime 기반)
   useEffect(() => {
@@ -1491,6 +1721,11 @@ function App() {
         activeIds.push(String(item.int_no));
       }
     });
+    multiScreenItems.forEach(item => {
+      if (item && item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
+    });
 
     if (activeIds.length === 0) return;
 
@@ -1506,7 +1741,7 @@ function App() {
     const intervalId = setInterval(sendPing, 10000); // 10초 주기 핑
 
     return () => clearInterval(intervalId);
-  }, [detailIntersection, dualSelection]);
+  }, [detailIntersection, dualSelection, multiScreenItems]);
 
   // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {
@@ -1665,6 +1900,62 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* 우측 멀티디스플레이 패널 */}
+      <section className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'}`}>
+        <header className="multi-header">
+          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/9)</h2>
+          <button className="btn-clear" onClick={() => setMultiScreenItems(Array(9).fill(null))}>전체 비우기</button>
+        </header>
+        <div className="multi-grid">
+          {multiScreenItems.map((item, index) => {
+            if (item) {
+              return (
+                <MultiSignalCard
+                  key={item.id}
+                  intersection={item}
+                  uticUpdateTick={uticUpdateTick}
+                  onRemove={() => {
+                    setMultiScreenItems(prev => {
+                      const next = [...prev];
+                      next[index] = null;
+                      return next;
+                    });
+                  }}
+                />
+              );
+            }
+            return (
+              <div
+                key={`empty-${index}`}
+                className={`empty-slot ${dragOverIndex === index ? 'drag-over' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverIndex(index);
+                }}
+                onDragLeave={() => {
+                  setDragOverIndex(null);
+                }}
+                onDrop={(e) => handleDropOnSlot(e, index)}
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                <span>교차로 드롭</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 멀티스크린 접기/펼치기 버튼 */}
+      <button 
+        className="btn-toggle-multi" 
+        onClick={() => setIsMultiScreenOpen(prev => !prev)}
+        style={{ marginRight: isMultiScreenOpen ? '520px' : '0px' }}
+      >
+        {isMultiScreenOpen ? '▶ 멀티스크린 접기' : '◀ 멀티스크린 열기'}
+      </button>
 
       {detailIntersection && dualSelection.length === 0 && (
         <SingleDetailOverlay 
