@@ -959,6 +959,8 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
     URL.revokeObjectURL(url);
   };
 
+  const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
+
   return (
     <div className={isDual ? "overlay" : "detail-modal-overlay"}>
       <div className="detail-modal-content" style={isDual ? {width:'100%', height:'100%', borderRadius:0} : {}}>
@@ -974,10 +976,10 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
             </div>
           )}
-          <div style={{position: 'absolute', top: '10px', right: isDual ? '10px' : '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 10px', borderRadius: '20px', border: '1px solid #10b981', display: 'flex', alignItems: 'center', gap: '6px'}}>
-            <span style={{fontSize: '10px'}}>제어 상태:</span>
-            <span style={{color:'#10b981', fontWeight:'bold', fontSize: '11px', textShadow: '0 0 10px #10b981'}}>
-              {isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no] ? '실시간 연동 중' : 'API 연동 대기 중') : (cropData ? '실시간 연동 중' : '대기 중')}
+          <div style={{position: 'absolute', top: '10px', right: isDual ? '10px' : '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 10px', borderRadius: '20px', border: `1px solid ${isApiOn ? '#10b981' : '#64748b'}`, display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{fontSize: '10px', color: '#94a3b8'}}>API</span>
+            <span style={{color: isApiOn ? '#10b981' : '#64748b', fontWeight:'bold', fontSize: '11px', textShadow: isApiOn ? '0 0 10px #10b981' : 'none'}}>
+              {isApiOn ? 'On' : 'Off'}
             </span>
           </div>
           <div style={{position: 'relative', width: '100%', height: '100%'}}>
