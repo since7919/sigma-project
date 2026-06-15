@@ -45,11 +45,15 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
     return true;
   });
 
-  const showTooltip = zoomLevel >= 11 && visibleIntersections.length <= 150;
+  const intersectionsInBounds = bounds ? visibleIntersections.filter(intersection => 
+    bounds.contains([intersection.y_coord, intersection.x_coord])
+  ) : visibleIntersections;
+
+  const showTooltip = intersectionsInBounds.length <= 100;
 
   return (
     <>
-      {visibleIntersections.map((intersection) => {
+      {intersectionsInBounds.map((intersection) => {
         const isSelected = intersection.id === targetId;
         const isSeoul = intersection.origin_type?.toLowerCase().includes('tdata');
         
@@ -1329,7 +1333,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   style={{ marginRight: '6px', cursor: 'pointer' }}
                   title="듀얼 모니터링 담기/빼기"
                 />
-                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(item.int_no)) ? '#3b82f6' : '#64748b')}}></div>
+                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#3b82f6'}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
               </div>
