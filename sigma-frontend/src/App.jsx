@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.V
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
 function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick }) {
   const markerRef = React.useRef(null);
+  const map = useMap();
 
   React.useEffect(() => {
     if (markerRef.current) {
@@ -21,16 +22,23 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
         el.style.cursor = 'grab';
         
         const handleDragStart = (e) => {
+          map.dragging.disable();
           e.dataTransfer.setData('application/json', JSON.stringify(intersection));
         };
         
+        const handleDragEnd = (e) => {
+          map.dragging.enable();
+        };
+        
         el.addEventListener('dragstart', handleDragStart);
+        el.addEventListener('dragend', handleDragEnd);
         return () => {
           el.removeEventListener('dragstart', handleDragStart);
+          el.removeEventListener('dragend', handleDragEnd);
         };
       }
     }
-  }, [intersection]);
+  }, [intersection, map]);
 
   return (
     <CircleMarker
@@ -48,7 +56,11 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
             draggable={true} 
             onDragStart={(e) => {
               e.stopPropagation();
+              map.dragging.disable();
               e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+            }}
+            onDragEnd={() => {
+              map.dragging.enable();
             }}
             style={{ cursor: 'grab', display: 'inline-block' }}
           >
@@ -63,7 +75,11 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
             draggable={true} 
             onDragStart={(e) => {
               e.stopPropagation();
+              map.dragging.disable();
               e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+            }}
+            onDragEnd={() => {
+              map.dragging.enable();
             }}
             style={{ cursor: 'grab' }}
           >
