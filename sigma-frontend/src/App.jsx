@@ -1596,16 +1596,40 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
         <button className="btn-card-close" onClick={onRemove}>×</button>
       </header>
       <div className="multi-card-body">
-        <CompassOverlay 
-          intersection={intersection}
-          cropData={cropData}
-          phaseA={phaseA}
-          phaseB={phaseB}
-          remainA={remainA}
-          remainB={remainB}
-          isSeoul={isSeoul}
-          sigMapData={sigMapData}
-        />
+        <div style={{position: 'relative', width: '100%', height: '100%'}}>
+          <MapContainer 
+            center={[intersection.y_coord, intersection.x_coord]} 
+            zoom={19} 
+            style={{width:'100%', height:'100%'}} 
+            zoomControl={false}
+            dragging={false}
+            touchZoom={false}
+            doubleClickZoom={false}
+            scrollWheelZoom={false}
+            boxZoom={false}
+            keyboard={false}
+          >
+            <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
+            <CircleMarker
+              center={[intersection.y_coord, intersection.x_coord]}
+              radius={6}
+              fillColor="#00ecff"
+              color="#fff"
+              weight={2}
+              fillOpacity={0.8}
+            />
+          </MapContainer>
+          <CompassOverlay 
+            intersection={intersection}
+            cropData={cropData}
+            phaseA={phaseA}
+            phaseB={phaseB}
+            remainA={remainA}
+            remainB={remainB}
+            isSeoul={isSeoul}
+            sigMapData={sigMapData}
+          />
+        </div>
       </div>
       <footer className="multi-card-footer">
         <span>{isSeoul ? '서울 T-data' : `${intersection.region_cd || 'UTIC'}`}</span>
@@ -1952,7 +1976,7 @@ function App() {
       <button 
         className="btn-toggle-multi" 
         onClick={() => setIsMultiScreenOpen(prev => !prev)}
-        style={{ marginRight: isMultiScreenOpen ? '520px' : '0px' }}
+        style={{ marginRight: isMultiScreenOpen ? '750px' : '0px' }}
       >
         {isMultiScreenOpen ? '▶ 멀티스크린 접기' : '◀ 멀티스크린 열기'}
       </button>

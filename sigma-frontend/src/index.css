@@ -371,7 +371,7 @@ details.footer-section summary::marker { content: ''; }
 
 /* 우측 멀티스크린 패널 */
 .multi-screen-panel {
-  width: 520px;
+  width: 750px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -488,12 +488,13 @@ details.footer-section summary::marker { content: ''; }
   background: radial-gradient(circle, rgba(15, 23, 42, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
 }
 .multi-card-body .compass-center-overlay-wrapper {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  transform: scale(0.65) !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(0.85) !important;
   transform-origin: center !important;
   pointer-events: none;
+  z-index: 9999;
 }
 .multi-card-footer {
   padding: 4px 8px;
