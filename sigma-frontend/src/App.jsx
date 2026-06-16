@@ -1941,10 +1941,6 @@ function App() {
 
   const handleNodeClick = (id) => {
     setActiveNodeId(id);
-    const target = intersections.find(i => i.id === id);
-    if (target) {
-      openDetail(target);
-    }
   };
 
   const openDetail = (intersection) => {
