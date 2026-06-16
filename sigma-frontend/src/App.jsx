@@ -105,6 +105,22 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
   );
 }
 
+// 지도 컨테이너 크기 변경 감지 및 자동 리사이즈 컴포넌트
+function MapAutoResizer() {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        map.invalidateSize();
+      });
+    });
+    resizeObserver.observe(map.getContainer());
+    return () => resizeObserver.disconnect();
+  }, [map]);
+  return null;
+}
+
 function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
@@ -1694,6 +1710,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
             boxZoom={false}
             keyboard={false}
           >
+            <MapAutoResizer />
             <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
             <CircleMarker
               center={[intersection.y_coord, intersection.x_coord]}
@@ -2018,6 +2035,7 @@ function App() {
       <main className="main-content">
         <div className="top-map-wrapper">
           <MapContainer center={[37.5665, 126.9780]} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
+            <MapAutoResizer />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
             <IntersectionMarkers 
               key={activeTab || 'none'}
