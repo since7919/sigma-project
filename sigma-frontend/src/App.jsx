@@ -2007,31 +2007,7 @@ function App() {
 
         </div>
 
-        <div className="bottom-table-wrapper">
-          <div className="table-header-title">
-            <span>📊 실시간 교차로 운영 상태</span>
-            <span>전체: {intersections.length}개</span>
-          </div>
-          <div className="table-scroll custom-scroll">
-            <table className="status-table">
-              <thead>
-                <tr>
-                  <th>지역</th><th>제어기번호</th><th>교차로명</th><th>데이터 출처</th>
-                </tr>
-              </thead>
-              <tbody>
-                {intersections.slice(0, 10).map(item => (
-                  <tr key={item.id} style={{background: activeNodeId === item.id ? 'rgba(56, 189, 248, 0.1)' : ''}}>
-                    <td>{item.region_cd || '-'}</td>
-                    <td style={{color:'var(--accent-primary)', fontWeight:'bold'}}>{item.int_no}</td>
-                    <td style={{fontWeight:'bold'}}>{item.int_nm}</td>
-                    <td style={{color:'var(--text-muted)'}}>{item.origin_type?.toUpperCase() || 'UTIC'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+
       </main>
 
       {/* 우측 멀티디스플레이 패널 */}
