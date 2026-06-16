@@ -118,23 +118,10 @@ function MapAutoResizer() {
     resizeObserver.observe(map.getContainer());
     return () => resizeObserver.disconnect();
   }, [map]);
-  return null;
-}
-
 function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
-
-  // 사이드바에서 교차로 선택시 지도 위치 이동 (flyTo)
-  useEffect(() => {
-    if (targetId) {
-      const target = intersections.find(i => i.id === targetId);
-      if (target) {
-        map.flyTo([target.y_coord, target.x_coord], 16, { duration: 1 });
-      }
-    }
-  }, [targetId, intersections, map]);
 
   useEffect(() => {
     const updateMapState = () => {
@@ -1986,6 +1973,20 @@ function App() {
     });
   };
 
+// 사이드바 교차로 선택 시 지도 이동 처리 컴포넌트
+function MapPanner({ intersections, targetId }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetId) {
+      const target = intersections.find(i => i.id === targetId);
+      if (target && target.y_coord && target.x_coord) {
+        map.flyTo([target.y_coord, target.x_coord], 16, { duration: 1 });
+      }
+    }
+  }, [targetId, intersections, map]);
+  return null;
+}
+
   return (
     <>
       <aside className="sidebar glass">
@@ -2013,6 +2014,7 @@ function App() {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          searchKeyword={searchKeyword}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -2036,6 +2038,7 @@ function App() {
         <div className="top-map-wrapper">
           <MapContainer center={[37.5665, 126.9780]} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
             <MapAutoResizer />
+            <MapPanner intersections={intersections} targetId={activeNodeId} />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
             <IntersectionMarkers 
               key={activeTab || 'none'}
