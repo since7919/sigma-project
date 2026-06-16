@@ -9,7 +9,7 @@ const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_S
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick }) {
+function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick, onMultiClick }) {
   const markerRef = React.useRef(null);
   const map = useMap();
 
@@ -93,7 +93,11 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
             <button className="btn-detail" style={{background:'#6366f1', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
               e.stopPropagation();
               onDualClick(intersection);
-            }}>듀얼 비교선택 담기</button>
+            }}>듀얼 담기</button>
+            <button className="btn-detail" style={{background:'#10b981', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+              e.stopPropagation();
+              onMultiClick(intersection);
+            }}>멀티 담기</button>
           </div>
         </div>
       </Popup>
@@ -101,7 +105,7 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
   );
 }
 
-function IntersectionMarkers({ intersections, onDetailClick, onDualClick, targetId, uticUpdateTick, activeTab }) {
+function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -168,6 +172,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, target
             showTooltip={showTooltip}
             onDetailClick={onDetailClick}
             onDualClick={onDualClick}
+            onMultiClick={onMultiClick}
           />
         );
       })}
@@ -1303,7 +1308,7 @@ function DualDetailOverlay({ intersections, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, searchKeyword }) {
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
     const rCode = window.prompt('DB에 동기화할 지역 코드를 입력하세요 (예: L01, L02, L19...)\n* 입력한 지역의 교차로가 다운로드되어 트리에 표시됩니다.', 'L02');
@@ -1341,7 +1346,17 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
       utic[`${rCode} ${rName}`] = [];
     });
 
+    const lowerKeyword = (searchKeyword || '').toLowerCase();
+
     intersections.forEach(item => {
+      if (lowerKeyword) {
+        const intNm = (item.int_nm || '').toLowerCase();
+        const intNo = String(item.int_no || '').toLowerCase();
+        if (!intNm.includes(lowerKeyword) && !intNo.includes(lowerKeyword)) {
+          return; // 검색어에 맞지 않으면 제외
+        }
+      }
+
       // origin_type 판별 (가정: '서울tdata', 'tdata' 또는 'UTIC', 'utic')
       const isTdata = item.origin_type?.toLowerCase().includes('tdata');
       if (isTdata) {
@@ -1355,7 +1370,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
       }
     });
     return { tdataList: tdata, uticGroups: utic };
-  }, [intersections]);
+  }, [intersections, searchKeyword]);
 
   // 아코디언 상태 관리
   const [tdataOpen, setTdataOpen] = useState(false);
@@ -1718,6 +1733,7 @@ function App() {
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
   const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
+  const [searchKeyword, setSearchKeyword] = useState(''); // 검색어 상태
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
@@ -1910,6 +1926,23 @@ function App() {
     });
   };
 
+  const handleMultiClick = (intersection) => {
+    setMultiScreenItems(prev => {
+      if (prev.some(item => item && item.id === intersection.id)) {
+        alert('이미 멀티스크린에 등록된 교차로입니다.');
+        return prev;
+      }
+      const next = [...prev];
+      const emptyIndex = next.findIndex(item => item === null);
+      if (emptyIndex !== -1) {
+        next[emptyIndex] = intersection;
+      } else {
+        alert('멀티스크린이 가득 찼습니다. (최대 9개)');
+      }
+      return next;
+    });
+  };
+
   return (
     <>
       <aside className="sidebar glass">
@@ -1917,7 +1950,12 @@ function App() {
           <h1>🚦 SIGMA T-DATA</h1>
         </header>
         <div className="search-box">
-          <input type="text" placeholder="교차로명 검색..." />
+          <input 
+            type="text" 
+            placeholder="교차로명 검색..." 
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+          />
           <button>🔍</button>
         </div>
         
@@ -1960,6 +1998,7 @@ function App() {
               intersections={intersections} 
               onDetailClick={openDetail}
               onDualClick={handleDualClick}
+              onMultiClick={handleMultiClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
               activeTab={activeTab}
