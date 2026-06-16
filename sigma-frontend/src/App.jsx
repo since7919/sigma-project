@@ -1744,6 +1744,32 @@ function App() {
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [multiWidth, setMultiWidth] = useState(750);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizingRef = React.useRef(false);
+
+  const handleMouseDownResize = (e) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    setIsResizing(true);
+    document.addEventListener('mousemove', handleMouseMoveResize);
+    document.addEventListener('mouseup', handleMouseUpResize);
+  };
+
+  const handleMouseMoveResize = (e) => {
+    if (!resizingRef.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 300 && newWidth < window.innerWidth - 300) {
+      setMultiWidth(newWidth);
+    }
+  };
+
+  const handleMouseUpResize = () => {
+    resizingRef.current = false;
+    setIsResizing(false);
+    document.removeEventListener('mousemove', handleMouseMoveResize);
+    document.removeEventListener('mouseup', handleMouseUpResize);
+  };
 
   const handleDropOnSlot = (e, index) => {
     e.preventDefault();
@@ -2011,7 +2037,30 @@ function App() {
       </main>
 
       {/* 우측 멀티디스플레이 패널 */}
-      <section className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'}`}>
+      <section 
+        className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'}`}
+        style={{ 
+          width: isMultiScreenOpen ? `${multiWidth}px` : '0px',
+          transition: isResizing ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s ease',
+          position: 'relative'
+        }}
+      >
+        {isMultiScreenOpen && (
+          <div 
+            className="panel-resizer" 
+            onMouseDown={handleMouseDownResize}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '8px',
+              cursor: 'ew-resize',
+              zIndex: 10,
+              backgroundColor: 'transparent'
+            }}
+          />
+        )}
         <header className="multi-header">
           <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/9)</h2>
           <button className="btn-clear" onClick={() => setMultiScreenItems(Array(9).fill(null))}>전체 비우기</button>
@@ -2061,7 +2110,10 @@ function App() {
       <button 
         className="btn-toggle-multi" 
         onClick={() => setIsMultiScreenOpen(prev => !prev)}
-        style={{ marginRight: isMultiScreenOpen ? '750px' : '0px' }}
+        style={{ 
+          marginRight: isMultiScreenOpen ? `${multiWidth}px` : '0px',
+          transition: isResizing ? 'none' : 'margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s'
+        }}
       >
         {isMultiScreenOpen ? '▶ 멀티스크린 접기' : '◀ 멀티스크린 열기'}
       </button>
