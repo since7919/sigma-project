@@ -1120,8 +1120,8 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         {!mapZoomMode && (
           <div className="modal-bottom-data">
             <div className="tabs-header">
-            <button className={`tab-btn ${localTab === 'detail' ? 'active' : ''}`} onClick={() => setLocalTab('detail')}>상세 신호정보</button>
-            <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>시그널맵 (LSU & Step)</button>
+            <button className={`tab-btn ${localTab === 'detail' ? 'active' : ''}`} onClick={() => setLocalTab('detail')}>상세 보기</button>
+            <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>맵 확대</button>
           </div>
           <div className="detail-tab-content custom-scroll">
             {localTab === 'detail' && (
