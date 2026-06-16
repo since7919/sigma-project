@@ -925,19 +925,21 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
           const val = statObj[field];
           const remVal = timingObj[timeField];
           
+          const parseRemVal = (v) => (v !== undefined && v !== null && v < 36000) ? (Math.floor(v / 10) + 's') : '-';
+          
           if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed' || val === '녹색' || val === '녹색화살표' || val === '청색') {
             isGreen = true;
             statText = m.type === 'P' ? '녹색 점등(3)' : '녹색 점등(3)';
             statClass = 'sig-status-green';
-            if (remVal) remaining = Math.floor(remVal / 10) + 's';
+            remaining = parseRemVal(remVal);
           } else if (val === 'stop-And-Remain' || val === '적색') {
             statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
             statClass = 'sig-status-red';
-            if (remVal) remaining = Math.floor(remVal / 10) + 's';
+            remaining = parseRemVal(remVal);
           } else if (val === 'protected-clearance' || val === 'permissive-clearance' || val === '황색' || val === '적-황색' || val === 'protected-clearance') {
             statText = m.type === 'P' ? '보행 점멸(3)' : '황색 점등(2)';
             statClass = m.type === 'P' ? 'sig-status-flash' : 'sig-status-yellow';
-            if (remVal) remaining = Math.floor(remVal / 10) + 's';
+            remaining = parseRemVal(remVal);
           }
         }
       } else {
