@@ -1375,6 +1375,9 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
         utic[groupKey].push(item);
       }
     });
+
+    tdata.sort((a, b) => parseInt(a.int_no || 0, 10) - parseInt(b.int_no || 0, 10));
+
     return { tdataList: tdata, uticGroups: utic };
   }, [intersections, searchKeyword]);
 
