@@ -8,6 +8,17 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const REGION_MAP = {
+  'L01': '서울시', 'L02': '인천시', 'L03': '부천시', 'L04': '광명시',
+  'L05': '안양시', 'L06': '과천시', 'L07': '안산시', 'L08': '용인시',
+  'L09': '성남시', 'L10': '고양시', 'L11': '시흥시', 'L12': '파주시',
+  'L13': '양주시', 'L14': '의정부시', 'L15': '김포시', 'L16': '의왕시',
+  'L17': '군포시', 'L18': '남양주시', 'L19': '수원시', 'L20': '광주시',
+  'L21': '구리시', 'L22': '하남시', 'L23': '부산시', 'L24': '양산시',
+  'L25': '창원시', 'L26': '김해시', 'L28': '거제시', 'L29': '대구시',
+  'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
+};
+
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
 function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick, onMultiClick }) {
   const markerRef = React.useRef(null);
@@ -1336,17 +1347,6 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
     const tdata = [];
     const utic = {};
 
-    const REGION_MAP = {
-      'L01': '서울시', 'L02': '인천시', 'L03': '부천시', 'L04': '광명시',
-      'L05': '안양시', 'L06': '과천시', 'L07': '안산시', 'L08': '용인시',
-      'L09': '성남시', 'L10': '고양시', 'L11': '시흥시', 'L12': '파주시',
-      'L13': '양주시', 'L14': '의정부시', 'L15': '김포시', 'L16': '의왕시',
-      'L17': '군포시', 'L18': '남양주시', 'L19': '수원시', 'L20': '광주시',
-      'L21': '구리시', 'L22': '하남시', 'L23': '부산시', 'L24': '양산시',
-      'L25': '창원시', 'L26': '김해시', 'L28': '거제시', 'L29': '대구시',
-      'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
-    };
-
     // Initialize all 31 regions to guarantee they appear in the tree
     Object.entries(REGION_MAP).forEach(([rCode, rName]) => {
       utic[`${rCode} ${rName}`] = [];
@@ -1724,7 +1724,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
         </div>
       </div>
       <footer className="multi-card-footer">
-        <span>{isSeoul ? '서울 T-data' : `${intersection.region_cd || 'UTIC'}`}</span>
+        <span>{isSeoul ? '서울 T-data' : `경찰청 UTIC_${intersection.region_cd || ''} ${REGION_MAP[intersection.region_cd] || ''}`.trim()}</span>
         <span className={`api-indicator ${isApiOn ? 'on' : 'off'}`}>
           API: {isApiOn ? 'ON' : 'OFF'}
         </span>
