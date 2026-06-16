@@ -118,6 +118,9 @@ function MapAutoResizer() {
     resizeObserver.observe(map.getContainer());
     return () => resizeObserver.disconnect();
   }, [map]);
+  return null;
+}
+
 function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
