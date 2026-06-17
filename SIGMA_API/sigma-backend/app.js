@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets')));
 app.use('/sim', express.static(path.join(__dirname, '../../SIGMA_SIM')));
 app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist')));
-app.get('/realtime/*', (req, res) => {
+app.get(['/realtime', '/realtime/*'], (req, res) => {
   res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
 });
 
