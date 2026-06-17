@@ -1,0 +1,276 @@
+/**
+ * SIGMA - Intersection Search Module
+ * Handles junction listing, filtering, and map navigation.
+ */
+
+function toggleLeftSidebar() {
+    const sidebar = document.getElementById('left-search-sidebar');
+    if (!sidebar) return;
+
+    const isHidden = sidebar.classList.toggle('hidden');
+    if (!isHidden) {
+        renderJunctionList();
+        // Focus search input when opening
+        const searchInput = document.getElementById('j-sidebar-search');
+        if (searchInput) searchInput.focus();
+    }
+}
+
+let _junctionListItems = null;
+
+/**
+ * Renders the full list of junctions from STATE.junctions
+ */
+function renderJunctionList() {
+    const listEl = document.getElementById('j-sidebar-list');
+    if (!listEl) return;
+
+    // 전역 STATE 객체 확인
+    const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
+    const junctions = (s && s.junctions) ? s.junctions : {};
+    const junctionsCount = Object.keys(junctions).length;
+    
+    if (junctionsCount === 0) {
+        listEl.innerHTML = `
+            <div style="padding:40px 20px; color:#666; font-size:12.5px; text-align:center;">
+                <div style="margin-bottom:10px; font-size:24px; opacity:0.5;">📭</div>
+                표시할 교차로 데이터가 없습니다.<br>
+                <div style="font-size:11px; color:#888; margin-top:8px;">(CSV 파일 로드 여부를 확인하세요)</div>
+            </div>`;
+        _junctionListItems = null;
+        return;
+    }
+
+    const sortedJunctions = Object.values(junctions).sort((a, b) => 
+        (a.name || '').localeCompare(b.name || '', 'ko')
+    );
+
+    const activeJid = String(s.activeJid || "");
+
+    listEl.innerHTML = sortedJunctions.map(j => {
+        const isActive = activeJid === String(j.id);
+        return `
+            <div class="j-list-item ${isActive ? 'active' : ''}" onclick="flyToIntersection('${j.id}')" data-id="${j.id}">
+                <div class="j-item-id">ID: ${j.id}</div>
+                <div class="j-item-name">${j.name || '-'}</div>
+                <div class="j-item-info">${j.office || ''} | ${j.seq || ''}</div>
+            </div>
+        `;
+    }).join('');
+
+    // [Optimize] Cache items for filtering
+    _junctionListItems = listEl.querySelectorAll('.j-list-item');
+}
+
+/**
+ * Filters the visible junction items based on search query
+ */
+function filterJunctionList(event) {
+    const searchInput = document.getElementById('j-sidebar-search');
+    if (!searchInput) return;
+
+    const query = searchInput.value.toLowerCase().trim();
+    
+    // Use cached items if available
+    const items = _junctionListItems || document.querySelectorAll('.j-list-item');
+    
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        // Optimization: search only in relevant text content
+        const text = item.textContent.toLowerCase();
+        if (text.includes(query)) {
+            item.style.display = 'block';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // 검색 결과가 없는 경우 장소 검색 UI 표시
+    let noResultEl = document.getElementById('j-sidebar-no-result');
+    if (visibleCount === 0 && query !== '') {
+        if (!noResultEl) {
+            noResultEl = document.createElement('div');
+            noResultEl.id = 'j-sidebar-no-result';
+            noResultEl.style.padding = '15px';
+            noResultEl.style.textAlign = 'center';
+            noResultEl.style.color = '#bbb';
+            noResultEl.style.fontSize = '12px';
+            document.getElementById('j-sidebar-list').appendChild(noResultEl);
+        }
+        noResultEl.innerHTML = `
+            <div style="margin-bottom:10px;">교차로 검색 결과가 없습니다.</div>
+            <button class="btn-neon" onclick="searchAndMoveToLocation('${query}')" style="width:100%; font-size:11px;">
+                🌍 '${query}' 장소 검색 (Enter)
+            </button>
+        `;
+        noResultEl.style.display = 'block';
+        
+        // Enter 키 누르면 장소 검색 바로 실행
+        if (event && event.key === 'Enter') {
+            searchAndMoveToLocation(query);
+        }
+    } else {
+        if (noResultEl) noResultEl.style.display = 'none';
+    }
+}
+
+let _placeSearchMarker = null;
+
+/**
+ * Nominatim API를 활용한 장소 검색 및 지도 이동 함수
+ * @param {string} location - 사용자가 입력한 장소명 (예: "종로구청")
+ */
+async function searchAndMoveToLocation(location) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1&addressdetails=1`;
+    const searchBtn = document.querySelector('#j-sidebar-no-result button');
+    if (searchBtn) searchBtn.innerHTML = "⏳ 검색 중...";
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'SigmaDashboardApp/1.0' // Nominatim 정책상 User-Agent 필수
+            }
+        });
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            const { lat, lon, display_name } = data[0];
+            const targetMap = (typeof map !== 'undefined') ? map : window.map;
+
+            if (targetMap) {
+                // 2. 대시보드 지도 이동
+                targetMap.flyTo([parseFloat(lat), parseFloat(lon)], 16, {
+                    animate: true,
+                    duration: 1.5
+                });
+
+                // 기존 마커 제거
+                if (_placeSearchMarker) {
+                    targetMap.removeLayer(_placeSearchMarker);
+                }
+
+                // 3. 검색 지점에 마커 표시 및 팝업
+                _placeSearchMarker = L.marker([lat, lon]).addTo(targetMap)
+                    .bindPopup(`<b>${location}</b><br><span style="font-size:10px;">${display_name}</span>`)
+                    .openPopup();
+                
+                console.log(`이동 완료: ${display_name}`);
+            }
+            if (searchBtn) searchBtn.innerHTML = "✅ 장소 이동 완료";
+        } else {
+            alert(`'${location}' 장소를 찾을 수 없습니다.`);
+            if (searchBtn) searchBtn.innerHTML = "❌ 장소를 찾을 수 없습니다.";
+        }
+    } catch (error) {
+        console.error("Nominatim API 호출 중 오류 발생:", error);
+        alert("장소 검색 API 호출 중 오류가 발생했습니다.");
+        if (searchBtn) searchBtn.innerHTML = "❌ 검색 오류 발생";
+    }
+}
+
+/**
+ * Navigates the map to the selected junction and selects it in the UI
+ * @param {string} jid Junction ID
+ */
+function flyToIntersection(jid) {
+    const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
+    if (!s || !s.junctions || !s.junctions[jid]) return;
+    
+    const j = s.junctions[jid];
+    
+    // Use global map object
+    const targetMap = (typeof map !== 'undefined') ? map : window.map;
+    
+    if (targetMap) {
+        // [사용자 요청] 화면 흔들림 애니메이션 삭제 (빠른 이동)
+        targetMap.setView([j.lat, j.lng], 17, { animate: false });
+        
+        // Use existing selection logic
+        const selFunc = (typeof selectJunction === 'function') ? selectJunction : window.selectJunction;
+        if (typeof selFunc === 'function') {
+            selFunc(jid);
+        }
+
+        // On mobile/small screens, close sidebar after selection
+        if (window.innerWidth < 768) {
+            toggleLeftSidebar();
+        }
+    } else {
+        console.error('SIGMA - Map object not found.');
+    }
+}
+
+/**
+ * [고도화] Phase/Split 탭 전용 실시간 검색 핸들러
+ * @param {string} query 검색어
+ * @param {boolean} isForceSelect 즉시 선택 여부 (조회 버튼 클릭 시)
+ */
+function handlePhaseSearch(query, isForceSelect = false) {
+    const resultsEl = document.getElementById('phase-search-results');
+    if (!resultsEl) return;
+
+    query = query.trim().toLowerCase();
+    
+    // 검색어가 없으면 드롭다운 숨김
+    if (!query) {
+        resultsEl.classList.add('hidden');
+        resultsEl.innerHTML = "";
+        return;
+    }
+
+    const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
+    if (!s || !s.junctions) return;
+
+    // 통합 검색 필터링 (ID, 명칭, 연등번호 포함)
+    const junctions = Object.values(s.junctions);
+    const filtered = junctions.filter(j => {
+        const idStr = String(j.id).toLowerCase();
+        const nameStr = (j.name || "").toLowerCase();
+        const seqStr = String(j.seq || "").toLowerCase();
+        const officeStr = (j.office || "").toLowerCase();
+        return idStr.includes(query) || nameStr.includes(query) || seqStr.includes(query) || officeStr.includes(query);
+    });
+
+    if (isForceSelect && filtered.length > 0) {
+        // '조회' 버튼 클릭 시 첫 번째 결과로 즉시 이동
+        flyToIntersection(filtered[0].id);
+        resultsEl.classList.add('hidden');
+        document.getElementById('inp-search-phase-jid').value = filtered[0].name || filtered[0].id;
+        return;
+    }
+
+    if (filtered.length === 0) {
+        resultsEl.innerHTML = `<div style="padding:15px; color:#666; font-size:11px; text-align:center;">검색 결과가 없습니다.</div>`;
+    } else {
+        resultsEl.innerHTML = filtered.slice(0, 50).map(j => `
+            <div class="j-list-item" onclick="selectPhaseSearchResult('${j.id}', '${j.name}')">
+                <div class="j-item-id">ID: ${j.id}</div>
+                <div class="j-item-name">${j.name || '-'}</div>
+                <div class="j-item-info">${j.office || ''} | 연등: ${j.seq || '없음'}</div>
+            </div>
+        `).join('');
+    }
+
+    resultsEl.classList.remove('hidden');
+}
+
+/** 검색 결과 항목 클릭 시 처리 */
+function selectPhaseSearchResult(jid, name) {
+    flyToIntersection(jid);
+    const resultsEl = document.getElementById('phase-search-results');
+    const inputEl = document.getElementById('inp-search-phase-jid');
+    
+    if (resultsEl) resultsEl.classList.add('hidden');
+    if (inputEl) inputEl.value = name || jid;
+}
+
+// 클릭 이벤트 리스너 추가 (바깥 클릭 시 드롭다운 닫기)
+document.addEventListener('click', function(e) {
+    const resultsEl = document.getElementById('phase-search-results');
+    const inputEl = document.getElementById('inp-search-phase-jid');
+    if (resultsEl && inputEl && !resultsEl.contains(e.target) && e.target !== inputEl) {
+        resultsEl.classList.add('hidden');
+    }
+});

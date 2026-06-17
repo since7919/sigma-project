@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGMA - Integrated Traffic Signal Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #060913;
+            --card-bg: rgba(10, 16, 32, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --neon-blue: #00f0ff;
+            --neon-purple: #bd00ff;
+            --glow-blue: rgba(0, 240, 255, 0.25);
+            --glow-purple: rgba(189, 0, 255, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 미래지향적 그리드 배경 애니메이션 */
+        .background-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .background-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.05) 0%, rgba(189, 0, 255, 0.05) 50%, transparent 100%);
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(80px);
+        }
+
+        /* 메인 컨테이너 */
+        .portal-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 1100px;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        /* 상단 헤더 */
+        .portal-header {
+            text-align: center;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .system-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-blue) 30%, var(--neon-purple) 70%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 12px;
+            line-height: 1;
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
+            filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.3));
+        }
+
+        .system-logo::after {
+            content: 'SYSTEM';
+            position: absolute;
+            bottom: -5px;
+            right: 15px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: var(--neon-purple);
+            text-shadow: 0 0 8px var(--glow-purple);
+        }
+
+        .portal-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 2px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* 카드 그리드 */
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 40px;
+            width: 100%;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+
+        /* 프리미엄 Glassmorphism 카드 */
+        .portal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 45px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        /* 네온 글로우 테두리 호버 효과 */
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+
+        .portal-card.card-api {
+            box-shadow: 0 0 0 rgba(0, 240, 255, 0);
+        }
+        .portal-card.card-sim {
+            box-shadow: 0 0 0 rgba(189, 0, 255, 0);
+        }
+
+        .portal-card.card-api:hover {
+            transform: translateY(-8px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 15px 40px var(--glow-blue);
+        }
+
+        .portal-card.card-sim:hover {
+            transform: translateY(-8px);
+            border-color: var(--neon-purple);
+            box-shadow: 0 15px 40px var(--glow-purple);
+        }
+
+        /* 카드 콘텐츠 */
+        .card-header-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .card-api .card-title {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .card-sim .card-title {
+            color: var(--neon-purple);
+            text-shadow: 0 0 10px rgba(189, 0, 255, 0.2);
+        }
+
+        .card-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 30px;
+            letter-spacing: 1.5px;
+        }
+
+        .card-api .card-badge {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--neon-blue);
+        }
+
+        .card-sim .card-badge {
+            background: rgba(189, 0, 255, 0.1);
+            border: 1px solid rgba(189, 0, 255, 0.3);
+            color: var(--neon-purple);
+        }
+
+        .card-desc {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            font-weight: 300;
+            min-height: 80px;
+        }
+
+        /* 버튼 디자인 */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .btn-portal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 28px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .card-api .btn-portal-primary {
+            background: linear-gradient(135deg, var(--neon-blue), rgba(0, 240, 255, 0.7));
+            color: #040815;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .card-api .btn-portal-primary:hover {
+            box-shadow: 0 6px 25px rgba(0, 240, 255, 0.45);
+            transform: scale(1.02);
+        }
+
+        .card-sim .btn-portal-primary {
+            background: linear-gradient(135deg, var(--neon-purple), rgba(189, 0, 255, 0.7));
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(189, 0, 255, 0.2);
+        }
+
+        .card-sim .btn-portal-primary:hover {
+            box-shadow: 0 6px 25px rgba(189, 0, 255, 0.45);
+            transform: scale(1.02);
+        }
+
+        .btn-portal-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .btn-portal-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 하단 푸터 */
+        .portal-footer {
+            margin-top: 60px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.25);
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            z-index: 2;
+        }
+
+        /* 애니메이션 정의 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .portal-grid {
+                grid-template-columns: 1fr;
+            }
+            .system-logo {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-grid"></div>
+    <div class="background-glow"></div>
+
+    <div class="portal-container">
+        <header class="portal-header">
+            <h1 class="system-logo">SIGMA</h1>
+            <p class="portal-subtitle">교통신호 데이터 분석 및 시뮬레이션 통합 플랫폼</p>
+        </header>
+
+        <main class="portal-grid">
+            <!-- 실시간 신호정보 카드 -->
+            <section class="portal-card card-api">
+                <div class="card-header-group">
+                    <h2 class="card-title">실시간 신호정보</h2>
+                    <span class="card-badge">LIVE API</span>
+                </div>
+                <p class="card-desc">
+                    경찰청 UTIC 및 서울시 T-Data 실시간 교통 신호 연동 모니터링 시스템. 
+                    신호 등화 상태와 개별 접근로 잔여 시간을 실시간 수집 및 표출합니다.
+                </p>
+                <div class="btn-group">
+                    <a href="/realtime" class="btn-portal btn-portal-primary">통합 대시보드 진입</a>
+                    <a href="http://localhost:5173" class="btn-portal btn-portal-secondary" target="_blank">로컬 개발 서버 (Port 5173)</a>
+                </div>
+            </section>
+
+            <!-- 신호운영 시뮬레이터 카드 -->
+            <section class="portal-card card-sim">
+                <div class="card-header-group">
+                    <h2 class="card-title">신호운영 시뮬레이터</h2>
+                    <span class="card-badge">SIMULATOR</span>
+                </div>
+                <p class="card-desc">
+                    다차원 교통량 통계 모델링 및 고밀도 교차로 신호운영 시뮬레이션 시스템. 
+                    TOD 시간 계획 시각화 및 주요 정체구간 최적화 모델을 분석합니다.
+                </p>
+                <div class="btn-group">
+                    <a href="/sim/index.html" class="btn-portal btn-portal-primary">시뮬레이션 구동</a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="portal-footer">
+            &copy; 2026 KOROAD TRAFFIC MANAGEMENT SYSTEM. ALL RIGHTS RESERVED.
+        </footer>
+    </div>
+</body>
+</html>

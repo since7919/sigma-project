@@ -104,3 +104,15 @@ CREATE TRIGGER trg_check_no_closed_triangles_utic
 BEFORE INSERT OR UPDATE ON utic_road_links
 FOR EACH ROW
 EXECUTE FUNCTION check_no_closed_triangles_utic();
+
+-- ==========================================
+-- 데이터베이스 보안 강화: Supabase Row Level Security (RLS) 설정 가이드
+-- ==========================================
+-- Supabase에서 데이터 유출이나 무단 변조를 막기 위해 RLS를 활성화할 것을 권장합니다.
+-- 예시로 아래 쿼리를 Supabase SQL Editor에서 실행하면 SELECT 조회는 모두에게 열고, 
+-- INSERT/UPDATE/DELETE 등의 쓰기 권한은 내부 백엔드(service_role)로만 제한할 수 있습니다.
+
+-- ALTER TABLE utic_intersections ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow public read access" ON utic_intersections FOR SELECT USING (true);
+-- CREATE POLICY "Allow write access for service role only" ON utic_intersections FOR ALL TO service_role USING (true);
+

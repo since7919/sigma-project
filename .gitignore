@@ -10,3 +10,4 @@ build/
 *.log
 1_TSI/
 2_SIGMA/
+config.php

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Ch 07. YEARBOOK 민원 관리 - SIGMA Manual</title>
+    <link rel="stylesheet" href="manual_style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <a href="index.html" class="sidebar-link" style="margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:15px; font-weight:bold;">📊 Master Index</a>
+            <h4>Part 1. Operations</h4>
+            <a href="ch01_overview.html" class="sidebar-link">Ch 01. 시스템 개요</a>
+            <a href="ch02_nema.html" class="sidebar-link">Ch 02. NEMA Dual-Ring</a>
+            <a href="ch03_ui_controls.html" class="sidebar-link">Ch 03. UI 및 조작법</a>
+            <a href="ch04_db_center.html" class="sidebar-link">Ch 04. DB CENTER</a>
+            <a href="ch05_node_link.html" class="sidebar-link">Ch 05. NODE/LINK 분석</a>
+            <a href="ch06_phase_split.html" class="sidebar-link">Ch 06. PHASE/SPLIT 설정</a>
+            <a href="ch07_yearbook.html" class="sidebar-link active">Ch 07. YEARBOOK 민원</a>
+            <a href="ch08_tsd.html" class="sidebar-link">Ch 08. TSD 시공도</a>
+            <h4>Part 2. Theory</h4>
+            <a href="ch09_glossary.html" class="sidebar-link">Ch 09. 용어 정의 사전</a>
+            <a href="ch10_timing_design.html" class="sidebar-link">Ch 10. 신호 타이밍 설계</a>
+            <a href="ch11_actuated_control.html" class="sidebar-link">Ch 11. 감응 제어 이론</a>
+            <a href="ch12_capacity_los.html" class="sidebar-link">Ch 12. 용량 및 LOS</a>
+            <a href="ch13_coordination.html" class="sidebar-link">Ch 13. 연동 제어 이론</a>
+            <a href="ch14_pedestrian.html" class="sidebar-link">Ch 14. 보행자 설계</a>
+            <h4>Part 3. System</h4>
+            <a href="ch15_excel.html" class="sidebar-link">Ch 15. 엑셀 파이프라인</a>
+            <a href="ch16_ai_copilot.html" class="sidebar-link">Ch 16. AI Copilot</a>
+            <a href="ch17_history.html" class="sidebar-link">Ch 17. 업데이트 이력</a>
+        </nav>
+
+        <div class="main-content">
+            <h1>📢 Ch 07. YEARBOOK (민원 관리 및 지수 분석)</h1>
+            <section id="section7">
+                <h2>7. YEARBOOK 시스템 개요</h2>
+                <p>민원 데이터와 개선 사업 데이터를 통합하여 교차로의 운영 상태를 정량적으로 평가합니다.</p>
+                
+            <h3 id="section7_3">7.3 민원 데이터 구조 (db_civil_complaints.csv)</h3>
+            <p>시민들의 피드백을 수치화하여 운영 성과에 반영하는 핵심 데이터 테이블입니다.</p>
+            <table>
+                <thead>
+                    <tr style="background: rgba(230, 126, 34, 0.2); color: #fff;">
+                        <th style="width:140px;">필드명 (Header)</th>
+                        <th>타입</th>
+                        <th>설명 및 운영 규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="color:#e67e22; font-weight:bold;">complaintId</td><td>String</td><td>민원 고유 식별 번호 (중복 불가)</td></tr>
+                    <tr><td style="color:#e67e22; font-weight:bold;">itstId</td><td>String</td><td>해당 민원이 발생한 교차로 마스터 ID (참조 Key)</td></tr>
+                    <tr><td style="color:#e67e22; font-weight:bold;">type</td><td>Enum</td><td>민원 유형 (WAIT: 대기지체, SAFE: 보행안전, ERR: 신호오류)</td></tr>
+                    <tr><td style="color:#e67e22; font-weight:bold;">regDate</td><td>Date</td><td>민원 접수 일시 (YYYY-MM-DD 형식)</td></tr>
+                    <tr><td style="color:#e67e22; font-weight:bold;">severity</td><td>Integer</td><td>민원 심각도 가중치 (1: 경미 ~ 10: 매우 심각)</td></tr>
+                    <tr><td style="color:#e67e22; font-weight:bold;">content</td><td>Text</td><td>상세 민원 내용 (AI 텍스트 분석에 활용됨)</td></tr>
+                </tbody>
+            </table>
+
+            <h3 id="section7_4">7.4 YEARBOOK 지수 산출 로직</h3>
+            <p>SIGMA는 정성적인 민원을 정량적인 지수로 변환하여 교차로의 건강 상태를 진단합니다.</p>
+            <div class="logic-box" style="border-left: 5px solid #e67e22;">
+                <h4 style="margin:0; color:#e67e22;">📊 지수 계산 공식 (Standard)</h4>
+                <p style="font-family:'Courier New'; font-size:14px; color:#fff; margin:10px 0;">
+                    <b>Yearbook_Score = 100 - (Σ(Severity * Type_Weight) / Period_Index) + Improvement_Bonus</b>
+                </p>
+                <ul style="font-size:12px; color:#ccc; padding-left:15px;">
+                    <li><b>Type_Weight</b>: 보행 안전(1.5), 단순 지체(1.0), 신호 체계 제안(0.5)</li>
+                    <li><b>Improvement_Bonus</b>: 최근 1년 내 시설 개선(LPI 등) 완료 시 부여되는 가산점</li>
+                </ul>
+            </div>
+
+            <div class="logic-box" style="background: rgba(0, 212, 255, 0.05); margin-top:20px;">
+                <b>AI 챗봇 활용:</b> 챗봇은 이 테이블을 조회하여 "최근 3개월간 보행 안전 민원이 20% 이상 증가한 교차로 리스트를 뽑아줘"와 같은 고차원 질문에 답변할 수 있습니다.
+            </div>
+        </section>
+            <div class="nav-links">
+                <a href="ch06_phase_split.html">← Ch 06. PHASE/SPLIT 설정</a>
+                <a href="ch08_tsd.html">Ch 08. TSD 시공도 →</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

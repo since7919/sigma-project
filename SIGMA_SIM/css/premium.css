@@ -1,0 +1,152 @@
+/* Premium Design System for SIGMA Dashboard */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+:root {
+    --p-bg: #020408;
+    --p-accent: #ff9f43;
+    --p-accent-glow: rgba(255, 159, 67, 0.4);
+    --p-glass: rgba(15, 20, 30, 0.7);
+    --p-border: rgba(255, 255, 255, 0.08);
+    --p-text: #f1f5f9;
+    --p-text-muted: #94a3b8;
+
+    --c-facilities: #6366f1;
+    /* Indigo */
+    --c-signals: #f59e0b;
+    /* Amber */
+    --c-civil: #10b981;
+    /* Emerald */
+}
+
+.dashboard-overlay {
+    background: radial-gradient(circle at 50% 50%, rgba(10, 15, 30, 0.75), rgba(0, 0, 0, 0.85)) !important;
+    backdrop-filter: blur(15px) saturate(160%) !important;
+}
+
+.dashboard-container {
+    border: 1px solid var(--p-border) !important;
+    background: rgba(255, 255, 255, 0.01) !important;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8) !important;
+    border-radius: 32px !important;
+}
+
+.cat-header {
+    background: rgba(255, 255, 255, 0.01);
+    transition: all 0.3s ease;
+}
+
+.cat-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.cat-header span {
+    font-family: 'Pretendard', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    color: var(--p-text) !important;
+}
+
+.dash-cell {
+    background: rgba(255, 255, 255, 0.01) !important;
+    border: 1px solid transparent !important;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1) !important;
+    padding: 25px !important;
+}
+
+.dash-cell:hover {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.cell-title {
+    font-family: 'Pretendard', sans-serif !important;
+    text-transform: none !important;
+    font-size: 14px !important;
+    color: var(--p-text-muted) !important;
+    margin-bottom: 15px !important;
+}
+
+.cell-main-val {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 48px !important;
+    letter-spacing: -0.02em !important;
+    text-shadow: 0 0 30px var(--p-accent-glow) !important;
+}
+
+.cell-sub-val {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 14px !important;
+    opacity: 0.6;
+}
+
+/* Specific Section Colors */
+.dash-column:nth-child(1) .cell-main-val {
+    color: var(--c-facilities);
+    text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+.dash-column:nth-child(2) .cell-main-val {
+    color: var(--c-signals);
+    text-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+}
+
+.dash-column:nth-child(3) .cell-main-val {
+    color: var(--c-civil);
+    text-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+}
+
+/* Custom Scrollbar for Dashboard */
+.dashboard-grid::-webkit-scrollbar {
+    width: 12px;
+}
+
+.dashboard-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* Year Chips */
+.year-chip {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 20px !important;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+}
+
+.year-chip.active {
+    background: var(--p-accent) !important;
+    border-color: var(--p-accent) !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dash-cell {
+    animation: fadeInUp 0.5s ease-out backwards;
+}
+
+.dash-cell:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.dash-cell:nth-child(3) {
+    animation-delay: 0.2s;
+}
