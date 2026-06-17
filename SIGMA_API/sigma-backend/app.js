@@ -25,7 +25,7 @@ app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist
 app.get('/realtime', (req, res) => {
   res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
 });
-app.get('/realtime/*', (req, res) => {
+app.get(/^\/realtime\/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
 });
 
