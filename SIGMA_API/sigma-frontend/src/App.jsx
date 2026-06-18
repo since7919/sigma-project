@@ -1751,6 +1751,7 @@ function App() {
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
+  const [supabaseConfig, setSupabaseConfig] = useState(null);
 
   // 멀티스크린 상태
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
@@ -1807,18 +1808,37 @@ function App() {
     }
   };
 
+  // 백엔드로부터 Supabase 접속 정보 동적 조회
+  useEffect(() => {
+    axios.get(`${API_BASE}/api/config`)
+      .then(res => {
+        if (res.data && res.data.SUPABASE_URL && res.data.SUPABASE_ANON_KEY) {
+          setSupabaseConfig({
+            url: res.data.SUPABASE_URL,
+            key: res.data.SUPABASE_ANON_KEY
+          });
+        }
+      })
+      .catch(err => {
+        console.warn('⚠️ 백엔드 설정 로드 실패 (환경 변수를 사용합니다):', err.message);
+      });
+  }, []);
+
   // 서울 실시간 SPAT 정보 수신 루프 실행 (Supabase Realtime 기반)
   useEffect(() => {
     window.SEOUL_SPAT_MAP = window.SEOUL_SPAT_MAP || {};
     window.SEOUL_SPAT_LAST_UPDATE = window.SEOUL_SPAT_LAST_UPDATE || null;
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+    const targetUrl = supabaseConfig?.url || SUPABASE_URL;
+    const targetKey = supabaseConfig?.key || SUPABASE_ANON_KEY;
+
+    if (!targetUrl || !targetKey) return;
 
     // 초기 상태 통신 완료 상태 표시
     setApiStatus(prev => ({...prev, seoul: { status: 'Connected (WS)', time: 'Realtime', color: '#3b82f6' }}));
 
     import('@supabase/supabase-js').then(({ createClient }) => {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const supabase = createClient(targetUrl, targetKey);
       
       // 채널 생성 및 구독
       const channel = supabase
@@ -1856,7 +1876,7 @@ function App() {
         window.SUPABASE_CLIENT.removeChannel(window.SUPABASE_CHANNEL);
       }
     };
-  }, []);
+  }, [supabaseConfig]);
 
   // 현재 관심 대상인 활성 교차로를 백엔드에 주기적으로 Ping 등록 (데이터 필터링 및 Sleep 방지용)
   useEffect(() => {
