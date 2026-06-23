@@ -999,3 +999,53 @@ function goHome() {
     console.log("[UI] System successfully reset to home state.");
 }
 window.goHome = goHome;
+
+/**
+ * UTIC 신호 계획 동기화 트리거
+ */
+window.triggerUticPlanSync = async function() {
+    if (!STATE.activeJid) {
+        alert("선택된 교차로가 없습니다.");
+        return;
+    }
+    const j = STATE.junctions[STATE.activeJid];
+    if (!j) return;
+
+    if (!confirm(`[${j.name}] 교차로의 TOD 운영 계획을 UTIC API로부터 가져와 DB에 반영하시겠습니까?`)) {
+        return;
+    }
+
+    if (typeof showLoading === 'function') {
+        showLoading("UTIC 신호 계획 동기화 중...");
+    }
+
+    try {
+        const response = await fetch('/api/sim/sync-utic-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jid: j.id, itstNm: j.name })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "동기화 실패");
+        }
+
+        const resData = await response.json();
+        if (resData.success) {
+            alert(`[${j.name}] UTIC 신호 계획 동기화 성공! 분할 DB 파일에 실시간 업데이트되었습니다.`);
+            // 데이터 재로딩
+            if (typeof autoLoadFiles === 'function') {
+                await autoLoadFiles();
+            }
+        } else {
+            throw new Error("서버 응답 오류");
+        }
+    } catch (err) {
+        alert("에러 발생: " + err.message);
+    } finally {
+        if (typeof hideLoading === 'function') {
+            hideLoading();
+        }
+    }
+};

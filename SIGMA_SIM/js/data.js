@@ -243,17 +243,20 @@ function viewDBFile(type) {
 /** 💾 개별 파일 저장 기능 (파일별 💾 버튼) */
 function saveDBFile(type) {
     if (Object.keys(STATE.junctions).length === 0) { alert("데이터가 없습니다."); return; }
+    const regionSelect = document.getElementById('api-region-select');
+    const regionCode = regionSelect ? regionSelect.value : 'L01';
+    
     const { interCsv, mapCsv, todCsv, groupCsv, statsCsv } = exportNormalizedDB();
     const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const download = (content, name) => {
         const blob = new Blob([content], { type: 'text/csv' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
     };
-    if (type === 'inter') download(interCsv, `db_intersections_${now}.csv`);
-    else if (type === 'maps') download(mapCsv, `db_signal_maps_${now}.csv`);
-    else if (type === 'plans') download(todCsv, `db_tod_plans_${now}.csv`);
-    else if (type === 'groups') download(groupCsv, `db_groups_${now}.csv`);
-    else if (type === 'stats') download(statsCsv, `db_stats_${now}.csv`);
+    if (type === 'inter') download(interCsv, `db_${regionCode}_intersections_${now}.csv`);
+    else if (type === 'maps') download(mapCsv, `db_${regionCode}_signal_maps_${now}.csv`);
+    else if (type === 'plans') download(todCsv, `db_${regionCode}_tod_plans_${now}.csv`);
+    else if (type === 'groups') download(groupCsv, `db_${regionCode}_groups_${now}.csv`);
+    else if (type === 'stats') download(statsCsv, `db_${regionCode}_stats_${now}.csv`);
 }
 
 /** ❌ 개별 파일 초기화 기능 (파일별 ❌ 버튼) */
@@ -311,11 +314,12 @@ async function saveNormalizedDBFiles() {
 /** [정교화] 데이터 통합 익스포트 */
 function exportNormalizedDB() {
     const junctions = Object.values(STATE.junctions);
-    const interHeaders = ["ID", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan"];
+    const interHeaders = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan"];
     let interCsv = "\ufeff" + interHeaders.join(",") + "\n";
     junctions.forEach(j => {
         const row = [
             j.id || "", 
+            j.region || (j.id.startsWith("L02-") ? "L02" : "L01"),
             j.name || "Node", 
             (typeof j.lat === 'number' ? j.lat.toFixed(9) : "0"), 
             (typeof j.lng === 'number' ? j.lng.toFixed(9) : "0"), 
@@ -400,8 +404,9 @@ function processIntersectionCSV(csv) {
         }
         cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
         let id = getCol(cols, ["ID", "교차로번호", "No", "JID"]); if (!id) continue;
+        const region = getCol(cols, ["Region", "지역"]) || (id.startsWith("L02-") ? "L02" : "L01");
         newJuncts[id] = {
-            id, name: getCol(cols, ["Name", "이름", "교차로명"]) || "Node",
+            id, region, name: getCol(cols, ["Name", "이름", "교차로명"]) || "Node",
             lat: parseFloat(getCol(cols, ["Lat", "위도"])) || 37.5, lng: parseFloat(getCol(cols, ["Lng", "경도"])) || 127.0,
             seq: getCol(cols, ["Seq", "연등번호"]), police: getCol(cols, ["Police", "경찰서"]) || "", office: getCol(cols, ["Office", "관리청"]) || "",
             group: parseInt(getCol(cols, ["GroupID", "그룹ID"])) || 0, weeklyPlan: getCol(cols, ["Weekly_plan"]) || "1;1;1;1;1;2;3",
@@ -528,10 +533,10 @@ async function handleExcelSignalLoad(input) {
 
             const jNo = parseInt(getVal(3, 37));
             if (isNaN(jNo)) throw new Error(`[C37] 교차로 번호 누락`);
-
-            const targetJid = `krd-${jNo}0`;
-            let junction = STATE.junctions[targetJid] || Object.values(STATE.junctions).find(j => String(j.seq) === String(jNo));
-            if (!junction) throw new Error(`시스템에 [${targetJid}] 교차로가 없습니다.`);
+            
+            // L01 또는 L02 접두사를 포함해 매칭
+            let junction = STATE.junctions[`L01-${jNo}0`] || STATE.junctions[`L02-${jNo}0`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(jNo));
+            if (!junction) throw new Error(`시스템에 교차로(No. ${jNo})가 없습니다.`);
 
             // [1] 이동류(Movement) ID 추출 (Row 5 & 12)
             const baseMovA = [], baseMovB = [];
@@ -835,3 +840,154 @@ function parseExtraConfigs(j, row) {
         j.flashYellows = (p[2]||"").split(';').filter(v=>v).map(Number); j.flashReds = (p[3]||"").split(';').filter(v=>v).map(Number);
     }
 }
+
+/** 📊 특정 교차로 1개 분량의 CSV 행 데이터만 추출 */
+function exportSingleJunctionCSV(jid) {
+    const j = STATE.junctions[jid];
+    if (!j) return null;
+
+    // 1. 교차로 마스터 정보 (1줄, 헤더 제외)
+    const interRow = [
+        j.id || "", 
+        j.region || (j.id.startsWith("L02-") ? "L02" : "L01"),
+        j.name || "Node", 
+        (typeof j.lat === 'number' ? j.lat.toFixed(9) : "0"), 
+        (typeof j.lng === 'number' ? j.lng.toFixed(9) : "0"), 
+        j.seq || j.id || "", 
+        j.police || "", 
+        j.office || "", 
+        j.group || 0, 
+        serializeFlash(j), 
+        serializeOpInt(j), 
+        serializeArrows(j), 
+        j.controller || "", 
+        (j.extra?.diagramOrder !== undefined ? j.extra.diagramOrder : -1), 
+        j.weeklyPlan || "1;1;1;1;1;2;3"
+    ];
+    const interCsvLine = interRow.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+
+    // 2. 신호맵 (6줄, 헤더 제외)
+    let mapCsvLines = "";
+    (j.signalMaps || []).forEach((sm, idx) => {
+        const row = [j.id, idx, (sm.movA||[]).join(';'), (sm.movB||[]).join(';'), (sm.pedMovA||[]).join(';'), (sm.pedMovB||[]).join(';'), (sm.mainMovements||[]).join(';'), (sm.yellowA||[]).join(';'), (sm.yellowB||[]).join(';'), (sm.allredA||[]).join(';'), (sm.allredB||[]).join(';'), (sm.pedA||[]).join(';'), (sm.pedB||[]).join(';'), (sm.pedDelayA||[]).join(';'), (sm.pedDelayB||[]).join(';'), (sm.pedFlashA||[]).join(';'), (sm.pedFlashB||[]).join(';'), (sm.pedGreenA||[]).join(';'), (sm.pedGreenB||[]).join(';'), sm.startTime||"", sm.endTime||""];
+        mapCsvLines += row.map(v => String(v)).join(",") + "\n";
+    });
+
+    // 3. TOD 계획 (10줄, 헤더 제외)
+    let todCsvLines = "";
+    const gid = j.group || 0;
+    const groupObj = (gid && STATE.groups && STATE.groups[gid]) ? STATE.groups[gid] : null;
+    
+    for (let d = 0; d < 10; d++) {
+        const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[d] !== undefined) ? j.dayPlanMapIds[d] : ((d < 5) ? 0 : (d - 4));
+        const row = [j.id, j.seq || j.id, smIdx, j.group || 0, d + 1];
+        const schs = (j.schedules && j.schedules[d]) ? j.schedules[d] : (groupObj && groupObj.schedules ? groupObj.schedules[d] : null);
+        const pls = (j.dayPlans && j.dayPlans[d]) ? j.dayPlans[d] : null;
+        for (let s = 0; s < 16; s++) {
+            const sc = (schs && schs[s]) ? schs[s] : { h: -1, m: 0, cycle: 100, idx: 1 };
+            const pl = (pls && pls[s]) ? pls[s] : { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+            const timeStr = sc.h === -1 ? "-1" : `${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}`;
+            row.push(`${timeStr}|${sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
+        }
+        todCsvLines += row.map(v => String(v)).join(",") + "\n";
+    }
+
+    return {
+        jid,
+        interCsvLine,
+        mapCsvLines: mapCsvLines.trim(),
+        todCsvLines: todCsvLines.trim()
+    };
+}
+
+/** 💾 활성화된 교차로 설정 DB 반영 */
+async function updateActiveJunctionToDB() {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) {
+        alert("선택된 교차로가 없습니다.");
+        return;
+    }
+    const jName = STATE.junctions[jid].name || "Node";
+    if (!confirm(`교차로 [${jName}]의 수정한 설정값을 데이터베이스(Supabase)에 반영하시겠습니까?`)) {
+        return;
+    }
+
+    showLoading(`교차로 [${jName}] DB 저장 중...`);
+    try {
+        const payload = exportSingleJunctionCSV(jid);
+        if (!payload) {
+            throw new Error("CSV 데이터 추출에 실패했습니다.");
+        }
+
+        const response = await fetch('/api/sim/update-junction', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || "서버 통신 실패");
+        }
+
+        hideLoading();
+        alert(`교차로 [${jName}]의 설정이 DB에 반영되었습니다.`);
+        refreshDBStats();
+    } catch (e) {
+        hideLoading();
+        alert("DB 저장 실패: " + e.message);
+    }
+}
+
+/** 🔄 활성화된 교차로 설정 DB 원본으로 복원 */
+async function revertActiveJunctionFromDB() {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) {
+        alert("선택된 교차로가 없습니다.");
+        return;
+    }
+    const jName = STATE.junctions[jid].name || "Node";
+    if (!confirm(`교차로 [${jName}]의 데이터를 데이터베이스 원본 값으로 복원하시겠습니까?\n브라우저에서 수정 중인 값은 모두 유실됩니다.`)) {
+        return;
+    }
+
+    showLoading(`교차로 [${jName}] DB 데이터 복원 중...`);
+    try {
+        const response = await fetch(`/api/sim/revert-junction?jid=${jid}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || "서버 통신 실패");
+        }
+
+        const data = await response.json();
+
+        // 가져온 데이터로 메모리(STATE.junctions[jid]) 덮어쓰기
+        if (data.interCsvLine) {
+            const mockCsv = "ID,Name,Lat,Lng,Seq,Police,Office,GroupID,FlashCfg,OpIntervention,ArrowConfigs,Controller,DiagramOrder,Weekly_plan\n" + data.interCsvLine;
+            processIntersectionCSV(mockCsv);
+        }
+        if (data.mapCsvLines) {
+            const mockCsv = "ID,MapIdx,movA,movB,pedMovA,pedMovB,mainMovements,yellowA,yellowB,allredA,allredB,pedA,pedB,pedDelayA,pedDelayB,pedFlashA,pedFlashB,pedGreenA,pedGreenB,startTime,endTime\n" + data.mapCsvLines;
+            processSignalMapCSV(mockCsv);
+        }
+        if (data.todCsvLines) {
+            const mockCsv = "ID,Seq,SignalMap,GroupID,Day_plan,Time_plan1,Time_plan2,Time_plan3,Time_plan4,Time_plan5,Time_plan6,Time_plan7,Time_plan8,Time_plan9,Time_plan10,Time_plan11,Time_plan12,Time_plan13,Time_plan14,Time_plan15,Time_plan16\n" + data.todCsvLines;
+            processTodPlanCSV(mockCsv);
+        }
+
+        hideLoading();
+        alert(`교차로 [${jName}]의 데이터가 DB 값으로 복원되었습니다.`);
+        
+        // UI 리렌더링
+        if (typeof renderRingTables === 'function') renderRingTables();
+        if (typeof renderSummaryTable === 'function') renderSummaryTable();
+        if (typeof drawJunction === 'function') drawJunction(jid);
+        refreshDBStats();
+    } catch (e) {
+        hideLoading();
+        alert("데이터 복원 실패: " + e.message);
+    }
+}
+

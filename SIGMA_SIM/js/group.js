@@ -852,11 +852,18 @@ function applyGroupToMembers() {
 function generateGroupCSV() {
     if (Object.keys(STATE.groups).length === 0) return "";
 
-    let csv = "GroupID,GroupName,Weekday,Friday,Saturday,Sunday,Special,Flextime1,Flextime2,Flextime3,Flextime4,Flextime5,TSD_SET1,TSD_SET2,TSD_SET3,PlanAliases\n";
+    let csv = "GroupID,Region,GroupName,Weekday,Friday,Saturday,Sunday,Special,Flextime1,Flextime2,Flextime3,Flextime4,Flextime5,TSD_SET1,TSD_SET2,TSD_SET3,PlanAliases\n";
 
     Object.keys(STATE.groups).forEach(gid => {
         const group = STATE.groups[gid];
         const gName = (group.name || `그룹 ${gid}`).replace(/,/g, ' ');
+        
+        let region = group.region;
+        if (!region) {
+            const member = Object.values(STATE.junctions).find(j => String(j.group) === String(gid));
+            region = member ? (member.region || (member.id.startsWith("L02-") ? "L02" : "L01")) : "L01";
+        }
+
         const schedStrs = Array.from({ length: 10 }, (_, d) => {
             const sched = (group.schedules && group.schedules[d]) ? group.schedules[d] : [];
             return sched.map(s => {
@@ -873,7 +880,7 @@ function generateGroupCSV() {
 
         const aliases = (group.planAliases || Array(10).fill("")).join(';');
 
-        csv += `${gid},${gName},${schedStrs.join(',')},${tsdSets.join(',')},${aliases}\n`;
+        csv += `${gid},${region},${gName},${schedStrs.join(',')},${tsdSets.join(',')},${aliases}\n`;
     });
     return csv;
 }
@@ -977,11 +984,12 @@ function handleLegacyGroupCSV(lines, isAutoLoad) {
         const line = lines[i].trim();
         if (!line) continue;
         const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        if (cols.length < 2) continue;
+        if (cols.length < 3) continue;
         const gid = parseInt(cols[0]);
         if (isNaN(gid)) continue;
         
-        let gName = cols[1] || `그룹 ${gid}`;
+        const region = cols[1];
+        let gName = cols[2] || `그룹 ${gid}`;
         const schedules = Array.from({ length: 10 }, () => createEmptySched());
 
         const parseSched = (str, targetSched) => {
@@ -998,16 +1006,16 @@ function handleLegacyGroupCSV(lines, isAutoLoad) {
             });
         };
 
-        if (cols.length >= 7) { 
-            const numDays = Math.min(cols.length - 2, 10);
-            for (let d = 0; d < numDays; d++) parseSched(cols[d + 2], schedules[d]); 
+        if (cols.length >= 8) { 
+            const numDays = Math.min(cols.length - 3, 10);
+            for (let d = 0; d < numDays; d++) parseSched(cols[d + 3], schedules[d]); 
         }
-        else if (cols.length >= 3) parseSched(cols[2], schedules[0]);
+        else if (cols.length >= 4) parseSched(cols[3], schedules[0]);
 
-        // [신규] TSD 설정 세트 파싱 (Index 12, 13, 14)
+        // [신규] TSD 설정 세트 파싱 (Index 13, 14, 15)
         const tsdConfigs = [];
         for (let i = 0; i < 3; i++) {
-            const colIdx = 12 + i;
+            const colIdx = 13 + i;
             if (cols[colIdx]) {
                 const parts = cols[colIdx].split('|');
                 tsdConfigs.push({
@@ -1020,8 +1028,8 @@ function handleLegacyGroupCSV(lines, isAutoLoad) {
             }
         }
 
-        const planAliases = (cols[15]) ? cols[15].split(';') : Array(10).fill("");
-        newGroups[gid] = { id: gid, name: gName, schedules: schedules, tsdConfigs: tsdConfigs, planAliases: planAliases };
+        const planAliases = (cols[16]) ? cols[16].split(';') : Array(10).fill("");
+        newGroups[gid] = { id: gid, region: region, name: gName, schedules: schedules, tsdConfigs: tsdConfigs, planAliases: planAliases };
         count++;
     }
 

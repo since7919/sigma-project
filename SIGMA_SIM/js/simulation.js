@@ -50,16 +50,38 @@ window.toggleSignalSource = function() {
     }
 };
 
-/**
- * [추가] 지역 선택 변경 시 동작
- */
-window.onRegionChange = function() {
+window.onRegionChange = async function() {
     const regionCode = document.getElementById('api-region-select').value;
     console.log(`[Region] 지역 변경: ${regionCode}`);
     
-    // 로컬 CSV 데이터 기반으로 목록을 다시 렌더링
-    if (typeof renderJunctionList === 'function') {
-        renderJunctionList();
+    // [Clean up] 기존 교차로 마커 지도에서 모두 제거
+    if (typeof STATE !== 'undefined' && STATE.junctions) {
+        Object.values(STATE.junctions).forEach(j => {
+            if (j.marker && window.map) {
+                window.map.removeLayer(j.marker);
+            }
+        });
+        STATE.junctions = {};
+    }
+
+    // 기존 연동구간 및 행정경계 레이어 제거
+    if (typeof STATE !== 'undefined') {
+        if (STATE.geoJsonLayer && window.map) {
+            window.map.removeLayer(STATE.geoJsonLayer);
+            STATE.geoJsonLayer = null;
+        }
+        if (STATE.boundaryLayer && window.map) {
+            window.map.removeLayer(STATE.boundaryLayer);
+            STATE.boundaryLayer = null;
+        }
+        // 메모리 초기화
+        STATE.groups = {};
+        STATE.civilData = [];
+    }
+
+    // [Reload] 선택한 지역 코드로 분할된 데이터 비동기 일괄 로드 실행
+    if (typeof autoLoadFiles === 'function') {
+        await autoLoadFiles();
     }
 };
 
@@ -78,12 +100,7 @@ async function fetchRealtimeSignals() {
         const itstNm = encodeURIComponent(j.name);
         
         // 선택된 지역코드 또는 저장된 지역코드 사용
-        let regionCode = j.regionCode || document.getElementById('api-region-select').value || '110';
-        
-        // [예외처리] 특정 교차로 ID에 따른 자동 지역코드 맵핑 (신광4거리 등)
-        if (j.id === '1001' || j.name.includes('신광4거리')) {
-            regionCode = 'L02';
-        }
+        let regionCode = j.region || j.regionCode || document.getElementById('api-region-select').value || 'L01';
         
         // 정확한 필터링 파라미터 적용 (srchCTId, srchCRNm) 및 SigMap API 사용
         const originalUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?srchCTId=${regionCode}&srchCRNm=${itstNm}&type=json`;

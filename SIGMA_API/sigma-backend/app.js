@@ -77,8 +77,9 @@ async function fetchUrl(url) {
 }
 
 async function syncUticIntersections(regionCode) {
+  const apiRegion = regionCode === 'L01' ? '110' : regionCode;
   // UTIC 교차로 기초정보 엑셀 파일 다운로드 URL
-  const excelUrl = `http://tsihub.utic.go.kr/tsi/api/CrossRoadInfoService/download/crossInfo?serviceKey=${UTIC_API_KEY}&srchCTId=${regionCode}`;
+  const excelUrl = `http://tsihub.utic.go.kr/tsi/api/CrossRoadInfoService/download/crossInfo?serviceKey=${UTIC_API_KEY}&srchCTId=${apiRegion}`;
   
   let res;
   try {
@@ -298,15 +299,278 @@ app.get('/api/sim/data', async (req, res) => {
   }
 });
 
+// --- 동시성 제어 큐 (Lost Update 방지용) ---
+let dbWriteQueue = Promise.resolve();
+const enqueueDBWrite = (taskFn) => {
+  return new Promise((resolve, reject) => {
+    dbWriteQueue = dbWriteQueue.then(async () => {
+      try {
+        const result = await taskFn();
+        resolve(result);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+};
+
+// CSV 특정 교차로 ID(jid) 부분 업데이트 헬퍼
+function updateCSVContent(originalCsv, jid, newCsvLines) {
+  const lines = originalCsv.split(/\r?\n/);
+  if (lines.length === 0) return originalCsv;
+  
+  const header = lines[0];
+  const remainingLines = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    const firstCol = line.split(',')[0].trim().replace(/^"|"$/g, '');
+    if (firstCol !== String(jid)) {
+      remainingLines.push(line);
+    }
+  }
+  
+  const toAdd = Array.isArray(newCsvLines) ? newCsvLines : [newCsvLines];
+  toAdd.forEach(l => {
+    if (l && l.trim()) {
+      remainingLines.push(l.trim());
+    }
+  });
+  
+  return header + '\n' + remainingLines.join('\n') + '\n';
+}
+
+// 1-4. 교차로별 DB 복원 API
+app.get('/api/sim/revert-junction', async (req, res) => {
+  const { jid } = req.query;
+  if (!jid) return res.status(400).json({ error: 'jid 파라미터가 필요합니다.' });
+
+  try {
+    const region = jid.split('-')[0];
+    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
+    const files = [`db_${targetRegion}_intersections.csv`, `db_${targetRegion}_signal_maps.csv`, `db_${targetRegion}_tod_plans.csv`];
+    const { data: records, error } = await supabase
+      .from('sim_csv_storage')
+      .select('file_name, file_content')
+      .in('file_name', files);
+
+    if (error || !records || records.length === 0) {
+      return res.status(500).json({ error: 'DB 데이터를 조회하지 못했습니다.' });
+    }
+
+    const result = {
+      jid,
+      interCsvLine: '',
+      mapCsvLines: '',
+      todCsvLines: ''
+    };
+
+    records.forEach(r => {
+      const lines = r.file_content.split(/\r?\n/);
+      const filtered = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const firstCol = line.split(',')[0].trim().replace(/^"|"$/g, '');
+        if (firstCol === String(jid)) {
+          filtered.push(line);
+        }
+      }
+
+      if (r.file_name === `db_${targetRegion}_intersections.csv`) {
+        result.interCsvLine = filtered.join('\n');
+      } else if (r.file_name === `db_${targetRegion}_signal_maps.csv`) {
+        result.mapCsvLines = filtered.join('\n');
+      } else if (r.file_name === `db_${targetRegion}_tod_plans.csv`) {
+        result.todCsvLines = filtered.join('\n');
+      }
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 데이터 복원에 실패했습니다.');
+  }
+});
+
+// 1-5. 교차로별 DB 업데이트 API (동시성 제어 적용)
+app.post('/api/sim/update-junction', async (req, res) => {
+  const { jid, interCsvLine, mapCsvLines, todCsvLines } = req.body;
+  if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const region = jid.split('-')[0];
+      const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
+      const files = [`db_${targetRegion}_intersections.csv`, `db_${targetRegion}_signal_maps.csv`, `db_${targetRegion}_tod_plans.csv`];
+      
+      const { data: records, error } = await supabase
+        .from('sim_csv_storage')
+        .select('file_name, file_content')
+        .in('file_name', files);
+
+      if (error || !records || records.length === 0) {
+        throw new Error('Supabase에서 원본 CSV 파일을 읽어오는 데 실패했습니다.');
+      }
+
+      const updates = [];
+
+      records.forEach(r => {
+        let content = r.file_content;
+        let changed = false;
+
+        if (r.file_name === `db_${targetRegion}_intersections.csv` && interCsvLine !== undefined) {
+          content = updateCSVContent(content, jid, interCsvLine);
+          changed = true;
+        } else if (r.file_name === `db_${targetRegion}_signal_maps.csv` && mapCsvLines !== undefined) {
+          const linesToAdd = mapCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+          content = updateCSVContent(content, jid, linesToAdd);
+          changed = true;
+        } else if (r.file_name === `db_${targetRegion}_tod_plans.csv` && todCsvLines !== undefined) {
+          const linesToAdd = todCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+          content = updateCSVContent(content, jid, linesToAdd);
+          changed = true;
+        }
+
+        if (changed) {
+          updates.push({
+            file_name: r.file_name,
+            file_content: content
+          });
+        }
+      });
+
+      for (const u of updates) {
+        const { error: upsertErr } = await supabase
+          .from('sim_csv_storage')
+          .upsert({ file_name: u.file_name, file_content: u.file_content });
+        
+        if (upsertErr) {
+          throw new Error(`[${u.file_name}] 업서트 에러: ${upsertErr.message}`);
+        }
+      }
+
+      return { success: true };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 데이터 업데이트에 실패했습니다.');
+  }
+});
+
+// 1-6. 특정 교차로(JID)의 UTIC 신호 계획 동기화 API 구현
+app.post('/api/sim/sync-utic-plan', async (req, res) => {
+  const { jid, itstNm } = req.body;
+  if (!jid || !itstNm) return res.status(400).json({ error: 'jid와 itstNm이 필요합니다.' });
+
+  try {
+    const region = jid.split('-')[0];
+    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
+    const apiRegion = targetRegion === 'L01' ? '110' : targetRegion;
+
+    const targetServiceKey = UTIC_SERVICE_KEY || UTIC_API_KEY;
+    const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${apiRegion}&itstNm=${encodeURIComponent(itstNm)}&type=json&serviceKey=${targetServiceKey}`;
+
+    const response = await axios.get(url);
+    const data = response.data;
+    const items = Array.isArray(data) ? data : (data.body && data.body.items ? data.body.items : null);
+
+    if (!items || items.length === 0) {
+      return res.status(404).json({ error: 'UTIC API로부터 신호 운영 계획을 가져오지 못했거나 계획 정보가 존재하지 않습니다.' });
+    }
+
+    // UTIC 계획 데이터를 tod plans CSV 라인들로 파싱
+    // db_tod_plans.csv 구조: ID,Seq,SignalMap,GroupID,Day_plan,Time_plan1,Time_plan2...
+    // UTIC에서 받은 주간계획을 시뮬레이터 포맷으로 가공 및 업데이트 수행
+    const newTodLines = [];
+    const timePlans = Array(16).fill("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+
+    // 그룹화 및 스케줄 시간순 정렬
+    const plansByDay = {}; // 1~10 일계획 매핑
+    items.forEach(item => {
+      // PLAN_TP: "0" (TOD계획), PLAN_NO: 일계획 번호
+      const dayPlan = parseInt(item.PLAN_NO) || 1;
+      if (dayPlan < 1 || dayPlan > 10) return;
+      if (!plansByDay[dayPlan]) plansByDay[dayPlan] = [];
+      plansByDay[dayPlan].push(item);
+    });
+
+    for (let day = 1; day <= 10; day++) {
+      const dayItems = plansByDay[day] || [];
+      // 시작시간(START_TM: HHMM) 기준 오름차순 정렬
+      dayItems.sort((a, b) => String(a.START_TM).localeCompare(String(b.START_TM)));
+
+      const slots = [];
+      for (let sIdx = 0; sIdx < 16; sIdx++) {
+        const item = dayItems[sIdx];
+        if (item) {
+          const hh = item.START_TM.substring(0, 2);
+          const mm = item.START_TM.substring(2, 4);
+          const timeStr = `${hh}:${mm}`;
+          const cycle = item.CYC_TM || "100";
+          const offset = item.OFS_TM || "0";
+          
+          // Split 정보
+          const splitsA = [];
+          const splitsB = [];
+          for (let i = 1; i <= 8; i++) {
+            splitsA.push(item[`SPLIT_A${i}`] || "0");
+            splitsB.push(item[`SPLIT_B${i}`] || "0");
+          }
+          slots.push(`${timeStr}|${cycle}|${offset}|${splitsA.join(';')}|${splitsB.join(';')}|1`);
+        } else {
+          slots.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+        }
+      }
+      
+      // CSV Line 만들기 (SignalMap=0, GroupID=0)
+      newTodLines.push(`"${jid}","${jid}","0","0","${day}",${slots.map(s => `"${s}"`).join(',')}`);
+    }
+
+    const result = await enqueueDBWrite(async () => {
+      const fileName = `db_${targetRegion}_tod_plans.csv`;
+      const { data: dbData, error } = await supabase
+        .from('sim_csv_storage')
+        .select('file_content')
+        .eq('file_name', fileName)
+        .single();
+
+      if (error || !dbData) {
+        throw new Error(`Supabase에서 ${fileName} 파일을 읽어오는 데 실패했습니다.`);
+      }
+
+      let content = dbData.file_content;
+      content = updateCSVContent(content, jid, newTodLines);
+
+      const { error: upsertErr } = await supabase
+        .from('sim_csv_storage')
+        .upsert({ file_name: fileName, file_content: content });
+      
+      if (upsertErr) {
+        throw new Error(`[${fileName}] 업서트 에러: ${upsertErr.message}`);
+      }
+
+      return { success: true };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, 'UTIC 신호 계획 동기화 및 DB 반영에 실패했습니다.');
+  }
+});
+
 // 2. UTIC 실시간 신호정보 범용 프록시 라우트
 app.get('/api/proxy/utic', async (req, res) => {
   let { url, regionCode, itstNm } = req.query;
   const targetServiceKey = UTIC_SERVICE_KEY || UTIC_API_KEY;
   
+  const apiRegion = regionCode === 'L01' ? '110' : regionCode;
+  
   // URL 파라미터가 없으면 기존 구버전 요청(React 앱 등)을 위해 조립
   if (!url) {
-    if (regionCode && itstNm) {
-      url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${regionCode}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
+    if (apiRegion && itstNm) {
+      url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${apiRegion}&itstNm=${encodeURIComponent(itstNm)}&type=json`;
     } else {
       return res.status(400).json({ error: 'url 파라미터 또는 regionCode와 itstNm이 필요합니다.' });
     }

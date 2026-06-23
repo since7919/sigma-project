@@ -2015,7 +2015,7 @@ function MapPanner({ intersections, targetId }) {
     <>
       <aside className="sidebar glass">
         <header className="sidebar-header">
-          <h1>🚦 SIGMA T-DATA</h1>
+          <h1 onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>🚦 SIGMA API</h1>
         </header>
         <div className="search-box">
           <input 

@@ -13,6 +13,27 @@ function renderRingTables() {
     const jid = STATE.activeJid;
     const dayIdx = STATE.currentJunctionDayTypeIdx;
 
+    // 교차로 선택 여부에 따른 DB 버튼 제어
+    const btnUpdate = document.getElementById('btn-junction-db-update');
+    const btnRevert = document.getElementById('btn-junction-db-revert');
+    if (btnUpdate && btnRevert) {
+        if (jid) {
+            btnUpdate.disabled = false;
+            btnUpdate.style.opacity = "1";
+            btnUpdate.style.cursor = "pointer";
+            btnRevert.disabled = false;
+            btnRevert.style.opacity = "1";
+            btnRevert.style.cursor = "pointer";
+        } else {
+            btnUpdate.disabled = true;
+            btnUpdate.style.opacity = "0.5";
+            btnUpdate.style.cursor = "not-allowed";
+            btnRevert.disabled = true;
+            btnRevert.style.opacity = "0.5";
+            btnRevert.style.cursor = "not-allowed";
+        }
+    }
+
     // 체크박스 상태 먼저 확인 (하단에서 사용됨)
     const onlySplits = document.getElementById('chk-show-split-details')?.checked;
     const isDual = document.getElementById('chk-dual-ring')?.checked;

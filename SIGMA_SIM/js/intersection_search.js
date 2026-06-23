@@ -41,7 +41,25 @@ function renderJunctionList() {
         return;
     }
 
-    const sortedJunctions = Object.values(junctions).sort((a, b) => 
+    const regionSelect = document.getElementById('api-region-select');
+    const regionCode = regionSelect ? regionSelect.value : 'L01';
+ 
+    // 지역 필터 함수
+    const isMatchingRegion = (j) => {
+        if (j.region) return j.region === regionCode;
+        const jid = String(j.id);
+        if (regionCode === 'L01' || regionCode === '110') {
+            return jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-');
+        } else if (regionCode === 'L02') {
+            return jid.startsWith('L02-') || jid === '1001';
+        } else {
+            return jid.startsWith(`${regionCode}-`);
+        }
+    };
+
+    const filteredJunctions = Object.values(junctions).filter(isMatchingRegion);
+    
+    const sortedJunctions = filteredJunctions.sort((a, b) => 
         (a.name || '').localeCompare(b.name || '', 'ko')
     );
 
@@ -60,6 +78,12 @@ function renderJunctionList() {
 
     // [Optimize] Cache items for filtering
     _junctionListItems = listEl.querySelectorAll('.j-list-item');
+
+    // 지역 변경 후 검색어가 남아있으면 다시 필터링
+    const searchInput = document.getElementById('j-sidebar-search');
+    if (searchInput && searchInput.value) {
+        filterJunctionList();
+    }
 }
 
 /**
@@ -223,10 +247,18 @@ function handlePhaseSearch(query, isForceSelect = false) {
     const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
     if (!s || !s.junctions) return;
 
-    // 통합 검색 필터링 (ID, 명칭, 연등번호 포함)
+    const regionSelect = document.getElementById('api-region-select');
+    const regionCode = regionSelect ? regionSelect.value : '110';
+
+    // 통합 검색 필터링 (ID, 명칭, 연등번호 포함, 그리고 지역 선택 반영)
     const junctions = Object.values(s.junctions);
     const filtered = junctions.filter(j => {
         const idStr = String(j.id).toLowerCase();
+        
+        // 지역 필터
+        let matchRegion = isMatchingRegion(j);
+        if (!matchRegion) return false;
+
         const nameStr = (j.name || "").toLowerCase();
         const seqStr = String(j.seq || "").toLowerCase();
         const officeStr = (j.office || "").toLowerCase();

@@ -182,7 +182,7 @@
             <!-- 지역 선택 셀렉트 박스 -->
             <div class="region-filter-v4">
                 <select id="api-region-select" class="input-premium" onchange="onRegionChange()">
-                    <option value="110" selected>서울특별시</option>
+                    <option value="L01" selected>서울특별시</option>
                     <option value="L02">인천광역시</option>
                     <option value="155">대구광역시</option>
                     <option value="131">대전광역시</option>
@@ -208,7 +208,8 @@
                 <span class="status-dot-mini cyan"></span>
                 <span id="panel-title-text">[인천광역시] 신광4거리</span>
             </div>
-            <div class="panel-controls">
+            <div class="panel-controls" style="display: flex; gap: 8px; align-items: center;">
+                <button id="btn-sync-utic-plan" class="btn-neon" style="padding: 4px 12px; font-size: 11px; margin: 0;" onclick="triggerUticPlanSync()">🔄 UTIC 계획 동기화</button>
                 <button class="btn-icon-sm" onclick="toggleBottomPanel()">×</button>
             </div>
         </div>
@@ -427,6 +428,10 @@
                     </div>
                     <button class="btn-neon" style="height:28px; font-size:11px; padding:0 10px;"
                         onclick="handlePhaseSearch(document.getElementById('inp-search-phase-jid').value, true)">조회</button>
+                    <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
+                        onclick="updateActiveJunctionToDB()" disabled>DB 반영</button>
+                    <button id="btn-junction-db-revert" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.15); opacity:0.5; cursor:not-allowed;"
+                        onclick="revertActiveJunctionFromDB()" disabled>DB값으로 복원</button>
                 </div>
             </div>
 
@@ -768,7 +773,7 @@
                 <div
                     style="padding: 18px 25px; background: rgba(52, 152, 219, 0.05); border-bottom: 2px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h2 style="margin:0; font-size:18px; font-weight:900; color:var(--accent);">📂 통합 데이터베이스 관리 센터
+                        <h2 style="margin:0; font-size:18px; font-weight:900; color:var(--accent);">📂 통합 데이터베이스
                         </h2>
                         <div style="margin-top:4px; font-size:11px; color:#777;">SIGMA 통합 DB 규격을 중앙에서 통합 관리하고 로컬에 캐싱합니다.
                         </div>
@@ -1871,32 +1876,32 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=2"></script>
+    <script src="js/security.js?v=4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=2"></script>
-    <script src="js/auth.js?v=2"></script>
-    <script src="js/ui_components.js?v=2"></script>
-    <script src="js/config.js?v=2"></script>
-    <script src="js/utils.js?v=2"></script>
-    <script src="js/ui.js?v=2"></script>
-    <script src="js/map.js?v=2"></script>
-    <script src="js/junction.js?v=2"></script>
-    <script src="js/data.js?v=2"></script>
-    <script src="js/phase.js?v=2"></script>
-    <script src="js/group.js?v=2"></script>
-    <script src="js/tsd.js?v=2"></script>
-    <script src="js/simulation.js?v=20240422_final"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=2"></script>
-    <script src="js/intersection_search.js?v=2"></script>
-    <script src="js/junction_optimizer.js?v=2"></script>
-    <script src="js/civil.js?v=2"></script>
-    <script src="js/home.js?v=2"></script>
-    <script src="js/rng_road_network.js?v=2"></script>
-    <script src="js/table_logic.js?v=2"></script>
-    <script src="js/init.js?v=2"></script>
-    <script src="js/auto_load.js?v=2"></script>
-    <script src="js/chatbot_advanced.js?v=1"></script>
+    <script src="js/dashboard.js?v=4"></script>
+    <script src="js/auth.js?v=4"></script>
+    <script src="js/ui_components.js?v=4"></script>
+    <script src="js/config.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/ui.js?v=4"></script>
+    <script src="js/map.js?v=4"></script>
+    <script src="js/junction.js?v=4"></script>
+    <script src="js/data.js?v=4"></script>
+    <script src="js/phase.js?v=4"></script>
+    <script src="js/group.js?v=4"></script>
+    <script src="js/tsd.js?v=4"></script>
+    <script src="js/simulation.js?v=4"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=4"></script>
+    <script src="js/intersection_search.js?v=4"></script>
+    <script src="js/junction_optimizer.js?v=4"></script>
+    <script src="js/civil.js?v=4"></script>
+    <script src="js/home.js?v=4"></script>
+    <script src="js/rng_road_network.js?v=4"></script>
+    <script src="js/table_logic.js?v=4"></script>
+    <script src="js/init.js?v=4"></script>
+    <script src="js/auto_load.js?v=4"></script>
+    <script src="js/chatbot_advanced.js?v=4"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
