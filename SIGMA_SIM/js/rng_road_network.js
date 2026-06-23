@@ -887,7 +887,8 @@ class RoadNetworkManager {
             this.render();
             return true;
         } else {
-            alert(`⚠️ 로드 실패: 매칭되는 교차로 ID가 없습니다.\n(가져온 특징 수: ${data.features.length}개)\n교차로 ID 형식을 확인해주세요.`);
+            // [수정] 피쳐 데이터 자체가 없는 경우(예: 인천의 경우 연동링크 정보가 아직 구성 안 되어 빈 리스트일 수 있음)에는 경고창 대신 로그만 출력
+            console.log(`[RoadNetwork] No matching links resolved. (Import features: ${data.features.length})`);
             return false;
         }
     }
