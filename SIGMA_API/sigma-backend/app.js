@@ -269,12 +269,200 @@ app.get('/api/intersections', async (req, res) => {
   }
 });
 
-// 1-3. 시뮬레이터용 Supabase 적재 데이터 반환 API
+// 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
 app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: 'file 파라미터가 필요합니다.' });
 
   try {
+    // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
+    if (file.startsWith('db_') && file.endsWith('.csv')) {
+      const parts = file.replace('.csv', '').split('_');
+      // 형식: db_[region]_[type] (예: db_L01_intersections, db_L02_tod_plans 등)
+      if (parts.length >= 3) {
+        const regionCode = parts[1]; // L01, L02
+        const type = parts.slice(2).join('_'); // intersections, signal_maps, tod_plans, groups, stats, yearbook 등
+        
+        // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
+        if (type === 'intersections') {
+          const { data: rows, error } = await supabase
+            .from('junctions')
+            .select('*')
+            .eq('region_cd', regionCode)
+            .order('id');
+          if (error) throw error;
+          
+          const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan"];
+          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          
+          (rows || []).forEach(r => {
+            // arrowConfigs 복원
+            let arrowStr = "";
+            if (r.arrow_configs && typeof r.arrow_configs === 'object') {
+              arrowStr = Object.entries(r.arrow_configs).flatMap(([mov, configs]) => 
+                (configs || []).map(c => `${mov}:${c.dLat}:${c.dLng}:${c.rot}`)
+              ).join(';');
+            }
+            
+            const line = [
+              r.id,
+              r.region_cd,
+              r.name,
+              r.lat.toFixed(9),
+              r.lng.toFixed(9),
+              r.seq || "",
+              r.police || "",
+              r.office || "",
+              r.group_id || 0,
+              "0|||", // flash_cfg 제외
+              "0|",    // op_intervention 제외
+              arrowStr,
+              r.controller || "",
+              r.diagram_order !== null ? r.diagram_order : -1,
+              r.weekly_plan || "1;1;1;1;1;2;3"
+            ];
+            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
+          });
+          
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          return res.send(csvContent);
+        }
+        
+        // B. 신호 현시계획 (signal_maps 테이블 쿼리 및 CSV 재가공)
+        if (type === 'signal_maps') {
+          const { data: jList, error: jErr } = await supabase
+            .from('junctions')
+            .select('id')
+            .eq('region_cd', regionCode);
+          if (jErr) throw jErr;
+          
+          const jids = (jList || []).map(j => j.id);
+          const { data: rows, error } = await supabase
+            .from('signal_maps')
+            .select('*')
+            .in('id', jids)
+            .order('id')
+            .order('map_idx');
+          if (error) throw error;
+          
+          const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime"];
+          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          
+          (rows || []).forEach(r => {
+            const line = [
+              r.id,
+              r.map_idx,
+              r.mov_a || "",
+              r.mov_b || "",
+              r.ped_mov_a || "",
+              r.ped_mov_b || "",
+              r.main_movements || "A0;B0",
+              r.yellow_a || "",
+              r.yellow_b || "",
+              r.allred_a || "",
+              r.allred_b || "",
+              r.ped_a || "",
+              r.ped_b || "",
+              r.ped_delay_a || "",
+              r.ped_delay_b || "",
+              r.ped_flash_a || "",
+              r.ped_flash_b || "",
+              r.ped_green_a || "",
+              r.ped_green_b || "",
+              r.start_time || "",
+              r.end_time || ""
+            ];
+            csvContent += line.map(v => String(v)).join(",") + "\n";
+          });
+          
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          return res.send(csvContent);
+        }
+        
+        // C. TOD 운영계획 (tod_plans 테이블 쿼리 및 CSV 재가공)
+        if (type === 'tod_plans') {
+          const { data: jList, error: jErr } = await supabase
+            .from('junctions')
+            .select('id')
+            .eq('region_cd', regionCode);
+          if (jErr) throw jErr;
+          
+          const jids = (jList || []).map(j => j.id);
+          const { data: rows, error } = await supabase
+            .from('tod_plans')
+            .select('*')
+            .in('id', jids)
+            .order('id')
+            .order('day_plan');
+          if (error) throw error;
+          
+          const headers = ["ID", "Seq", "SignalMap", "GroupID", "Day_plan"];
+          for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
+          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          
+          (rows || []).forEach(r => {
+            const line = [r.id, r.id, r.signal_map || 0, r.group_id || 0, r.day_plan];
+            
+            // 16개 시간계획 복원
+            const tpMap = {};
+            (r.time_plans || []).forEach(tp => {
+              tpMap[tp.slot_idx] = tp;
+            });
+            
+            for (let i = 1; i <= 16; i++) {
+              const tp = tpMap[i];
+              if (tp) {
+                const timeStr = `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
+                line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
+              } else {
+                line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+              }
+            }
+            
+            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
+          });
+          
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          return res.send(csvContent);
+        }
+        
+        // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
+        if (type === 'groups') {
+          const { data: rows, error } = await supabase
+            .from('groups')
+            .select('*')
+            .eq('region_cd', regionCode)
+            .order('group_id');
+          if (error) throw error;
+          
+          const headers = ["GroupID", "Region", "Name"];
+          for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
+          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          
+          (rows || []).forEach(r => {
+            const line = [r.group_id, r.region_cd, r.name];
+            
+            const schedMap = {};
+            (r.schedules || []).forEach(sch => {
+              schedMap[sch.day_plan_idx] = sch.slots;
+            });
+            
+            for (let d = 1; d <= 10; d++) {
+              const slots = schedMap[d] || [];
+              const slotStr = slots.map(s => `${s.time}|${s.cycle}|${s.idx}`).join(';');
+              line.push(slotStr || "-1");
+            }
+            
+            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
+          });
+          
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          return res.send(csvContent);
+        }
+      }
+    }
+
+    // E~H 및 기호 보조 GeoJSON 등은 기존 sim_csv_storage 조회 폴백 처리
     const { data, error } = await supabase
       .from('sim_csv_storage')
       .select('file_content')
@@ -314,6 +502,21 @@ const enqueueDBWrite = (taskFn) => {
   });
 };
 
+// 복잡한 CSV 파싱 헬퍼
+function parseCsvRow(line) {
+  const cols = [];
+  let start = 0, inQ = false;
+  for (let c = 0; c < line.length; c++) {
+    if (line[c] === '"') inQ = !inQ;
+    else if (line[c] === ',' && !inQ) {
+      cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim());
+      start = c + 1;
+    }
+  }
+  cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+  return cols;
+}
+
 // CSV 특정 교차로 ID(jid) 부분 업데이트 헬퍼
 function updateCSVContent(originalCsv, jid, newCsvLines) {
   const lines = originalCsv.split(/\r?\n/);
@@ -347,18 +550,6 @@ app.get('/api/sim/revert-junction', async (req, res) => {
   if (!jid) return res.status(400).json({ error: 'jid 파라미터가 필요합니다.' });
 
   try {
-    const region = jid.split('-')[0];
-    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
-    const files = [`db_${targetRegion}_intersections.csv`, `db_${targetRegion}_signal_maps.csv`, `db_${targetRegion}_tod_plans.csv`];
-    const { data: records, error } = await supabase
-      .from('sim_csv_storage')
-      .select('file_name, file_content')
-      .in('file_name', files);
-
-    if (error || !records || records.length === 0) {
-      return res.status(500).json({ error: 'DB 데이터를 조회하지 못했습니다.' });
-    }
-
     const result = {
       jid,
       interCsvLine: '',
@@ -366,26 +557,114 @@ app.get('/api/sim/revert-junction', async (req, res) => {
       todCsvLines: ''
     };
 
-    records.forEach(r => {
-      const lines = r.file_content.split(/\r?\n/);
-      const filtered = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) continue;
-        const firstCol = line.split(',')[0].trim().replace(/^"|"$/g, '');
-        if (firstCol === String(jid)) {
-          filtered.push(line);
-        }
+    // 1) junctions 테이블에서 마스터 행 조회
+    const { data: jRow, error: jErr } = await supabase
+      .from('junctions')
+      .select('*')
+      .eq('id', jid)
+      .single();
+    
+    if (jErr && jErr.code !== 'PGRST116') throw jErr; // 레코드가 없는 경우(404) 외의 에러
+
+    if (jRow) {
+      // arrowConfigs 복원
+      let arrowStr = "";
+      if (jRow.arrow_configs && typeof jRow.arrow_configs === 'object') {
+        arrowStr = Object.entries(jRow.arrow_configs).flatMap(([mov, configs]) => 
+          (configs || []).map(c => `${mov}:${c.dLat}:${c.dLng}:${c.rot}`)
+        ).join(';');
       }
 
-      if (r.file_name === `db_${targetRegion}_intersections.csv`) {
-        result.interCsvLine = filtered.join('\n');
-      } else if (r.file_name === `db_${targetRegion}_signal_maps.csv`) {
-        result.mapCsvLines = filtered.join('\n');
-      } else if (r.file_name === `db_${targetRegion}_tod_plans.csv`) {
-        result.todCsvLines = filtered.join('\n');
-      }
-    });
+      const interLine = [
+        jRow.id,
+        jRow.region_cd,
+        jRow.name,
+        jRow.lat.toFixed(9),
+        jRow.lng.toFixed(9),
+        jRow.seq || "",
+        jRow.police || "",
+        jRow.office || "",
+        jRow.group_id || 0,
+        "0|||",
+        "0|",
+        arrowStr,
+        jRow.controller || "",
+        jRow.diagram_order !== null ? jRow.diagram_order : -1,
+        jRow.weekly_plan || "1;1;1;1;1;2;3"
+      ];
+      result.interCsvLine = interLine.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    }
+
+    // 2) signal_maps 테이블에서 현시계획 행 조회
+    const { data: mRows, error: mErr } = await supabase
+      .from('signal_maps')
+      .select('*')
+      .eq('id', jid)
+      .order('map_idx');
+    
+    if (mErr) throw mErr;
+
+    if (mRows && mRows.length > 0) {
+      const mapLines = mRows.map(r => {
+        const line = [
+          r.id,
+          r.map_idx,
+          r.mov_a || "",
+          r.mov_b || "",
+          r.ped_mov_a || "",
+          r.ped_mov_b || "",
+          r.main_movements || "A0;B0",
+          r.yellow_a || "",
+          r.yellow_b || "",
+          r.allred_a || "",
+          r.allred_b || "",
+          r.ped_a || "",
+          r.ped_b || "",
+          r.ped_delay_a || "",
+          r.ped_delay_b || "",
+          r.ped_flash_a || "",
+          r.ped_flash_b || "",
+          r.ped_green_a || "",
+          r.ped_green_b || "",
+          r.start_time || "",
+          r.end_time || ""
+        ];
+        return line.map(v => String(v)).join(",");
+      });
+      result.mapCsvLines = mapLines.join('\n');
+    }
+
+    // 3) tod_plans 테이블에서 TOD 계획 행 조회
+    const { data: tRows, error: tErr } = await supabase
+      .from('tod_plans')
+      .select('*')
+      .eq('id', jid)
+      .order('day_plan');
+    
+    if (tErr) throw tErr;
+
+    if (tRows && tRows.length > 0) {
+      const todLines = tRows.map(r => {
+        const line = [r.id, r.id, r.signal_map || 0, r.group_id || 0, r.day_plan];
+        
+        const tpMap = {};
+        (r.time_plans || []).forEach(tp => {
+          tpMap[tp.slot_idx] = tp;
+        });
+        
+        for (let i = 1; i <= 16; i++) {
+          const tp = tpMap[i];
+          if (tp) {
+            const timeStr = `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
+            line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
+          } else {
+            line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+          }
+        }
+        return line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      });
+      result.todCsvLines = todLines.join('\n');
+    }
 
     res.json(result);
   } catch (err) {
@@ -402,51 +681,143 @@ app.post('/api/sim/update-junction', async (req, res) => {
     const result = await enqueueDBWrite(async () => {
       const region = jid.split('-')[0];
       const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
-      const files = [`db_${targetRegion}_intersections.csv`, `db_${targetRegion}_signal_maps.csv`, `db_${targetRegion}_tod_plans.csv`];
-      
-      const { data: records, error } = await supabase
-        .from('sim_csv_storage')
-        .select('file_name, file_content')
-        .in('file_name', files);
 
-      if (error || !records || records.length === 0) {
-        throw new Error('Supabase에서 원본 CSV 파일을 읽어오는 데 실패했습니다.');
+      // 1) junctions 교차로 마스터 정보 업데이트
+      if (interCsvLine !== undefined && interCsvLine.trim()) {
+        const cols = parseCsvRow(interCsvLine);
+        if (cols.length >= 8) {
+          // arrowConfigs 복원
+          let arrowConfigs = {};
+          const arrowStr = cols[11];
+          if (arrowStr) {
+            arrowStr.split(';').forEach(conf => {
+              const parts = conf.split(':');
+              if (parts.length >= 4) {
+                const mov = parts[0];
+                if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
+                arrowConfigs[mov].push({
+                  dLat: parseFloat(parts[1]) || 0,
+                  dLng: parseFloat(parts[2]) || 0,
+                  rot: parseInt(parts[3]) || 0
+                });
+              }
+            });
+          }
+
+          const { error: jErr } = await supabase
+            .from('junctions')
+            .upsert({
+              id: jid,
+              region_cd: cols[1] || targetRegion,
+              name: cols[2],
+              lat: parseFloat(cols[3]) || 37.5,
+              lng: parseFloat(cols[4]) || 127.0,
+              seq: cols[5] || "",
+              police: cols[6] || "",
+              office: cols[7] || "",
+              group_id: parseInt(cols[8]) || 0,
+              arrow_configs: arrowConfigs,
+              controller: cols[12] || "",
+              diagram_order: parseInt(cols[13]) || -1,
+              weekly_plan: cols[14] || '1;1;1;1;1;2;3',
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+          if (jErr) throw new Error(`junctions RDB 업서트 오류: ${jErr.message}`);
+        }
       }
 
-      const updates = [];
+      // 2) signal_maps 현시계획 데이터 업데이트
+      if (mapCsvLines !== undefined) {
+        const lines = mapCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+        const mapsPayload = [];
+        for (const line of lines) {
+          const cols = parseCsvRow(line);
+          if (cols.length < 3) continue;
+          const mapIdx = parseInt(cols[1]);
+          if (isNaN(mapIdx)) continue;
 
-      records.forEach(r => {
-        let content = r.file_content;
-        let changed = false;
-
-        if (r.file_name === `db_${targetRegion}_intersections.csv` && interCsvLine !== undefined) {
-          content = updateCSVContent(content, jid, interCsvLine);
-          changed = true;
-        } else if (r.file_name === `db_${targetRegion}_signal_maps.csv` && mapCsvLines !== undefined) {
-          const linesToAdd = mapCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
-          content = updateCSVContent(content, jid, linesToAdd);
-          changed = true;
-        } else if (r.file_name === `db_${targetRegion}_tod_plans.csv` && todCsvLines !== undefined) {
-          const linesToAdd = todCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
-          content = updateCSVContent(content, jid, linesToAdd);
-          changed = true;
-        }
-
-        if (changed) {
-          updates.push({
-            file_name: r.file_name,
-            file_content: content
+          mapsPayload.push({
+            id: jid,
+            map_idx: mapIdx,
+            mov_a: cols[2] || "",
+            mov_b: cols[3] || "",
+            ped_mov_a: cols[4] || "",
+            ped_mov_b: cols[5] || "",
+            main_movements: cols[6] || "A0;B0",
+            yellow_a: cols[7] || "",
+            yellow_b: cols[8] || "",
+            allred_a: cols[9] || "",
+            allred_b: cols[10] || "",
+            ped_a: cols[11] || "",
+            ped_b: cols[12] || "",
+            ped_delay_a: cols[13] || "",
+            ped_delay_b: cols[14] || "",
+            ped_flash_a: cols[15] || "",
+            ped_flash_b: cols[16] || "",
+            ped_green_a: cols[17] || "",
+            ped_green_b: cols[18] || "",
+            start_time: cols[19] || "",
+            end_time: cols[20] || "",
+            updated_at: new Date().toISOString()
           });
         }
-      });
 
-      for (const u of updates) {
-        const { error: upsertErr } = await supabase
-          .from('sim_csv_storage')
-          .upsert({ file_name: u.file_name, file_content: u.file_content });
-        
-        if (upsertErr) {
-          throw new Error(`[${u.file_name}] 업서트 에러: ${upsertErr.message}`);
+        if (mapsPayload.length > 0) {
+          const { error: mErr } = await supabase
+            .from('signal_maps')
+            .upsert(mapsPayload, { onConflict: 'id,map_idx' });
+          if (mErr) throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message}`);
+        }
+      }
+
+      // 3) tod_plans TOD계획 데이터 업데이트
+      if (todCsvLines !== undefined) {
+        const lines = todCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+        const todPayload = [];
+        for (const line of lines) {
+          const cols = parseCsvRow(line);
+          if (cols.length < 5) continue;
+          const dayPlan = parseInt(cols[4]);
+          if (isNaN(dayPlan)) continue;
+
+          const timePlans = [];
+          for (let tp = 1; tp <= 16; tp++) {
+            const val = cols[4 + tp];
+            if (val && val !== "-1") {
+              const parts = val.split('|');
+              const timeStr = parts[0] || "-1";
+              if (timeStr !== "-1") {
+                const [h, m] = timeStr.split(':').map(Number);
+                timePlans.push({
+                  slot_idx: tp,
+                  h: h,
+                  m: m,
+                  cycle: parseInt(parts[1]) || 100,
+                  offset: parseInt(parts[2]) || 0,
+                  splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
+                  splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
+                  idx: parseInt(parts[5]) || 1
+                });
+              }
+            }
+          }
+
+          todPayload.push({
+            id: jid,
+            day_plan: dayPlan,
+            signal_map: parseInt(cols[2]) || 0,
+            group_id: parseInt(cols[3]) || 0,
+            time_plans: timePlans,
+            updated_at: new Date().toISOString()
+          });
+        }
+
+        if (todPayload.length > 0) {
+          const { error: tErr } = await supabase
+            .from('tod_plans')
+            .upsert(todPayload, { onConflict: 'id,day_plan' });
+          if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${tErr.message}`);
         }
       }
 
@@ -496,59 +867,57 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
       plansByDay[dayPlan].push(item);
     });
 
+    const todPayload = [];
+
     for (let day = 1; day <= 10; day++) {
       const dayItems = plansByDay[day] || [];
       // 시작시간(START_TM: HHMM) 기준 오름차순 정렬
       dayItems.sort((a, b) => String(a.START_TM).localeCompare(String(b.START_TM)));
 
-      const slots = [];
+      const timePlans = [];
       for (let sIdx = 0; sIdx < 16; sIdx++) {
         const item = dayItems[sIdx];
         if (item) {
           const hh = item.START_TM.substring(0, 2);
           const mm = item.START_TM.substring(2, 4);
-          const timeStr = `${hh}:${mm}`;
-          const cycle = item.CYC_TM || "100";
-          const offset = item.OFS_TM || "0";
           
-          // Split 정보
           const splitsA = [];
           const splitsB = [];
           for (let i = 1; i <= 8; i++) {
-            splitsA.push(item[`SPLIT_A${i}`] || "0");
-            splitsB.push(item[`SPLIT_B${i}`] || "0");
+            splitsA.push(parseInt(item[`SPLIT_A${i}`]) || 0);
+            splitsB.push(parseInt(item[`SPLIT_B${i}`]) || 0);
           }
-          slots.push(`${timeStr}|${cycle}|${offset}|${splitsA.join(';')}|${splitsB.join(';')}|1`);
-        } else {
-          slots.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+
+          timePlans.push({
+            slot_idx: sIdx + 1,
+            h: parseInt(hh) || 0,
+            m: parseInt(mm) || 0,
+            cycle: parseInt(item.CYC_TM) || 100,
+            offset: parseInt(item.OFS_TM) || 0,
+            splitA: splitsA,
+            splitB: splitsB,
+            idx: 1
+          });
         }
       }
       
-      // CSV Line 만들기 (SignalMap=0, GroupID=0)
-      newTodLines.push(`"${jid}","${jid}","0","0","${day}",${slots.map(s => `"${s}"`).join(',')}`);
+      todPayload.push({
+        id: jid,
+        day_plan: day,
+        signal_map: 0,
+        group_id: 0,
+        time_plans: timePlans,
+        updated_at: new Date().toISOString()
+      });
     }
 
     const result = await enqueueDBWrite(async () => {
-      const fileName = `db_${targetRegion}_tod_plans.csv`;
-      const { data: dbData, error } = await supabase
-        .from('sim_csv_storage')
-        .select('file_content')
-        .eq('file_name', fileName)
-        .single();
-
-      if (error || !dbData) {
-        throw new Error(`Supabase에서 ${fileName} 파일을 읽어오는 데 실패했습니다.`);
-      }
-
-      let content = dbData.file_content;
-      content = updateCSVContent(content, jid, newTodLines);
-
-      const { error: upsertErr } = await supabase
-        .from('sim_csv_storage')
-        .upsert({ file_name: fileName, file_content: content });
+      const { error: tErr } = await supabase
+        .from('tod_plans')
+        .upsert(todPayload, { onConflict: 'id,day_plan' });
       
-      if (upsertErr) {
-        throw new Error(`[${fileName}] 업서트 에러: ${upsertErr.message}`);
+      if (tErr) {
+        throw new Error(`tod_plans RDB 업서트 에러: ${tErr.message}`);
       }
 
       return { success: true };
