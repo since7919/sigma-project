@@ -1124,6 +1124,35 @@ app.post('/api/ping', express.json(), (req, res) => {
   res.json({ success: true });
 });
 
+// --- 서울 T-Data 지원 교차로 화이트리스트 캐싱 ---
+let seoulWhitelist = [];
+let seoulWhitelistLastFetch = 0;
+
+app.get('/api/seoul-active-ids', async (req, res) => {
+  const now = Date.now();
+  // 5분 캐시
+  if (now - seoulWhitelistLastFetch < 5 * 60 * 1000 && seoulWhitelist.length > 0) {
+    return res.json(seoulWhitelist);
+  }
+  
+  if (!SEOUL_API_KEY) {
+    return res.json([]);
+  }
+
+  try {
+    const url = `https://t-data.seoul.go.kr/apig/apiman-gateway/tapi/v2xSignalPhaseTimingFusionInformation/1.0?apiKey=${SEOUL_API_KEY}&type=json&numOfRows=1000`;
+    const response = await axios.get(url, { httpsAgent: seoulHttpsAgent, timeout: 5000 });
+    if (response.data && Array.isArray(response.data)) {
+      const ids = response.data.map(item => String(item.itstId));
+      seoulWhitelist = [...new Set(ids)]; // 중복 제거
+      seoulWhitelistLastFetch = now;
+    }
+  } catch (error) {
+    console.error('Seoul whitelist fetch error:', error.message);
+  }
+  res.json(seoulWhitelist);
+});
+
 // --- Supabase Realtime Worker ---
 // 최근 15초 이내에 활성화된 교차로 정보만 필터링하여 Supabase에 Upsert 합니다.
 let lastMsgCreatDs = {};

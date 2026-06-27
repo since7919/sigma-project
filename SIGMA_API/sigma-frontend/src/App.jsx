@@ -176,7 +176,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMult
         let baseColor = "#64748b"; // 기본 회색
         const hasSeoulSpat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(intersection.int_no)];
         if (isSeoul) {
-          baseColor = hasSeoulSpat ? "#3b82f6" : "#64748b"; // 서울Tdata 실시간 데이터 수신 시 파란색, 미수신 시 회색
+          baseColor = (hasSeoulSpat || isSeoulActive) ? "#3b82f6" : "#64748b"; // 서울Tdata 실시간 데이터 수신 시 파란색, 미수신 시 회색
         } else {
           if (isUticActive) baseColor = "#3b82f6"; // UTIC 수신 시 파란색
         }
@@ -1434,7 +1434,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   style={{ marginRight: '6px', cursor: 'pointer' }}
                   title="듀얼 모니터링 담기/빼기"
                 />
-                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : ((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) ? '#3b82f6' : '#64748b')}}></div>
+                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
               </div>
@@ -1809,7 +1809,7 @@ function App() {
     }
   };
 
-  // 백엔드로부터 Supabase 접속 정보 동적 조회
+  // 백엔드로부터 Supabase 접속 정보 및 서울 지원 목록 동적 조회
   useEffect(() => {
     axios.get(`${API_BASE}/api/config`)
       .then(res => {
@@ -1823,6 +1823,15 @@ function App() {
       .catch(err => {
         console.warn('⚠️ 백엔드 설정 로드 실패 (환경 변수를 사용합니다):', err.message);
       });
+
+    axios.get(`${API_BASE}/api/seoul-active-ids`)
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          window.SEOUL_ACTIVE_IDS = res.data;
+          setUticUpdateTick(t => t + 1);
+        }
+      })
+      .catch(err => console.warn('⚠️ 서울 지원 교차로 목록 로드 실패', err.message));
   }, []);
 
   // 서울 실시간 SPAT 정보 수신 루프 실행 (Supabase Realtime 기반)
