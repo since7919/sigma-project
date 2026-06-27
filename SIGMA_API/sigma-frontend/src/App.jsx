@@ -174,8 +174,9 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMult
         const isSeoulActive = window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(intersection.int_no));
         
         let baseColor = "#64748b"; // 기본 회색
+        const hasSeoulSpat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(intersection.int_no)];
         if (isSeoul) {
-          baseColor = "#3b82f6"; // 서울Tdata(API 연동 가능) 교차로는 상시 파란색으로 표시
+          baseColor = hasSeoulSpat ? "#3b82f6" : "#64748b"; // 서울Tdata 실시간 데이터 수신 시 파란색, 미수신 시 회색
         } else {
           if (isUticActive) baseColor = "#3b82f6"; // UTIC 수신 시 파란색
         }
@@ -1433,7 +1434,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   style={{ marginRight: '6px', cursor: 'pointer' }}
                   title="듀얼 모니터링 담기/빼기"
                 />
-                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : '#3b82f6'}}></div>
+                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : ((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
               </div>
@@ -2000,11 +2001,14 @@ function App() {
 // 사이드바 교차로 선택 시 지도 이동 처리 컴포넌트
 function MapPanner({ intersections, targetId }) {
   const map = useMap();
+  const lastTargetRef = useRef(null);
+  
   useEffect(() => {
-    if (targetId) {
+    if (targetId && targetId !== lastTargetRef.current) {
       const target = intersections.find(i => i.id === targetId);
       if (target && target.y_coord && target.x_coord) {
         map.flyTo([target.y_coord, target.x_coord], 16, { duration: 1 });
+        lastTargetRef.current = targetId;
       }
     }
   }, [targetId, intersections, map]);
@@ -2014,8 +2018,14 @@ function MapPanner({ intersections, targetId }) {
   return (
     <>
       <aside className="sidebar glass">
-        <header className="sidebar-header">
-          <h1 onClick={() => window.location.href = '/'} style={{ cursor: 'pointer' }}>🚦 SIGMA API</h1>
+        <header className="sidebar-header" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div 
+            onClick={() => window.location.href = '/'} 
+            style={{ cursor: 'pointer', fontSize: '14px', color: '#aaa', display: 'flex', alignItems: 'center', gap: '5px' }}
+          >
+            🏠 홈 (포털 메인)
+          </div>
+          <h1 onClick={() => window.location.href = window.location.pathname} style={{ cursor: 'pointer', margin: 0 }}>🚦 SIGMA API</h1>
         </header>
         <div className="search-box">
           <input 

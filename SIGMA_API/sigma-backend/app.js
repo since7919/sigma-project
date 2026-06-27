@@ -487,6 +487,94 @@ app.get('/api/sim/data', async (req, res) => {
   }
 });
 
+// 1-3-B. 데이터 뷰어용 JSON 테이블 데이터 반환 API
+app.get('/api/sim/tables/:tableName', async (req, res) => {
+  const { tableName } = req.params;
+  const { regionCode } = req.query; // optional filtering
+  const allowedTables = ['junctions', 'signal_maps', 'tod_plans', 'groups'];
+  
+  if (!allowedTables.includes(tableName)) {
+    return res.status(400).json({ error: '허용되지 않은 테이블입니다.' });
+  }
+
+  try {
+    let query = supabase.from(tableName).select('*');
+    
+    // junctions나 groups는 region_cd 필드가 직접 존재함
+    // signal_maps나 tod_plans는 직접 region_cd가 없으므로 id 접두사로 필터링해야 할 수 있음.
+    // 일단 전체 데이터를 주거나, 지원 가능한 경우만 필터링.
+    if (regionCode) {
+      if (tableName === 'junctions' || tableName === 'groups') {
+        query = query.eq('region_cd', regionCode);
+      } else {
+         query = query.like('id', `${regionCode}-%`);
+      }
+    }
+    
+    // 테이블 크기가 클 수 있으므로 limit을 적절히 주거나 전체 로딩. 
+    // 여기서는 뷰어 목적이므로 최대 5000건 정도로 제한
+    query = query.limit(5000);
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    
+    res.json(data);
+  } catch (err) {
+    sendErrorResponse(res, err, `${tableName} 테이블 조회에 실패했습니다.`);
+  }
+});
+
+// 1-3-C. 데이터 뷰어용 일괄 수정/추가(Bulk Upsert) API
+app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
+  const { tableName } = req.params;
+  const records = req.body; // 배열 형태의 데이터
+  const allowedTables = ['junctions', 'signal_maps', 'tod_plans', 'groups'];
+  
+  if (!allowedTables.includes(tableName)) {
+    return res.status(400).json({ error: '허용되지 않은 테이블입니다.' });
+  }
+
+  if (!Array.isArray(records) || records.length === 0) {
+    return res.status(400).json({ error: '업데이트할 데이터가 없습니다.' });
+  }
+
+  try {
+    // 빈 셀들이나 잘못된 데이터로 인한 오류 방지를 위해, 필수 키(예: id)가 있는 레코드만 필터링
+    const validRecords = records.filter(r => r.id !== null && r.id !== undefined && String(r.id).trim() !== '');
+    
+    if (validRecords.length === 0) {
+      return res.status(400).json({ error: '유효한 레코드(ID 포함)가 존재하지 않습니다.' });
+    }
+
+    // JSON 필드를 문자열로 보냈을 수 있으므로 다시 객체로 파싱 시도 (tod_plans 등)
+    const processedRecords = validRecords.map(row => {
+      const newRow = { ...row };
+      for (let key in newRow) {
+        if (typeof newRow[key] === 'string' && (newRow[key].startsWith('{') || newRow[key].startsWith('['))) {
+          try {
+             newRow[key] = JSON.parse(newRow[key]);
+          } catch(e) {
+             // 파싱 실패시 그냥 문자열 유지
+          }
+        }
+      }
+      return newRow;
+    });
+
+    const { data, error } = await supabase
+      .from(tableName)
+      .upsert(processedRecords, { onConflict: 'id' }); // id를 기준으로 덮어쓰거나 새로 추가
+      
+    if (error) throw error;
+    
+    res.json({ success: true, count: processedRecords.length, message: `${processedRecords.length}건이 성공적으로 저장되었습니다.` });
+  } catch (err) {
+    sendErrorResponse(res, err, `${tableName} 테이블 대량 업데이트에 실패했습니다.`);
+  }
+});
+
+
+
 // --- 동시성 제어 큐 (Lost Update 방지용) ---
 let dbWriteQueue = Promise.resolve();
 const enqueueDBWrite = (taskFn) => {
