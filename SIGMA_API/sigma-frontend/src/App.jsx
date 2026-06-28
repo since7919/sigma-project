@@ -2235,6 +2235,7 @@ function MapPanner({ intersections, targetId }) {
               >
                 {item ? (
                   <MultiSignalCard
+                    key={item.id}
                     intersection={item}
                     uticUpdateTick={uticUpdateTick}
                     onRemove={() => {
