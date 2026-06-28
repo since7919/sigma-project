@@ -1330,7 +1330,17 @@ function DualDetailOverlay({ intersections, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, searchKeyword, seoulActiveIds }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, seoulActiveIds }) {
+  const [localSearchKeyword, setLocalSearchKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(localSearchKeyword);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [localSearchKeyword]);
+
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
     const rCode = window.prompt('DB에 동기화할 지역 코드를 입력하세요 (예: L01, L02, L19...)\n* 입력한 지역의 교차로가 다운로드되어 트리에 표시됩니다.', 'L02');
@@ -1357,7 +1367,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
       utic[`${rCode} ${rName}`] = [];
     });
 
-    const lowerKeyword = (searchKeyword || '').toLowerCase();
+    const lowerKeyword = (debouncedKeyword || '').toLowerCase();
 
     intersections.forEach(item => {
       if (lowerKeyword) {
@@ -1384,7 +1394,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
     tdata.sort((a, b) => parseInt(a.int_no || 0, 10) - parseInt(b.int_no || 0, 10));
 
     return { tdataList: tdata, uticGroups: utic };
-  }, [intersections, searchKeyword]);
+  }, [intersections, debouncedKeyword]);
 
   // 아코디언 상태 관리
   const [tdataOpen, setTdataOpen] = useState(false);
@@ -1397,7 +1407,17 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
   };
 
   return (
-    <div className="accordion-wrapper custom-scroll">
+    <>
+      <div className="search-box">
+        <input 
+          type="text" 
+          placeholder="교차로명 검색..." 
+          value={localSearchKeyword}
+          onChange={(e) => setLocalSearchKeyword(e.target.value)}
+        />
+        <button>🔍</button>
+      </div>
+      <div className="accordion-wrapper custom-scroll">
       
       {/* 1. 서울 Tdata 그룹 */}
       <div className="acc-group">
@@ -1520,6 +1540,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
       </div>
       
     </div>
+  </>
   );
 }
 
@@ -1748,18 +1769,8 @@ function App() {
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
   const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
-  const [searchKeyword, setSearchKeyword] = useState(''); // 검색어 상태
-  const [debouncedKeyword, setDebouncedKeyword] = useState(''); // 디바운스된 검색어
   const [seoulActiveIds, setSeoulActiveIds] = useState([]); // 서울 활성 ID 목록
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
-
-  // 검색어 디바운싱: 타이핑 도중 무거운 리렌더링 및 지도 흔들림 방지
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedKeyword(searchKeyword);
-    }, 250);
-    return () => clearTimeout(handler);
-  }, [searchKeyword]);
   const [apiStatus, setApiStatus] = useState({
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
@@ -2048,16 +2059,6 @@ function MapPanner({ intersections, targetId }) {
           </div>
           <h1 onClick={() => window.location.href = window.location.pathname} style={{ cursor: 'pointer', margin: 0 }}>🚦 SIGMA API</h1>
         </header>
-        <div className="search-box">
-          <input 
-            type="text" 
-            placeholder="교차로명 검색..." 
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-          />
-          <button>🔍</button>
-        </div>
-        
         {/* 트리뷰 컴포넌트 연결 */}
         <SidebarAccordion 
           intersections={intersections} 
@@ -2069,7 +2070,6 @@ function MapPanner({ intersections, targetId }) {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          searchKeyword={debouncedKeyword}
           seoulActiveIds={seoulActiveIds}
         />
         
