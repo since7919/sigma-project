@@ -1826,6 +1826,24 @@ function App() {
     e.preventDefault();
     setDragOverIndex(null);
     try {
+      const sourceIndexStr = e.dataTransfer.getData('text/plain');
+      
+      // 1. 내부 이동 (Swap) 인 경우
+      if (sourceIndexStr !== undefined && sourceIndexStr !== '') {
+        const sourceIndex = parseInt(sourceIndexStr, 10);
+        if (!isNaN(sourceIndex) && sourceIndex !== index) {
+          setMultiScreenItems(prev => {
+            const next = [...prev];
+            const temp = next[index];
+            next[index] = next[sourceIndex];
+            next[sourceIndex] = temp;
+            return next;
+          });
+        }
+        return;
+      }
+      
+      // 2. 외부(사이드바)에서 드래그하여 새로 올리는 경우
       const dataStr = e.dataTransfer.getData('application/json');
       if (!dataStr) return;
       const intersection = JSON.parse(dataStr);
@@ -2182,39 +2200,55 @@ function MapPanner({ intersections, targetId }) {
           gridTemplateRows: `repeat(${gridSize}, 1fr)`
         }}>
           {multiScreenItems.map((item, index) => {
-            if (item) {
-              return (
-                <MultiSignalCard
-                  key={item.id}
-                  intersection={item}
-                  uticUpdateTick={uticUpdateTick}
-                  onRemove={() => {
-                    setMultiScreenItems(prev => {
-                      const next = [...prev];
-                      next[index] = null;
-                      return next;
-                    });
-                  }}
-                />
-              );
-            }
             return (
               <div
-                key={`empty-${index}`}
-                className={`empty-slot ${dragOverIndex === index ? 'drag-over' : ''}`}
+                key={item ? item.id : `empty-${index}`}
+                className={`multi-grid-slot-wrapper ${dragOverIndex === index ? 'drag-over' : ''}`}
+                draggable={!!item}
+                onDragStart={(e) => {
+                  if (item) {
+                    e.dataTransfer.setData('text/plain', String(index));
+                  }
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
-                  setDragOverIndex(index);
+                  if (dragOverIndex !== index) {
+                    setDragOverIndex(index);
+                  }
                 }}
                 onDragLeave={() => {
                   setDragOverIndex(null);
                 }}
                 onDrop={(e) => handleDropOnSlot(e, index)}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  display: 'flex', 
+                  boxSizing: 'border-box',
+                  border: dragOverIndex === index ? '2px dashed #38bdf8' : 'none',
+                  borderRadius: '8px'
+                }}
               >
-                <svg viewBox="0 0 24 24">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
-                <span>교차로 드롭</span>
+                {item ? (
+                  <MultiSignalCard
+                    intersection={item}
+                    uticUpdateTick={uticUpdateTick}
+                    onRemove={() => {
+                      setMultiScreenItems(prev => {
+                        const next = [...prev];
+                        next[index] = null;
+                        return next;
+                      });
+                    }}
+                  />
+                ) : (
+                  <div className="empty-slot" style={{ width: '100%', height: '100%' }}>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                    <span>교차로 드롭</span>
+                  </div>
+                )}
               </div>
             );
           })}
