@@ -1795,6 +1795,7 @@ function App() {
   };
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [draggedIndex, setDraggedIndex] = useState(null); // 드래그 중인 카드 인덱스
   const [multiWidth, setMultiWidth] = useState(750);
   const [isResizing, setIsResizing] = useState(false);
   const resizingRef = React.useRef(false);
@@ -1826,12 +1827,10 @@ function App() {
     e.preventDefault();
     setDragOverIndex(null);
     try {
-      const sourceIndexStr = e.dataTransfer.getData('text/plain');
-      
       // 1. 내부 이동 (Swap) 인 경우
-      if (sourceIndexStr !== undefined && sourceIndexStr !== '') {
-        const sourceIndex = parseInt(sourceIndexStr, 10);
-        if (!isNaN(sourceIndex) && sourceIndex !== index) {
+      if (draggedIndex !== null && draggedIndex !== undefined) {
+        const sourceIndex = draggedIndex;
+        if (sourceIndex !== index) {
           setMultiScreenItems(prev => {
             const next = [...prev];
             const temp = next[index];
@@ -1840,6 +1839,7 @@ function App() {
             return next;
           });
         }
+        setDraggedIndex(null);
         return;
       }
       
@@ -2207,8 +2207,12 @@ function MapPanner({ intersections, targetId }) {
                 draggable={!!item}
                 onDragStart={(e) => {
                   if (item) {
+                    setDraggedIndex(index);
                     e.dataTransfer.setData('text/plain', String(index));
                   }
+                }}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
                 }}
                 onDragOver={(e) => {
                   e.preventDefault();
