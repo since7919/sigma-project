@@ -419,8 +419,6 @@ details.footer-section summary::marker { content: ''; }
 .multi-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
   gap: 8px;
   padding: 10px;
   background: #090d16;

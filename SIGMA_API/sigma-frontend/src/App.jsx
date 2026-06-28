@@ -1778,7 +1778,21 @@ function App() {
   const [supabaseConfig, setSupabaseConfig] = useState(null);
 
   // 멀티스크린 상태
+  const [gridSize, setGridSize] = useState(3); // 기본 3x3
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
+
+  const handleGridSizeChange = (newSize) => {
+    setGridSize(newSize);
+    setMultiScreenItems(prev => {
+      const newLength = newSize * newSize;
+      const next = Array(newLength).fill(null);
+      // 기존 교차로들을 새로운 그리드 구조의 빈 칸에 순서대로 복사
+      for (let i = 0; i < Math.min(prev.length, newLength); i++) {
+        next[i] = prev[i];
+      }
+      return next;
+    });
+  };
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [multiWidth, setMultiWidth] = useState(750);
@@ -2024,7 +2038,7 @@ function App() {
       if (emptyIndex !== -1) {
         next[emptyIndex] = intersection;
       } else {
-        alert('멀티스크린이 가득 찼습니다. (최대 9개)');
+        alert(`멀티스크린이 가득 찼습니다. (최대 ${next.length}개)`);
       }
       return next;
     });
@@ -2139,11 +2153,34 @@ function MapPanner({ intersections, targetId }) {
             }}
           />
         )}
-        <header className="multi-header">
-          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/9)</h2>
-          <button className="btn-clear" onClick={() => setMultiScreenItems(Array(9).fill(null))}>전체 비우기</button>
+        <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridSize * gridSize})</h2>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>레이아웃:</span>
+            {[2, 3, 4].map(sz => (
+              <button 
+                key={sz} 
+                className={`btn-clear ${gridSize === sz ? 'active' : ''}`} 
+                style={{ 
+                  padding: '4px 8px', 
+                  fontSize: '0.7rem', 
+                  borderRadius: '4px',
+                  background: gridSize === sz ? 'rgba(56,189,248,0.2)' : 'transparent',
+                  color: gridSize === sz ? '#38bdf8' : '#aaa',
+                  border: gridSize === sz ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)'
+                }}
+                onClick={() => handleGridSizeChange(sz)}
+              >
+                {sz}x{sz}
+              </button>
+            ))}
+          </div>
+          <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridSize * gridSize).fill(null))}>전체 비우기</button>
         </header>
-        <div className="multi-grid">
+        <div className="multi-grid" style={{
+          gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+          gridTemplateRows: `repeat(${gridSize}, 1fr)`
+        }}>
           {multiScreenItems.map((item, index) => {
             if (item) {
               return (
