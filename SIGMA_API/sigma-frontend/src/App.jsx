@@ -2202,7 +2202,7 @@ function MapPanner({ intersections, targetId }) {
           {multiScreenItems.map((item, index) => {
             return (
               <div
-                key={item ? `${item.id}-slot-${index}` : `empty-${index}`}
+                key={item ? item.id : `empty-${index}`}
                 className={`multi-grid-slot-wrapper ${dragOverIndex === index ? 'drag-over' : ''}`}
                 draggable={!!item}
                 onDragStart={(e) => {
