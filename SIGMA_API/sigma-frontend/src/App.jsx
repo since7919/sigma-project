@@ -8,6 +8,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const DEFAULT_CENTER = [37.5665, 126.9780];
+
 const REGION_MAP = {
   'L01': '서울시', 'L02': '인천시', 'L03': '부천시', 'L04': '광명시',
   'L05': '안양시', 'L06': '과천시', 'L07': '안산시', 'L08': '용인시',
@@ -132,7 +134,7 @@ function MapAutoResizer() {
   return null;
 }
 
-function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab }) {
+function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -171,7 +173,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMult
         const isSeoul = intersection.origin_type?.toLowerCase().includes('tdata');
         
         const isUticActive = window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[intersection.int_no] && window.UTIC_SPAT_MAP[intersection.int_no].opMode === '수신';
-        const isSeoulActive = window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(intersection.int_no));
+        const isSeoulActive = seoulActiveIds && seoulActiveIds.includes(String(intersection.int_no));
         
         let baseColor = "#64748b"; // 기본 회색
         const hasSeoulSpat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(intersection.int_no)];
@@ -1328,7 +1330,7 @@ function DualDetailOverlay({ intersections, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, searchKeyword }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, searchKeyword, seoulActiveIds }) {
   const forceRefreshUtic = async (e) => {
     e.stopPropagation();
     const rCode = window.prompt('DB에 동기화할 지역 코드를 입력하세요 (예: L01, L02, L19...)\n* 입력한 지역의 교차로가 다운로드되어 트리에 표시됩니다.', 'L02');
@@ -1434,7 +1436,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   style={{ marginRight: '6px', cursor: 'pointer' }}
                   title="듀얼 모니터링 담기/빼기"
                 />
-                <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (window.SEOUL_ACTIVE_IDS && window.SEOUL_ACTIVE_IDS.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
+                 <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (seoulActiveIds && seoulActiveIds.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
               </div>
@@ -1747,7 +1749,17 @@ function App() {
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
   const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
   const [searchKeyword, setSearchKeyword] = useState(''); // 검색어 상태
+  const [debouncedKeyword, setDebouncedKeyword] = useState(''); // 디바운스된 검색어
+  const [seoulActiveIds, setSeoulActiveIds] = useState([]); // 서울 활성 ID 목록
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
+
+  // 검색어 디바운싱: 타이핑 도중 무거운 리렌더링 및 지도 흔들림 방지
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchKeyword]);
   const [apiStatus, setApiStatus] = useState({
     seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
@@ -1827,8 +1839,8 @@ function App() {
     axios.get(`${API_BASE}/api/seoul-active-ids`)
       .then(res => {
         if (res.data && Array.isArray(res.data)) {
+          setSeoulActiveIds(res.data);
           window.SEOUL_ACTIVE_IDS = res.data;
-          setUticUpdateTick(t => t + 1);
         }
       })
       .catch(err => console.warn('⚠️ 서울 지원 교차로 목록 로드 실패', err.message));
@@ -2057,7 +2069,8 @@ function MapPanner({ intersections, targetId }) {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          searchKeyword={searchKeyword}
+          searchKeyword={debouncedKeyword}
+          seoulActiveIds={seoulActiveIds}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -2079,7 +2092,7 @@ function MapPanner({ intersections, targetId }) {
 
       <main className="main-content">
         <div className="top-map-wrapper">
-          <MapContainer center={[37.5665, 126.9780]} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
+          <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
             <MapAutoResizer />
             <MapPanner intersections={intersections} targetId={activeNodeId} />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
@@ -2092,6 +2105,7 @@ function MapPanner({ intersections, targetId }) {
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
               activeTab={activeTab}
+              seoulActiveIds={seoulActiveIds}
             />
           </MapContainer>
 
