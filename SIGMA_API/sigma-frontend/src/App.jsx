@@ -1794,8 +1794,8 @@ function App() {
     });
   };
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
-  const [draggedIndex, setDraggedIndex] = useState(null); // 드래그 중인 카드 인덱스
+  const dragOverIndexRef = useRef(null);
+  const draggedIndexRef = useRef(null);
   const [multiWidth, setMultiWidth] = useState(750);
   const [isResizing, setIsResizing] = useState(false);
   const resizingRef = React.useRef(false);
@@ -1825,11 +1825,11 @@ function App() {
 
   const handleDropOnSlot = (e, index) => {
     e.preventDefault();
-    setDragOverIndex(null);
+    dragOverIndexRef.current = null;
     try {
       // 1. 내부 이동 (Swap) 인 경우
-      if (draggedIndex !== null && draggedIndex !== undefined) {
-        const sourceIndex = draggedIndex;
+      if (draggedIndexRef.current !== null && draggedIndexRef.current !== undefined) {
+        const sourceIndex = draggedIndexRef.current;
         if (sourceIndex !== index) {
           setMultiScreenItems(prev => {
             const next = [...prev];
@@ -1839,7 +1839,7 @@ function App() {
             return next;
           });
         }
-        setDraggedIndex(null);
+        draggedIndexRef.current = null;
         return;
       }
       
@@ -2203,33 +2203,48 @@ function MapPanner({ intersections, targetId }) {
             return (
               <div
                 key={item ? item.id : `empty-${index}`}
-                className={`multi-grid-slot-wrapper ${dragOverIndex === index ? 'drag-over' : ''}`}
+                className="multi-grid-slot-wrapper"
                 draggable={!!item}
                 onDragStart={(e) => {
                   if (item) {
-                    setDraggedIndex(index);
+                    draggedIndexRef.current = index;
                     e.dataTransfer.setData('text/plain', String(index));
                   }
                 }}
-                onDragEnd={() => {
-                  setDraggedIndex(null);
+                onDragEnd={(e) => {
+                  draggedIndexRef.current = null;
+                  // 이전 하이라이트 제거
+                  if (dragOverIndexRef.current !== null) {
+                    dragOverIndexRef.current = null;
+                  }
+                  e.currentTarget.closest('.multi-grid')?.querySelectorAll('.multi-grid-slot-wrapper').forEach(el => {
+                    el.style.border = 'none';
+                  });
                 }}
                 onDragOver={(e) => {
                   e.preventDefault();
-                  if (dragOverIndex !== index) {
-                    setDragOverIndex(index);
+                  if (dragOverIndexRef.current !== index) {
+                    // 이전 하이라이트 해제
+                    e.currentTarget.closest('.multi-grid')?.querySelectorAll('.multi-grid-slot-wrapper').forEach(el => {
+                      el.style.border = 'none';
+                    });
+                    dragOverIndexRef.current = index;
+                    e.currentTarget.style.border = '2px dashed #38bdf8';
                   }
                 }}
-                onDragLeave={() => {
-                  setDragOverIndex(null);
+                onDragLeave={(e) => {
+                  e.currentTarget.style.border = 'none';
+                  dragOverIndexRef.current = null;
                 }}
-                onDrop={(e) => handleDropOnSlot(e, index)}
+                onDrop={(e) => {
+                  e.currentTarget.style.border = 'none';
+                  handleDropOnSlot(e, index);
+                }}
                 style={{ 
                   width: '100%', 
                   height: '100%', 
                   display: 'flex', 
                   boxSizing: 'border-box',
-                  border: dragOverIndex === index ? '2px dashed #38bdf8' : 'none',
                   borderRadius: '8px'
                 }}
               >
