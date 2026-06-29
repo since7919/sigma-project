@@ -3144,40 +3144,27 @@ function MapPanner({ intersections, targetId }) {
         <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridSize * gridSize})</h2>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <button 
-                className={`btn-clear ${multiSignalDisplayMode === 'compass' ? 'active' : ''}`}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '0.65rem',
-                  borderRadius: '4px',
-                  background: multiSignalDisplayMode === 'compass' ? 'rgba(56,189,248,0.2)' : 'transparent',
-                  color: multiSignalDisplayMode === 'compass' ? '#38bdf8' : '#aaa',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-                onClick={() => setMultiSignalDisplayMode('compass')}
-              >
-                🚦 신호등 모양
-              </button>
-              <button 
-                className={`btn-clear ${multiSignalDisplayMode === 'arrow' ? 'active' : ''}`}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '0.65rem',
-                  borderRadius: '4px',
-                  background: multiSignalDisplayMode === 'arrow' ? 'rgba(56,189,248,0.2)' : 'transparent',
-                  color: multiSignalDisplayMode === 'arrow' ? '#38bdf8' : '#aaa',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-                onClick={() => setMultiSignalDisplayMode('arrow')}
-              >
-                ↗️ 화살표 모양
-              </button>
-            </div>
+            <button 
+              className="btn-clear active"
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.75rem',
+                borderRadius: '15px',
+                background: 'rgba(56,189,248,0.2)',
+                color: '#38bdf8',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => {
+                setMultiSignalDisplayMode(prev => prev === 'compass' ? 'arrow' : 'compass');
+              }}
+            >
+              🚦 신호등 {multiSignalDisplayMode === 'compass' ? '(신호등)' : '(화살표)'}
+            </button>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>레이아웃:</span>
               {[2, 3, 4].map(sz => (
