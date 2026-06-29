@@ -2805,10 +2805,10 @@ function MapPanner({ intersections, targetId }) {
             }}
           >
             <button 
-              className={`btn-clear ${mapSignalDisplayMode === 'compass' ? 'active' : ''}`}
+              className={`btn-clear ${mapSignalDisplayMode !== 'off' ? 'active' : ''}`}
               style={{
-                background: mapSignalDisplayMode === 'compass' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: mapSignalDisplayMode === 'compass' ? '#38bdf8' : '#94a3b8',
+                background: mapSignalDisplayMode !== 'off' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: mapSignalDisplayMode !== 'off' ? '#38bdf8' : '#94a3b8',
                 border: 'none',
                 padding: '6px 14px',
                 borderRadius: '15px',
@@ -2820,29 +2820,15 @@ function MapPanner({ intersections, targetId }) {
                 alignItems: 'center',
                 gap: '5px'
               }}
-              onClick={() => setMapSignalDisplayMode('compass')}
-            >
-              🚦 신호등 모양
-            </button>
-            <button 
-              className={`btn-clear ${mapSignalDisplayMode === 'arrow' ? 'active' : ''}`}
-              style={{
-                background: mapSignalDisplayMode === 'arrow' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: mapSignalDisplayMode === 'arrow' ? '#38bdf8' : '#94a3b8',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '15px',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
+              onClick={() => {
+                setMapSignalDisplayMode(prev => {
+                  if (prev === 'off') return 'arrow';
+                  if (prev === 'arrow') return 'compass';
+                  return 'off';
+                });
               }}
-              onClick={() => setMapSignalDisplayMode('arrow')}
             >
-              ↗️ 화살표 모양
+              🚦 신호등 {mapSignalDisplayMode === 'arrow' ? '(화살표)' : (mapSignalDisplayMode === 'compass' ? '(신호등)' : '(제거)')}
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
@@ -2863,7 +2849,7 @@ function MapPanner({ intersections, targetId }) {
               }}
               onClick={() => setShowMapNames(p => !p)}
             >
-              📛 교차로명 {showMapNames ? '표시' : '숨김'}
+              📛 교차로명
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
@@ -2884,7 +2870,7 @@ function MapPanner({ intersections, targetId }) {
               }}
               onClick={() => setIsMultiScreenOpen(prev => !prev)}
             >
-              {isMultiScreenOpen ? '🖥️ 멀티스크린 닫기' : '🖥️ 멀티스크린 열기'}
+              🖥️ 멀티스크린
             </button>
           </div>
 
