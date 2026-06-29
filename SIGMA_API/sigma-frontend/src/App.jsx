@@ -2641,6 +2641,7 @@ function App() {
     });
   };
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
+  const [isMultiScreenFullscreen, setIsMultiScreenFullscreen] = useState(false); // 멀티스크린 전체화면 상태 state
   const dragOverIndexRef = useRef(null);
   const draggedIndexRef = useRef(null);
   const [multiWidth, setMultiWidth] = useState(750);
@@ -3117,14 +3118,14 @@ function MapPanner({ intersections, targetId }) {
 
       {/* 우측 멀티디스플레이 패널 */}
       <section 
-        className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'}`}
+        className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'} ${isMultiScreenFullscreen ? 'fullscreen' : ''}`}
         style={{ 
-          width: isMultiScreenOpen ? `${multiWidth}px` : '0px',
+          width: isMultiScreenOpen ? (isMultiScreenFullscreen ? '100vw' : `${multiWidth}px`) : '0px',
           transition: isResizing ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s ease',
           position: 'relative'
         }}
       >
-        {isMultiScreenOpen && (
+        {isMultiScreenOpen && !isMultiScreenFullscreen && (
           <div 
             className="panel-resizer" 
             onMouseDown={handleMouseDownResize}
@@ -3198,7 +3199,25 @@ function MapPanner({ intersections, targetId }) {
               ))}
             </div>
           </div>
-          <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridSize * gridSize).fill(null))}>전체 비우기</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              className="btn-clear" 
+              style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                padding: '4px 10px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+              onClick={() => setIsMultiScreenFullscreen(p => !p)}
+            >
+              {isMultiScreenFullscreen ? '🗗 전체화면 닫기' : '🗖 전체화면'}
+            </button>
+            <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridSize * gridSize).fill(null))}>전체 비우기</button>
+          </div>
         </header>
         <div className="multi-grid" style={{
           gridTemplateColumns: `repeat(${gridSize}, 1fr)`,

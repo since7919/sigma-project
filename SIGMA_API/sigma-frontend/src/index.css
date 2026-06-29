@@ -409,6 +409,17 @@ details.footer-section summary::marker { content: ''; }
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s ease;
   overflow: hidden;
 }
+.multi-screen-panel.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999;
+  border-left: none;
+}
 .multi-screen-panel.closed {
   width: 0;
   border-left: none;
