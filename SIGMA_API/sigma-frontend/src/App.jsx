@@ -1478,11 +1478,11 @@ function MapSignalOverlay({ intersection, uticUpdateTick }) {
     tempDiv.style.height = '100%';
     tempDiv.style.position = 'relative';
 
-    // CompassOverlay를 맵 오버레이용으로 축소(scale 0.5)하여 마크하기 위함
+    // CompassOverlay를 맵 오버레이용으로 마크하기 위함 (기존 0.55배에서 2배 키운 1.1배로 설정)
     return L.divIcon({
       className: 'map-realtime-signal-icon',
       html: `
-        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.55); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
+        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
           <div class="compass-center-overlay">
             ${[
               { key: 'N', deg: 0 },
@@ -1702,8 +1702,8 @@ function MapSignalOverlay({ intersection, uticUpdateTick }) {
           </div>
         </div>
       `,
-      iconSize: [80, 80],
-      iconAnchor: [40, 40]
+      iconSize: [160, 160],
+      iconAnchor: [80, 80]
     });
   }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul]);
 
@@ -1711,7 +1711,15 @@ function MapSignalOverlay({ intersection, uticUpdateTick }) {
     <Marker 
       position={[intersection.y_coord, intersection.x_coord]} 
       icon={customIcon}
-      zIndexOffset={2000}
+      zIndexOffset={500}
+      eventHandlers={{
+        click: (e) => {
+          // 신호등 오버레이 자체를 클릭(혹은 쉬프트 클릭)했을 때도 아래의 교차로가 선택/토글되도록 이벤트 위임
+          if (onMapSignalToggle) {
+            onMapSignalToggle(intersection.id);
+          }
+        }
+      }}
     />
   );
 }
@@ -2595,6 +2603,7 @@ function MapPanner({ intersections, targetId }) {
                   key={`map-signal-${item.id}`} 
                   intersection={item} 
                   uticUpdateTick={uticUpdateTick}
+                  onMapSignalToggle={handleMapSignalToggle}
                 />
               ))}
           </MapContainer>
