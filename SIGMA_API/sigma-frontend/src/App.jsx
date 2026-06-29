@@ -1471,27 +1471,67 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
   }, [cropData, isSeoul]);
 
   const customIcon = useMemo(() => {
-    // 1. 화살표 표출 모드인 경우
+    // 1. 화살표 표출 모드인 경우 (SIGMA 앱의 16방향 및 보행 101-116 화살표 대응)
     if (displayMode === 'arrow') {
-      const directions = [
-        { key: 'N', deg: 0 },
-        { key: 'NE', deg: 45 },
-        { key: 'E', deg: 90 },
-        { key: 'SE', deg: 135 },
-        { key: 'S', deg: 180 },
-        { key: 'SW', deg: 225 },
-        { key: 'W', deg: 270 },
-        { key: 'NW', deg: 315 }
-      ];
+      // 16개 차량 이동류 (1~16)와 16개 보행 이동류 (101~116) 정의
+      const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
+      const peds = Array.from({ length: 16 }, (_, i) => i + 101);
+      const allMovs = [...vehicles, ...peds];
 
-      const htmlContent = directions.map(({ key, deg }) => {
-        let s = 'off', l = 'off', p = 'off';
-        let carCountdown = 0;
-        let pedCountdown = 0;
-        let vehHasData = false;
-        let pedHasData = false;
+      // 각 이동류별 기본 배치 각도 (defPosAngles)
+      const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
+      const getVisualArrowLocal = (m) => {
+        if (m <= 0) return { type: '•', ang: 0 };
+        if (m >= 100) return { type: 'WALK', ang: 0 };
+        const movementMap = {
+          1: { type: '↰', ang: 270 }, 2: { type: '↗', ang: 45 },
+          3: { type: '↰', ang: 0 }, 4: { type: '↙', ang: 315 },
+          5: { type: '↰', ang: 90 }, 6: { type: '↙', ang: 45 },
+          7: { type: '↰', ang: 180 }, 8: { type: '↖', ang: 45 },
+          9: { type: '↰', ang: 225 }, 10: { type: '↗', ang: 0 },
+          11: { type: '↰', ang: 315 }, 12: { type: '↘', ang: 0 },
+          13: { type: '↰', ang: 45 }, 14: { type: '↙', ang: 0 },
+          15: { type: '↰', ang: 135 }, 16: { type: '↖', ang: 0 }
+        };
+        return movementMap[m] || { type: '•', ang: 0 };
+      };
+
+      const htmlContent = allMovs.map(m => {
+        const isPed = m >= 100;
+        const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrowLocal(m);
+
+        // 배치 각도 계산
+        let ang = 0;
+        if (isPed) {
+          const refM = m - 100;
+          ang = defPosAngles[(refM - 1) % 16] || 0;
+          if (refM % 2 !== 0) ang += 22;
+          else ang -= 22;
+        } else {
+          ang = defPosAngles[(m - 1) % 16] || 0;
+          if (m % 2 !== 0) ang += 7;
+          else ang -= 7;
+        }
+
+        // 반경 위치 오프셋
+        const offset = isPed ? 0.00022 : ((m > 8) ? 0.00018 : 0.00014);
+        // 중앙 마커 기준 픽셀 좌표 변환 대신 relative 퍼센트/px 배치용 (155px 컴파스 링 내부 기준 배치는 삼각함수 사용)
+        const rad = ang * Math.PI / 180;
+        const radiusMultiplier = isPed ? 70 : ((m > 8) ? 55 : 40);
+        const topPx = 77.5 - Math.cos(rad) * radiusMultiplier;
+        const leftPx = 77.5 + Math.sin(rad) * radiusMultiplier;
+
+        // 현재 신호 상태 파악 (G, Y, R, F)
+        let signalState = 'off'; // 'off' (R 포함 안보임) | 'G' (그린) | 'Y' (황색) | 'F' (보행점멸)
+        let countdown = 0;
 
         if (isSeoul) {
+          // 서울 데이터 매핑: m에 해당하는 8방향 매칭 처리
+          // 1,2 -> N / 3,4 -> NE / 5,6 -> E / 7,8 -> SE / 9,10 -> S / 11,12 -> SW / 13,14 -> W / 15,16 -> NW
+          const dirKeys = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+          const refIdx = isPed ? Math.floor((m - 101) / 2) : Math.floor((m - 1) / 2);
+          const key = dirKeys[refIdx % 8];
+          
           let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
           if (spat && spat.status) {
             const prefixMap = { 'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se', 'S': 'st', 'SW': 'sw', 'W': 'wt', 'NW': 'nw' };
@@ -1507,136 +1547,121 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
             const ltTime = timingObj[pfx + 'LtsgRmdrCs'];
             const pdTime = timingObj[pfx + 'PdsgRmdrCs'];
 
-            if (stsg && stsg !== 'null' && stsg !== 'unknown') vehHasData = true;
-            if (ltsg && ltsg !== 'null' && ltsg !== 'unknown') vehHasData = true;
-            if (pdsg && pdsg !== 'null' && pdsg !== 'unknown') pedHasData = true;
-
-            let stOn = false, ltOn = false;
-            if (stsg === 'protected-Movement-Allowed' || stsg === 'permissive-Movement-Allowed' || stsg === '녹색' || stsg === '녹색화살표' || stsg === '청색') { 
-              s = 'green'; 
-              stOn = true; 
-              if (stTime) carCountdown = Math.max(carCountdown, Math.floor(stTime / 10));
-            } else if (stsg === 'protected-clearance' || stsg === 'permissive-clearance' || stsg === '황색') { 
-              s = 'yellow'; 
-              stOn = true; 
-              if (stTime) carCountdown = Math.max(carCountdown, Math.floor(stTime / 10));
-            }
-
-            if (ltsg === 'protected-Movement-Allowed' || ltsg === '녹색화살표') { 
-              l = 'green'; 
-              ltOn = true; 
-              if (ltTime) carCountdown = Math.max(carCountdown, Math.floor(ltTime / 10));
-            } else if (ltsg === 'protected-clearance' || ltsg === '황색') { 
-              l = 'yellow'; 
-              ltOn = true; 
-              if (ltTime) carCountdown = Math.max(carCountdown, Math.floor(ltTime / 10));
-            }
-
-            if (!stOn && !ltOn && (stsg === 'stop-And-Remain' || ltsg === 'stop-And-Remain' || stsg === '적색' || ltsg === '적색' || s === 'off')) { 
-              s = 'red'; 
-              l = 'red'; 
-            }
-
-            if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
-              p = 'green'; 
-              if (pdTime) pedCountdown = Math.max(pedCountdown, Math.floor(pdTime / 10));
-            } else if (pdsg === 'protected-clearance' || pdsg === '황색') {
-              p = 'flash';
-              if (pdTime) pedCountdown = Math.max(pedCountdown, Math.floor(pdTime / 10));
-            } else if (pdsg === 'stop-And-Remain' || pdsg === '적색' || p === 'off') { 
-              p = 'red'; 
+            if (isPed) {
+              if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
+                signalState = 'G';
+                if (pdTime) countdown = Math.floor(pdTime / 10);
+              } else if (pdsg === 'protected-clearance' || pdsg === '황색') {
+                signalState = 'F';
+                if (pdTime) countdown = Math.floor(pdTime / 10);
+              }
+            } else {
+              const isLeftMov = (m % 2 !== 0); // 홀수는 좌회전, 짝수는 직진 매핑
+              if (isLeftMov) {
+                if (ltsg === 'protected-Movement-Allowed' || ltsg === '녹색화살표') {
+                  signalState = 'G';
+                  if (ltTime) countdown = Math.floor(ltTime / 10);
+                } else if (ltsg === 'protected-clearance' || ltsg === '황색') {
+                  signalState = 'Y';
+                  if (ltTime) countdown = Math.floor(ltTime / 10);
+                }
+              } else {
+                if (stsg === 'protected-Movement-Allowed' || stsg === 'permissive-Movement-Allowed' || stsg === '녹색' || stsg === '녹색화살표' || stsg === '청색') {
+                  signalState = 'G';
+                  if (stTime) countdown = Math.floor(stTime / 10);
+                } else if (stsg === 'protected-clearance' || stsg === 'permissive-clearance' || stsg === '황색') {
+                  signalState = 'Y';
+                  if (stTime) countdown = Math.floor(stTime / 10);
+                }
+              }
             }
           }
         } else {
+          // 경찰청 UTIC CROP/SigMap 매핑
+          // m이 현재 등화 시차(phaseA/B)에 활성화된 번호인지 판단
           const sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
           const detailData = window.L02_DETAIL_DATA || [];
           const conf = detailData.find(d => String(d.INT_NO) === String(intersection.int_no));
-          
+
+          let matchedAngle = null;
           if (conf) {
             for (let i = 1; i <= 8; i++) {
               ['A', 'B'].forEach(ring => {
                 const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
                 if (parsed) {
-                  if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
-                  else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
-                  else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
+                  // 각도를 키로 매핑
+                  const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
+                  const degVal = dirAngleMap[parsed.direction] !== undefined ? dirAngleMap[parsed.direction] : 0;
+                  if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
+                  else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
+                  else if (parsed.type === 'P') pPhaseMap[degVal] = { ring, idx: i };
                 }
               });
             }
           }
 
-          vehHasData = (sPhaseMap[deg] || lPhaseMap[deg]);
-          pedHasData = (pPhaseMap[deg] || sPhaseMap[deg]);
-
+          // m 번호가 활성 상태에 부합하는지
           if (cropData) {
-            const checkActive = (map) => {
-              const conf = map[deg];
+            const checkActive = (map, degVal) => {
+              const conf = map[degVal];
               if (!conf) return false;
               return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
             };
-            const getCountdown = (map) => {
-              const conf = map[deg];
+            const getCountdown = (map, degVal) => {
+              const conf = map[degVal];
               if (!conf) return 0;
               return conf.ring === 'A' ? remainA : remainB;
             };
 
-            const calcPedestrian = (conf, map) => {
-              const phaseIdx = conf.idx;
-              const elapsed = conf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-              let pedDuration = getCountdown(map) + elapsed;
-              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-                const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                const activeSteps = ringData.filter(step => step[`ped${phaseIdx}`] === 1 || step[`ped${phaseIdx}`] === 5);
-                if (activeSteps.length > 0) {
-                  pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+            const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+            if (isPed) {
+              const pConf = pPhaseMap[degVal];
+              if (pConf && checkActive(pPhaseMap, degVal)) {
+                // 보행 신호 연산
+                const elapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+                let pedDuration = getCountdown(pPhaseMap, degVal) + elapsed;
+                if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                  const ringData = pConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                  const activeSteps = ringData.filter(step => step[`ped${pConf.idx}`] === 1 || step[`ped${pConf.idx}`] === 5);
+                  if (activeSteps.length > 0) {
+                    pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+                  } else {
+                    pedDuration = Math.max(0, pedDuration - 5);
+                  }
                 } else {
                   pedDuration = Math.max(0, pedDuration - 5);
                 }
-              } else {
-                pedDuration = Math.max(0, pedDuration - 5);
+                const pedRemain = Math.max(0, pedDuration - elapsed);
+                if (pedRemain > 0) {
+                  signalState = pedRemain <= 7 ? 'F' : 'G';
+                  countdown = pedRemain;
+                }
               }
-              const pedRemain = Math.max(0, pedDuration - elapsed);
-              if (pedRemain > 0) {
-                p = pedRemain <= 7 ? 'flash' : 'green';
-                pedCountdown = Math.max(pedCountdown, pedRemain);
-              } else {
-                p = 'red';
+            } else {
+              const isLeftMov = (m % 2 !== 0);
+              const mapToUse = isLeftMov ? lPhaseMap : sPhaseMap;
+              if (mapToUse[degVal] && checkActive(mapToUse, degVal)) {
+                signalState = 'G';
+                countdown = getCountdown(mapToUse, degVal);
+                if (countdown <= 3) signalState = 'Y';
               }
-            };
-
-            if (checkActive(sPhaseMap)) { s = 'green'; carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); }
-            if (checkActive(lPhaseMap)) { l = 'green'; carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); }
-            if (checkActive(pPhaseMap)) calcPedestrian(pPhaseMap[deg], pPhaseMap);
-            else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) calcPedestrian(sPhaseMap[deg], sPhaseMap);
+            }
           }
         }
 
-        if (s !== 'green' && s !== 'yellow' && l !== 'green' && l !== 'yellow' && p !== 'green' && p !== 'flash') {
-          return '';
-        }
+        // 활성화된 상태가 아니면 아예 그리지 않음 (적색은 생략)
+        if (signalState === 'off') return '';
 
-        const isPedOnly = (p === 'green' || p === 'flash') && s !== 'green' && s !== 'yellow' && l !== 'green' && l !== 'yellow';
-        const isLeft = (l === 'green' || l === 'yellow');
-        const colorClass = (s === 'yellow' || l === 'yellow' || p === 'flash') ? 'yellow' : 'green';
-
-        let svgContent = '';
-        if (isPedOnly) {
-          svgContent = `<svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
-        } else if (isLeft) {
-          svgContent = `<svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.74C23.73 10.92 18.71 8 12.5 8z"/></svg>`;
-        } else {
-          svgContent = `<svg viewBox="0 0 24 24"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/></svg>`;
-        }
-
-        const countdownVal = isPedOnly ? pedCountdown : carCountdown;
+        const colorClass = (signalState === 'Y' || signalState === 'F') ? 'yellow' : 'green';
+        const isPedOnly = isPed;
 
         return `
-          <div class="signal-slot slot-${key}" id="slot-${key}" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div class="map-signal-arrow ${colorClass}" style="transform: rotate(${isLeft ? 0 : 0}deg);">
-              ${svgContent}
+          <div class="signal-slot" style="position: absolute; top: ${topPx}px; left: ${leftPx}px; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; z-index: 10000;">
+            <div class="signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}" style="transform: rotate(${arrowData.ang}deg); font-weight: 800; font-size: ${isPedOnly ? '11px' : '22px'}; line-height: 1; color: ${colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb'};">
+              ${isPedOnly ? 'WALK' : arrowData.type}
             </div>
-            <div style="font-family: monospace; font-size: 11px; font-weight: bold; color: ${colorClass === 'yellow' ? '#f59e0b' : '#00ffa2'}; text-shadow: 0 0 3px #000, 0 0 5px #000; margin-top: 2px;">
-              ${countdownVal > 0 ? `${countdownVal}s` : ''}
+            <div style="font-family: monospace; font-size: 10px; font-weight: bold; color: ${colorClass === 'yellow' ? '#f59e0b' : '#00ffa2'}; text-shadow: 0 0 3px #000, 0 0 5px #000; margin-top: 1px; transform: rotate(0deg); line-height: 1;">
+              ${countdown > 0 ? `${countdown}s` : ''}
             </div>
           </div>
         `;
@@ -1646,7 +1671,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
         className: 'map-realtime-signal-icon-arrow',
         html: `
           <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
-            <div class="compass-center-overlay" style="background: none;">
+            <div class="compass-center-overlay" style="background: none; border: none; box-shadow: none;">
               ${htmlContent}
             </div>
           </div>
