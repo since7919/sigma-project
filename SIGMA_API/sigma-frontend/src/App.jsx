@@ -1719,7 +1719,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
         <div style={{position: 'relative', width: '100%', height: '100%'}}>
           <MapContainer 
             center={[intersection.y_coord, intersection.x_coord]} 
-            zoom={19} 
+            zoom={20} 
             style={{width:'100%', height:'100%'}} 
             zoomControl={false}
             dragging={false}
