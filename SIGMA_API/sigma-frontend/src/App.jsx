@@ -23,7 +23,7 @@ const REGION_MAP = {
 };
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onDualClick, onMultiClick }) {
+function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onMultiClick, activeMapSignalIds, onMapSignalToggle }) {
   const markerRef = React.useRef(null);
   const map = useMap();
 
@@ -54,15 +54,30 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
     }
   }, [intersection, map]);
 
+  // 지도상 오버레이 활성화 여부
+  const isSignalOverlayActive = activeMapSignalIds && activeMapSignalIds.includes(intersection.id);
+
   return (
     <CircleMarker
       ref={markerRef}
       center={[intersection.y_coord, intersection.x_coord]}
-      radius={isSelected ? 10 : 6}
-      fillColor={isSelected ? "#38bdf8" : baseColor}
-      color={isSelected ? "#fff" : "#334155"}
-      weight={isSelected ? 3 : 2}
+      radius={isSelected ? 11 : (isSignalOverlayActive ? 9 : 6)}
+      fillColor={isSelected ? "#38bdf8" : (isSignalOverlayActive ? "#10b981" : baseColor)}
+      color={isSelected ? "#fff" : (isSignalOverlayActive ? "#fff" : "#334155")}
+      weight={isSelected ? 3 : (isSignalOverlayActive ? 2.5 : 2)}
       fillOpacity={0.8}
+      eventHandlers={{
+        click: (e) => {
+          // 쉬프트 좌클릭인 경우 -> 지도상 신호 표출 토글
+          if (e.originalEvent && e.originalEvent.shiftKey) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+            if (onMapSignalToggle) {
+              onMapSignalToggle(intersection.id);
+            }
+          }
+        }
+      }}
     >
       {showTooltip && (
         <Tooltip direction="top" offset={[0, -10]} permanent interactive={true} className="map-label">
@@ -104,14 +119,16 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
               e.stopPropagation();
               onDetailClick(intersection);
             }}>상세보기</button>
-            <button className="btn-detail" style={{background:'#6366f1', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
-              e.stopPropagation();
-              onDualClick(intersection);
-            }}>듀얼 담기</button>
             <button className="btn-detail" style={{background:'#10b981', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
               e.stopPropagation();
               onMultiClick(intersection);
             }}>멀티 담기</button>
+            <button className="btn-detail" style={{background:'#0284c7', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+              e.stopPropagation();
+              if (onMapSignalToggle) onMapSignalToggle(intersection.id);
+            }}>
+              {isSignalOverlayActive ? '지도 신호 해제' : '지도 신호 표출'}
+            </button>
           </div>
         </div>
       </Popup>
@@ -135,7 +152,7 @@ function MapAutoResizer() {
   return null;
 }
 
-function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds }) {
+function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -192,8 +209,9 @@ function IntersectionMarkers({ intersections, onDetailClick, onDualClick, onMult
             baseColor={baseColor}
             showTooltip={showTooltip}
             onDetailClick={onDetailClick}
-            onDualClick={onDualClick}
             onMultiClick={onMultiClick}
+            activeMapSignalIds={activeMapSignalIds}
+            onMapSignalToggle={onMapSignalToggle}
           />
         );
       })}
@@ -1842,28 +1860,16 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   e.dataTransfer.setData('application/json', JSON.stringify(item));
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: '6px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={dualSelection.some(d => d.id === item.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onDualClick(item);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                    title="듀얼 모니터링 담기/빼기"
-                  />
-                  <input 
-                    type="checkbox" 
-                    checked={activeMapSignalIds.includes(item.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onMapSignalToggle(item.id);
-                    }}
-                    style={{ cursor: 'pointer', accentColor: '#10b981' }}
-                    title="지도상 신호 표출 (최대 3개)"
-                  />
-                </div>
+                <input 
+                  type="checkbox" 
+                  checked={activeMapSignalIds.includes(item.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onMapSignalToggle(item.id);
+                  }}
+                  style={{ marginRight: '6px', cursor: 'pointer', accentColor: '#10b981' }}
+                  title="지도상 신호 표출 (최대 3개)"
+                />
                  <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (seoulActiveIds && seoulActiveIds.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
@@ -1924,28 +1930,16 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                           e.dataTransfer.setData('application/json', JSON.stringify(item));
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: '6px' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={dualSelection.some(d => d.id === item.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              onDualClick(item);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                            title="듀얼 모니터링 담기/빼기"
-                          />
-                          <input 
-                            type="checkbox" 
-                            checked={activeMapSignalIds.includes(item.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              onMapSignalToggle(item.id);
-                            }}
-                            style={{ cursor: 'pointer', accentColor: '#10b981' }}
-                            title="지도상 신호 표출 (최대 3개)"
-                          />
-                        </div>
+                        <input 
+                          type="checkbox" 
+                          checked={activeMapSignalIds.includes(item.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            onMapSignalToggle(item.id);
+                          }}
+                          style={{ marginRight: '6px', cursor: 'pointer', accentColor: '#10b981' }}
+                          title="지도상 신호 표출 (최대 3개)"
+                        />
                         <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                         <span className="id-label">[{item.int_no}]</span>
                         <span className="name-label">{item.int_nm}</span>
@@ -2568,12 +2562,13 @@ function MapPanner({ intersections, targetId }) {
               key={activeTab || 'none'}
               intersections={intersections} 
               onDetailClick={openDetail}
-              onDualClick={handleDualClick}
               onMultiClick={handleMultiClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
               activeTab={activeTab}
               seoulActiveIds={seoulActiveIds}
+              activeMapSignalIds={activeMapSignalIds}
+              onMapSignalToggle={handleMapSignalToggle}
             />
             {/* 지도상 신호 표출 레이어 */}
             {intersections
