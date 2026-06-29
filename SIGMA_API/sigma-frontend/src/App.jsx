@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap, Marker } from 'react-leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import './index.css';
@@ -1285,7 +1286,402 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
   );
 }
 
-// [3.5] 듀얼 모니터링 모달
+// [3.7] 지도상 교차로 마커 위 신호 정보 표출 오버레이 컴포넌트 (DivIcon Marker 기반)
+function MapSignalOverlay({ intersection, uticUpdateTick }) {
+  const [cropData, setCropData] = useState(null);
+  const [phaseA, setPhaseA] = useState(1);
+  const [phaseB, setPhaseB] = useState(1);
+  const [remainA, setRemainA] = useState(0);
+  const [remainB, setRemainB] = useState(0);
+  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+
+  const isSeoul = useMemo(() => {
+    return intersection.origin_type?.toLowerCase().includes('tdata') || false;
+  }, [intersection]);
+
+  // CROP 정보
+  useEffect(() => {
+    if (isSeoul) return;
+    const fetchCROP = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
+        let rawItems = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const obj = {};
+          for (let j = 0; j < item.children.length; j++) {
+            obj[item.children[j].tagName] = item.children[j].textContent;
+          }
+          rawItems.push(obj);
+        }
+        let matched = null;
+        for (let item of rawItems) {
+          const intNo = item.INT_NO || item.itstId;
+          if (String(intNo) === String(intersection.int_no)) {
+            matched = {
+              planNo: item.INT_PLAN_NO || item.planNo,
+              cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
+              offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
+            };
+            let sumA = 0;
+            let sumB = 0;
+            for (let i = 1; i <= 8; i++) {
+              matched[`A_RING_${i}_PHASE_VAL`] = parseInt(item[`A_RING_${i}_PHASE_VAL`] || 0);
+              matched[`B_RING_${i}_PHASE_VAL`] = parseInt(item[`B_RING_${i}_PHASE_VAL`] || 0);
+              sumA += matched[`A_RING_${i}_PHASE_VAL`];
+              sumB += matched[`B_RING_${i}_PHASE_VAL`];
+            }
+            const calculatedCycle = Math.max(sumA, sumB);
+            if (calculatedCycle > 0) matched.cycle = calculatedCycle;
+            break;
+          }
+        }
+        if (matched) setCropData(matched);
+      } catch (err) {
+        console.error('Error fetching CROP for map overlay:', err);
+      }
+    };
+    fetchCROP();
+  }, [intersection, isSeoul]);
+
+  // SigMap 정보
+  useEffect(() => {
+    if (isSeoul) return;
+    const fetchSigMap = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
+        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+        const ringA = [];
+        const ringB = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
+          if (String(intNo) === String(intersection.int_no)) {
+            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
+            const step = {
+              stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
+              minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
+              maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
+              eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
+            };
+            for (let k = 1; k <= 8; k++) {
+              step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
+              step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
+            }
+            if (ringNo === 0) ringA.push(step);
+            else if (ringNo === 1) ringB.push(step);
+          }
+        }
+        ringA.sort((a, b) => a.stepNo - b.stepNo);
+        ringB.sort((a, b) => a.stepNo - b.stepNo);
+        setSigMapData({ ringA, ringB });
+      } catch (err) {
+        console.error('Error fetching SigMap for map overlay:', err);
+      }
+    };
+    fetchSigMap();
+  }, [intersection, isSeoul]);
+
+  // 실시간 타이머 연동
+  useEffect(() => {
+    if (isSeoul) return;
+    const updateRealtime = () => {
+      if (!cropData || !cropData.cycle) return;
+      const cycle = cropData.cycle;
+      const offset = cropData.offset || 0;
+      const now = new Date();
+      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
+      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+
+      const calcRingState = (ringPrefix) => {
+        let cumulativeTime = 0;
+        let currentPhaseIdx = 1;
+        let remainingTime = 0;
+        for (let i = 1; i <= 8; i++) {
+          const split = cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0;
+          if (split === 0) continue;
+          if (timeInCycle < cumulativeTime + split) {
+            currentPhaseIdx = i;
+            remainingTime = (cumulativeTime + split) - timeInCycle;
+            break;
+          }
+          cumulativeTime += split;
+        }
+        return { currentPhaseIdx, remainingTime };
+      };
+
+      const ringA = calcRingState('A_RING');
+      const ringB = calcRingState('B_RING');
+
+      setPhaseA(ringA.currentPhaseIdx);
+      setRemainA(ringA.remainingTime);
+      setPhaseB(ringB.currentPhaseIdx);
+      setRemainB(ringB.remainingTime);
+    };
+    updateRealtime();
+    const interval = setInterval(updateRealtime, 1000);
+    return () => clearInterval(interval);
+  }, [cropData, isSeoul]);
+
+  const customIcon = useMemo(() => {
+    // 렌더링 결과 HTML을 임시 Container에 마운트하여 innerHTML을 추출하는 패턴
+    // Leaflet의 DivIcon은 React context 외부에서 동작하므로 string 형태의 html을 받습니다.
+    const tempDiv = document.createElement('div');
+    tempDiv.style.width = '100%';
+    tempDiv.style.height = '100%';
+    tempDiv.style.position = 'relative';
+
+    // CompassOverlay를 맵 오버레이용으로 축소(scale 0.5)하여 마크하기 위함
+    return L.divIcon({
+      className: 'map-realtime-signal-icon',
+      html: `
+        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.55); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
+          <div class="compass-center-overlay">
+            ${[
+              { key: 'N', deg: 0 },
+              { key: 'NE', deg: 45 },
+              { key: 'E', deg: 90 },
+              { key: 'SE', deg: 135 },
+              { key: 'S', deg: 180 },
+              { key: 'SW', deg: 225 },
+              { key: 'W', deg: 270 },
+              { key: 'NW', deg: 315 }
+            ].map(({ key, deg }) => {
+              let s = 'off', l = 'off', p = 'off';
+              let carCountdown = 0;
+              let pedCountdown = 0;
+              let vehHasData = false;
+              let pedHasData = false;
+
+              if (isSeoul) {
+                let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
+                if (spat && spat.status) {
+                  const prefixMap = { 'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se', 'S': 'st', 'SW': 'sw', 'W': 'wt', 'NW': 'nw' };
+                  const pfx = prefixMap[key];
+                  const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
+                  const timingObj = Array.isArray(spat.timing) ? (spat.timing[0] || {}) : spat.timing;
+
+                  const stsg = statObj[pfx + 'StsgStatNm'];
+                  const ltsg = statObj[pfx + 'LtsgStatNm'];
+                  const pdsg = statObj[pfx + 'PdsgStatNm'];
+
+                  const stTime = timingObj[pfx + 'StsgRmdrCs'];
+                  const ltTime = timingObj[pfx + 'LtsgRmdrCs'];
+                  const pdTime = timingObj[pfx + 'PdsgRmdrCs'];
+
+                  if (stsg && stsg !== 'null' && stsg !== 'unknown') vehHasData = true;
+                  if (ltsg && ltsg !== 'null' && ltsg !== 'unknown') vehHasData = true;
+                  if (pdsg && pdsg !== 'null' && pdsg !== 'unknown') pedHasData = true;
+
+                  const hasAnySeoulSignal = Object.keys(statObj).some(k => k.endsWith('StatNm') && statObj[k] && statObj[k] !== 'null');
+                  if (!hasAnySeoulSignal && ['N', 'E', 'S', 'W'].includes(key)) {
+                    vehHasData = true;
+                    pedHasData = true;
+                  }
+
+                  let stOn = false, ltOn = false;
+                  if (stsg === 'protected-Movement-Allowed' || stsg === 'permissive-Movement-Allowed' || stsg === '녹색' || stsg === '녹색화살표' || stsg === '청색') { 
+                    s = 'green'; 
+                    stOn = true; 
+                    if (stTime) carCountdown = Math.max(carCountdown, Math.floor(stTime / 10));
+                  } else if (stsg === 'protected-clearance' || stsg === 'permissive-clearance' || stsg === '황색') { 
+                    s = 'yellow'; 
+                    stOn = true; 
+                    if (stTime) carCountdown = Math.max(carCountdown, Math.floor(stTime / 10));
+                  }
+
+                  if (ltsg === 'protected-Movement-Allowed' || ltsg === '녹색화살표') { 
+                    l = 'green'; 
+                    ltOn = true; 
+                    if (ltTime) carCountdown = Math.max(carCountdown, Math.floor(ltTime / 10));
+                  } else if (ltsg === 'protected-clearance' || ltsg === '황색') { 
+                    l = 'yellow'; 
+                    ltOn = true; 
+                    if (ltTime) carCountdown = Math.max(carCountdown, Math.floor(ltTime / 10));
+                  }
+
+                  if (!stOn && !ltOn && (stsg === 'stop-And-Remain' || ltsg === 'stop-And-Remain' || stsg === '적색' || ltsg === '적색' || s === 'off')) { 
+                    s = 'red'; 
+                    l = 'red'; 
+                  }
+
+                  if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
+                    p = 'green'; 
+                    if (pdTime) pedCountdown = Math.max(pedCountdown, Math.floor(pdTime / 10));
+                  } else if (pdsg === 'protected-clearance' || pdsg === '황색') {
+                    p = 'flash';
+                    if (pdTime) pedCountdown = Math.max(pedCountdown, Math.floor(pdTime / 10));
+                  } else if (pdsg === 'stop-And-Remain' || pdsg === '적색' || p === 'off') { 
+                    p = 'red'; 
+                  }
+                } else {
+                  if (['N', 'E', 'S', 'W'].includes(key)) {
+                    vehHasData = true;
+                    pedHasData = true;
+                    s = 'red';
+                    l = 'red';
+                    p = 'red';
+                  }
+                }
+              } else {
+                const sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
+                const detailData = window.L02_DETAIL_DATA || [];
+                const conf = detailData.find(d => String(d.INT_NO) === String(intersection.int_no));
+                
+                if (conf) {
+                  for (let i = 1; i <= 8; i++) {
+                    ['A', 'B'].forEach(ring => {
+                      const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
+                      if (parsed) {
+                        if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
+                        else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
+                        else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
+                      }
+                    });
+                  }
+                } else {
+                  const mockConf = {
+                    'A_RING_1_PHASE_CONF_CD': 'S0000300',
+                    'A_RING_2_PHASE_CONF_CD': 'L0450200',
+                    'A_RING_3_PHASE_CONF_CD': 'S1800300',
+                    'A_RING_4_PHASE_CONF_CD': 'L2250200',
+                    'A_RING_5_PHASE_CONF_CD': 'P0000200',
+                    'B_RING_5_PHASE_CONF_CD': 'P0900200',
+                  };
+                  for (let i = 1; i <= 8; i++) {
+                    ['A', 'B'].forEach(ring => {
+                      const parsed = parsePhaseCode(mockConf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
+                      if (parsed) {
+                        if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
+                        else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
+                        else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
+                      }
+                    });
+                  }
+                }
+
+                vehHasData = (sPhaseMap[deg] || lPhaseMap[deg]);
+                pedHasData = (pPhaseMap[deg] || sPhaseMap[deg]);
+                if (!vehHasData && !pedHasData) return '';
+
+                if (cropData) {
+                  const checkActive = (map) => {
+                    const conf = map[deg];
+                    if (!conf) return false;
+                    return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
+                  };
+                  const getCountdown = (map) => {
+                    const conf = map[deg];
+                    if (!conf) return 0;
+                    return conf.ring === 'A' ? remainA : remainB;
+                  };
+
+                  const calcPedestrian = (conf, map) => {
+                    const phaseIdx = conf.idx;
+                    const elapsed = conf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+                    let pedDuration = getCountdown(map) + elapsed;
+                    if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                      const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                      const activeSteps = ringData.filter(step => step[`ped${phaseIdx}`] === 1 || step[`ped${phaseIdx}`] === 5);
+                      if (activeSteps.length > 0) {
+                        pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+                      } else {
+                        pedDuration = Math.max(0, pedDuration - 5);
+                      }
+                    } else {
+                      pedDuration = Math.max(0, pedDuration - 5);
+                    }
+                    const pedRemain = Math.max(0, pedDuration - elapsed);
+                    if (pedRemain > 0) {
+                      p = pedRemain <= 7 ? 'flash' : 'green';
+                      pedCountdown = Math.max(pedCountdown, pedRemain);
+                    } else {
+                      p = 'red';
+                    }
+                  };
+
+                  if (checkActive(sPhaseMap)) { s = 'green'; carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); }
+                  if (checkActive(lPhaseMap)) { l = 'green'; carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); }
+
+                  if (checkActive(pPhaseMap)) calcPedestrian(pPhaseMap[deg], pPhaseMap);
+                  else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) calcPedestrian(sPhaseMap[deg], sPhaseMap);
+                }
+
+                if (s === 'green' && carCountdown <= 3) s = 'yellow';
+                if (l === 'green' && carCountdown <= 3) l = 'yellow';
+                if (p === 'green' && pedCountdown > 0 && pedCountdown <= 7) p = 'flash';
+
+                if (s === 'off' && l === 'off' && (sPhaseMap[deg] || lPhaseMap[deg])) { s = 'red'; l = 'red'; }
+                if (p === 'off' && pPhaseMap[deg]) { p = 'red'; }
+              }
+
+              let crOn = s === 'red' || l === 'red';
+              let cyOn = s === 'yellow' || l === 'yellow';
+              let caOn = l === 'green';
+              let cgOn = s === 'green';
+
+              let prOn = p === 'red' || p === 'off';
+              let pgOn = p === 'green' || p === 'flash';
+
+              return `
+                <div class="signal-slot slot-${key}" id="slot-${key}">
+                  ${vehHasData ? `
+                    <div class="signal-mount-frame" id="veh-block-${key}">
+                      <div class="component-block">
+                        <div class="car-housing-box">
+                          <div class="lens c-red ${crOn ? 'on' : ''}"></div>
+                          <div class="lens c-yellow ${cyOn ? 'on' : ''}"></div>
+                          <div class="lens c-arrow ${caOn ? 'on' : ''}"></div>
+                          <div class="lens c-green ${cgOn ? 'on' : ''}"></div>
+                        </div>
+                        <div class="micro-timer car-timer">${carCountdown > 0 ? `${carCountdown}s` : '-'}</div>
+                      </div>
+                    </div>
+                  ` : ''}
+                  ${pedHasData ? `
+                    <div class="ped-mount-container">
+                      <div class="ped-mount-frame" id="ped-block-${key}">
+                        <div class="ped-housing-box">
+                          <div class="ped-lens p-red ${prOn ? 'on' : ''}"></div>
+                          <div class="ped-lens p-green ${pgOn ? 'on' : ''}"></div>
+                        </div>
+                        <div class="micro-timer ped-timer">${pedCountdown > 0 ? `${pedCountdown}s` : '-'}</div>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `,
+      iconSize: [80, 80],
+      iconAnchor: [40, 40]
+    });
+  }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul]);
+
+  return (
+    <Marker 
+      position={[intersection.y_coord, intersection.x_coord]} 
+      icon={customIcon}
+      zIndexOffset={2000}
+    />
+  );
+}
+
+// [3.8] 듀얼 모니터링 모달
 function DualDetailOverlay({ intersections, onClose }) {
   const [dualZoomMode, setDualZoomMode] = useState(false);
 
@@ -1330,7 +1726,7 @@ function DualDetailOverlay({ intersections, onClose }) {
 }
 
 // [4] 사이드바 트리 (Accordion) 컴포넌트
-function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, seoulActiveIds }) {
+function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, dualSelection, onDualClick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -1446,16 +1842,28 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                   e.dataTransfer.setData('application/json', JSON.stringify(item));
                 }}
               >
-                <input 
-                  type="checkbox" 
-                  checked={dualSelection.some(d => d.id === item.id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    onDualClick(item);
-                  }}
-                  style={{ marginRight: '6px', cursor: 'pointer' }}
-                  title="듀얼 모니터링 담기/빼기"
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: '6px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={dualSelection.some(d => d.id === item.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onDualClick(item);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                    title="듀얼 모니터링 담기/빼기"
+                  />
+                  <input 
+                    type="checkbox" 
+                    checked={activeMapSignalIds.includes(item.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onMapSignalToggle(item.id);
+                    }}
+                    style={{ cursor: 'pointer', accentColor: '#10b981' }}
+                    title="지도상 신호 표출 (최대 3개)"
+                  />
+                </div>
                  <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (seoulActiveIds && seoulActiveIds.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
                 <span className="id-label">[{item.int_no}]</span>
                 <span className="name-label">{item.int_nm}</span>
@@ -1516,16 +1924,28 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
                           e.dataTransfer.setData('application/json', JSON.stringify(item));
                         }}
                       >
-                        <input 
-                          type="checkbox" 
-                          checked={dualSelection.some(d => d.id === item.id)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            onDualClick(item);
-                          }}
-                          style={{ marginRight: '6px', cursor: 'pointer' }}
-                          title="듀얼 모니터링 담기/빼기"
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginRight: '6px' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={dualSelection.some(d => d.id === item.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              onDualClick(item);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                            title="듀얼 모니터링 담기/빼기"
+                          />
+                          <input 
+                            type="checkbox" 
+                            checked={activeMapSignalIds.includes(item.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              onMapSignalToggle(item.id);
+                            }}
+                            style={{ cursor: 'pointer', accentColor: '#10b981' }}
+                            title="지도상 신호 표출 (최대 3개)"
+                          />
+                        </div>
                         <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                         <span className="id-label">[{item.int_no}]</span>
                         <span className="name-label">{item.int_nm}</span>
@@ -1776,6 +2196,7 @@ function App() {
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
+  const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
 
   // 멀티스크린 상태
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
@@ -1976,6 +2397,19 @@ function App() {
     return () => clearInterval(intervalId);
   }, [detailIntersection, dualSelection, multiScreenItems]);
 
+  const handleMapSignalToggle = (id) => {
+    setActiveMapSignalIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(x => x !== id);
+      }
+      if (prev.length >= 3) {
+        alert('지도상 실시간 신호 표출은 브라우저 성능 최적화를 위해 동시에 최대 3개까지만 가능합니다.');
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
   // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {
     // 모든 교차로에 대해 기본값 '수신'을 반환하도록 Proxy 객체 사용
@@ -2103,6 +2537,8 @@ function MapPanner({ intersections, targetId }) {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           seoulActiveIds={seoulActiveIds}
+          activeMapSignalIds={activeMapSignalIds}
+          onMapSignalToggle={handleMapSignalToggle}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -2139,6 +2575,16 @@ function MapPanner({ intersections, targetId }) {
               activeTab={activeTab}
               seoulActiveIds={seoulActiveIds}
             />
+            {/* 지도상 신호 표출 레이어 */}
+            {intersections
+              .filter(item => activeMapSignalIds.includes(item.id))
+              .map(item => (
+                <MapSignalOverlay 
+                  key={`map-signal-${item.id}`} 
+                  intersection={item} 
+                  uticUpdateTick={uticUpdateTick}
+                />
+              ))}
           </MapContainer>
 
         </div>
