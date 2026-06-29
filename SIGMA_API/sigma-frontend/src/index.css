@@ -227,6 +227,34 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .slot-W  { transform: rotate(-90deg); }   
 .slot-NW { transform: rotate(-45deg); }
 
+/* 지도상 화살표 모드 신호 스타일 */
+.map-signal-arrow {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+.map-signal-arrow svg {
+  width: 100%;
+  height: 100%;
+}
+.map-signal-arrow.green {
+  fill: var(--sig-green);
+  filter: drop-shadow(0 0 5px var(--sig-green));
+}
+.map-signal-arrow.yellow {
+  fill: var(--sig-yellow);
+  filter: drop-shadow(0 0 5px var(--sig-yellow));
+}
+.map-signal-arrow.red {
+  fill: var(--sig-red);
+  filter: drop-shadow(0 0 3px var(--sig-red));
+}
+
 .ped-mount-container {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     transform: rotate(-90deg);
