@@ -2865,6 +2865,27 @@ function MapPanner({ intersections, targetId }) {
             >
               📛 교차로명 {showMapNames ? '표시' : '숨김'}
             </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-toggle-multi ${isMultiScreenOpen ? 'active' : ''}`}
+              style={{
+                background: isMultiScreenOpen ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: isMultiScreenOpen ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setIsMultiScreenOpen(prev => !prev)}
+            >
+              {isMultiScreenOpen ? '🖥️ 멀티스크린 닫기' : '🖥️ 멀티스크린 열기'}
+            </button>
           </div>
 
           <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
@@ -3030,18 +3051,6 @@ function MapPanner({ intersections, targetId }) {
           })}
         </div>
       </section>
-
-      {/* 멀티스크린 접기/펼치기 버튼 */}
-      <button 
-        className="btn-toggle-multi" 
-        onClick={() => setIsMultiScreenOpen(prev => !prev)}
-        style={{ 
-          marginRight: isMultiScreenOpen ? `${multiWidth}px` : '0px',
-          transition: isResizing ? 'none' : 'margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s'
-        }}
-      >
-        {isMultiScreenOpen ? '▶ 멀티스크린 접기' : '◀ 멀티스크린 열기'}
-      </button>
 
       {detailIntersection && dualSelection.length === 0 && (
         <SingleDetailOverlay 
