@@ -2824,6 +2824,12 @@ function App() {
   }, [detailIntersection, dualSelection, multiScreenItems]);
 
   const handleMapSignalToggle = (id) => {
+    // 만약 신호가 꺼진 모드('off') 상태에서 신호등 표출을 켰다면 자동으로 'arrow' 모드로 활성화
+    setMapSignalDisplayMode(prev => {
+      if (prev === 'off') return 'arrow';
+      return prev;
+    });
+
     setActiveMapSignalIds(prev => {
       if (prev.includes(id)) {
         return prev.filter(x => x !== id);
@@ -3079,7 +3085,6 @@ function MapPanner({ intersections, targetId }) {
             <MapPanner intersections={intersections} targetId={activeNodeId} />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
             <IntersectionMarkers 
-              key={activeTab || 'none'}
               intersections={intersections} 
               onDetailClick={openDetail}
               onMultiClick={handleMultiClick}
@@ -3092,7 +3097,7 @@ function MapPanner({ intersections, targetId }) {
               showMapNames={showMapNames}
             />
             {/* 지도상 신호 표출 레이어 */}
-            {intersections
+            {mapSignalDisplayMode !== 'off' && intersections
               .filter(item => activeMapSignalIds.includes(item.id))
               .map(item => (
                 <MapSignalOverlay 
