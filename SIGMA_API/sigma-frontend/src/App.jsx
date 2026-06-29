@@ -76,6 +76,20 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
               onMapSignalToggle(intersection.id);
             }
           }
+        },
+        popupopen: (e) => {
+          // 팝업이 열릴 때 쉬프트 클릭인 경우 강제로 닫음
+          if (e.target._map.originalEvent && e.target._map.originalEvent.shiftKey) {
+            e.target.closePopup();
+          }
+        }
+      }}
+      // Leaflet CircleMarker의 기본 popup 바인딩을 피하기 위해, Shift가 없을 때만 Popup이 작동하도록 처리
+      // 혹은 onClick 단계에서 Shift 여부에 따라 openPopup을 직접 제어
+      onClick={(e) => {
+        if (e.originalEvent && e.originalEvent.shiftKey) {
+          e.originalEvent.preventDefault();
+          e.originalEvent.stopPropagation();
         }
       }}
     >
@@ -98,40 +112,43 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
         </Tooltip>
       )}
       
-      <Popup className="custom-popup" closeButton={true}>
-        <div className="popup-content">
-          <h3 
-            draggable={true} 
-            onDragStart={(e) => {
-              e.stopPropagation();
-              map.dragging.disable();
-              e.dataTransfer.setData('application/json', JSON.stringify(intersection));
-            }}
-            onDragEnd={() => {
-              map.dragging.enable();
-            }}
-            style={{ cursor: 'grab' }}
-          >
-            {intersection.int_nm}
-          </h3>
-          <div style={{display:'flex', flexDirection:'column', gap:'5px', marginTop:'10px'}}>
-            <button className="btn-detail" onClick={(e) => {
-              e.stopPropagation();
-              onDetailClick(intersection);
-            }}>상세보기</button>
-            <button className="btn-detail" style={{background:'#10b981', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
-              e.stopPropagation();
-              onMultiClick(intersection);
-            }}>멀티 담기</button>
-            <button className="btn-detail" style={{background:'#0284c7', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
-              e.stopPropagation();
-              if (onMapSignalToggle) onMapSignalToggle(intersection.id);
-            }}>
-              {isSignalOverlayActive ? '지도 신호 해제' : '지도 신호 표출'}
-            </button>
+      {/* 팝업 열기 조건을 설정: Shift 클릭 시 팝업 렌더링을 스킵하여 상세 메뉴가 아예 생성/표시되지 않도록 차단 */}
+      {!(window.event && window.event.shiftKey) && (
+        <Popup className="custom-popup" closeButton={true}>
+          <div className="popup-content">
+            <h3 
+              draggable={true} 
+              onDragStart={(e) => {
+                e.stopPropagation();
+                map.dragging.disable();
+                e.dataTransfer.setData('application/json', JSON.stringify(intersection));
+              }}
+              onDragEnd={() => {
+                map.dragging.enable();
+              }}
+              style={{ cursor: 'grab' }}
+            >
+              {intersection.int_nm}
+            </h3>
+            <div style={{display:'flex', flexDirection:'column', gap:'5px', marginTop:'10px'}}>
+              <button className="btn-detail" onClick={(e) => {
+                e.stopPropagation();
+                onDetailClick(intersection);
+              }}>상세보기</button>
+              <button className="btn-detail" style={{background:'#10b981', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+                e.stopPropagation();
+                onMultiClick(intersection);
+              }}>멀티 담기</button>
+              <button className="btn-detail" style={{background:'#0284c7', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
+                e.stopPropagation();
+                if (onMapSignalToggle) onMapSignalToggle(intersection.id);
+              }}>
+                {isSignalOverlayActive ? '지도 신호 해제' : '지도 신호 표출'}
+              </button>
+            </div>
           </div>
-        </div>
-      </Popup>
+        </Popup>
+      )}
     </CircleMarker>
   );
 }
