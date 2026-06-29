@@ -287,7 +287,196 @@ function parsePhaseCode(code) {
   };
 }
 
-function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remainB, isSeoul, sigMapData }) {
+function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remainB, isSeoul, sigMapData, displayMode }) {
+  // 만약 화살표 모드라면, 16방향 및 보행용 101-116 화살표를 링 위에 렌더링
+  if (displayMode === 'arrow') {
+    const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
+    const peds = Array.from({ length: 16 }, (_, i) => i + 101);
+    const allMovs = [...vehicles, ...peds];
+
+    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
+    const getVisualArrowLocal = (m) => {
+      if (m <= 0) return { type: '•', ang: 0 };
+      if (m >= 100) return { type: 'WALK', ang: 0 };
+      const movementMap = {
+        1: { type: '↰', ang: 270 }, 2: { type: '↗', ang: 45 },
+        3: { type: '↰', ang: 0 }, 4: { type: '↙', ang: 315 },
+        5: { type: '↰', ang: 90 }, 6: { type: '↙', ang: 45 },
+        7: { type: '↰', ang: 180 }, 8: { type: '↖', ang: 45 },
+        9: { type: '↰', ang: 225 }, 10: { type: '↗', ang: 0 },
+        11: { type: '↰', ang: 315 }, 12: { type: '↘', ang: 0 },
+        13: { type: '↰', ang: 45 }, 14: { type: '↙', ang: 0 },
+        15: { type: '↰', ang: 135 }, 16: { type: '↖', ang: 0 }
+      };
+      return movementMap[m] || { type: '•', ang: 0 };
+    };
+
+    const sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
+    const detailData = window.L02_DETAIL_DATA || [];
+    const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
+
+    if (conf) {
+      for (let i = 1; i <= 8; i++) {
+        ['A', 'B'].forEach(ring => {
+          const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
+          if (parsed) {
+            const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
+            const degVal = dirAngleMap[parsed.direction] !== undefined ? dirAngleMap[parsed.direction] : 0;
+            if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
+            else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
+            else if (parsed.type === 'P') pPhaseMap[degVal] = { ring, idx: i };
+          }
+        });
+      }
+    }
+
+    const htmlContent = allMovs.map(m => {
+      const isPed = m >= 100;
+      const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrowLocal(m);
+
+      let ang = 0;
+      if (isPed) {
+        const refM = m - 100;
+        ang = defPosAngles[(refM - 1) % 16] || 0;
+        if (refM % 2 !== 0) ang += 22;
+        else ang -= 22;
+      } else {
+        ang = defPosAngles[(m - 1) % 16] || 0;
+        if (m % 2 !== 0) ang += 7;
+        else ang -= 7;
+      }
+
+      const rad = ang * Math.PI / 180;
+      const radiusMultiplier = isPed ? 70 : ((m > 8) ? 55 : 40);
+      const topPx = 77.5 - Math.cos(rad) * radiusMultiplier;
+      const leftPx = 77.5 + Math.sin(rad) * radiusMultiplier;
+
+      let signalState = 'off';
+      let countdown = 0;
+
+      if (isSeoul) {
+        const dirKeys = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const refIdx = isPed ? Math.floor((m - 101) / 2) : Math.floor((m - 1) / 2);
+        const key = dirKeys[refIdx % 8];
+        
+        let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
+        if (spat && spat.status) {
+          const prefixMap = { 'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se', 'S': 'st', 'SW': 'sw', 'W': 'wt', 'NW': 'nw' };
+          const pfx = prefixMap[key];
+          const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
+          const timingObj = Array.isArray(spat.timing) ? (spat.timing[0] || {}) : spat.timing;
+
+          const stsg = statObj[pfx + 'StsgStatNm'];
+          const ltsg = statObj[pfx + 'LtsgStatNm'];
+          const pdsg = statObj[pfx + 'PdsgStatNm'];
+
+          const stTime = timingObj[pfx + 'StsgRmdrCs'];
+          const ltTime = timingObj[pfx + 'LtsgRmdrCs'];
+          const pdTime = timingObj[pfx + 'PdsgRmdrCs'];
+
+          if (isPed) {
+            if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
+              signalState = 'G';
+              if (pdTime) countdown = Math.floor(pdTime / 10);
+            } else if (pdsg === 'protected-clearance' || pdsg === '황색') {
+              signalState = 'F';
+              if (pdTime) countdown = Math.floor(pdTime / 10);
+            }
+          } else {
+            const isLeftMov = (m % 2 !== 0);
+            if (isLeftMov) {
+              if (ltsg === 'protected-Movement-Allowed' || ltsg === '녹색화살표') {
+                signalState = 'G';
+                if (ltTime) countdown = Math.floor(ltTime / 10);
+              } else if (ltsg === 'protected-clearance' || ltsg === '황색') {
+                signalState = 'Y';
+                if (ltTime) countdown = Math.floor(ltTime / 10);
+              }
+            } else {
+              if (stsg === 'protected-Movement-Allowed' || stsg === 'permissive-Movement-Allowed' || stsg === '녹색' || stsg === '녹색화살표' || stsg === '청색') {
+                signalState = 'G';
+                if (stTime) countdown = Math.floor(stTime / 10);
+              } else if (stsg === 'protected-clearance' || stsg === 'permissive-clearance' || stsg === '황색') {
+                signalState = 'Y';
+                if (stTime) countdown = Math.floor(stTime / 10);
+              }
+            }
+          }
+        }
+      } else {
+        if (cropData) {
+          const checkActive = (map, degVal) => {
+            const conf = map[degVal];
+            if (!conf) return false;
+            return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
+          };
+          const getCountdown = (map, degVal) => {
+            const conf = map[degVal];
+            if (!conf) return 0;
+            return conf.ring === 'A' ? remainA : remainB;
+          };
+
+          const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+          if (isPed) {
+            const pConf = pPhaseMap[degVal];
+            if (pConf && checkActive(pPhaseMap, degVal)) {
+              const elapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+              let pedDuration = getCountdown(pPhaseMap, degVal) + elapsed;
+              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                const ringData = pConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                const activeSteps = ringData.filter(step => step[`ped${pConf.idx}`] === 1 || step[`ped${pConf.idx}`] === 5);
+                if (activeSteps.length > 0) {
+                  pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
+                }
+              } else {
+                pedDuration = Math.max(0, pedDuration - 5);
+              }
+              const pedRemain = Math.max(0, pedDuration - elapsed);
+              if (pedRemain > 0) {
+                signalState = pedRemain <= 7 ? 'F' : 'G';
+                countdown = pedRemain;
+              }
+            }
+          } else {
+            const isLeftMov = (m % 2 !== 0);
+            const mapToUse = isLeftMov ? lPhaseMap : sPhaseMap;
+            if (mapToUse[degVal] && checkActive(mapToUse, degVal)) {
+              signalState = 'G';
+              countdown = getCountdown(mapToUse, degVal);
+              if (countdown <= 3) signalState = 'Y';
+            }
+          }
+        }
+      }
+
+      if (signalState === 'off') return null;
+
+      const colorClass = (signalState === 'Y' || signalState === 'F') ? 'yellow' : 'green';
+      const isPedOnly = isPed;
+
+      return (
+        <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justify-content: 'center', pointerEvents: 'none', zIndex: 10000 }}>
+          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${arrowData.ang}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb' }}>
+            {isPedOnly ? 'WALK' : arrowData.type}
+          </div>
+          <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 'bold', color: colorClass === 'yellow' ? '#f59e0b' : '#00ffa2', textShadow: '0 0 3px #000, 0 0 5px #000', marginTop: '1px', lineHeight: 1 }}>
+            {countdown > 0 ? `${countdown}s` : ''}
+          </div>
+        </div>
+      );
+    });
+
+    return (
+      <div className="compass-center-overlay-wrapper" style={{ position: 'absolute', top: '50%', left: '50%', width: '155px', height: '155px', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%, -50%) scale(1.15)', transformOrigin: 'center' }}>
+        <div className="compass-center-overlay" style={{ background: 'none', border: 'none', boxShadow: 'none' }}>
+          {htmlContent}
+        </div>
+      </div>
+    );
+  }
+
   const directions = [
     { key: 'N', deg: 0 },
     { key: 'NE', deg: 45 },
@@ -346,7 +535,9 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
       width: '155px',
       height: '155px',
       pointerEvents: 'none',
-      zIndex: 9999
+      zIndex: 9999,
+      transform: 'translate(-50%, -50%) scale(1.15)',
+      transformOrigin: 'center'
     }}>
       <div className="compass-center-overlay">
         {directions.map(({ key, deg }) => {
@@ -2189,7 +2380,7 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
 }
 
 // [4.5] 멀티스크린용 개별 교차로 신호 카드 컴포넌트
-function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
+function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }) {
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
   const [phaseB, setPhaseB] = useState(1);
@@ -2393,6 +2584,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick }) {
             remainB={remainB}
             isSeoul={isSeoul}
             sigMapData={sigMapData}
+            displayMode={displayMode}
           />
         </div>
       </div>
@@ -2421,8 +2613,16 @@ function App() {
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
   const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
-  const [mapSignalDisplayMode, setMapSignalDisplayMode] = useState('compass'); // 'compass' (신호등 모양) | 'arrow' (화살표 모양)
+  const [mapSignalDisplayMode, setMapSignalDisplayMode] = useState('compass'); // 'compass' (신호등 모양) | 'arrow' (화살표 모양) | 'off' (제거)
+  const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
+
+  // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
+  useEffect(() => {
+    if (mapSignalDisplayMode === 'off') {
+      setActiveMapSignalIds([]);
+    }
+  }, [mapSignalDisplayMode]);
 
   // 멀티스크린 상태
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
@@ -2937,25 +3137,61 @@ function MapPanner({ intersections, targetId }) {
         )}
         <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridSize * gridSize})</h2>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>레이아웃:</span>
-            {[2, 3, 4].map(sz => (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
               <button 
-                key={sz} 
-                className={`btn-clear ${gridSize === sz ? 'active' : ''}`} 
-                style={{ 
-                  padding: '4px 8px', 
-                  fontSize: '0.7rem', 
+                className={`btn-clear ${multiSignalDisplayMode === 'compass' ? 'active' : ''}`}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.65rem',
                   borderRadius: '4px',
-                  background: gridSize === sz ? 'rgba(56,189,248,0.2)' : 'transparent',
-                  color: gridSize === sz ? '#38bdf8' : '#aaa',
-                  border: gridSize === sz ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)'
+                  background: multiSignalDisplayMode === 'compass' ? 'rgba(56,189,248,0.2)' : 'transparent',
+                  color: multiSignalDisplayMode === 'compass' ? '#38bdf8' : '#aaa',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
                 }}
-                onClick={() => handleGridSizeChange(sz)}
+                onClick={() => setMultiSignalDisplayMode('compass')}
               >
-                {sz}x{sz}
+                🚦 신호등 모양
               </button>
-            ))}
+              <button 
+                className={`btn-clear ${multiSignalDisplayMode === 'arrow' ? 'active' : ''}`}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.65rem',
+                  borderRadius: '4px',
+                  background: multiSignalDisplayMode === 'arrow' ? 'rgba(56,189,248,0.2)' : 'transparent',
+                  color: multiSignalDisplayMode === 'arrow' ? '#38bdf8' : '#aaa',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+                onClick={() => setMultiSignalDisplayMode('arrow')}
+              >
+                ↗️ 화살표 모양
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>레이아웃:</span>
+              {[2, 3, 4].map(sz => (
+                <button 
+                  key={sz} 
+                  className={`btn-clear ${gridSize === sz ? 'active' : ''}`} 
+                  style={{ 
+                    padding: '4px 8px', 
+                    fontSize: '0.7rem', 
+                    borderRadius: '4px',
+                    background: gridSize === sz ? 'rgba(56,189,248,0.2)' : 'transparent',
+                    color: gridSize === sz ? '#38bdf8' : '#aaa',
+                    border: gridSize === sz ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)'
+                  }}
+                  onClick={() => handleGridSizeChange(sz)}
+                >
+                  {sz}x{sz}
+                </button>
+              ))}
+            </div>
           </div>
           <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridSize * gridSize).fill(null))}>전체 비우기</button>
         </header>
@@ -3016,6 +3252,7 @@ function MapPanner({ intersections, targetId }) {
                   <MultiSignalCard
                     intersection={item}
                     uticUpdateTick={uticUpdateTick}
+                    displayMode={multiSignalDisplayMode}
                     onRemove={() => {
                       setMultiScreenItems(prev => {
                         const next = [...prev];
