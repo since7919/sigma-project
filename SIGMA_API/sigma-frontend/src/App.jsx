@@ -169,7 +169,7 @@ function MapAutoResizer() {
   return null;
 }
 
-function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle }) {
+function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, showMapNames }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -224,7 +224,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targe
             intersection={intersection}
             isSelected={isSelected}
             baseColor={baseColor}
-            showTooltip={showTooltip}
+            showTooltip={showTooltip && showMapNames}
             onDetailClick={onDetailClick}
             onMultiClick={onMultiClick}
             activeMapSignalIds={activeMapSignalIds}
@@ -2422,6 +2422,7 @@ function App() {
   const [supabaseConfig, setSupabaseConfig] = useState(null);
   const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
   const [mapSignalDisplayMode, setMapSignalDisplayMode] = useState('compass'); // 'compass' (신호등 모양) | 'arrow' (화살표 모양)
+  const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
 
   // 멀티스크린 상태
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
@@ -2843,6 +2844,27 @@ function MapPanner({ intersections, targetId }) {
             >
               ↗️ 화살표 모양
             </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-clear ${showMapNames ? 'active' : ''}`}
+              style={{
+                background: showMapNames ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: showMapNames ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setShowMapNames(p => !p)}
+            >
+              📛 교차로명 {showMapNames ? '표시' : '숨김'}
+            </button>
           </div>
 
           <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
@@ -2860,6 +2882,7 @@ function MapPanner({ intersections, targetId }) {
               seoulActiveIds={seoulActiveIds}
               activeMapSignalIds={activeMapSignalIds}
               onMapSignalToggle={handleMapSignalToggle}
+              showMapNames={showMapNames}
             />
             {/* 지도상 신호 표출 레이어 */}
             {intersections
