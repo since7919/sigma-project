@@ -2609,10 +2609,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
       <footer className="multi-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '0.65rem' }}>{isSeoul ? '서울 T-data' : `경찰청 UTIC_${intersection.region_cd || ''} ${REGION_MAP[intersection.region_cd] || ''}`.trim()}</span>
-          <span style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace', display: 'flex', gap: '8px' }}>
-            <span>🕒 로컬: {currentTimeStr}</span>
-            <span>🌐 표준(UTC): {utcTimeStr}</span>
-          </span>
+          <span style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace' }}>🕒 {currentTimeStr}</span>
         </div>
         <span className={`api-indicator ${isApiOn ? 'on' : 'off'}`}>
           API: {isApiOn ? 'ON' : 'OFF'}
@@ -2651,6 +2648,17 @@ function App() {
   // 멀티스크린 상태
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
+  const [utcTimeStr, setUtcTimeStr] = useState('-');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setUtcTimeStr(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleGridSizeChange = (newSize) => {
     setGridSize(newSize);
@@ -3308,6 +3316,24 @@ function MapPanner({ intersections, targetId }) {
             );
           })}
         </div>
+        {isMultiScreenOpen && (
+          <footer className="multi-panel-footer" style={{
+            padding: '10px 20px',
+            background: 'rgba(0, 0, 0, 0.4)',
+            borderTop: '1px solid var(--glass-border)',
+            textAlign: 'center',
+            fontSize: '0.75rem',
+            color: '#94a3b8',
+            fontFamily: 'monospace',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span>🌐 시스템 표준시 (UTC):</span>
+            <strong style={{ color: '#38bdf8' }}>{utcTimeStr}</strong>
+          </footer>
+        )}
       </section>
 
       {detailIntersection && dualSelection.length === 0 && (
