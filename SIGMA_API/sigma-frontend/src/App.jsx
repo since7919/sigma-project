@@ -699,9 +699,10 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
 
               if (checkActive(pPhaseMap)) { 
                 calcPedestrian(pPhaseMap[deg], pPhaseMap);
-              }
-              else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) { 
-                calcPedestrian(sPhaseMap[deg], sPhaseMap);
+              } else if (pPhaseMap[deg]) {
+                p = 'red';
+                // 적색 보행 잔여시간은 차량용 inactive와 동일한 계산식 활용
+                pedCountdown = Math.max(pedCountdown, getInactiveCountdown(pPhaseMap));
               }
             }
 
@@ -2101,7 +2102,10 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                   }
 
                   if (checkActive(pPhaseMap)) calcPedestrian(pPhaseMap[deg], pPhaseMap);
-                  else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) calcPedestrian(sPhaseMap[deg], sPhaseMap);
+                  else if (pPhaseMap[deg]) {
+                    p = 'red';
+                    pedCountdown = Math.max(pedCountdown, getInactiveCountdown(pPhaseMap));
+                  }
                 }
 
                 if (s === 'green' && carCountdown <= 3) s = 'yellow';
