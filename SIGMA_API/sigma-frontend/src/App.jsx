@@ -2394,6 +2394,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
   const [remainB, setRemainB] = useState(0);
   const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
   const [currentTimeStr, setCurrentTimeStr] = useState('-');
+  const [utcTimeStr, setUtcTimeStr] = useState('-');
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -2511,6 +2512,7 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
         String(now.getDate()).padStart(2, '0') + ' ' + 
         now.toLocaleTimeString('ko-KR', { hour12: false })
       );
+      setUtcTimeStr(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
 
       if (isSeoul) return;
       if (!cropData || !cropData.cycle) return;
@@ -2607,7 +2609,10 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
       <footer className="multi-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '0.65rem' }}>{isSeoul ? '서울 T-data' : `경찰청 UTIC_${intersection.region_cd || ''} ${REGION_MAP[intersection.region_cd] || ''}`.trim()}</span>
-          <span style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace' }}>🕒 {currentTimeStr}</span>
+          <span style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace', display: 'flex', gap: '8px' }}>
+            <span>🕒 로컬: {currentTimeStr}</span>
+            <span>🌐 표준(UTC): {utcTimeStr}</span>
+          </span>
         </div>
         <span className={`api-indicator ${isApiOn ? 'on' : 'off'}`}>
           API: {isApiOn ? 'ON' : 'OFF'}
