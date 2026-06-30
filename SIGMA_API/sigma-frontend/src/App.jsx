@@ -328,6 +328,9 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
         });
       }
     }
+    if (String(intersection.int_no) === '1045') {
+      pPhaseMap[225] = { ring: 'A', idx: 1 };
+    }
 
     const htmlContent = allMovs.map(m => {
       const isPed = m >= 100;
@@ -505,6 +508,9 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
         }
       });
     }
+  }
+  if (String(intersection.int_no) === '1045') {
+    pPhaseMap[225] = { ring: 'A', idx: 1 };
   } else {
     const mockConf = {
       'A_RING_1_PHASE_CONF_CD': 'S0000300',
@@ -1105,6 +1111,20 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
         return acc;
       }, []);
+      if (String(intersection.int_no) === '1045') {
+        phases.push({
+          direction: '남서',
+          outputType: '보행자(3)',
+          pedestrian: 0,
+          bankCode: '',
+          timeSignal: 0,
+          original: 'P225010',
+          type: 'P',
+          angle: 225,
+          ring: 'A',
+          idx: 1
+        });
+      }
     } else {
       const mockConf = {
         'A_RING_1_PHASE_CONF_CD': 'S0000300',
@@ -1813,6 +1833,9 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                 }
               });
             }
+          }
+          if (String(intersection.int_no) === '1045') {
+            pPhaseMap[225] = { ring: 'A', idx: 1 };
           }
 
           // m 번호가 활성 상태에 부합하는지
@@ -2723,6 +2746,7 @@ function App() {
   }, []);
 
   const handleGridSizeChange = (newSize) => {
+    setSoloFullscreenIndex(null);
     setGridSize(newSize);
     setMultiScreenItems(prev => {
       const newLength = newSize * newSize;
@@ -2736,6 +2760,7 @@ function App() {
   };
   const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
   const [isMultiScreenFullscreen, setIsMultiScreenFullscreen] = useState(false); // 멀티스크린 전체화면 상태 state
+  const [soloFullscreenIndex, setSoloFullscreenIndex] = useState(null); // 개별 카드 전체화면 인덱스
   const dragOverIndexRef = useRef(null);
   const draggedIndexRef = useRef(null);
   const [multiWidth, setMultiWidth] = useState(750);
@@ -3301,16 +3326,20 @@ function MapPanner({ intersections, targetId }) {
           </div>
         </header>
         <div className="multi-grid" style={{
-          gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-          gridTemplateRows: `repeat(${gridSize}, 1fr)`
+          gridTemplateColumns: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridSize}, 1fr)`,
+          gridTemplateRows: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridSize}, 1fr)`
         }}>
-          {multiScreenItems.map((item, index) => {
+          {(soloFullscreenIndex !== null
+            ? [{ item: multiScreenItems[soloFullscreenIndex], index: soloFullscreenIndex }]
+            : multiScreenItems.map((item, index) => ({ item, index }))
+          ).map(({ item, index }) => {
             return (
               <div
                 key={item ? item.id : `empty-${index}`}
                 className="multi-grid-slot-wrapper"
-                draggable={!!item}
+                draggable={soloFullscreenIndex !== null ? false : !!item}
                 onDragStart={(e) => {
+                  if (soloFullscreenIndex !== null) return;
                   if (item) {
                     draggedIndexRef.current = index;
                     e.dataTransfer.setData('text/plain', String(index));
@@ -3318,7 +3347,6 @@ function MapPanner({ intersections, targetId }) {
                 }}
                 onDragEnd={(e) => {
                   draggedIndexRef.current = null;
-                  // 이전 하이라이트 제거
                   if (dragOverIndexRef.current !== null) {
                     dragOverIndexRef.current = null;
                   }
@@ -3327,9 +3355,9 @@ function MapPanner({ intersections, targetId }) {
                   });
                 }}
                 onDragOver={(e) => {
+                  if (soloFullscreenIndex !== null) return;
                   e.preventDefault();
                   if (dragOverIndexRef.current !== index) {
-                    // 이전 하이라이트 해제
                     e.currentTarget.closest('.multi-grid')?.querySelectorAll('.multi-grid-slot-wrapper').forEach(el => {
                       el.style.border = 'none';
                     });
@@ -3345,12 +3373,18 @@ function MapPanner({ intersections, targetId }) {
                   e.currentTarget.style.border = 'none';
                   handleDropOnSlot(e, index);
                 }}
+                onDoubleClick={() => {
+                  if (item) {
+                    setSoloFullscreenIndex(prev => prev !== null ? null : index);
+                  }
+                }}
                 style={{ 
                   width: '100%', 
                   height: '100%', 
                   display: 'flex', 
                   boxSizing: 'border-box',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  cursor: item ? 'pointer' : 'default'
                 }}
               >
                 {item ? (
@@ -3359,6 +3393,7 @@ function MapPanner({ intersections, targetId }) {
                     uticUpdateTick={uticUpdateTick}
                     displayMode={multiSignalDisplayMode}
                     onRemove={() => {
+                      setSoloFullscreenIndex(null);
                       setMultiScreenItems(prev => {
                         const next = [...prev];
                         next[index] = null;
