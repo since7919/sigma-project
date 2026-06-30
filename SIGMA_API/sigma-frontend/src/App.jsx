@@ -273,7 +273,10 @@ function parsePhaseCode(code) {
   }
 
   const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
-  const parsedAngle = dirAngleMap[dirName] !== undefined ? dirAngleMap[dirName] : 0;
+  let parsedAngle = dirAngleMap[dirName] !== undefined ? dirAngleMap[dirName] : 0;
+  
+  // UTIC 진입각도와 UI 렌더링 방위 슬롯 간의 90도 시차 보정 (-90도 회전)
+  parsedAngle = (parsedAngle - 90 + 360) % 360;
 
   return { 
     direction: dirName, 
@@ -655,8 +658,20 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                 return sumTime;
               };
 
-              if (checkActive(sPhaseMap)) { s = 'green'; carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); }
-              if (checkActive(lPhaseMap)) { l = 'green'; carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); }
+              if (checkActive(sPhaseMap)) { 
+                s = 'green'; 
+                carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
+              } else if (sPhaseMap[deg]) {
+                carCountdown = Math.max(carCountdown, getInactiveCountdown(sPhaseMap));
+              }
+
+              if (checkActive(lPhaseMap)) { 
+                l = 'green'; 
+                carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
+              } else if (lPhaseMap[deg] && !checkActive(sPhaseMap)) {
+                // 직진이 켜져있을 땐 직진 잔여시간을 우선으로 보여주고, 둘다 꺼져있을 땐 적색 잔여시간 대입
+                carCountdown = Math.max(carCountdown, getInactiveCountdown(lPhaseMap));
+              }
 
               const calcPedestrian = (conf, map) => {
                 const phaseIdx = conf.idx;
@@ -2058,8 +2073,39 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                     }
                   };
 
-                  if (checkActive(sPhaseMap)) { s = 'green'; carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); }
-                  if (checkActive(lPhaseMap)) { l = 'green'; carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); }
+                  // 활성화되지 않았을 때(적색)의 잔여 시간 계산 도우미
+                  const getInactiveCountdown = (map) => {
+                    const conf = map[deg];
+                    if (!conf) return 0;
+                    const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
+                    const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
+                    const currentRemain = conf.ring === 'A' ? remainA : remainB;
+                    const targetIdx = conf.idx;
+                    
+                    let sumTime = currentRemain;
+                    let step = currentPhaseIdx;
+                    
+                    while (step !== targetIdx) {
+                      step = (step % 8) + 1; // 1~8 스텝 순환
+                      const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                      sumTime += split;
+                    }
+                    return sumTime;
+                  };
+
+                  if (checkActive(sPhaseMap)) { 
+                    s = 'green'; 
+                    carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
+                  } else if (sPhaseMap[deg]) {
+                    carCountdown = Math.max(carCountdown, getInactiveCountdown(sPhaseMap));
+                  }
+
+                  if (checkActive(lPhaseMap)) { 
+                    l = 'green'; 
+                    carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
+                  } else if (lPhaseMap[deg] && !checkActive(sPhaseMap)) {
+                    carCountdown = Math.max(carCountdown, getInactiveCountdown(lPhaseMap));
+                  }
 
                   if (checkActive(pPhaseMap)) calcPedestrian(pPhaseMap[deg], pPhaseMap);
                   else if (checkActive(sPhaseMap) && !pPhaseMap[deg]) calcPedestrian(sPhaseMap[deg], sPhaseMap);
