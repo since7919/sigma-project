@@ -969,8 +969,10 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
       
-      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
-      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
       
       const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
@@ -1626,8 +1628,12 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
       const now = new Date();
-      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
-      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      // KST(한국 표준시) 기준 일자 및 누적 초 구하기 (서버 시간대 무관)
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      
+      // KST 기준 자정 시간 구하기
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
       const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
 
@@ -2512,8 +2518,10 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
       
-      const kstNow = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
-      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
       
       const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
