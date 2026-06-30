@@ -274,9 +274,6 @@ function parsePhaseCode(code) {
 
   const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
   let parsedAngle = dirAngleMap[dirName] !== undefined ? dirAngleMap[dirName] : 0;
-  
-  // UTIC 진입각도와 UI 렌더링 방위 슬롯 간의 90도 시차 보정 (-90도 회전)
-  parsedAngle = (parsedAngle - 90 + 360) % 360;
 
   return { 
     direction: dirName, 
