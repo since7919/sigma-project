@@ -2649,11 +2649,21 @@ function App() {
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
   const [utcTimeStr, setUtcTimeStr] = useState('-');
+  const [localTimeStr, setLocalTimeStr] = useState('-');
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
       setUtcTimeStr(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
+      
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      setLocalTimeStr(
+        kstNow.getFullYear() + '-' + 
+        String(kstNow.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(kstNow.getDate()).padStart(2, '0') + ' ' + 
+        kstNow.toLocaleTimeString('ko-KR', { hour12: false })
+      );
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -3328,10 +3338,17 @@ function MapPanner({ intersections, targetId }) {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '6px'
+            gap: '15px'
           }}>
-            <span>🌐 시스템 표준시 (UTC):</span>
-            <strong style={{ color: '#38bdf8' }}>{utcTimeStr}</strong>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <span>🕒 로컬 표준시 (KST):</span>
+              <strong style={{ color: '#10b981' }}>{localTimeStr}</strong>
+            </div>
+            <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }}></div>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <span>🌐 시스템 표준시 (UTC):</span>
+              <strong style={{ color: '#38bdf8' }}>{utcTimeStr}</strong>
+            </div>
           </footer>
         )}
       </section>
