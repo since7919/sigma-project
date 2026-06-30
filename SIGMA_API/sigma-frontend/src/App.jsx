@@ -323,8 +323,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
         ['A', 'B'].forEach(ring => {
           const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
           if (parsed) {
-            const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
-            const degVal = dirAngleMap[parsed.direction] !== undefined ? dirAngleMap[parsed.direction] : 0;
+            const degVal = parsed.angle;
             if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
             else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
             else if (parsed.type === 'P') pPhaseMap[degVal] = { ring, idx: i };
@@ -1804,15 +1803,12 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
           const detailData = window.L02_DETAIL_DATA || [];
           const conf = detailData.find(d => String(d.INT_NO) === String(intersection.int_no));
 
-          let matchedAngle = null;
           if (conf) {
             for (let i = 1; i <= 8; i++) {
               ['A', 'B'].forEach(ring => {
                 const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
                 if (parsed) {
-                  // 각도를 키로 매핑
-                  const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
-                  const degVal = dirAngleMap[parsed.direction] !== undefined ? dirAngleMap[parsed.direction] : 0;
+                  const degVal = parsed.angle;
                   if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
                   else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
                   else if (parsed.type === 'P') pPhaseMap[degVal] = { ring, idx: i };
