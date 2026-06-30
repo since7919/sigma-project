@@ -618,7 +618,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
             }
           } else {
             vehHasData = hasConf && (sPhaseMap[deg] || lPhaseMap[deg]);
-            pedHasData = hasConf && (pPhaseMap[deg] || sPhaseMap[deg]);
+            pedHasData = hasConf && !!pPhaseMap[deg];
             if (!vehHasData && !pedHasData) return null;
 
             if (cropData) {
@@ -2028,7 +2028,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                 }
 
                 vehHasData = (sPhaseMap[deg] || lPhaseMap[deg]);
-                pedHasData = (pPhaseMap[deg] || sPhaseMap[deg]);
+                pedHasData = !!pPhaseMap[deg];
                 if (!vehHasData && !pedHasData) return '';
 
                 if (cropData) {
