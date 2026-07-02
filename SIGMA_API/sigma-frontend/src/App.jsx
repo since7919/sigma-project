@@ -23,7 +23,7 @@ const REGION_MAP = {
 };
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onMultiClick, activeMapSignalIds, onMapSignalToggle }) {
+const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onMultiClick, activeMapSignalIds, onMapSignalToggle }) {
   const markerRef = React.useRef(null);
   const map = useMap();
 
@@ -151,7 +151,7 @@ function IntersectionMarkerItem({ intersection, isSelected, baseColor, showToolt
       )}
     </CircleMarker>
   );
-}
+});
 
 // 지도 컨테이너 크기 변경 감지 및 자동 리사이즈 컴포넌트
 function MapAutoResizer() {
@@ -495,7 +495,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
   const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
 
   let sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
-  const hasConf = true;
+  const hasConf = !!conf;
 
   if (conf) {
     for (let i = 1; i <= 8; i++) {
@@ -508,28 +508,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
         }
       });
     }
-  }
-  if (String(intersection.int_no) === '1045') {
-    pPhaseMap[225] = { ring: 'A', idx: 1 };
-  } else {
-    const mockConf = {
-      'A_RING_1_PHASE_CONF_CD': 'S0000300',
-      'A_RING_2_PHASE_CONF_CD': 'L0450200',
-      'A_RING_3_PHASE_CONF_CD': 'S1800300',
-      'A_RING_4_PHASE_CONF_CD': 'L2250200',
-      'A_RING_5_PHASE_CONF_CD': 'P0000200',
-      'B_RING_5_PHASE_CONF_CD': 'P0900200',
-    };
-    for (let i = 1; i <= 8; i++) {
-      ['A', 'B'].forEach(ring => {
-        const parsed = parsePhaseCode(mockConf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
-        if (parsed) {
-          if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
-          else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
-          else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
-        }
-      });
-    }
+
   }
 
   return (
@@ -1049,7 +1028,6 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         const angleMap = { 'nt': 0, 'ne': 45, 'et': 90, 'se': 135, 'st': 180, 'sw': 225, 'wt': 270, 'nw': 315 };
         
         Object.entries(prefixMap).forEach(([pfx, dirKor]) => {
-          // 직진/차량 신호 확인
           if (statObj[pfx + 'StsgStatNm'] !== undefined && statObj[pfx + 'StsgStatNm'] !== null) {
             phases.push({
               direction: dirKor,
@@ -1060,7 +1038,6 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               pfx: pfx
             });
           }
-          // 좌회전 신호 확인
           if (statObj[pfx + 'LtsgStatNm'] !== undefined && statObj[pfx + 'LtsgStatNm'] !== null) {
             phases.push({
               direction: dirKor,
@@ -1085,24 +1062,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         });
       }
       
-      // 만약 API 실시간 수신 정보가 아직 준비되지 않았거나 없더라도 테이블 틀이 표시되도록 기본 위상(Fallback) 제공
-      if (phases.length === 0) {
-        const mockConf = {
-          'A_RING_1_PHASE_CONF_CD': 'S0000300',
-          'A_RING_2_PHASE_CONF_CD': 'L0450200',
-          'A_RING_3_PHASE_CONF_CD': 'S1800300',
-          'A_RING_4_PHASE_CONF_CD': 'L2250200',
-          'A_RING_5_PHASE_CONF_CD': 'P0000200',
-          'B_RING_5_PHASE_CONF_CD': 'P0900200',
-        };
-        phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
-          const aPhase = parsePhaseCode(mockConf[`A_RING_${idx}_PHASE_CONF_CD`]);
-          const bPhase = parsePhaseCode(mockConf[`B_RING_${idx}_PHASE_CONF_CD`]);
-          if (aPhase) acc.push({ ...aPhase, ring: 'A', idx });
-          if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
-          return acc;
-        }, []);
-      }
+      // API 실시간 수신 정보 수신 데이터 우선 원칙 적용
     } else if (conf) {
       phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
         const aPhase = parsePhaseCode(conf[`A_RING_${idx}_PHASE_CONF_CD`]);
@@ -1111,36 +1071,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
         return acc;
       }, []);
-      if (String(intersection.int_no) === '1045') {
-        phases.push({
-          direction: '남서',
-          outputType: '보행자(3)',
-          pedestrian: 0,
-          bankCode: '',
-          timeSignal: 0,
-          original: 'P225010',
-          type: 'P',
-          angle: 225,
-          ring: 'A',
-          idx: 1
-        });
-      }
-    } else {
-      const mockConf = {
-        'A_RING_1_PHASE_CONF_CD': 'S0000300',
-        'A_RING_2_PHASE_CONF_CD': 'L0450200',
-        'A_RING_3_PHASE_CONF_CD': 'S1800300',
-        'A_RING_4_PHASE_CONF_CD': 'L2250200',
-        'A_RING_5_PHASE_CONF_CD': 'P0000200',
-        'B_RING_5_PHASE_CONF_CD': 'P0900200',
-      };
-      phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
-        const aPhase = parsePhaseCode(mockConf[`A_RING_${idx}_PHASE_CONF_CD`]);
-        const bPhase = parsePhaseCode(mockConf[`B_RING_${idx}_PHASE_CONF_CD`]);
-        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx });
-        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
-        return acc;
-      }, []);
+
     }
 
     const uniqueMovementsMap = new Map();
@@ -1354,6 +1285,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
             </span>
           </div>
           <div style={{position: 'relative', width: '100%', height: '100%'}}>
+          {useMemo(() => (
             <MapContainer 
               center={[intersection.y_coord, intersection.x_coord]} 
               zoom={19} 
@@ -1377,6 +1309,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                 fillOpacity={0.8}
               />
             </MapContainer>
+          ), [intersection.y_coord, intersection.x_coord, mapZoomMode])}
             <CompassOverlay 
               intersection={intersection}
               cropData={cropData}
@@ -1708,7 +1641,15 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
     return () => clearInterval(interval);
   }, [cropData, isSeoul]);
 
-  const customIcon = useMemo(() => {
+  const markerRef = useRef(null);
+  const stableIcon = useMemo(() => L.divIcon({
+    className: 'map-realtime-signal-icon',
+    html: '<div></div>',
+    iconSize: [160, 160],
+    iconAnchor: [80, 80]
+  }), []);
+
+  const htmlString = useMemo(() => {
     // 1. 화살표 표출 모드인 경우 (SIGMA 앱의 16방향 및 보행 101-116 화살표 대응)
     if (displayMode === 'arrow') {
       // 16개 차량 이동류 (1~16)와 16개 보행 이동류 (101~116) 정의
@@ -1905,18 +1846,12 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
         `;
       }).join('');
 
-      return L.divIcon({
-        className: 'map-realtime-signal-icon-arrow',
-        html: `
-          <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
-            <div class="compass-center-overlay" style="background: none; border: none; box-shadow: none;">
-              ${htmlContent}
-            </div>
-          </div>
-        `,
-        iconSize: [160, 160],
-        iconAnchor: [80, 80]
-      });
+      return `
+        <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 155px; height: 155px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
+          <div class="center-box" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; background: #333; border: 2px solid #555; border-radius: 4px;"></div>
+          ${htmlContent}
+        </div>
+      `;
     }
 
     // 2. 기존 신호등(Compass) 표출 모드인 경우
@@ -1931,9 +1866,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
       { key: 'NW', deg: 315 }
     ];
 
-    return L.divIcon({
-      className: 'map-realtime-signal-icon',
-      html: `
+    return `
         <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
           <div class="compass-center-overlay">
             ${directions.map(({ key, deg }) => {
@@ -2022,25 +1955,6 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                   for (let i = 1; i <= 8; i++) {
                     ['A', 'B'].forEach(ring => {
                       const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
-                      if (parsed) {
-                        if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
-                        else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
-                        else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
-                      }
-                    });
-                  }
-                } else {
-                  const mockConf = {
-                    'A_RING_1_PHASE_CONF_CD': 'S0000300',
-                    'A_RING_2_PHASE_CONF_CD': 'L0450200',
-                    'A_RING_3_PHASE_CONF_CD': 'S1800300',
-                    'A_RING_4_PHASE_CONF_CD': 'L2250200',
-                    'A_RING_5_PHASE_CONF_CD': 'P0000200',
-                    'B_RING_5_PHASE_CONF_CD': 'P0900200',
-                  };
-                  for (let i = 1; i <= 8; i++) {
-                    ['A', 'B'].forEach(ring => {
-                      const parsed = parsePhaseCode(mockConf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
                       if (parsed) {
                         if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
                         else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
@@ -2178,27 +2092,49 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
             }).join('')}
           </div>
         </div>
-      `,
-      iconSize: [160, 160],
-      iconAnchor: [80, 80]
-    });
+      `;
   }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul, displayMode]);
 
-  return (
-    <Marker 
-      position={[intersection.y_coord, intersection.x_coord]} 
-      icon={customIcon}
-      zIndexOffset={500}
-      eventHandlers={{
-        click: (e) => {
-          // 신호등 오버레이 자체를 클릭(혹은 쉬프트 클릭)했을 때도 아래의 교차로가 선택/토글되도록 이벤트 위임
-          if (onMapSignalToggle) {
-            onMapSignalToggle(intersection.id);
-          }
-        }
-      }}
-    />
-  );
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    
+    const marker = L.marker([intersection.y_coord, intersection.x_coord], {
+      icon: L.divIcon({
+        className: 'map-realtime-signal-icon',
+        html: htmlString || '<div></div>',
+        iconSize: [160, 160],
+        iconAnchor: [80, 80]
+      }),
+      zIndexOffset: 500
+    });
+
+    marker.addTo(map);
+    markerRef.current = marker;
+
+    marker.on('click', () => {
+      if (onMapSignalToggle) {
+        onMapSignalToggle(intersection.id);
+      }
+    });
+
+    return () => {
+      marker.remove();
+      markerRef.current = null;
+    };
+  }, [map, intersection.id, intersection.y_coord, intersection.x_coord]);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      const el = markerRef.current.getElement();
+      if (el) {
+        el.innerHTML = htmlString;
+      }
+    }
+  }, [htmlString]);
+
+  return null;
 }
 
 // [3.8] 듀얼 모니터링 모달
@@ -2461,6 +2397,58 @@ function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh,
 }
 
 // [4.5] 멀티스크린용 개별 교차로 신호 카드 컴포넌트
+
+function HeaderClock() {
+  const [utcTimeStr, setUtcTimeStr] = useState('-');
+  const [localTimeStr, setLocalTimeStr] = useState('-');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setUtcTimeStr(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
+      
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      setLocalTimeStr(
+        kstNow.getFullYear() + '-' + 
+        String(kstNow.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(kstNow.getDate()).padStart(2, '0') + ' ' + 
+        kstNow.toLocaleTimeString('ko-KR', { hour12: false })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <footer className="multi-panel-footer" style={{
+      padding: '10px 20px',
+      background: 'rgba(0, 0, 0, 0.4)',
+      borderTop: '1px solid var(--glass-border)',
+      textAlign: 'center',
+      fontSize: '0.75rem',
+      color: '#94a3b8',
+      fontFamily: 'monospace',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '15px'
+    }}>
+      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+        <span>🕒 로컬 표준시 (KST):</span>
+        <strong style={{ color: '#10b981' }}>{localTimeStr}</strong>
+      </div>
+      <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }}></div>
+      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+        <span>🌐 시스템 표준시 (UTC):</span>
+        <strong style={{ color: '#38bdf8' }}>{utcTimeStr}</strong>
+      </div>
+    </footer>
+  );
+}
+
+// 메인 컴포넌트
 function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }) {
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -2645,29 +2633,31 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
       </header>
       <div className="multi-card-body">
         <div style={{position: 'relative', width: '100%', height: '100%'}}>
-          <MapContainer 
-            center={[intersection.y_coord, intersection.x_coord]} 
-            zoom={20} 
-            style={{width:'100%', height:'100%'}} 
-            zoomControl={false}
-            dragging={false}
-            touchZoom={false}
-            doubleClickZoom={false}
-            scrollWheelZoom={false}
-            boxZoom={false}
-            keyboard={false}
-          >
-            <MapAutoResizer />
-            <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
-            <CircleMarker
-              center={[intersection.y_coord, intersection.x_coord]}
-              radius={6}
-              fillColor="#00ecff"
-              color="#fff"
-              weight={2}
-              fillOpacity={0.8}
-            />
-          </MapContainer>
+          {useMemo(() => (
+            <MapContainer 
+              center={[intersection.y_coord, intersection.x_coord]} 
+              zoom={20} 
+              style={{width:'100%', height:'100%'}} 
+              zoomControl={false}
+              dragging={false}
+              touchZoom={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              boxZoom={false}
+              keyboard={false}
+            >
+              <MapAutoResizer />
+              <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
+              <CircleMarker
+                center={[intersection.y_coord, intersection.x_coord]}
+                radius={6}
+                fillColor="#00ecff"
+                color="#fff"
+                weight={2}
+                fillOpacity={0.8}
+              />
+            </MapContainer>
+          ), [intersection.y_coord, intersection.x_coord])}
           <CompassOverlay 
             intersection={intersection}
             cropData={cropData}
@@ -2723,28 +2713,7 @@ function App() {
   // 멀티스크린 상태
   const [gridSize, setGridSize] = useState(3); // 기본 3x3
   const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
-  const [utcTimeStr, setUtcTimeStr] = useState('-');
-  const [localTimeStr, setLocalTimeStr] = useState('-');
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setUtcTimeStr(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
-      
-      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
-      const kstNow = new Date(kstTimeStr);
-      setLocalTimeStr(
-        kstNow.getFullYear() + '-' + 
-        String(kstNow.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(kstNow.getDate()).padStart(2, '0') + ' ' + 
-        kstNow.toLocaleTimeString('ko-KR', { hour12: false })
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
+  // 클럭 상태 추출 완료 (HeaderClock 컴포넌트로 이동)
   const handleGridSizeChange = (newSize) => {
     setSoloFullscreenIndex(null);
     setGridSize(newSize);
@@ -3413,31 +3382,7 @@ function MapPanner({ intersections, targetId }) {
             );
           })}
         </div>
-        {isMultiScreenOpen && (
-          <footer className="multi-panel-footer" style={{
-            padding: '10px 20px',
-            background: 'rgba(0, 0, 0, 0.4)',
-            borderTop: '1px solid var(--glass-border)',
-            textAlign: 'center',
-            fontSize: '0.75rem',
-            color: '#94a3b8',
-            fontFamily: 'monospace',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '15px'
-          }}>
-            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-              <span>🕒 로컬 표준시 (KST):</span>
-              <strong style={{ color: '#10b981' }}>{localTimeStr}</strong>
-            </div>
-            <div style={{ width: '1px', height: '12px', background: 'rgba(255,255,255,0.15)' }}></div>
-            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-              <span>🌐 시스템 표준시 (UTC):</span>
-              <strong style={{ color: '#38bdf8' }}>{utcTimeStr}</strong>
-            </div>
-          </footer>
-        )}
+        {isMultiScreenOpen && <HeaderClock />}
       </section>
 
       {detailIntersection && dualSelection.length === 0 && (
