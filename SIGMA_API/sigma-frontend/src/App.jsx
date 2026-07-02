@@ -471,7 +471,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
     });
 
     return (
-      <div className="compass-center-overlay-wrapper" style={{ position: 'absolute', top: '50%', left: '50%', width: 'var(--compass-size, 155px)', height: 'var(--compass-size, 155px)', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%, -50%) scale(1.15)', transformOrigin: 'center' }}>
+      <div className="compass-center-overlay-wrapper" style={{ position: 'absolute', top: '50%', left: '50%', width: '180px', height: '180px', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%, -50%) scale(calc(1.15 * var(--compass-scale, 1)))', transformOrigin: 'center' }}>
         <div className="compass-center-overlay" style={{ background: 'none', border: 'none', boxShadow: 'none' }}>
           {htmlContent}
         </div>
@@ -526,11 +526,11 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
       position: 'absolute',
       top: '50%',
       left: '50%',
-      width: 'var(--compass-size, 155px)',
-      height: 'var(--compass-size, 155px)',
+      width: '180px',
+      height: '180px',
       pointerEvents: 'none',
       zIndex: 9999,
-      transform: 'translate(-50%, -50%) scale(1.15)',
+      transform: 'translate(-50%, -50%) scale(calc(1.15 * var(--compass-scale, 1)))',
       transformOrigin: 'center'
     }}>
       <div className="compass-center-overlay">
@@ -1877,7 +1877,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
       }).join('');
 
       return `
-        <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: var(--compass-size, 155px); height: var(--compass-size, 155px); border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
+        <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(var(--compass-scale, 1)); width: 180px; height: 180px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
           <div class="center-box" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; background: #333; border: 2px solid #555; border-radius: 4px;"></div>
           ${htmlContent}
         </div>
@@ -1897,7 +1897,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
     ];
 
     return `
-        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: var(--compass-size, 155px); height: var(--compass-size, 155px);">
+        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(calc(1.1 * var(--compass-scale, 1))); transform-origin: center; pointer-events: none; z-index: 9999; width: 180px; height: 180px;">
           <div class="compass-center-overlay">
             ${directions.map(({ key, deg }) => {
               let s = 'off', l = 'off', p = 'off';
@@ -2763,7 +2763,7 @@ function App() {
   const [compassSizeVal, setCompassSizeVal] = useState(180);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--compass-size', compassSizeVal + 'px');
+    document.documentElement.style.setProperty('--compass-scale', compassSizeVal / 180);
   }, [compassSizeVal]);
 
   // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
