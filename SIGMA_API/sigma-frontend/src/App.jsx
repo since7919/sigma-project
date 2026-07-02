@@ -509,6 +509,16 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
       });
     }
 
+    if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+      Object.keys(sPhaseMap).forEach(angle => {
+        const sConf = sPhaseMap[angle];
+        const ringData = sConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+        const hasPedSignal = ringData.some(step => step[`ped${sConf.idx}`] === 1 || step[`ped${sConf.idx}`] === 5);
+        if (hasPedSignal && !pPhaseMap[angle]) {
+          pPhaseMap[angle] = { ring: sConf.ring, idx: sConf.idx };
+        }
+      });
+    }
   }
 
   return (
@@ -1072,6 +1082,21 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         return acc;
       }, []);
 
+      if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+        const straightPhases = phases.filter(p => p.type === 'S');
+        straightPhases.forEach(sPhase => {
+          const ringData = sPhase.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+          const hasPedSignal = ringData.some(step => step[`ped${sPhase.idx}`] === 1 || step[`ped${sPhase.idx}`] === 5);
+          if (hasPedSignal && !phases.some(p => p.type === 'P' && p.angle === sPhase.angle)) {
+            phases.push({
+              ...sPhase,
+              outputType: '보행(3)',
+              type: 'P',
+              pedestrian: 0
+            });
+          }
+        });
+      }
     }
 
     const uniqueMovementsMap = new Map();
@@ -1962,9 +1987,20 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                       }
                     });
                   }
+
+                  if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                    Object.keys(sPhaseMap).forEach(angle => {
+                      const sConf = sPhaseMap[angle];
+                      const ringData = sConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                      const hasPedSignal = ringData.some(step => step[`ped${sConf.idx}`] === 1 || step[`ped${sConf.idx}`] === 5);
+                      if (hasPedSignal && !pPhaseMap[angle]) {
+                        pPhaseMap[angle] = { ring: sConf.ring, idx: sConf.idx };
+                      }
+                    });
+                  }
                 }
 
-                vehHasData = (sPhaseMap[deg] || lPhaseMap[deg]);
+                vehHasData = !!(sPhaseMap[deg] || lPhaseMap[deg]);
                 pedHasData = !!pPhaseMap[deg];
                 if (!vehHasData && !pedHasData) return '';
 
