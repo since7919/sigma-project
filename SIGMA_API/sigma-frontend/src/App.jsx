@@ -729,8 +729,8 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
               {vehHasData && (
                 <div className="signal-mount-frame" id={`veh-block-${key}`}>
                   <div className="component-block">
-                    <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000' }}>
-                      {dirLabel}
+                    <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
+                      {dirLabel} {carCountdown > 0 ? <span style={{color:'#fff'}}>{carCountdown}s</span> : null}
                     </div>
                     <div className="car-housing-box">
                       <div className={`lens c-red ${crOn ? 'on' : ''}`}></div>
@@ -738,7 +738,6 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                       <div className={`lens c-arrow ${caOn ? 'on' : ''}`}></div>
                       <div className={`lens c-green ${cgOn ? 'on' : ''}`}></div>
                     </div>
-                    <div className="micro-timer car-timer">{carCountdown > 0 ? `${carCountdown}s` : '-'}</div>
                   </div>
                 </div>
               )}
@@ -2097,18 +2096,26 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
               let prOn = p === 'red' || p === 'off';
               let pgOn = p === 'green' || p === 'flash';
 
+              const directionLabels = {
+                'N': '북', 'E': '동', 'S': '남', 'W': '서',
+                'NE': '북동', 'SE': '남동', 'SW': '남서', 'NW': '북서'
+              };
+              const dirLabel = directionLabels[key] || '';
+
               return `
                 <div class="signal-slot slot-${key}" id="slot-${key}">
                   ${vehHasData ? `
                     <div class="signal-mount-frame" id="veh-block-${key}">
                       <div class="component-block">
+                        <div style="font-size: 10px; color: #38bdf8; font-weight: bold; margin-bottom: 2px; text-align: center; text-shadow: 0 0 3px #000; white-space: nowrap;">
+                          ${dirLabel} ${carCountdown > 0 ? `<span style="color:#fff">${carCountdown}s</span>` : ''}
+                        </div>
                         <div class="car-housing-box">
                           <div class="lens c-red ${crOn ? 'on' : ''}"></div>
                           <div class="lens c-yellow ${cyOn ? 'on' : ''}"></div>
                           <div class="lens c-arrow ${caOn ? 'on' : ''}"></div>
                           <div class="lens c-green ${cgOn ? 'on' : ''}"></div>
                         </div>
-                        <div class="micro-timer car-timer">${carCountdown > 0 ? `${carCountdown}s` : '-'}</div>
                       </div>
                     </div>
                   ` : ''}
