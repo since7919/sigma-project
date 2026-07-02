@@ -679,7 +679,6 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                     pedDuration = Math.max(0, pedDuration - 5);
                   }
                 } else {
-                  // SigMap 데이터가 아예 없는 경우 휴리스틱 (차량보다 5초 일찍 종료)
                   pedDuration = Math.max(0, pedDuration - 5);
                 }
                 const pedRemain = Math.max(0, pedDuration - elapsed);
@@ -696,14 +695,12 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                 calcPedestrian(pPhaseMap[deg], pPhaseMap);
               } else if (pPhaseMap[deg]) {
                 p = 'red';
-                // 적색 보행 잔여시간은 차량용 inactive와 동일한 계산식 활용
                 pedCountdown = Math.max(pedCountdown, getInactiveCountdown(pPhaseMap));
               }
             }
 
             if (s === 'green' && carCountdown <= 3) s = 'yellow';
             if (l === 'green' && carCountdown <= 3) l = 'yellow';
-            // pedCountdown <= 7 is handled directly above for pPhaseMap, or below for fallback
             if (p === 'green' && pedCountdown > 0 && pedCountdown <= 7) p = 'flash';
 
             if (s === 'off' && l === 'off' && (sPhaseMap[deg] || lPhaseMap[deg])) { s = 'red'; l = 'red'; }
@@ -718,6 +715,15 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
           let prOn = p === 'red' || p === 'off';
           let pgOn = p === 'green' || p === 'flash';
 
+          let carColor = '#fff';
+          if (cgOn || caOn) carColor = '#10b981';
+          else if (cyOn) carColor = '#f59e0b';
+          else if (crOn) carColor = '#ef4444';
+
+          let pedColor = '#fff';
+          if (pgOn) pedColor = '#10b981';
+          else if (prOn) pedColor = '#ef4444';
+
           const directionLabels = {
             'N': '북', 'E': '동', 'S': '남', 'W': '서',
             'NE': '북동', 'SE': '남동', 'SW': '남서', 'NW': '북서'
@@ -730,7 +736,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                 <div className="signal-mount-frame" id={`veh-block-${key}`}>
                   <div className="component-block">
                     <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
-                      {dirLabel} {carCountdown > 0 ? <span style={{color:'#fff'}}>{carCountdown}s</span> : null}
+                      {dirLabel} {carCountdown > 0 ? <span style={{color: carColor}}>{carCountdown}s</span> : null}
                     </div>
                     <div className="car-housing-box">
                       <div className={`lens c-red ${crOn ? 'on' : ''}`}></div>
@@ -748,7 +754,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
                       <div className={`ped-lens p-red ${prOn ? 'on' : ''}`}></div>
                       <div className={`ped-lens p-green ${pgOn ? 'on' : ''}`}></div>
                     </div>
-                    <div className="micro-timer ped-timer">{pedCountdown > 0 ? `${pedCountdown}s` : '-'}</div>
+                    <div className="micro-timer ped-timer" style={{color: pedColor}}>{pedCountdown > 0 ? `${pedCountdown}s` : '-'}</div>
                   </div>
                 </div>
               )}
@@ -2096,6 +2102,15 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
               let prOn = p === 'red' || p === 'off';
               let pgOn = p === 'green' || p === 'flash';
 
+              let carColor = '#fff';
+              if (cgOn || caOn) carColor = '#10b981';
+              else if (cyOn) carColor = '#f59e0b';
+              else if (crOn) carColor = '#ef4444';
+
+              let pedColor = '#fff';
+              if (pgOn) pedColor = '#10b981';
+              else if (prOn) pedColor = '#ef4444';
+
               const directionLabels = {
                 'N': '북', 'E': '동', 'S': '남', 'W': '서',
                 'NE': '북동', 'SE': '남동', 'SW': '남서', 'NW': '북서'
@@ -2108,7 +2123,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                     <div class="signal-mount-frame" id="veh-block-${key}">
                       <div class="component-block">
                         <div style="font-size: 10px; color: #38bdf8; font-weight: bold; margin-bottom: 2px; text-align: center; text-shadow: 0 0 3px #000; white-space: nowrap;">
-                          ${dirLabel} ${carCountdown > 0 ? `<span style="color:#fff">${carCountdown}s</span>` : ''}
+                          ${dirLabel} ${carCountdown > 0 ? `<span style="color:${carColor}">${carCountdown}s</span>` : ''}
                         </div>
                         <div class="car-housing-box">
                           <div class="lens c-red ${crOn ? 'on' : ''}"></div>
@@ -2126,7 +2141,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
                           <div class="ped-lens p-red ${prOn ? 'on' : ''}"></div>
                           <div class="ped-lens p-green ${pgOn ? 'on' : ''}"></div>
                         </div>
-                        <div class="micro-timer ped-timer">${pedCountdown > 0 ? `${pedCountdown}s` : '-'}</div>
+                        <div class="micro-timer ped-timer" style="color: ${pedColor}">${pedCountdown > 0 ? `${pedCountdown}s` : '-'}</div>
                       </div>
                     </div>
                   ` : ''}
