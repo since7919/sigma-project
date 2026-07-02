@@ -471,7 +471,7 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
     });
 
     return (
-      <div className="compass-center-overlay-wrapper" style={{ position: 'absolute', top: '50%', left: '50%', width: '155px', height: '155px', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%, -50%) scale(1.15)', transformOrigin: 'center' }}>
+      <div className="compass-center-overlay-wrapper" style={{ position: 'absolute', top: '50%', left: '50%', width: 'var(--compass-size, 155px)', height: 'var(--compass-size, 155px)', pointerEvents: 'none', zIndex: 9999, transform: 'translate(-50%, -50%) scale(1.15)', transformOrigin: 'center' }}>
         <div className="compass-center-overlay" style={{ background: 'none', border: 'none', boxShadow: 'none' }}>
           {htmlContent}
         </div>
@@ -526,8 +526,8 @@ function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remai
       position: 'absolute',
       top: '50%',
       left: '50%',
-      width: '155px',
-      height: '155px',
+      width: 'var(--compass-size, 155px)',
+      height: 'var(--compass-size, 155px)',
       pointerEvents: 'none',
       zIndex: 9999,
       transform: 'translate(-50%, -50%) scale(1.15)',
@@ -1719,7 +1719,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
 
         // 반경 위치 오프셋
         const offset = isPed ? 0.00022 : ((m > 8) ? 0.00018 : 0.00014);
-        // 중앙 마커 기준 픽셀 좌표 변환 대신 relative 퍼센트/px 배치용 (155px 컴파스 링 내부 기준 배치는 삼각함수 사용)
+        // 중앙 마커 기준 픽셀 좌표 변환 대신 relative 퍼센트/px 배치용 (var(--compass-size, 155px) 컴파스 링 내부 기준 배치는 삼각함수 사용)
         const rad = ang * Math.PI / 180;
         const radiusMultiplier = isPed ? 70 : ((m > 8) ? 55 : 40);
         const topPx = 77.5 - Math.cos(rad) * radiusMultiplier;
@@ -1872,7 +1872,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
       }).join('');
 
       return `
-        <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 155px; height: 155px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
+        <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: var(--compass-size, 155px); height: var(--compass-size, 155px); border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
           <div class="center-box" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; background: #333; border: 2px solid #555; border-radius: 4px;"></div>
           ${htmlContent}
         </div>
@@ -1892,7 +1892,7 @@ function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, dis
     ];
 
     return `
-        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 155px; height: 155px;">
+        <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: var(--compass-size, 155px); height: var(--compass-size, 155px);">
           <div class="compass-center-overlay">
             ${directions.map(({ key, deg }) => {
               let s = 'off', l = 'off', p = 'off';
@@ -2738,6 +2738,11 @@ function App() {
   const [mapSignalDisplayMode, setMapSignalDisplayMode] = useState('compass'); // 'compass' (신호등 모양) | 'arrow' (화살표 모양) | 'off' (제거)
   const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
+  const [compassSizeVal, setCompassSizeVal] = useState(180);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--compass-size', compassSizeVal + 'px');
+  }, [compassSizeVal]);
 
   // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
   useEffect(() => {
@@ -3182,6 +3187,19 @@ function MapPanner({ intersections, targetId }) {
             >
               📛 교차로명
             </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>영역</span>
+              <input 
+                type="range" 
+                min="100" 
+                max="300" 
+                value={compassSizeVal}
+                onChange={(e) => setCompassSizeVal(Number(e.target.value))}
+                style={{ width: '60px', accentColor: '#38bdf8' }}
+                title="신호등 영역 크기 조절"
+              />
+            </div>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
               className={`btn-toggle-multi ${isMultiScreenOpen ? 'active' : ''}`}
