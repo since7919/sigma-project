@@ -94,8 +94,8 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .tab-btn.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.05); }
 .detail-tab-content { flex: 1; overflow-y: auto; padding: 0; }
 .detail-grid-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; }
-.detail-grid-table th { background: rgba(255,255,255,0.02); color: #94a3b8; padding: 12px; border-bottom: 1px solid #1e293b; font-weight: 600; }
-.detail-grid-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+.detail-grid-table th { background: rgba(255,255,255,0.02); color: #94a3b8; padding: 6px 12px; border-bottom: 1px solid #1e293b; font-weight: 600; }
+.detail-grid-table td { padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); }
 .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
 .action-type { color: #818cf8; font-weight: 600; }
 
