@@ -1,0 +1,914 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
+import axios from 'axios';
+import CompassOverlay from './CompassOverlay';
+import { parsePhaseCode, toHex, getCellClass } from '../utils/signalUtils';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
+function MapResizer({ mapZoomMode }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [mapZoomMode, map]);
+  return null;
+}
+
+export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick }) {
+  const [localTab, setLocalTab] = useState('detail');
+  const [cropData, setCropData] = useState(null);
+  const [phaseA, setPhaseA] = useState(1);
+  const [phaseB, setPhaseB] = useState(1);
+  const [remainA, setRemainA] = useState(0);
+  const [remainB, setRemainB] = useState(0);
+  const [currentTimeStr, setCurrentTimeStr] = useState('-');
+  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+  const [isSigMapLoading, setIsSigMapLoading] = useState(false);
+  const [weeklyPlans, setWeeklyPlans] = useState({});
+  const [allTodPlans, setAllTodPlans] = useState({});
+  const [todTab, setTodTab] = useState('general');
+  const [reservCtrl, setReservCtrl] = useState('-');
+  const [reservCode, setReservCode] = useState(0);
+  const [localZoomMode, setLocalZoomMode] = useState(false);
+  
+  const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
+
+  const isSeoul = useMemo(() => {
+    return intersection.origin_type?.toLowerCase().includes('tdata') || false;
+  }, [intersection]);
+
+  // CROP TOD 계획 정보 조회
+  useEffect(() => {
+    if (isSeoul || Object.keys(weeklyPlans).length === 0) return;
+    const fetchCROP = async () => {
+      try {
+        const jsDay = new Date().getDay();
+        const todayDy = jsDay === 0 ? 7 : jsDay;
+        const todayPlanNo = weeklyPlans[todayDy];
+        if (!todayPlanNo) return;
+
+        const regionCode = intersection.region_cd || 'L02';
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=200`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
+        
+        let rawItems = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const obj = {};
+          for (let j = 0; j < item.children.length; j++) {
+            obj[item.children[j].tagName] = item.children[j].textContent;
+          }
+          rawItems.push(obj);
+        }
+
+        let plansMap = {};
+        for (let i = 1; i <= 10; i++) plansMap[String(i)] = [];
+        
+        for (let item of rawItems) {
+          const intNo = item.INT_NO || item.itstId;
+          const pno = String(item.INT_PLAN_NO || item.planNo || '-');
+          if (String(intNo) === String(intersection.int_no) && plansMap[pno]) {
+            const hh = parseInt(item.OPER_PLAN_HH || item.operPlanHh || 0, 10);
+            const mm = parseInt(item.OPER_PLAN_MI || item.operPlanMi || 0, 10);
+            const startMins = hh * 60 + mm;
+
+            let matched = {
+              planNo: pno,
+              planIdxNo: item.INT_PLAN_IDX_NO || item.planIdxNo || '-',
+              operPlanTm: `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,
+              startMins,
+              cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
+              offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
+            };
+            
+            let sumA = 0;
+            let sumB = 0;
+            for (let i = 1; i <= 8; i++) {
+              matched[`A_RING_${i}_PHASE_VAL`] = parseInt(item[`A_RING_${i}_PHASE_VAL`] || 0);
+              matched[`B_RING_${i}_PHASE_VAL`] = parseInt(item[`B_RING_${i}_PHASE_VAL`] || 0);
+              sumA += matched[`A_RING_${i}_PHASE_VAL`];
+              sumB += matched[`B_RING_${i}_PHASE_VAL`];
+            }
+            const calculatedCycle = Math.max(sumA, sumB);
+            if (calculatedCycle > 0) {
+              matched.cycle = calculatedCycle;
+            }
+            plansMap[pno].push(matched);
+          }
+        }
+        
+        for (let key in plansMap) {
+          plansMap[key].sort((a, b) => a.startMins - b.startMins);
+        }
+        setAllTodPlans(plansMap);
+        
+        if (todayPlanNo && plansMap[todayPlanNo]) {
+          const now = new Date();
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          let activePlan = plansMap[todayPlanNo][0] || null;
+          for (let i = 0; i < plansMap[todayPlanNo].length; i++) {
+            if (currentMins >= plansMap[todayPlanNo][i].startMins) {
+              activePlan = plansMap[todayPlanNo][i];
+            } else {
+              break;
+            }
+          }
+          if (activePlan) setCropData(activePlan);
+        }
+
+      } catch (err) {
+        console.error('Error fetching CROP plan:', err);
+      }
+    };
+    fetchCROP();
+  }, [intersection, isSeoul, weeklyPlans]);
+
+  // SigMap 정보 조회
+  useEffect(() => {
+    if (isSeoul) {
+      setSigMapData({ ringA: [], ringB: [] });
+      return;
+    }
+    const fetchSigMap = async () => {
+      setIsSigMapLoading(true);
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
+        
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(res.data, "text/xml");
+        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
+        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+
+        const ringA = [];
+        const ringB = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
+          if (String(intNo) === String(intersection.int_no)) {
+            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
+            const step = {
+              stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
+              minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
+              maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
+              eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
+            };
+            for (let k = 1; k <= 8; k++) {
+              step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
+              step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
+            }
+            if (ringNo === 0) ringA.push(step);
+            else if (ringNo === 1) ringB.push(step);
+          }
+        }
+        ringA.sort((a, b) => a.stepNo - b.stepNo);
+        ringB.sort((a, b) => a.stepNo - b.stepNo);
+        
+        setSigMapData({ ringA, ringB });
+      } catch (err) {
+        console.error('Error fetching SigMap:', err);
+        setSigMapData({ ringA: [], ringB: [] });
+      } finally {
+        setIsSigMapLoading(false);
+      }
+    };
+    fetchSigMap();
+  }, [intersection, isSeoul]);
+
+  // CRWD (계획요일) & CRRS (예약제어) 정보 조회
+  useEffect(() => {
+    if (isSeoul) {
+      setWeeklyPlans({});
+      setReservCtrl('-');
+      return;
+    }
+    const fetchPlanAndReserv = async () => {
+      try {
+        const regionCode = intersection.region_cd || 'L02';
+        const crNm = encodeURIComponent(intersection.int_nm);
+        
+        // 1. 주간 일계획표 조회 (CRWD)
+        const wdUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRWDInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=10`;
+        const wdRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(wdUrl)}`);
+        let parser = new DOMParser();
+        let xmlDoc = parser.parseFromString(wdRes.data, "text/xml");
+        
+        let wdItems = xmlDoc.getElementsByTagName("PlanCRWDInfo");
+        if(wdItems.length === 0) wdItems = xmlDoc.getElementsByTagName("item");
+        
+        const plans = {};
+        for(let i=0; i<wdItems.length; i++) {
+          const dyNode = wdItems[i].getElementsByTagName("PLAN_DY")[0];
+          const pnoNode = wdItems[i].getElementsByTagName("INT_PLAN_NO")[0];
+          if(dyNode && pnoNode) {
+            plans[dyNode.textContent] = pnoNode.textContent;
+          }
+        }
+        setWeeklyPlans(plans);
+
+        // 2. 예약제어 조회 (CRRS)
+        const rsUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=1`;
+        const rsRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(rsUrl)}`);
+        xmlDoc = parser.parseFromString(rsRes.data, "text/xml");
+        let rsNode = xmlDoc.getElementsByTagName("RESRV_CONTRL_CD")[0];
+        if (rsNode) {
+          const cd = parseInt(rsNode.textContent, 10);
+          setReservCode(cd);
+          const rsMap = {
+            1: '조광 제어', 2: '점멸 제어', 3: '소등 제어', 4: '시차 제어', 5: '감응 제어',
+            6: '보행 활성', 7: '음향 발생', 8: '감응+푸시', 9: '시차+감응+푸시', 10: 'PPC제어', 11: '단독 앞막힘'
+          };
+          setReservCtrl(cd === 0 ? '일반 제어' : (rsMap[cd] || `알수없음(${cd})`));
+        } else {
+          setReservCode(0);
+          setReservCtrl('-');
+        }
+      } catch (err) {
+        console.error('Error fetching CRWD/CRRS:', err);
+      }
+    };
+    fetchPlanAndReserv();
+  }, [intersection, isSeoul]);
+
+  // 실시간 신호 연동 시각 연산 루프
+  useEffect(() => {
+    const updateRealtime = () => {
+      const now = new Date();
+      setCurrentTimeStr(now.getFullYear() + '-' + 
+        String(now.getMonth()+1).padStart(2,'0') + '-' + 
+        String(now.getDate()).padStart(2,'0') + ' ' + 
+        now.toLocaleTimeString('ko-KR', {hour12:false}));
+
+      if (isSeoul) return;
+      
+      let activePlan = cropData;
+      if (allTodPlans && Object.keys(allTodPlans).length > 0) {
+        const jsDay = now.getDay();
+        const todayDy = jsDay === 0 ? 7 : jsDay;
+        const todayPlanNo = weeklyPlans[todayDy];
+        if (todayPlanNo && allTodPlans[todayPlanNo]) {
+          let todaysPlans = allTodPlans[todayPlanNo];
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          let currentActive = todaysPlans[0];
+          for (let i = 0; i < todaysPlans.length; i++) {
+            if (currentMins >= todaysPlans[i].startMins) {
+              currentActive = todaysPlans[i];
+            } else {
+              break;
+            }
+          }
+          if (currentActive && (!cropData || currentActive.planIdxNo !== cropData.planIdxNo || currentActive.planNo !== cropData.planNo)) {
+            setCropData(currentActive);
+            return;
+          }
+          activePlan = currentActive;
+        }
+      }
+
+      if (!activePlan || !activePlan.cycle) return;
+
+      const cycle = activePlan.cycle;
+      const offset = activePlan.offset || 0;
+      
+      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
+      const kstNow = new Date(kstTimeStr);
+      
+      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
+      const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
+      
+      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+
+      const calcRingState = (ringPrefix) => {
+        let cumulativeTime = 0;
+        let currentPhaseIdx = 1;
+        let remainingTime = 0;
+        for (let i = 1; i <= 8; i++) {
+          const split = cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0;
+          if (split === 0) continue;
+          if (timeInCycle < cumulativeTime + split) {
+            currentPhaseIdx = i;
+            remainingTime = (cumulativeTime + split) - timeInCycle;
+            break;
+          }
+          cumulativeTime += split;
+        }
+        return { currentPhaseIdx, remainingTime };
+      };
+
+      const ringA = calcRingState('A_RING');
+      const ringB = calcRingState('B_RING');
+
+      setPhaseA(ringA.currentPhaseIdx);
+      setRemainA(ringA.remainingTime);
+      setPhaseB(ringB.currentPhaseIdx);
+      setRemainB(ringB.remainingTime);
+    };
+
+    updateRealtime();
+    const interval = setInterval(updateRealtime, 1000);
+    return () => clearInterval(interval);
+  }, [cropData, isSeoul, allTodPlans, weeklyPlans, phaseA, phaseB, remainA, remainB]);
+
+  // 실시간 신호 테이블 데이터 가공 로직
+  const updatedPhases = useMemo(() => {
+    let phases = [];
+    const detailData = window.L02_DETAIL_DATA || [];
+    const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
+
+    if (isSeoul) {
+      let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
+      if (spat && spat.status) {
+        const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
+        const prefixMap = { 'nt': '북', 'ne': '북동', 'et': '동', 'se': '남동', 'st': '남', 'sw': '남서', 'wt': '서', 'nw': '북서' };
+        const angleMap = { 'nt': 0, 'ne': 45, 'et': 90, 'se': 135, 'st': 180, 'sw': 225, 'wt': 270, 'nw': 315 };
+        
+        Object.entries(prefixMap).forEach(([pfx, dirKor]) => {
+          if (statObj[pfx + 'StsgStatNm'] !== undefined && statObj[pfx + 'StsgStatNm'] !== null) {
+            phases.push({
+              direction: dirKor,
+              outputType: '직진(1)',
+              pedestrian: 0,
+              type: 'S',
+              angle: angleMap[pfx],
+              pfx: pfx
+            });
+          }
+          if (statObj[pfx + 'LtsgStatNm'] !== undefined && statObj[pfx + 'LtsgStatNm'] !== null) {
+            phases.push({
+              direction: dirKor,
+              outputType: '좌회전(2)',
+              pedestrian: 0,
+              type: 'L',
+              angle: angleMap[pfx],
+              pfx: pfx
+            });
+          }
+          if (statObj[pfx + 'PdsgStatNm'] !== undefined && statObj[pfx + 'PdsgStatNm'] !== null) {
+            phases.push({
+              direction: dirKor,
+              outputType: '보행(3)',
+              pedestrian: 0,
+              type: 'P',
+              angle: angleMap[pfx],
+              pfx: pfx
+            });
+          }
+        });
+      }
+    } else if (conf) {
+      phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
+        const aPhase = parsePhaseCode(conf[`A_RING_${idx}_PHASE_CONF_CD`]);
+        const bPhase = parsePhaseCode(conf[`B_RING_${idx}_PHASE_CONF_CD`]);
+        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx });
+        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
+        return acc;
+      }, []);
+
+      if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+        const straightPhases = phases.filter(p => p.type === 'S');
+        straightPhases.forEach(sPhase => {
+          const ringData = sPhase.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+          const hasPedSignal = ringData.some(step => step[`ped${sPhase.idx}`] === 1 || step[`ped${sPhase.idx}`] === 5);
+          if (hasPedSignal && !phases.some(p => p.type === 'P' && p.angle === sPhase.angle)) {
+            phases.push({
+              ...sPhase,
+              outputType: '보행(3)',
+              type: 'P',
+              pedestrian: 0
+            });
+          }
+        });
+      }
+    }
+
+    const uniqueMovementsMap = new Map();
+    phases.forEach(p => {
+      const key = `${p.angle}_${p.type}`;
+      if (!uniqueMovementsMap.has(key)) {
+        uniqueMovementsMap.set(key, { ...p, confs: [] });
+      }
+      uniqueMovementsMap.get(key).confs.push(p);
+    });
+
+    if (!isSeoul) {
+      phases.filter(p => p.type === 'S').forEach(p => {
+        const pedKey = `${p.angle}_P`;
+        if (!uniqueMovementsMap.has(pedKey)) {
+           uniqueMovementsMap.set(pedKey, {
+             ...p,
+             type: 'P',
+             outputType: '보행자(3)',
+             confs: []
+           });
+        }
+        uniqueMovementsMap.get(pedKey).confs.push(p);
+      });
+    }
+
+    const mapped = Array.from(uniqueMovementsMap.values()).map(m => {
+      let isGreen = false;
+      let statText = '소등';
+      let statClass = 'sig-status-gray';
+      let remaining = '-';
+      let displayTime = '-';
+
+      if (isSeoul) {
+        let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
+        let pfx = '';
+        if (m.angle === 0) pfx = 'nt';
+        else if (m.angle === 45) pfx = 'ne';
+        else if (m.angle === 90) pfx = 'et';
+        else if (m.angle === 135) pfx = 'se';
+        else if (m.angle === 180) pfx = 'st';
+        else if (m.angle === 225) pfx = 'sw';
+        else if (m.angle === 270) pfx = 'wt';
+        else if (m.angle === 315) pfx = 'nw';
+
+        if (spat && spat.status && pfx) {
+          const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
+          const timingObj = Array.isArray(spat.timing) ? (spat.timing[0] || {}) : spat.timing;
+          
+          let field = pfx + 'StsgStatNm';
+          let timeField = pfx + 'StsgRmdrCs';
+          if (m.type === 'L') { field = pfx + 'LtsgStatNm'; timeField = pfx + 'LtsgRmdrCs'; }
+          if (m.type === 'P') { field = pfx + 'PdsgStatNm'; timeField = pfx + 'PdsgRmdrCs'; }
+          
+          const val = statObj[field];
+          const remVal = timingObj[timeField];
+          
+          const parseRemVal = (v) => (v !== undefined && v !== null && v < 36000) ? (Math.floor(v / 10) + 's') : '-';
+          
+          if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed' || val === '녹색' || val === '녹색화살표' || val === '청색') {
+            isGreen = true;
+            statText = m.type === 'P' ? '녹색 점등(3)' : '녹색 점등(3)';
+            statClass = 'sig-status-green';
+            remaining = parseRemVal(remVal);
+          } else if (val === 'stop-And-Remain' || val === '적색') {
+            statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
+            statClass = 'sig-status-red';
+            remaining = parseRemVal(remVal);
+          } else if (val === 'protected-clearance' || val === 'permissive-clearance' || val === '황색' || val === '적-황색') {
+            statText = m.type === 'P' ? '보행 점멸(3)' : '황색 점등(2)';
+            statClass = m.type === 'P' ? 'sig-status-flash' : 'sig-status-yellow';
+            remaining = parseRemVal(remVal);
+          }
+        }
+      } else {
+        if (cropData && m.confs.length > 0) {
+          const activeConf = m.confs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
+          
+          if (activeConf) {
+            isGreen = true;
+            const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
+            const elapsed = activeConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+            const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+
+            if (m.type === 'P') {
+              let pedDuration = phaseVal;
+              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                const activeSteps = ringData.filter(s => s[`ped${activeConf.idx}`] === 1 || s[`ped${activeConf.idx}`] === 5);
+                if (activeSteps.length > 0) {
+                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
+                }
+              } else {
+                pedDuration = Math.max(0, pedDuration - 5);
+              }
+              displayTime = pedDuration + 's';
+              const pedRemain = Math.max(0, pedDuration - elapsed);
+
+              if (pedRemain > 0) {
+                remaining = pedRemain + 's';
+                if (pedRemain <= 7) {
+                  statText = '보행 점멸(3)';
+                  statClass = 'sig-status-flash';
+                } else {
+                  statText = '녹색 점등(3)';
+                  statClass = 'sig-status-green';
+                }
+              } else {
+                isGreen = false;
+                remaining = '-';
+                statText = '적색 점등(1)';
+                statClass = 'sig-status-red';
+              }
+            } else {
+              displayTime = phaseVal + 's';
+              remaining = remainingTime + 's';
+              if (remainingTime <= 3) {
+                statText = '황색 점등(2)';
+                statClass = 'sig-status-yellow';
+              } else {
+                statText = '녹색 점등(3)';
+                statClass = 'sig-status-green';
+              }
+            }
+          } else {
+            isGreen = false;
+            statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
+            statClass = 'sig-status-red';
+            remaining = '-';
+            
+            const firstConf = m.confs[0];
+            const phaseVal = cropData[`${firstConf.ring}_RING_${firstConf.idx}_PHASE_VAL`] || 0;
+            if (m.type === 'P') {
+              let pedDuration = phaseVal;
+              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                const ringData = firstConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                const activeSteps = ringData.filter(s => s[`ped${firstConf.idx}`] === 1 || s[`ped${firstConf.idx}`] === 5);
+                if (activeSteps.length > 0) {
+                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
+                }
+              } else {
+                pedDuration = Math.max(0, pedDuration - 5);
+              }
+              displayTime = pedDuration + 's';
+            } else {
+              displayTime = phaseVal + 's';
+            }
+          }
+        }
+      }
+
+      return {
+        ...m,
+        isGreen,
+        remaining,
+        displayTime,
+        statusText: statText,
+        statusClass: statClass
+      };
+    });
+
+    return mapped.sort((a, b) => {
+      if (a.angle !== b.angle) return a.angle - b.angle;
+      const typeWeight = { 'S': 1, 'L': 2, 'P': 3 };
+      const weightA = typeWeight[a.type] || 4;
+      const weightB = typeWeight[b.type] || 4;
+      return weightA - weightB;
+    });
+  }, [intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData]);
+
+  // TOD 운영계획 다운로드
+  const downloadPlanData = () => {
+    if (!cropData) {
+      alert('다운로드할 신호 계획정보가 없습니다.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify({ intersection, cropData, timestamp: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SIGMA_Plan_${intersection.int_nm}_${intersection.int_no}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
+
+  return (
+    <div className={isDual ? "overlay" : "detail-modal-overlay"}>
+      <div className="detail-modal-content" style={isDual ? {width:'100%', height:'100%', borderRadius:0} : {}}>
+        <header className="modal-header">
+          <h2>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
+          <button className="btn-close" onClick={onClose}>×</button>
+        </header>
+
+        <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
+          {!isDual && (
+            <div className="overlay-toolbar">
+              <button className={`toolbar-btn ${!localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(false)}>전체 정보 모드</button>
+              <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
+            </div>
+          )}
+          <div style={{position: 'absolute', top: '10px', right: isDual ? '10px' : '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 10px', borderRadius: '20px', border: `1px solid ${isApiOn ? '#10b981' : '#64748b'}`, display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <span style={{fontSize: '10px', color: '#94a3b8'}}>API</span>
+            <span style={{color: isApiOn ? '#10b981' : '#64748b', fontWeight:'bold', fontSize: '11px', textShadow: isApiOn ? '0 0 10px #10b981' : 'none'}}>
+              {isApiOn ? 'On' : 'Off'}
+            </span>
+          </div>
+          <div style={{position: 'relative', width: '100%', height: '100%'}}>
+          {useMemo(() => (
+            <MapContainer 
+              center={[intersection.y_coord, intersection.x_coord]} 
+              zoom={19} 
+              style={{width:'100%', height:'100%'}} 
+              zoomControl={false}
+              dragging={false}
+              touchZoom={false}
+              doubleClickZoom={false}
+              scrollWheelZoom={false}
+              boxZoom={false}
+              keyboard={false}
+            >
+              <MapResizer mapZoomMode={mapZoomMode} />
+              <TileLayer url="https://mt0.google.com/vt/lyrs=s&hl=ko&x={x}&y={y}&z={z}" />
+              <CircleMarker
+                center={[intersection.y_coord, intersection.x_coord]}
+                radius={8}
+                fillColor="#00ecff"
+                color="#fff"
+                weight={2}
+                fillOpacity={0.8}
+              />
+            </MapContainer>
+          ), [intersection.y_coord, intersection.x_coord, mapZoomMode])}
+            <CompassOverlay 
+              intersection={intersection}
+              cropData={cropData}
+              phaseA={phaseA}
+              phaseB={phaseB}
+              remainA={remainA}
+              remainB={remainB}
+              isSeoul={isSeoul}
+              sigMapData={sigMapData}
+            />
+          </div>
+        </div>
+
+        {!mapZoomMode && (
+          <div className="modal-bottom-data">
+            <div className="tabs-header">
+              <button className={`tab-btn ${localTab === 'detail' ? 'active' : ''}`} onClick={() => setLocalTab('detail')}>상세 보기</button>
+              <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>맵 확대</button>
+            </div>
+            <div className="detail-tab-content custom-scroll">
+              {localTab === 'detail' && (
+                <table className="detail-grid-table">
+                  <thead>
+                    <tr>
+                      <th>방향정보</th>
+                      <th>출력형태</th>
+                      <th>신호등상태</th>
+                      <th>잔여시간</th>
+                      <th>표출시간</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      if (updatedPhases.length === 0) {
+                        return <tr><td colSpan="5" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td></tr>;
+                      }
+                      
+                      const grouped = updatedPhases.reduce((acc, p) => {
+                        if (!acc[p.direction]) acc[p.direction] = [];
+                        acc[p.direction].push(p);
+                        return acc;
+                      }, {});
+
+                      return Object.entries(grouped).map(([dir, phases]) => (
+                        <React.Fragment key={dir}>
+                          <tr>
+                            <td rowSpan={phases.length} className="action-type" style={{background: 'rgba(255,255,255,0.05)', fontWeight: 'bold', borderRight: '1px solid #334155', verticalAlign: 'middle'}}>
+                              {dir}측
+                            </td>
+                            <td><span className="status-badge" style={{color:'#60a5fa'}}>{phases[0].outputType}</span></td>
+                            <td><span className={phases[0].statusClass}>{phases[0].statusText}</span></td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: phases[0].isGreen ? '#10b981' : '#94a3b8'}}>
+                              {phases[0].remaining !== '-' ? phases[0].remaining : '-'}
+                            </td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                              {phases[0].displayTime || '-'}
+                            </td>
+                          </tr>
+                          {phases.slice(1).map((p, idx) => (
+                            <tr key={`${dir}-${idx}`}>
+                              <td><span className="status-badge" style={{color:'#60a5fa'}}>{p.outputType}</span></td>
+                              <td><span className={p.statusClass}>{p.statusText}</span></td>
+                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: p.isGreen ? '#10b981' : '#94a3b8'}}>
+                                {p.remaining !== '-' ? p.remaining : '-'}
+                              </td>
+                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                                {p.displayTime || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              )}
+              {localTab === 'signalmap' && (
+                <div className="sigmap-container">
+                  {isSigMapLoading ? (
+                    <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
+                  ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
+                    <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
+                  ) : (
+                    <>
+                      <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>시그널맵 (A-RING & B-RING 병렬 표출)</h4>
+                      <table className="sigmap-ring-table">
+                        <thead>
+                          <tr>
+                            <th rowSpan="3" style={{width: '40px'}}>Step</th>
+                            <th colSpan="19" style={{color: '#10b981'}}>A-RING</th>
+                            <th colSpan="19" style={{color: '#38bdf8'}}>B-RING</th>
+                          </tr>
+                          <tr>
+                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`a-${i}`}>{i}</th>)}
+                            <th rowSpan="2">Min</th>
+                            <th rowSpan="2">Max</th>
+                            <th rowSpan="2">EOP</th>
+                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`b-${i}`}>{i}</th>)}
+                            <th rowSpan="2">Min</th>
+                            <th rowSpan="2">Max</th>
+                            <th rowSpan="2">EOP</th>
+                          </tr>
+                          <tr>
+                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`a-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`b-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({length: Math.max(0, ...sigMapData.ringA.map(s=>s.stepNo), ...sigMapData.ringB.map(s=>s.stepNo))}, (_, i) => i + 1).map(n => {
+                            const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
+                            const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
+                            return (
+                              <tr key={n}>
+                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`a-td-${i}`}>
+                                    <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
+                                    <td className={stepA[`ped${i}`] !== undefined ? getCellClass(stepA[`ped${i}`], 'ped') : 'cell-gray'}>{stepA[`ped${i}`] !== undefined ? toHex(stepA[`ped${i}`]) : '-'}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
+                                <td className={stepA.eop === 1 ? 'cell-red' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`b-td-${i}`}>
+                                    <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
+                                    <td className={stepB[`ped${i}`] !== undefined ? getCellClass(stepB[`ped${i}`], 'ped') : 'cell-gray'}>{stepB[`ped${i}`] !== undefined ? toHex(stepB[`ped${i}`]) : '-'}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
+                                <td className={stepB.eop === 1 ? 'cell-red' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            <footer className="operation-footer" style={{flexDirection: 'column', gap: '15px', alignItems: 'stretch', padding: '15px 20px'}}>
+              <div className="op-items" style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'}}>
+                <div className="op-item">
+                  <span className="op-label" style={{color: '#38bdf8', fontWeight: 'bold'}}>운영정보</span>
+                  <span className="op-val" style={{color: '#38bdf8'}}>{cropData ? `${cropData.cycle}초` : '주기 미연동'}</span>
+                </div>
+                <div className="op-item">
+                  <span className="op-label">오프셋</span>
+                  <span className="op-val">{cropData ? `${cropData.offset}초` : '-'}</span>
+                </div>
+                <div className="op-item">
+                  <span className="op-label">계획번호</span>
+                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planNo : '-'}</span>
+                </div>
+                <div className="op-item">
+                  <span className="op-label">계획인덱스</span>
+                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planIdxNo : '-'}</span>
+                </div>
+                <div className="op-item">
+                  <span className="op-label">계획시간</span>
+                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.operPlanTm : '-'}</span>
+                </div>
+                <div className="op-item">
+                  <span className="op-label">예약제어</span>
+                  <span className="op-val">{reservCtrl}</span>
+                </div>
+                <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal'}}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</span></div>
+                <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal'}}>{reservCode === 3 ? 'ON' : 'OFF'}</span></div>
+                <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal'}}>{reservCode === 2 ? 'ON' : 'OFF'}</span></div>
+              </div>
+              
+              <div style={{ marginTop: '15px' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>주간 일계획표</span>
+                <table style={{ width: '100%', marginTop: '8px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
+                      {['월', '화', '수', '목', '금', '토', '일'].map((day, idx) => {
+                        const dyInt = idx + 1;
+                        const jsDay = new Date().getDay();
+                        const todayDy = jsDay === 0 ? 7 : jsDay;
+                        const isToday = dyInt === todayDy;
+                        return <th key={day} style={{ padding: '6px', color: isToday ? '#10b981' : '#94a3b8', border: '1px solid #334155' }}>{day}</th>
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      {[1, 2, 3, 4, 5, 6, 7].map((dy) => {
+                        const currentJsDay = new Date().getDay();
+                        const currentTodayDy = currentJsDay === 0 ? 7 : currentJsDay;
+                        const isToday = dy === currentTodayDy;
+                        return <td key={dy} style={{ padding: '6px', fontWeight: 'bold', color: isToday ? '#10b981' : '#fff', border: '1px solid #334155', background: isToday ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                          {weeklyPlans[dy] || '-'}
+                        </td>
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {Object.keys(allTodPlans).length > 0 && (
+                <div style={{ marginTop: '15px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>TOD 계획정보 (현재 실행: 일계획 {cropData?.planNo})</span>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                      <button onClick={() => setTodTab('general')} style={{ background: todTab === 'general' ? '#0ea5e9' : '#334155', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', transition: '0.2s' }}>일반맵 (1~5)</button>
+                      <button onClick={() => setTodTab('offset')} style={{ background: todTab === 'offset' ? '#0ea5e9' : '#334155', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', transition: '0.2s' }}>시차맵 (6~10)</button>
+                    </div>
+                  </div>
+                  <div style={{ overflowX: 'auto', background: '#0f172a', padding: '1px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '11px' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <th style={{ padding: '6px 4px', borderBottom: '1px solid #334155', width: '30px', color: '#94a3b8' }}>#</th>
+                          {[1, 2, 3, 4, 5].map((i) => {
+                            const pNo = todTab === 'general' ? i : i + 5;
+                            return (
+                              <th key={`hdr-${pNo}`} colSpan={3} style={{ padding: '6px 4px', borderBottom: '1px solid #334155', borderLeft: '1px solid #334155', color: cropData?.planNo === String(pNo) ? '#10b981' : '#94a3b8' }}>
+                                일계획 {pNo}
+                              </th>
+                            )
+                          })}
+                        </tr>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <th style={{ padding: '4px', borderBottom: '1px solid #334155' }}></th>
+                          {[1, 2, 3, 4, 5].map((i) => {
+                            const pNo = todTab === 'general' ? i : i + 5;
+                            return (
+                              <React.Fragment key={`sub-${pNo}`}>
+                                <th style={{ padding: '4px', borderBottom: '1px solid #334155', borderLeft: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>TIME</th>
+                                <th style={{ padding: '4px', borderBottom: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>CYC</th>
+                                <th style={{ padding: '4px', borderBottom: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>IDX</th>
+                              </React.Fragment>
+                            )
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: 16 }).map((_, rIdx) => (
+                          <tr key={`row-${rIdx}`} style={{ borderBottom: '1px solid #1e293b' }}>
+                            <td style={{ padding: '4px', fontWeight: 'bold', color: '#64748b' }}>{rIdx + 1}</td>
+                            {[1, 2, 3, 4, 5].map((i) => {
+                              const pNo = String(todTab === 'general' ? i : i + 5);
+                              const planArr = allTodPlans[pNo] || [];
+                              const matchedData = planArr.find(p => String(p.planIdxNo) === String(rIdx + 1)) || planArr[rIdx];
+                              
+                              const isActive = cropData?.planNo === pNo && String(cropData?.planIdxNo) === String(matchedData?.planIdxNo);
+                              const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                              const fontColor = isActive ? '#10b981' : '#cbd5e1';
+
+                              return (
+                                <React.Fragment key={`cell-${pNo}-${rIdx}`}>
+                                  <td style={{ padding: '4px', borderLeft: '1px solid #334155', background: bg, color: fontColor }}>
+                                    {matchedData ? matchedData.operPlanTm : '-'}
+                                  </td>
+                                  <td style={{ padding: '4px', background: bg, color: fontColor }}>
+                                    {matchedData ? matchedData.cycle : '-'}
+                                  </td>
+                                  <td style={{ padding: '4px', background: bg, color: fontColor, fontWeight: 'bold' }}>
+                                    {matchedData ? matchedData.planIdxNo : '-'}
+                                  </td>
+                                </React.Fragment>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', marginTop: '15px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
+                📄 운영계획(TOD) 다운로드
+              </button>
+              <div style={{marginTop: '5px'}}>
+                <a href="#more" style={{color: '#38bdf8', fontSize: '11px', textDecoration: 'none'}}>추가 상세 정보</a>
+              </div>
+            </footer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
