@@ -887,9 +887,6 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         }
         setAllTodPlans(plansMap);
         
-        const jsDay = new Date().getDay();
-        const todayDy = jsDay === 0 ? 7 : jsDay;
-        const todayPlanNo = weeklyPlans[todayDy];
         if (todayPlanNo && plansMap[todayPlanNo]) {
           const now = new Date();
           const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -1599,9 +1596,9 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                 <tbody>
                   <tr>
                     {[1, 2, 3, 4, 5, 6, 7].map((dy) => {
-                      const jsDay = new Date().getDay();
-                      const todayDy = jsDay === 0 ? 7 : jsDay;
-                      const isToday = dy === todayDy;
+                      const currentJsDay = new Date().getDay();
+                      const currentTodayDy = currentJsDay === 0 ? 7 : currentJsDay;
+                      const isToday = dy === currentTodayDy;
                       return <td key={dy} style={{ padding: '6px', fontWeight: 'bold', color: isToday ? '#10b981' : '#fff', border: '1px solid #334155', background: isToday ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
                         {weeklyPlans[dy] || '-'}
                       </td>
@@ -2923,6 +2920,15 @@ function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }
 
 // [5] 메인 레이아웃
 function App() {
+  // Render 서버 슬립 방지용 Keep-Alive 핑 (1분 간격)
+  useEffect(() => {
+    if (!API_BASE) return;
+    const pingInterval = setInterval(() => {
+      fetch(`${API_BASE}/api/intersections?limit=1`)
+        .catch(err => console.log('Keep-alive ping error:', err));
+    }, 60000);
+    return () => clearInterval(pingInterval);
+  }, []);
   const [intersections, setIntersections] = useState([]);
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
