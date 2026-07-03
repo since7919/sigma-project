@@ -2956,18 +2956,25 @@ function App() {
   }, [mapSignalDisplayMode]);
 
   // 멀티스크린 상태
-  const [gridSize, setGridSize] = useState(3); // 기본 3x3
-  const [multiScreenItems, setMultiScreenItems] = useState(Array(9).fill(null));
+  const [gridConfig, setGridConfig] = useState({ r: 1, c: 2 }); // 초기 옵션 1x2
+  const [multiScreenItems, setMultiScreenItems] = useState(Array(2).fill(null));
+  const [showGridSelector, setShowGridSelector] = useState(false);
+  const [hoverGrid, setHoverGrid] = useState({ r: 0, c: 0 });
+  
   // 클럭 상태 추출 완료 (HeaderClock 컴포넌트로 이동)
-  const handleGridSizeChange = (newSize) => {
+  const handleGridConfigChange = (r, c) => {
     setSoloFullscreenIndex(null);
-    setGridSize(newSize);
+    setGridConfig({ r, c });
+    setShowGridSelector(false);
     setMultiScreenItems(prev => {
-      const newLength = newSize * newSize;
+      const newLength = r * c;
       const next = Array(newLength).fill(null);
-      // 기존 교차로들을 새로운 그리드 구조의 빈 칸에 순서대로 복사
-      for (let i = 0; i < Math.min(prev.length, newLength); i++) {
-        next[i] = prev[i];
+      // 기존 아이템 순서대로 새 슬롯에 복사
+      let count = 0;
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i] !== null && count < newLength) {
+          next[count++] = prev[i];
+        }
       }
       return next;
     });
@@ -3256,7 +3263,9 @@ function App() {
       if (emptyIndex !== -1) {
         next[emptyIndex] = intersection;
       } else {
-        alert(`멀티스크린이 가득 찼습니다. (최대 ${next.length}개)`);
+        // FIFO 방식 유지 (가득 찬 경우 가장 오래된 것을 제거)
+        next.shift();
+        next.push(intersection);
       }
       return next;
     });
@@ -3488,7 +3497,7 @@ function MapPanner({ intersections, targetId }) {
           />
         )}
         <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridSize * gridSize})</h2>
+          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridConfig.r * gridConfig.c})</h2>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <button 
               className="btn-clear active"
@@ -3511,25 +3520,51 @@ function MapPanner({ intersections, targetId }) {
             >
               🚦 신호등 {multiSignalDisplayMode === 'compass' ? '(신호등)' : '(화살표)'}
             </button>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>레이아웃:</span>
-              {[2, 3, 4].map(sz => (
-                <button 
-                  key={sz} 
-                  className={`btn-clear ${gridSize === sz ? 'active' : ''}`} 
-                  style={{ 
-                    padding: '4px 8px', 
-                    fontSize: '0.7rem', 
-                    borderRadius: '4px',
-                    background: gridSize === sz ? 'rgba(56,189,248,0.2)' : 'transparent',
-                    color: gridSize === sz ? '#38bdf8' : '#aaa',
-                    border: gridSize === sz ? '1px solid #38bdf8' : '1px solid rgba(255,255,255,0.1)'
-                  }}
-                  onClick={() => handleGridSizeChange(sz)}
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="btn-clear active"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '0.75rem',
+                  borderRadius: '15px',
+                  background: 'rgba(56,189,248,0.2)',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                onClick={() => setShowGridSelector(p => !p)}
+              >
+                ▦ 화면 분할 ({gridConfig.r}x{gridConfig.c})
+              </button>
+              {showGridSelector && (
+                <div 
+                  className="grid-selector-popup"
+                  onMouseLeave={() => setHoverGrid({ r: 0, c: 0 })}
                 >
-                  {sz}x{sz}
-                </button>
-              ))}
+                  {[1, 2, 3, 4, 5].map(r => (
+                    <div key={`r-${r}`} className="grid-selector-row">
+                      {[1, 2, 3, 4, 5].map(c => {
+                        const isActive = r <= hoverGrid.r && c <= hoverGrid.c;
+                        return (
+                          <div 
+                            key={`c-${c}`} 
+                            className={`grid-selector-cell ${isActive ? 'active' : ''}`}
+                            onMouseEnter={() => setHoverGrid({ r, c })}
+                            onClick={() => handleGridConfigChange(r, c)}
+                          ></div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <div className="grid-selector-info">
+                    {hoverGrid.r > 0 ? `${hoverGrid.r} x ${hoverGrid.c}` : '격자 선택'}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>

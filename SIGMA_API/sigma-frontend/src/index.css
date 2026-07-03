@@ -606,4 +606,59 @@ details.footer-section summary::marker { content: ''; }
 .btn-toggle-multi:hover {
   background: rgba(56, 189, 248, 0.15);
   color: var(--accent-primary);
+}
+
+/* Grid Selector UI */
+.grid-selector-popup {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  padding: 10px;
+  z-index: 10000;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.grid-selector-row {
+  display: flex;
+  gap: 2px;
+}
+.grid-selector-cell {
+  width: 25px;
+  height: 25px;
+  border: 1px solid #334155;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.grid-selector-cell.active {
+  background: #38bdf8;
+  border-color: #0ea5e9;
+}
+.grid-selector-info {
+  margin-top: 5px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  font-weight: bold;
+}
+.multi-overlay-content {
+  display: grid;
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 50px);
+  gap: 4px;
+  background: #1e293b;
+  padding: 4px;
+}
+.multi-panel {
+  position: relative;
+  background: #0f172a;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #334155;
 }
