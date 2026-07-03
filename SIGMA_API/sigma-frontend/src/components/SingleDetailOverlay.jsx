@@ -641,8 +641,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         {!mapZoomMode && (
           <div className="modal-bottom-data">
             <div className="tabs-header">
-              <button className={`tab-btn ${localTab === 'detail' ? 'active' : ''}`} onClick={() => setLocalTab('detail')}>상세 보기</button>
-              <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>맵 확대</button>
+              <button className={`tab-btn ${localTab === 'remainTime' ? 'active' : ''}`} onClick={() => setLocalTab('remainTime')}>신호잔여시간</button>
+              <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>시그널맵</button>
             </div>
             <div className="detail-tab-content custom-scroll">
               {localTab === 'remainTime' && (
