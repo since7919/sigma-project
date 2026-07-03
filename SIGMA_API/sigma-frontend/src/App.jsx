@@ -806,7 +806,8 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
   const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
   const [weeklyPlans, setWeeklyPlans] = useState({});
-  const [dailySchedule, setDailySchedule] = useState([]);
+  const [allTodPlans, setAllTodPlans] = useState({});
+  const [todTab, setTodTab] = useState('general');
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
   const [localZoomMode, setLocalZoomMode] = useState(false);
@@ -845,17 +846,19 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
           rawItems.push(obj);
         }
 
-        let todaysPlans = [];
+        let plansMap = {};
+        for (let i = 1; i <= 10; i++) plansMap[String(i)] = [];
+        
         for (let item of rawItems) {
           const intNo = item.INT_NO || item.itstId;
-          const pno = item.INT_PLAN_NO || item.planNo;
-          if (String(intNo) === String(intersection.int_no) && String(pno) === String(todayPlanNo)) {
+          const pno = String(item.INT_PLAN_NO || item.planNo || '-');
+          if (String(intNo) === String(intersection.int_no) && plansMap[pno]) {
             const hh = parseInt(item.OPER_PLAN_HH || item.operPlanHh || 0, 10);
             const mm = parseInt(item.OPER_PLAN_MI || item.operPlanMi || 0, 10);
             const startMins = hh * 60 + mm;
 
             let matched = {
-              planNo: pno || '-',
+              planNo: pno,
               planIdxNo: item.INT_PLAN_IDX_NO || item.planIdxNo || '-',
               operPlanTm: `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,
               startMins,
@@ -875,24 +878,31 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
             if (calculatedCycle > 0) {
               matched.cycle = calculatedCycle;
             }
-            todaysPlans.push(matched);
+            plansMap[pno].push(matched);
           }
         }
         
-        todaysPlans.sort((a, b) => a.startMins - b.startMins);
-        setDailySchedule(todaysPlans);
-        
-        const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        let activePlan = todaysPlans[0] || null;
-        for (let i = 0; i < todaysPlans.length; i++) {
-          if (currentMins >= todaysPlans[i].startMins) {
-            activePlan = todaysPlans[i];
-          } else {
-            break;
-          }
+        for (let key in plansMap) {
+          plansMap[key].sort((a, b) => a.startMins - b.startMins);
         }
-        if (activePlan) setCropData(activePlan);
+        setAllTodPlans(plansMap);
+        
+        const jsDay = new Date().getDay();
+        const todayDy = jsDay === 0 ? 7 : jsDay;
+        const todayPlanNo = weeklyPlans[todayDy];
+        if (todayPlanNo && plansMap[todayPlanNo]) {
+          const now = new Date();
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          let activePlan = plansMap[todayPlanNo][0] || null;
+          for (let i = 0; i < plansMap[todayPlanNo].length; i++) {
+            if (currentMins >= plansMap[todayPlanNo][i].startMins) {
+              activePlan = plansMap[todayPlanNo][i];
+            } else {
+              break;
+            }
+          }
+          if (activePlan) setCropData(activePlan);
+        }
 
       } catch (err) {
         console.error('Error fetching CROP plan:', err);
@@ -1021,21 +1031,27 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
       if (isSeoul) return;
       
       let activePlan = cropData;
-      if (dailySchedule && dailySchedule.length > 0) {
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        let currentActive = dailySchedule[0];
-        for (let i = 0; i < dailySchedule.length; i++) {
-          if (currentMins >= dailySchedule[i].startMins) {
-            currentActive = dailySchedule[i];
-          } else {
-            break;
+      if (allTodPlans && Object.keys(allTodPlans).length > 0) {
+        const jsDay = now.getDay();
+        const todayDy = jsDay === 0 ? 7 : jsDay;
+        const todayPlanNo = weeklyPlans[todayDy];
+        if (todayPlanNo && allTodPlans[todayPlanNo]) {
+          let todaysPlans = allTodPlans[todayPlanNo];
+          const currentMins = now.getHours() * 60 + now.getMinutes();
+          let currentActive = todaysPlans[0];
+          for (let i = 0; i < todaysPlans.length; i++) {
+            if (currentMins >= todaysPlans[i].startMins) {
+              currentActive = todaysPlans[i];
+            } else {
+              break;
+            }
           }
+          if (currentActive && (!cropData || currentActive.planIdxNo !== cropData.planIdxNo || currentActive.planNo !== cropData.planNo)) {
+            setCropData(currentActive);
+            return;
+          }
+          activePlan = currentActive;
         }
-        if (!cropData || currentActive.planIdxNo !== cropData.planIdxNo) {
-          setCropData(currentActive);
-          return;
-        }
-        activePlan = currentActive;
       }
 
       if (!activePlan || !activePlan.cycle) return;
@@ -1080,7 +1096,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
     updateRealtime();
     const interval = setInterval(updateRealtime, 1000);
     return () => clearInterval(interval);
-  }, [cropData, isSeoul, dailySchedule]);
+  }, [cropData, isSeoul, allTodPlans, weeklyPlans]);
 
   // 실시간 신호 테이블 데이터 가공 로직
   const updatedPhases = useMemo(() => {
@@ -1595,44 +1611,72 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               </table>
             </div>
 
-            {dailySchedule.length > 0 && (
+            {Object.keys(allTodPlans).length > 0 && (
               <div style={{ marginTop: '15px' }}>
-                <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>시간계획표 (TOD Plan: {cropData?.planNo})</span>
-                <div style={{ overflowX: 'auto', marginTop: '8px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px', minWidth: `${dailySchedule.length * 50}px` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>TOD 계획정보 (현재 실행: 일계획 {cropData?.planNo})</span>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button onClick={() => setTodTab('general')} style={{ background: todTab === 'general' ? '#0ea5e9' : '#334155', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', transition: '0.2s' }}>일반맵 (1~5)</button>
+                    <button onClick={() => setTodTab('offset')} style={{ background: todTab === 'offset' ? '#0ea5e9' : '#334155', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', transition: '0.2s' }}>시차맵 (6~10)</button>
+                  </div>
+                </div>
+                <div style={{ overflowX: 'auto', background: '#0f172a', padding: '1px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '11px' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
-                        <th style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155', minWidth: '40px' }}>시간</th>
-                        {dailySchedule.map(s => (
-                          <th key={`tm-${s.planIdxNo}`} style={{ padding: '6px', color: s.planIdxNo === cropData?.planIdxNo ? '#10b981' : '#fff', border: '1px solid #334155' }}>
-                            {s.operPlanTm}
-                          </th>
-                        ))}
+                      <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <th style={{ padding: '6px 4px', borderBottom: '1px solid #334155', width: '30px', color: '#94a3b8' }}>#</th>
+                        {[1, 2, 3, 4, 5].map((i) => {
+                          const pNo = todTab === 'general' ? i : i + 5;
+                          return (
+                            <th key={`hdr-${pNo}`} colSpan={3} style={{ padding: '6px 4px', borderBottom: '1px solid #334155', borderLeft: '1px solid #334155', color: cropData?.planNo === String(pNo) ? '#10b981' : '#94a3b8' }}>
+                              일계획 {pNo}
+                            </th>
+                          )
+                        })}
+                      </tr>
+                      <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <th style={{ padding: '4px', borderBottom: '1px solid #334155' }}></th>
+                        {[1, 2, 3, 4, 5].map((i) => {
+                          const pNo = todTab === 'general' ? i : i + 5;
+                          return (
+                            <React.Fragment key={`sub-${pNo}`}>
+                              <th style={{ padding: '4px', borderBottom: '1px solid #334155', borderLeft: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>TIME</th>
+                              <th style={{ padding: '4px', borderBottom: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>CYC</th>
+                              <th style={{ padding: '4px', borderBottom: '1px solid #334155', fontWeight: 'normal', color: '#cbd5e1' }}>IDX</th>
+                            </React.Fragment>
+                          )
+                        })}
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155', fontWeight: 'bold' }}>인덱스</td>
-                        {dailySchedule.map(s => {
-                          const isActive = s.planIdxNo === cropData?.planIdxNo;
-                          return (
-                            <td key={`idx-${s.planIdxNo}`} style={{ padding: '6px', fontWeight: 'bold', color: isActive ? '#10b981' : '#f472b6', border: '1px solid #334155', background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
-                              {s.planIdxNo}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155' }}>주기</td>
-                        {dailySchedule.map(s => {
-                          const isActive = s.planIdxNo === cropData?.planIdxNo;
-                          return (
-                            <td key={`cyc-${s.planIdxNo}`} style={{ padding: '6px', color: isActive ? '#10b981' : '#94a3b8', border: '1px solid #334155', background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
-                              {s.cycle}
-                            </td>
-                          );
-                        })}
-                      </tr>
+                      {Array.from({ length: 16 }).map((_, rIdx) => (
+                        <tr key={`row-${rIdx}`} style={{ borderBottom: '1px solid #1e293b' }}>
+                          <td style={{ padding: '4px', fontWeight: 'bold', color: '#64748b' }}>{rIdx + 1}</td>
+                          {[1, 2, 3, 4, 5].map((i) => {
+                            const pNo = String(todTab === 'general' ? i : i + 5);
+                            const planArr = allTodPlans[pNo] || [];
+                            const matchedData = planArr.find(p => String(p.planIdxNo) === String(rIdx + 1)) || planArr[rIdx];
+                            
+                            const isActive = cropData?.planNo === pNo && String(cropData?.planIdxNo) === String(matchedData?.planIdxNo);
+                            const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                            const fontColor = isActive ? '#10b981' : '#cbd5e1';
+
+                            return (
+                              <React.Fragment key={`cell-${pNo}-${rIdx}`}>
+                                <td style={{ padding: '4px', borderLeft: '1px solid #334155', background: bg, color: fontColor }}>
+                                  {matchedData ? matchedData.operPlanTm : '-'}
+                                </td>
+                                <td style={{ padding: '4px', background: bg, color: fontColor }}>
+                                  {matchedData ? matchedData.cycle : '-'}
+                                </td>
+                                <td style={{ padding: '4px', background: bg, color: fontColor, fontWeight: 'bold' }}>
+                                  {matchedData ? matchedData.planIdxNo : '-'}
+                                </td>
+                              </React.Fragment>
+                            )
+                          })}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
