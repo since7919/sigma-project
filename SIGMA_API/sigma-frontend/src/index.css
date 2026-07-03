@@ -77,16 +77,16 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 
 /* 단일 교차로 상세 모달 (Single Detail Overlay) */
 .detail-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.detail-modal-content { width: 95%; height: 95%; background: #0f172a; border-radius: 12px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+.detail-modal-content { width: 95%; height: 98%; background: #0f172a; border-radius: 12px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #1e293b; }
 .modal-header h2 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
 .btn-close { background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
 .btn-close:hover { color: #fff; }
-.modal-top-map { flex: 0.55; position: relative; background: #000; border-bottom: 1px solid #1e293b; min-height: 0; }
+.modal-top-map { flex: 0.4; position: relative; background: #000; border-bottom: 1px solid #1e293b; min-height: 0; }
 .overlay-toolbar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 10px; }
 .toolbar-btn { background: rgba(15, 23, 42, 0.8); border: 1px solid #38bdf8; color: #38bdf8; padding: 6px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 .toolbar-btn.active { background: #38bdf8; color: #000; }
-.modal-bottom-data { flex: 0.45; display: flex; flex-direction: column; background: #111827; min-height: 0; }
+.modal-bottom-data { flex: 0.6; display: flex; flex-direction: column; background: #111827; min-height: 0; }
 
 /* 탭 및 상세 테이블 */
 .tabs-header { display: flex; border-bottom: 1px solid #1e293b; }
@@ -100,7 +100,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .action-type { color: #818cf8; font-weight: 600; }
 
 /* 하단 운영정보 */
-.operation-footer { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-top: 1px solid #1e293b; }
+.operation-footer { flex: 1; overflow-y: auto; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-top: 1px solid #1e293b; }
 .op-items { display: flex; gap: 20px; }
 .op-item { display: flex; flex-direction: column; gap: 2px; }
 .op-label { font-size: 0.7rem; color: #94a3b8; }
