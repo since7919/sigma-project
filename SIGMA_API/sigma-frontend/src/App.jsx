@@ -806,6 +806,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
   const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
   const [weeklyPlans, setWeeklyPlans] = useState({});
+  const [dailySchedule, setDailySchedule] = useState([]);
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
   const [localZoomMode, setLocalZoomMode] = useState(false);
@@ -818,11 +819,16 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
 
   // CROP TOD 계획 정보 조회
   useEffect(() => {
-    if (isSeoul) return;
+    if (isSeoul || Object.keys(weeklyPlans).length === 0) return;
     const fetchCROP = async () => {
       try {
+        const jsDay = new Date().getDay();
+        const todayDy = jsDay === 0 ? 7 : jsDay;
+        const todayPlanNo = weeklyPlans[todayDy];
+        if (!todayPlanNo) return;
+
         const regionCode = intersection.region_cd || 'L02';
-        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
+        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=200`;
         const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
         
         const parser = new DOMParser();
@@ -839,17 +845,24 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
           rawItems.push(obj);
         }
 
-        let matched = null;
+        let todaysPlans = [];
         for (let item of rawItems) {
           const intNo = item.INT_NO || item.itstId;
-          if (String(intNo) === String(intersection.int_no)) {
-            matched = {
-              planNo: item.INT_PLAN_NO || item.planNo || '-',
+          const pno = item.INT_PLAN_NO || item.planNo;
+          if (String(intNo) === String(intersection.int_no) && String(pno) === String(todayPlanNo)) {
+            const hh = parseInt(item.OPER_PLAN_HH || item.operPlanHh || 0, 10);
+            const mm = parseInt(item.OPER_PLAN_MI || item.operPlanMi || 0, 10);
+            const startMins = hh * 60 + mm;
+
+            let matched = {
+              planNo: pno || '-',
               planIdxNo: item.INT_PLAN_IDX_NO || item.planIdxNo || '-',
-              operPlanTm: item.INT_OPER_PLAN_TM || item.operPlanTm || '-',
+              operPlanTm: `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,
+              startMins,
               cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
               offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
             };
+            
             let sumA = 0;
             let sumB = 0;
             for (let i = 1; i <= 8; i++) {
@@ -862,18 +875,31 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
             if (calculatedCycle > 0) {
               matched.cycle = calculatedCycle;
             }
+            todaysPlans.push(matched);
+          }
+        }
+        
+        todaysPlans.sort((a, b) => a.startMins - b.startMins);
+        setDailySchedule(todaysPlans);
+        
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        let activePlan = todaysPlans[0] || null;
+        for (let i = 0; i < todaysPlans.length; i++) {
+          if (currentMins >= todaysPlans[i].startMins) {
+            activePlan = todaysPlans[i];
+          } else {
             break;
           }
         }
-        if (matched) {
-          setCropData(matched);
-        }
+        if (activePlan) setCropData(activePlan);
+
       } catch (err) {
         console.error('Error fetching CROP plan:', err);
       }
     };
     fetchCROP();
-  }, [intersection, isSeoul]);
+  }, [intersection, isSeoul, weeklyPlans]);
 
   // SigMap 정보 조회
   useEffect(() => {
@@ -993,10 +1019,29 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         now.toLocaleTimeString('ko-KR', {hour12:false}));
 
       if (isSeoul) return;
-      if (!cropData || !cropData.cycle) return;
+      
+      let activePlan = cropData;
+      if (dailySchedule && dailySchedule.length > 0) {
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        let currentActive = dailySchedule[0];
+        for (let i = 0; i < dailySchedule.length; i++) {
+          if (currentMins >= dailySchedule[i].startMins) {
+            currentActive = dailySchedule[i];
+          } else {
+            break;
+          }
+        }
+        if (!cropData || currentActive.planIdxNo !== cropData.planIdxNo) {
+          setCropData(currentActive);
+          return;
+        }
+        activePlan = currentActive;
+      }
 
-      const cycle = cropData.cycle;
-      const offset = cropData.offset || 0;
+      if (!activePlan || !activePlan.cycle) return;
+
+      const cycle = activePlan.cycle;
+      const offset = activePlan.offset || 0;
       
       const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
       const kstNow = new Date(kstTimeStr);
@@ -1035,7 +1080,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
     updateRealtime();
     const interval = setInterval(updateRealtime, 1000);
     return () => clearInterval(interval);
-  }, [cropData, isSeoul]);
+  }, [cropData, isSeoul, dailySchedule]);
 
   // 실시간 신호 테이블 데이터 가공 로직
   const updatedPhases = useMemo(() => {
@@ -1549,7 +1594,52 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                 </tbody>
               </table>
             </div>
-            <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
+
+            {dailySchedule.length > 0 && (
+              <div style={{ marginTop: '15px' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>시간계획표 (TOD Plan: {cropData?.planNo})</span>
+                <div style={{ overflowX: 'auto', marginTop: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px', minWidth: `${dailySchedule.length * 50}px` }}>
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        <th style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155', minWidth: '40px' }}>시간</th>
+                        {dailySchedule.map(s => (
+                          <th key={`tm-${s.planIdxNo}`} style={{ padding: '6px', color: s.planIdxNo === cropData?.planIdxNo ? '#10b981' : '#fff', border: '1px solid #334155' }}>
+                            {s.operPlanTm}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155', fontWeight: 'bold' }}>인덱스</td>
+                        {dailySchedule.map(s => {
+                          const isActive = s.planIdxNo === cropData?.planIdxNo;
+                          return (
+                            <td key={`idx-${s.planIdxNo}`} style={{ padding: '6px', fontWeight: 'bold', color: isActive ? '#10b981' : '#f472b6', border: '1px solid #334155', background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                              {s.planIdxNo}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '6px', color: '#94a3b8', border: '1px solid #334155' }}>주기</td>
+                        {dailySchedule.map(s => {
+                          const isActive = s.planIdxNo === cropData?.planIdxNo;
+                          return (
+                            <td key={`cyc-${s.planIdxNo}`} style={{ padding: '6px', color: isActive ? '#10b981' : '#94a3b8', border: '1px solid #334155', background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                              {s.cycle}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', marginTop: '15px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
               📄 운영계획(TOD) 다운로드
             </button>
             <div style={{marginTop: '5px'}}>
