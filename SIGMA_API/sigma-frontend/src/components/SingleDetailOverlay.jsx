@@ -18,7 +18,7 @@ function MapResizer({ mapZoomMode }) {
 }
 
 export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick }) {
-  const [localTab, setLocalTab] = useState('detail');
+  const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
   const [phaseB, setPhaseB] = useState(1);
@@ -645,8 +645,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>맵 확대</button>
             </div>
             <div className="detail-tab-content custom-scroll">
-              {localTab === 'detail' && (
-                <table className="detail-grid-table">
+              {localTab === 'remainTime' && (
+                
+<div style={{ display: 'flex', gap: '20px', width: '100%', height: '100%' }}>
+  <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }}>
+    <table className="detail-grid-table">
                   <thead>
                     <tr>
                       <th>방향정보</th>
@@ -700,74 +703,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     })()}
                   </tbody>
                 </table>
-              )}
-              {localTab === 'signalmap' && (
-                <div className="sigmap-container">
-                  {isSigMapLoading ? (
-                    <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
-                  ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
-                    <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
-                  ) : (
-                    <>
-                      <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>시그널맵 (A-RING & B-RING 병렬 표출)</h4>
-                      <table className="sigmap-ring-table">
-                        <thead>
-                          <tr>
-                            <th rowSpan="3" style={{width: '40px'}}>Step</th>
-                            <th colSpan="19" style={{color: '#10b981'}}>A-RING</th>
-                            <th colSpan="19" style={{color: '#38bdf8'}}>B-RING</th>
-                          </tr>
-                          <tr>
-                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`a-${i}`}>{i}</th>)}
-                            <th rowSpan="2">Min</th>
-                            <th rowSpan="2">Max</th>
-                            <th rowSpan="2">EOP</th>
-                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`b-${i}`}>{i}</th>)}
-                            <th rowSpan="2">Min</th>
-                            <th rowSpan="2">Max</th>
-                            <th rowSpan="2">EOP</th>
-                          </tr>
-                          <tr>
-                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`a-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
-                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`b-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Array.from({length: Math.max(0, ...sigMapData.ringA.map(s=>s.stepNo), ...sigMapData.ringB.map(s=>s.stepNo))}, (_, i) => i + 1).map(n => {
-                            const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
-                            const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
-                            return (
-                              <tr key={n}>
-                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
-                                {[1,2,3,4,5,6,7,8].map(i => (
-                                  <React.Fragment key={`a-td-${i}`}>
-                                    <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
-                                    <td className={stepA[`ped${i}`] !== undefined ? getCellClass(stepA[`ped${i}`], 'ped') : 'cell-gray'}>{stepA[`ped${i}`] !== undefined ? toHex(stepA[`ped${i}`]) : '-'}</td>
-                                  </React.Fragment>
-                                ))}
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
-                                <td className={stepA.eop === 1 ? 'cell-red' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
-                                {[1,2,3,4,5,6,7,8].map(i => (
-                                  <React.Fragment key={`b-td-${i}`}>
-                                    <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
-                                    <td className={stepB[`ped${i}`] !== undefined ? getCellClass(stepB[`ped${i}`], 'ped') : 'cell-gray'}>{stepB[`ped${i}`] !== undefined ? toHex(stepB[`ped${i}`]) : '-'}</td>
-                                  </React.Fragment>
-                                ))}
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
-                                <td className={stepB.eop === 1 ? 'cell-red' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <footer className="operation-footer" style={{flexDirection: 'column', gap: '15px', alignItems: 'stretch', padding: '15px 20px'}}>
+  </div>
+  <div style={{ width: '50%', height: '100%', overflowY: 'auto' }}>
+    <div className="operation-panel" style={{display: "flex", flexDirection: "column", gap: "15px", alignItems: "stretch", padding: "0 10px", height: "100%", overflowY: "auto"}}>
               <div className="op-items" style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'}}>
                 <div className="op-item">
                   <span className="op-label" style={{color: '#38bdf8', fontWeight: 'bold'}}>운영정보</span>
@@ -905,7 +843,78 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               <div style={{marginTop: '5px'}}>
                 <a href="#more" style={{color: '#38bdf8', fontSize: '11px', textDecoration: 'none'}}>추가 상세 정보</a>
               </div>
-            </footer>
+            </div>
+  </div>
+</div>
+
+              )}
+              {localTab === 'signalmap' && (
+                <div className="sigmap-container">
+                  {isSigMapLoading ? (
+                    <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
+                  ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
+                    <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
+                  ) : (
+                    <>
+                      <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>시그널맵 (A-RING & B-RING 병렬 표출)</h4>
+                      <table className="sigmap-ring-table">
+                        <thead>
+                          <tr>
+                            <th rowSpan="3" style={{width: '40px'}}>Step</th>
+                            <th colSpan="19" style={{color: '#10b981'}}>A-RING</th>
+                            <th colSpan="19" style={{color: '#38bdf8'}}>B-RING</th>
+                          </tr>
+                          <tr>
+                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`a-${i}`}>{i}</th>)}
+                            <th rowSpan="2">Min</th>
+                            <th rowSpan="2">Max</th>
+                            <th rowSpan="2">EOP</th>
+                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`b-${i}`}>{i}</th>)}
+                            <th rowSpan="2">Min</th>
+                            <th rowSpan="2">Max</th>
+                            <th rowSpan="2">EOP</th>
+                          </tr>
+                          <tr>
+                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`a-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`b-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.from({length: Math.max(0, ...sigMapData.ringA.map(s=>s.stepNo), ...sigMapData.ringB.map(s=>s.stepNo))}, (_, i) => i + 1).map(n => {
+                            const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
+                            const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
+                            return (
+                              <tr key={n}>
+                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`a-td-${i}`}>
+                                    <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
+                                    <td className={stepA[`ped${i}`] !== undefined ? getCellClass(stepA[`ped${i}`], 'ped') : 'cell-gray'}>{stepA[`ped${i}`] !== undefined ? toHex(stepA[`ped${i}`]) : '-'}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
+                                <td className={stepA.eop === 1 ? 'cell-red' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
+                                {[1,2,3,4,5,6,7,8].map(i => (
+                                  <React.Fragment key={`b-td-${i}`}>
+                                    <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
+                                    <td className={stepB[`ped${i}`] !== undefined ? getCellClass(stepB[`ped${i}`], 'ped') : 'cell-gray'}>{stepB[`ped${i}`] !== undefined ? toHex(stepB[`ped${i}`]) : '-'}</td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
+                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
+                                <td className={stepB.eop === 1 ? 'cell-red' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            
           </div>
         )}
       </div>
