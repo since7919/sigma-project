@@ -3590,12 +3590,12 @@ function MapPanner({ intersections, targetId }) {
             >
               {isMultiScreenFullscreen ? '🗗 전체화면 닫기' : '🗖 전체화면'}
             </button>
-            <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridSize * gridSize).fill(null))}>전체 비우기</button>
+            <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridConfig.r * gridConfig.c).fill(null))}>전체 비우기</button>
           </div>
         </header>
-        <div className="multi-grid" style={{
-          gridTemplateColumns: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridSize}, 1fr)`,
-          gridTemplateRows: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridSize}, 1fr)`
+        <div className="multi-overlay-content" style={{
+          gridTemplateColumns: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridConfig.c}, 1fr)`,
+          gridTemplateRows: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridConfig.r}, 1fr)`
         }}>
           {(soloFullscreenIndex !== null
             ? [{ item: multiScreenItems[soloFullscreenIndex], index: soloFullscreenIndex }]
