@@ -805,7 +805,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
   const [currentTimeStr, setCurrentTimeStr] = useState('-');
   const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
-  const [planDay, setPlanDay] = useState('-');
+  const [weeklyPlans, setWeeklyPlans] = useState({});
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
   const [localZoomMode, setLocalZoomMode] = useState(false);
@@ -931,7 +931,7 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
   // CRWD (계획요일) & CRRS (예약제어) 정보 조회
   useEffect(() => {
     if (isSeoul) {
-      setPlanDay('-');
+      setWeeklyPlans({});
       setReservCtrl('-');
       return;
     }
@@ -940,19 +940,24 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
         const regionCode = intersection.region_cd || 'L02';
         const crNm = encodeURIComponent(intersection.int_nm);
         
-        // 1. 계획요일 조회 (CRWD)
-        const wdUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRWDInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=1`;
+        // 1. 주간 일계획표 조회 (CRWD)
+        const wdUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRWDInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=10`;
         const wdRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(wdUrl)}`);
         let parser = new DOMParser();
         let xmlDoc = parser.parseFromString(wdRes.data, "text/xml");
-        let dyNode = xmlDoc.getElementsByTagName("PLAN_DY")[0];
-        if (dyNode) {
-          const days = ['-', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
-          const dyInt = parseInt(dyNode.textContent, 10);
-          setPlanDay(days[dyInt] || '-');
-        } else {
-          setPlanDay('-');
+        
+        let wdItems = xmlDoc.getElementsByTagName("PlanCRWDInfo");
+        if(wdItems.length === 0) wdItems = xmlDoc.getElementsByTagName("item");
+        
+        const plans = {};
+        for(let i=0; i<wdItems.length; i++) {
+          const dyNode = wdItems[i].getElementsByTagName("PLAN_DY")[0];
+          const pnoNode = wdItems[i].getElementsByTagName("INT_PLAN_NO")[0];
+          if(dyNode && pnoNode) {
+            plans[dyNode.textContent] = pnoNode.textContent;
+          }
         }
+        setWeeklyPlans(plans);
 
         // 2. 예약제어 조회 (CRRS)
         const rsUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=1`;
@@ -1508,16 +1513,41 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
                 <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.operPlanTm : '-'}</span>
               </div>
               <div className="op-item">
-                <span className="op-label">계획요일</span>
-                <span className="op-val">{planDay}</span>
-              </div>
-              <div className="op-item">
                 <span className="op-label">예약제어</span>
                 <span className="op-val">{reservCtrl}</span>
               </div>
               <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal'}}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</span></div>
               <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal'}}>{reservCode === 3 ? 'ON' : 'OFF'}</span></div>
               <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal'}}>{reservCode === 2 ? 'ON' : 'OFF'}</span></div>
+            </div>
+            
+            <div style={{ marginTop: '15px' }}>
+              <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>주간 일계획표</span>
+              <table style={{ width: '100%', marginTop: '8px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    {['월', '화', '수', '목', '금', '토', '일'].map((day, idx) => {
+                      const dyInt = idx + 1;
+                      const jsDay = new Date().getDay();
+                      const todayDy = jsDay === 0 ? 7 : jsDay;
+                      const isToday = dyInt === todayDy;
+                      return <th key={day} style={{ padding: '6px', color: isToday ? '#10b981' : '#94a3b8', border: '1px solid #334155' }}>{day}</th>
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {[1, 2, 3, 4, 5, 6, 7].map((dy) => {
+                      const jsDay = new Date().getDay();
+                      const todayDy = jsDay === 0 ? 7 : jsDay;
+                      const isToday = dy === todayDy;
+                      return <td key={dy} style={{ padding: '6px', fontWeight: 'bold', color: isToday ? '#10b981' : '#fff', border: '1px solid #334155', background: isToday ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                        {weeklyPlans[dy] || '-'}
+                      </td>
+                    })}
+                  </tr>
+                </tbody>
+              </table>
             </div>
             <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
               📄 운영계획(TOD) 다운로드
