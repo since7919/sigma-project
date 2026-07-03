@@ -844,7 +844,9 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
           const intNo = item.INT_NO || item.itstId;
           if (String(intNo) === String(intersection.int_no)) {
             matched = {
-              planNo: item.INT_PLAN_NO || item.planNo,
+              planNo: item.INT_PLAN_NO || item.planNo || '-',
+              planIdxNo: item.INT_PLAN_IDX_NO || item.planIdxNo || '-',
+              operPlanTm: item.INT_OPER_PLAN_TM || item.operPlanTm || '-',
               cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
               offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
             };
@@ -1492,6 +1494,18 @@ function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpd
               <div className="op-item">
                 <span className="op-label">오프셋</span>
                 <span className="op-val">{cropData ? `${cropData.offset}초` : '-'}</span>
+              </div>
+              <div className="op-item">
+                <span className="op-label">계획번호</span>
+                <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planNo : '-'}</span>
+              </div>
+              <div className="op-item">
+                <span className="op-label">계획인덱스</span>
+                <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planIdxNo : '-'}</span>
+              </div>
+              <div className="op-item">
+                <span className="op-label">계획시간</span>
+                <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.operPlanTm : '-'}</span>
               </div>
               <div className="op-item">
                 <span className="op-label">계획요일</span>
