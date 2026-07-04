@@ -56,19 +56,25 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
       const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrowLocal(m);
 
       let ang = 0;
+      let textRot = 0;
+      let radiusMultiplier = 40;
+
       if (isPed) {
         const refM = m - 100;
-        ang = defPosAngles[(refM - 1) % 16] || 0;
-        if (refM % 2 !== 0) ang += 22;
-        else ang -= 22;
+        const baseAng = defPosAngles[(refM - 1) % 16] || 0;
+        ang = (baseAng - 90 + 360) % 360;
+        radiusMultiplier = 48; // match compass mode distance
+        textRot = ang;
+        if (textRot > 90 && textRot < 270) textRot -= 180;
       } else {
         ang = defPosAngles[(m - 1) % 16] || 0;
         if (m % 2 !== 0) ang += 7;
         else ang -= 7;
+        radiusMultiplier = (m > 8) ? 55 : 40;
+        textRot = arrowData.ang;
       }
 
       const rad = ang * Math.PI / 180;
-      const radiusMultiplier = isPed ? 70 : ((m > 8) ? 55 : 40);
       const topPx = 77.5 - Math.cos(rad) * radiusMultiplier;
       const leftPx = 77.5 + Math.sin(rad) * radiusMultiplier;
 
@@ -179,7 +185,7 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
 
       return (
         <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10000 }}>
-          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${arrowData.ang}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb' }}>
+          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${textRot}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb' }}>
             {isPedOnly ? 'WALK' : arrowData.type}
           </div>
           <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 'bold', color: colorClass === 'yellow' ? '#f59e0b' : '#00ffa2', textShadow: '0 0 3px #000, 0 0 5px #000', marginTop: '1px', lineHeight: 1 }}>
