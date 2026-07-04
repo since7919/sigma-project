@@ -855,15 +855,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     <table style={{ width: '100%', marginTop: '10px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
                       <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>주기</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>오프셋</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획번호</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획인덱스</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획시간</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>예약제어</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>감응</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>소등</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>점멸</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>주기(Cycle)</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>연동값(Offset)</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>요일계획(Day plan)</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시간계획(Time plan)</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시간(Time)</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시차계획(Plan)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -873,10 +870,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planNo : '-'}</td>
                           <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planIdxNo : '-'}</td>
                           <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.operPlanTm : '-'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{reservCtrl}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal' }}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal' }}>{reservCode === 3 ? 'ON' : 'OFF'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal' }}>{reservCode === 2 ? 'ON' : 'OFF'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#10b981', fontWeight: 'bold' }}>
+                            {cropData ? getPlanTpText(cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP) : '-'}
+                          </td>
                         </tr>
                       </tbody>
                     </table>
