@@ -42,6 +42,11 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
         });
       }
     }
+    if (!isSeoul) {
+      Object.keys(sPhaseMap).forEach(deg => {
+        if (!pPhaseMap[deg]) pPhaseMap[deg] = sPhaseMap[deg];
+      });
+    }
     if (String(intersection.int_no) === '1045') {
       pPhaseMap[225] = { ring: 'A', idx: 1 };
     }
@@ -223,7 +228,11 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
       });
     }
 
-    if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+    if (!isSeoul) {
+      Object.keys(sPhaseMap).forEach(deg => {
+        if (!pPhaseMap[deg]) pPhaseMap[deg] = sPhaseMap[deg];
+      });
+    } else if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
       Object.keys(sPhaseMap).forEach(angle => {
         const sConf = sPhaseMap[angle];
         const ringData = sConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
