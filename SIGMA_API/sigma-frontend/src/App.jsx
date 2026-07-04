@@ -30,7 +30,7 @@ const REGION_MAP = {
 };
 
 // [1] 마커 최적화 렌더링 및 클릭 이벤트
-const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onMultiClick, activeMapSignalIds, onMapSignalToggle }) {
+const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ intersection, isSelected, baseColor, showTooltip, onDetailClick, onMultiClick, activeMapSignalIds, onMapSignalToggle, onNodeClick }) {
   const markerRef = React.useRef(null);
   const map = useMap();
 
@@ -81,6 +81,10 @@ const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ inte
             e.originalEvent.stopPropagation();
             if (onMapSignalToggle) {
               onMapSignalToggle(intersection.id);
+            }
+          } else {
+            if (onNodeClick) {
+              onNodeClick(intersection.id);
             }
           }
         },
@@ -176,7 +180,7 @@ function MapAutoResizer() {
   return null;
 }
 
-function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, showMapNames }) {
+function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, showMapNames, onNodeClick }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -236,6 +240,7 @@ function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targe
             onMultiClick={onMultiClick}
             activeMapSignalIds={activeMapSignalIds}
             onMapSignalToggle={onMapSignalToggle}
+            onNodeClick={onNodeClick}
           />
         );
       })}
@@ -673,7 +678,8 @@ function MapPanner({ intersections, targetId }) {
     if (targetId && targetId !== lastTargetRef.current) {
       const target = intersections.find(i => i.id === targetId);
       if (target && target.y_coord && target.x_coord) {
-        map.flyTo([target.y_coord, target.x_coord], map.getZoom(), { duration: 1 });
+        const targetZoom = Math.max(map.getZoom(), 16);
+        map.flyTo([target.y_coord, target.x_coord], targetZoom, { duration: 1 });
         lastTargetRef.current = targetId;
       }
     }
@@ -844,6 +850,7 @@ function MapPanner({ intersections, targetId }) {
               activeMapSignalIds={activeMapSignalIds}
               onMapSignalToggle={handleMapSignalToggle}
               showMapNames={showMapNames}
+              onNodeClick={handleNodeClick}
             />
             {/* 지도상 신호 표출 레이어 */}
             {mapSignalDisplayMode !== 'off' && intersections
