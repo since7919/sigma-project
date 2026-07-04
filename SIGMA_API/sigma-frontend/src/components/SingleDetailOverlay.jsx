@@ -473,80 +473,109 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       } else {
         if (cropData && m.confs.length > 0) {
           const activeConf = m.confs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
-          
+          const cycle = cropData.cycle || 0;
+
+          const getPedDuration = (conf) => {
+            const pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+            let pedDur = pVal;
+            if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              const activeSteps = ringData.filter(s => s[`ped${conf.idx}`] === 1 || s[`ped${conf.idx}`] === 5);
+              if (activeSteps.length > 0) {
+                pedDur = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+              } else {
+                pedDur = Math.max(0, pedDur - 5);
+              }
+            } else {
+              pedDur = Math.max(0, pedDur - 5);
+            }
+            return pedDur;
+          };
+
+          let isRed = true;
+
           if (activeConf) {
-            isGreen = true;
             const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
-            const elapsed = activeConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
             const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+            const elapsed = phaseVal - remainingTime;
 
             if (m.type === 'P') {
-              let pedDuration = phaseVal;
-              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-                const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                const activeSteps = ringData.filter(s => s[`ped${activeConf.idx}`] === 1 || s[`ped${activeConf.idx}`] === 5);
-                if (activeSteps.length > 0) {
-                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
-                } else {
-                  pedDuration = Math.max(0, pedDuration - 5);
-                }
-              } else {
-                pedDuration = Math.max(0, pedDuration - 5);
-              }
-              displayTime = pedDuration + 's';
+              const pedDuration = getPedDuration(activeConf);
               const pedRemain = Math.max(0, pedDuration - elapsed);
 
               if (pedRemain > 0) {
-                remaining = pedRemain + 's';
+                isRed = false;
+                isGreen = true;
                 if (pedRemain <= 7) {
                   statText = '보행 점멸(3)';
                   statClass = 'sig-status-flash';
+                  displayTime = Math.min(pedDuration, 7) + 's';
+                  remaining = pedRemain + 's';
                 } else {
                   statText = '녹색 점등(3)';
                   statClass = 'sig-status-green';
+                  displayTime = Math.max(0, pedDuration - 7) + 's';
+                  remaining = (pedRemain - 7) + 's';
                 }
-              } else {
-                isGreen = false;
-                remaining = '-';
-                statText = '적색 점등(1)';
-                statClass = 'sig-status-red';
               }
             } else {
-              displayTime = phaseVal + 's';
-              remaining = remainingTime + 's';
+              isRed = false;
+              isGreen = true;
               if (remainingTime <= 3) {
                 statText = '황색 점등(2)';
                 statClass = 'sig-status-yellow';
+                displayTime = '3s';
+                remaining = remainingTime + 's';
               } else {
                 statText = '녹색 점등(3)';
                 statClass = 'sig-status-green';
+                displayTime = Math.max(0, phaseVal - 3) + 's';
+                remaining = (remainingTime - 3) + 's';
               }
             }
-          } else {
+          }
+
+          if (isRed) {
             isGreen = false;
             statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
             statClass = 'sig-status-red';
-            remaining = '-';
-            
-            const firstConf = m.confs[0];
-            const phaseVal = cropData[`${firstConf.ring}_RING_${firstConf.idx}_PHASE_VAL`] || 0;
-            if (m.type === 'P') {
-              let pedDuration = phaseVal;
-              if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-                const ringData = firstConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                const activeSteps = ringData.filter(s => s[`ped${firstConf.idx}`] === 1 || s[`ped${firstConf.idx}`] === 5);
-                if (activeSteps.length > 0) {
-                  pedDuration = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
-                } else {
-                  pedDuration = Math.max(0, pedDuration - 5);
-                }
+
+            let minRedRemain = Infinity;
+            for (const conf of m.confs) {
+              const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
+              const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
+              const currentRemain = conf.ring === 'A' ? remainA : remainB;
+              const targetIdx = conf.idx;
+
+              let sumTime = 0;
+              if (currentPhaseIdx === targetIdx) {
+                const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
+                const elapsed = phaseVal - currentRemain;
+                sumTime = cycle - elapsed;
               } else {
-                pedDuration = Math.max(0, pedDuration - 5);
+                sumTime = currentRemain;
+                let step = currentPhaseIdx;
+                while (step !== targetIdx) {
+                  step = (step % 8) + 1;
+                  if (step === targetIdx) break;
+                  const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                  sumTime += split;
+                }
               }
-              displayTime = pedDuration + 's';
-            } else {
-              displayTime = phaseVal + 's';
+              if (sumTime < minRedRemain) minRedRemain = sumTime;
             }
+
+            remaining = minRedRemain + 's';
+
+            let totalActive = 0;
+            for (const conf of m.confs) {
+              if (m.type === 'P') {
+                totalActive += getPedDuration(conf);
+              } else {
+                totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
+              }
+            }
+            displayTime = Math.max(0, cycle - totalActive) + 's';
           }
         }
       }
