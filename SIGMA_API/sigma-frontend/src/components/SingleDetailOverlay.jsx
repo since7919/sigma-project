@@ -837,12 +837,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 </div>
               )}
               
-              <button className="btn-download" onClick={downloadPlanData} style={{width: '100%', padding: '10px', marginTop: '15px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid #10b981', color: '#10b981', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer'}}>
-                📄 운영계획(TOD) 다운로드
-              </button>
-              <div style={{marginTop: '5px'}}>
-                <a href="#more" style={{color: '#38bdf8', fontSize: '11px', textDecoration: 'none'}}>추가 상세 정보</a>
-              </div>
+
             </div>
   </div>
 </div>
