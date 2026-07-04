@@ -673,7 +673,7 @@ function MapPanner({ intersections, targetId }) {
     if (targetId && targetId !== lastTargetRef.current) {
       const target = intersections.find(i => i.id === targetId);
       if (target && target.y_coord && target.x_coord) {
-        map.flyTo([target.y_coord, target.x_coord], 16, { duration: 1 });
+        map.setView([target.y_coord, target.x_coord], map.getZoom());
         lastTargetRef.current = targetId;
       }
     }
