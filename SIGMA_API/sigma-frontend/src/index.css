@@ -666,3 +666,7 @@ details.footer-section summary::marker { content: ''; }
 .sig-status-red { color: #ef4444; font-weight: bold; }  
 .sig-status-yellow { color: #f59e0b; font-weight: bold; }  
 .sig-status-flash { color: #f59e0b; font-weight: bold; animation: pulse 1s infinite; } 
+  
+.eop-row td { border-top: 2px solid #f59e0b !important; border-bottom: 2px solid #f59e0b !important; }  
+.eop-row td:first-child { border-left: 2px solid #f59e0b !important; }  
+.eop-row td:last-child { border-right: 2px solid #f59e0b !important; } 

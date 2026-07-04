@@ -914,8 +914,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           {Array.from({length: Math.max(0, ...sigMapData.ringA.map(s=>s.stepNo), ...sigMapData.ringB.map(s=>s.stepNo))}, (_, i) => i + 1).map(n => {
                             const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
                             const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
+                            const isEopRow = stepA.eop === 1 || stepB.eop === 1;
                             return (
-                              <tr key={n}>
+                              <tr key={n} className={isEopRow ? 'eop-row' : ''}>
                                 <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
                                 {[1,2,3,4,5,6,7,8].map(i => (
                                   <React.Fragment key={`a-td-${i}`}>
@@ -925,7 +926,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                 ))}
                                 <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
                                 <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
-                                <td className={stepA.eop === 1 ? 'cell-red' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
+                                <td className={stepA.eop === 1 ? 'cell-yellow' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
                                 {[1,2,3,4,5,6,7,8].map(i => (
                                   <React.Fragment key={`b-td-${i}`}>
                                     <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
@@ -934,7 +935,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                 ))}
                                 <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
                                 <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
-                                <td className={stepB.eop === 1 ? 'cell-red' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
+                                <td className={stepB.eop === 1 ? 'cell-yellow' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
                               </tr>
                             );
                           })}
