@@ -673,27 +673,27 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
                       return Object.entries(grouped).map(([dir, phases]) => (
                         <React.Fragment key={dir}>
-                          <tr>
-                            <td rowSpan={phases.length} className="action-type" style={{background: 'rgba(255,255,255,0.05)', fontWeight: 'bold', borderRight: '1px solid #334155', verticalAlign: 'middle'}}>
+                          <tr style={{ borderTop: '2px solid #475569' }}>
+                            <td rowSpan={phases.length} className="action-type" style={{background: 'rgba(255,255,255,0.05)', fontWeight: 'bold', borderRight: '1px solid #334155', verticalAlign: 'middle', padding: '4px 8px'}}>
                               {dir}측
                             </td>
-                            <td><span className="status-badge" style={{color:'#60a5fa'}}>{phases[0].outputType}</span></td>
-                            <td><span className={phases[0].statusClass}>{phases[0].statusText}</span></td>
-                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: phases[0].isGreen ? '#10b981' : '#94a3b8'}}>
+                            <td style={{padding: '4px 8px'}}><span className="status-badge" style={{color:'#60a5fa', padding: '2px 4px', fontSize: '11px'}}>{phases[0].outputType}</span></td>
+                            <td style={{padding: '4px 8px'}}><span className={phases[0].statusClass} style={{padding: '2px 4px', fontSize: '11px'}}>{phases[0].statusText}</span></td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: phases[0].isGreen ? '#10b981' : '#94a3b8', padding: '4px 8px', fontSize: '12px'}}>
                               {phases[0].remaining !== '-' ? phases[0].remaining : '-'}
                             </td>
-                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b', padding: '4px 8px', fontSize: '12px'}}>
                               {phases[0].displayTime || '-'}
                             </td>
                           </tr>
                           {phases.slice(1).map((p, idx) => (
                             <tr key={`${dir}-${idx}`}>
-                              <td><span className="status-badge" style={{color:'#60a5fa'}}>{p.outputType}</span></td>
-                              <td><span className={p.statusClass}>{p.statusText}</span></td>
-                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: p.isGreen ? '#10b981' : '#94a3b8'}}>
+                              <td style={{padding: '4px 8px'}}><span className="status-badge" style={{color:'#60a5fa', padding: '2px 4px', fontSize: '11px'}}>{p.outputType}</span></td>
+                              <td style={{padding: '4px 8px'}}><span className={p.statusClass} style={{padding: '2px 4px', fontSize: '11px'}}>{p.statusText}</span></td>
+                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: p.isGreen ? '#10b981' : '#94a3b8', padding: '4px 8px', fontSize: '12px'}}>
                                 {p.remaining !== '-' ? p.remaining : '-'}
                               </td>
-                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b'}}>
+                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b', padding: '4px 8px', fontSize: '12px'}}>
                                 {p.displayTime || '-'}
                               </td>
                             </tr>
@@ -850,6 +850,37 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               )}
               {localTab === 'signalmap' && (
                 <div className="sigmap-container">
+                  <div style={{marginBottom: '20px'}}>
+                    <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', borderBottom: '2px solid #38bdf8', paddingBottom: '2px' }}>운영정보</span>
+                    <table style={{ width: '100%', marginTop: '10px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>주기</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>오프셋</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획번호</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획인덱스</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>계획시간</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>예약제어</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>감응</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>소등</th>
+                          <th style={{ padding: '6px', border: '1px solid #334155' }}>점멸</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#38bdf8', fontWeight: 'bold' }}>{cropData ? `${cropData.cycle}초` : '미연동'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{cropData ? `${cropData.offset}초` : '-'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planNo : '-'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planIdxNo : '-'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.operPlanTm : '-'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{reservCtrl}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal' }}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal' }}>{reservCode === 3 ? 'ON' : 'OFF'}</td>
+                          <td style={{ padding: '6px', border: '1px solid #334155', color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal' }}>{reservCode === 2 ? 'ON' : 'OFF'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                   {isSigMapLoading ? (
                     <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
                   ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
