@@ -616,7 +616,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
           </div>
         </div>
       `;
-  }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul, displayMode]);
+  }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul, displayMode, isSeoul ? uticUpdateTick : 0]);
 
   const map = useMap();
 
