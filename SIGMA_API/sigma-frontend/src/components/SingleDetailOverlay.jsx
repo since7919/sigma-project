@@ -17,6 +17,15 @@ function MapResizer({ mapZoomMode }) {
   return null;
 }
 
+const getPlanTpText = (code) => {
+  if (code === undefined || code === null) return '-';
+  const strCode = String(code);
+  if (strCode === '0') return '일반제';
+  if (['1', '2', '3', '4', '5'].includes(strCode)) return '시차제';
+  if (strCode === '6') return '보행맵';
+  return '-';
+};
+
 export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick }) {
   const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
