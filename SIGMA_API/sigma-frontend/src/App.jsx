@@ -92,6 +92,10 @@ const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ inte
           // 팝업이 열릴 때 쉬프트 클릭인 경우 강제로 닫음
           if (e.target._map.originalEvent && e.target._map.originalEvent.shiftKey) {
             e.target.closePopup();
+          } else {
+            if (onNodeClick) {
+              onNodeClick(intersection.id);
+            }
           }
         }
       }}
