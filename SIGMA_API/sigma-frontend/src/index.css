@@ -661,4 +661,8 @@ details.footer-section summary::marker { content: ''; }
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid #334155;
-}
+}  
+.sig-status-green { color: #10b981; font-weight: bold; }  
+.sig-status-red { color: #ef4444; font-weight: bold; }  
+.sig-status-yellow { color: #f59e0b; font-weight: bold; }  
+.sig-status-flash { color: #f59e0b; font-weight: bold; animation: pulse 1s infinite; } 
