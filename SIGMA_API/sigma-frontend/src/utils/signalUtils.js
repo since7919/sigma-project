@@ -47,11 +47,11 @@ export const getCellClass = (val, type) => {
   const hex = toHex(val);
   if (hex === '00') return 'cell-gray';
   if (type === 'car') {
-    if (hex === '01' || hex === '04') return 'cell-green';
-    else if (hex === '02') return 'cell-yellow';
+    if (hex === '01' || hex === '10' || hex === '11') return 'cell-green';
+    if (hex === '02' || hex === '20') return 'cell-yellow';
     if (hex === '08') return 'cell-red';
-    if (hex === '20') return 'cell-yellow-flash';
-    if (hex === '10') return 'cell-red-flash';
+    if (hex === '04') return 'cell-green'; // Keep 04 as green just in case
+    // Remove conflicting 10/20 assignments
   } else {
     if (hex === '01') return 'cell-green';
     if (hex === '08' || hex === '02') return 'cell-red';
