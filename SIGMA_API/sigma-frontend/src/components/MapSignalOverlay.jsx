@@ -619,6 +619,11 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
   }, [intersection, cropData, phaseA, phaseB, remainA, remainB, sigMapData, isSeoul, displayMode, isSeoul ? uticUpdateTick : 0]);
 
   const map = useMap();
+  
+  const onToggleRef = useRef(onMapSignalToggle);
+  useEffect(() => {
+    onToggleRef.current = onMapSignalToggle;
+  }, [onMapSignalToggle]);
 
   useEffect(() => {
     if (!map) return;
@@ -637,8 +642,8 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     markerRef.current = marker;
 
     marker.on('click', () => {
-      if (onMapSignalToggle) {
-        onMapSignalToggle(intersection.id);
+      if (onToggleRef.current) {
+        onToggleRef.current(intersection.id);
       }
     });
 
@@ -646,7 +651,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
       marker.remove();
       markerRef.current = null;
     };
-  }, [map, intersection.id, intersection.y_coord, intersection.x_coord, htmlString, onMapSignalToggle]);
+  }, [map, intersection.id, intersection.y_coord, intersection.x_coord]);
 
   useEffect(() => {
     if (markerRef.current) {
