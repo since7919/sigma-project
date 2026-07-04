@@ -19,10 +19,14 @@ const REGION_MAP = {
 function MapAutoResizer() {
   const map = useMap();
   useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 300);
-    return () => clearTimeout(timer);
+    if (!map) return;
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        map.invalidateSize();
+      });
+    });
+    resizeObserver.observe(map.getContainer());
+    return () => resizeObserver.disconnect();
   }, [map]);
   return null;
 }
