@@ -310,7 +310,6 @@ function HeaderClock() {
 function App() {
   // Render 서버 슬립 방지용 Keep-Alive 핑 (1분 간격)
   useEffect(() => {
-    if (!API_BASE) return;
     const pingInterval = setInterval(() => {
       fetch(`${API_BASE}/api/intersections?limit=1`)
         .catch(err => console.log('Keep-alive ping error:', err));
