@@ -715,27 +715,35 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   </div>
   <div style={{ width: '50%', height: '100%', overflowY: 'auto' }}>
     <div className="operation-panel" style={{display: "flex", flexDirection: "column", gap: "15px", alignItems: "stretch", padding: "0 10px", height: "100%", overflowY: "auto"}}>
-              <div className="op-items" style={{display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'}}>
-                <div className="op-item">
-                  <span className="op-label" style={{color: '#38bdf8', fontWeight: 'bold'}}>운영정보</span>
-                  <span className="op-val" style={{color: '#38bdf8'}}>{cropData ? `${cropData.cycle}초` : '주기 미연동'}</span>
-                </div>
-                <div className="op-item">
-                  <span className="op-label">오프셋</span>
-                  <span className="op-val">{cropData ? `${cropData.offset}초` : '-'}</span>
-                </div>
-                <div className="op-item">
-                  <span className="op-label">계획번호</span>
-                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planNo : '-'}</span>
-                </div>
-                <div className="op-item">
-                  <span className="op-label">계획인덱스</span>
-                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.planIdxNo : '-'}</span>
-                </div>
-                <div className="op-item">
-                  <span className="op-label">계획시간</span>
-                  <span className="op-val" style={{color: '#f472b6', fontWeight: 'bold'}}>{cropData ? cropData.operPlanTm : '-'}</span>
-                </div>
+              <div style={{marginBottom: '5px'}}>
+                <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', borderBottom: '2px solid #38bdf8', paddingBottom: '2px' }}>운영정보</span>
+                <table style={{ width: '100%', marginTop: '10px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>주기(Cycle)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>연동값(Offset)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>요일계획(Day plan)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>시간계획(Time plan)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>시간(Time)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>시차계획(Plan)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#38bdf8', fontWeight: 'bold' }}>{cropData ? `${cropData.cycle}초` : '미연동'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{cropData ? `${cropData.offset}초` : '-'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planNo : '-'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planIdxNo : '-'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.operPlanTm : '-'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155', color: '#10b981', fontWeight: 'bold' }}>
+                        {cropData ? getPlanTpText(cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP) : '-'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="op-items" style={{display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '15px'}}>
                 <div className="op-item">
                   <span className="op-label">예약제어</span>
                   <span className="op-val">{reservCtrl}</span>
@@ -854,33 +862,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               )}
               {localTab === 'signalmap' && (
                 <div className="sigmap-container">
-                  <div style={{marginBottom: '20px'}}>
-                    <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', borderBottom: '2px solid #38bdf8', paddingBottom: '2px' }}>운영정보</span>
-                    <table style={{ width: '100%', marginTop: '10px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
-                      <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>주기(Cycle)</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>연동값(Offset)</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>요일계획(Day plan)</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시간계획(Time plan)</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시간(Time)</th>
-                          <th style={{ padding: '6px', border: '1px solid #334155' }}>시차계획(Plan)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#38bdf8', fontWeight: 'bold' }}>{cropData ? `${cropData.cycle}초` : '미연동'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{cropData ? `${cropData.offset}초` : '-'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planNo : '-'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planIdxNo : '-'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.operPlanTm : '-'}</td>
-                          <td style={{ padding: '6px', border: '1px solid #334155', color: '#10b981', fontWeight: 'bold' }}>
-                            {cropData ? getPlanTpText(cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP) : '-'}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+
                   {isSigMapLoading ? (
                     <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
                   ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
