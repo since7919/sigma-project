@@ -351,25 +351,6 @@ function App() {
     document.documentElement.style.setProperty('--compass-scale-115', scale * 1.15);
   }, [compassSizeVal]);
 
-  const prevMultiIdsRef = useRef([]);
-
-  // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
-  useEffect(() => {
-    if (!isMapSignalOn) {
-      setActiveMapSignalIds([]);
-    } else {
-      // 켜질 때 멀티스크린에 있는 교차로들을 다시 활성화
-      setActiveMapSignalIds(prev => {
-        let newIds = [...prev];
-        multiScreenItems.filter(item => item !== null).forEach(item => {
-          if (!newIds.includes(item.id)) {
-            newIds.push(item.id);
-          }
-        });
-        return newIds;
-      });
-    }
-  }, [isMapSignalOn, multiScreenItems]);
 
   // 멀티스크린 상태
   const [gridConfig, setGridConfig] = useState({ r: 1, c: 2 }); // 초기 옵션 1x2
@@ -591,6 +572,26 @@ function App() {
       return [...prev, id];
     });
   };
+
+  const prevMultiIdsRef = useRef([]);
+
+  // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
+  useEffect(() => {
+    if (!isMapSignalOn) {
+      setActiveMapSignalIds([]);
+    } else {
+      // 켜질 때 멀티스크린에 있는 교차로들을 다시 활성화
+      setActiveMapSignalIds(prev => {
+        let newIds = [...prev];
+        multiScreenItems.filter(item => item !== null).forEach(item => {
+          if (!newIds.includes(item.id)) {
+            newIds.push(item.id);
+          }
+        });
+        return newIds;
+      });
+    }
+  }, [isMapSignalOn, multiScreenItems]);
 
   // 멀티스크린 담기/삭제 시 자동으로 지도 신호 표출 동기화
   useEffect(() => {
