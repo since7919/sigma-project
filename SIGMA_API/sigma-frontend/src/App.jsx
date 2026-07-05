@@ -962,14 +962,15 @@ function MapPanner({ intersections, targetId }) {
             <button 
               className="btn-clear active"
               style={{
-                padding: '6px 14px',
-                fontSize: '0.75rem',
-                borderRadius: '15px',
-                background: 'rgba(56,189,248,0.2)',
-                color: '#38bdf8',
+                background: 'rgba(16, 185, 129, 0.25)',
+                color: '#10b981',
                 border: 'none',
-                cursor: 'pointer',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
                 fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '5px'
@@ -978,7 +979,7 @@ function MapPanner({ intersections, targetId }) {
                 setMultiSignalDisplayMode(prev => prev === 'compass' ? 'arrow' : 'compass');
               }}
             >
-              🚦 신호등 {multiSignalDisplayMode === 'compass' ? '(신호등)' : '(화살표)'}
+              모양: {multiSignalDisplayMode === 'compass' ? '원형' : '화살표'}
             </button>
             <div style={{ position: 'relative' }}>
               <button 
