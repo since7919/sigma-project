@@ -338,7 +338,8 @@ function App() {
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
   const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
-  const [mapSignalDisplayMode, setMapSignalDisplayMode] = useState('compass'); // 'compass' (신호등 모양) | 'arrow' (화살표 모양) | 'off' (제거)
+  const [isMapSignalOn, setIsMapSignalOn] = useState(false);
+  const [mapSignalType, setMapSignalType] = useState('compass'); // 'compass' | 'arrow'
   const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
   const [compassSizeVal, setCompassSizeVal] = useState(180);
@@ -350,12 +351,25 @@ function App() {
     document.documentElement.style.setProperty('--compass-scale-115', scale * 1.15);
   }, [compassSizeVal]);
 
+  const prevMultiIdsRef = useRef([]);
+
   // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
   useEffect(() => {
-    if (mapSignalDisplayMode === 'off') {
+    if (!isMapSignalOn) {
       setActiveMapSignalIds([]);
+    } else {
+      // 켜질 때 멀티스크린에 있는 교차로들을 다시 활성화
+      setActiveMapSignalIds(prev => {
+        let newIds = [...prev];
+        multiScreenItems.filter(item => item !== null).forEach(item => {
+          if (!newIds.includes(item.id)) {
+            newIds.push(item.id);
+          }
+        });
+        return newIds;
+      });
     }
-  }, [mapSignalDisplayMode]);
+  }, [isMapSignalOn, multiScreenItems]);
 
   // 멀티스크린 상태
   const [gridConfig, setGridConfig] = useState({ r: 1, c: 2 }); // 초기 옵션 1x2
@@ -567,23 +581,44 @@ function App() {
   }, [detailIntersection, dualSelection, multiScreenItems]);
 
   const handleMapSignalToggle = (id) => {
-    // 만약 신호가 꺼진 모드('off') 상태에서 신호등 표출을 켰다면 자동으로 'arrow' 모드로 활성화
-    setMapSignalDisplayMode(prev => {
-      if (prev === 'off') return 'arrow';
-      return prev;
-    });
+    // 만약 신호가 꺼진 상태에서 신호등 표출을 켰다면 자동으로 ON 모드로 활성화
+    setIsMapSignalOn(true);
 
     setActiveMapSignalIds(prev => {
       if (prev.includes(id)) {
         return prev.filter(x => x !== id);
       }
-      if (prev.length >= 3) {
-        alert('지도상 실시간 신호 표출은 브라우저 성능 최적화를 위해 동시에 최대 3개까지만 가능합니다.');
-        return prev;
-      }
       return [...prev, id];
     });
   };
+
+  // 멀티스크린 담기/삭제 시 자동으로 지도 신호 표출 동기화
+  useEffect(() => {
+    const multiIds = multiScreenItems.filter(item => item !== null).map(item => item.id);
+    const prevMultiIds = prevMultiIdsRef.current;
+    
+    const addedIds = multiIds.filter(id => !prevMultiIds.includes(id));
+    const removedIds = prevMultiIds.filter(id => !multiIds.includes(id));
+
+    if (addedIds.length > 0 || removedIds.length > 0) {
+      setActiveMapSignalIds(prev => {
+        let newIds = [...prev];
+        addedIds.forEach(id => {
+          if (!newIds.includes(id)) newIds.push(id);
+        });
+        removedIds.forEach(id => {
+          newIds = newIds.filter(x => x !== id);
+        });
+        return newIds;
+      });
+
+      if (addedIds.length > 0) {
+        setIsMapSignalOn(true);
+      }
+    }
+
+    prevMultiIdsRef.current = multiIds;
+  }, [multiScreenItems]);
 
   // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {
@@ -757,10 +792,10 @@ function MapPanner({ intersections, targetId }) {
             }}
           >
             <button 
-              className={`btn-clear ${mapSignalDisplayMode !== 'off' ? 'active' : ''}`}
+              className={`btn-clear ${isMapSignalOn ? 'active' : ''}`}
               style={{
-                background: mapSignalDisplayMode !== 'off' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: mapSignalDisplayMode !== 'off' ? '#38bdf8' : '#94a3b8',
+                background: isMapSignalOn ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: isMapSignalOn ? '#38bdf8' : '#94a3b8',
                 border: 'none',
                 padding: '6px 14px',
                 borderRadius: '15px',
@@ -772,15 +807,35 @@ function MapPanner({ intersections, targetId }) {
                 alignItems: 'center',
                 gap: '5px'
               }}
+              onClick={() => setIsMapSignalOn(prev => !prev)}
+            >
+              {isMapSignalOn ? '🚦 신호등 ON' : '🚦 신호등 OFF'}
+            </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-clear ${isMapSignalOn ? 'active' : ''}`}
+              style={{
+                background: isMapSignalOn ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+                color: isMapSignalOn ? '#10b981' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: isMapSignalOn ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                opacity: isMapSignalOn ? 1 : 0.5
+              }}
               onClick={() => {
-                setMapSignalDisplayMode(prev => {
-                  if (prev === 'off') return 'arrow';
-                  if (prev === 'arrow') return 'compass';
-                  return 'off';
-                });
+                if (isMapSignalOn) {
+                  setMapSignalType(prev => prev === 'compass' ? 'arrow' : 'compass');
+                }
               }}
             >
-              🚦 신호등 {mapSignalDisplayMode === 'arrow' ? '(화살표)' : (mapSignalDisplayMode === 'compass' ? '(신호등)' : '(제거)')}
+              모양: {mapSignalType === 'compass' ? '원형' : '화살표'}
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
@@ -857,7 +912,7 @@ function MapPanner({ intersections, targetId }) {
               onNodeClick={handleNodeClick}
             />
             {/* 지도상 신호 표출 레이어 */}
-            {mapSignalDisplayMode !== 'off' && intersections
+            {isMapSignalOn && intersections
               .filter(item => activeMapSignalIds.includes(item.id))
               .map(item => (
                 <MapSignalOverlay 
@@ -865,7 +920,7 @@ function MapPanner({ intersections, targetId }) {
                   intersection={item} 
                   uticUpdateTick={uticUpdateTick}
                   onMapSignalToggle={handleMapSignalToggle}
-                  displayMode={mapSignalDisplayMode}
+                  displayMode={mapSignalType}
                 />
               ))}
           </MapContainer>
