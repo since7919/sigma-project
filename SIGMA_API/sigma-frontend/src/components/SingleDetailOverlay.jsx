@@ -807,22 +807,45 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
       <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
-        {phaseDiagramData.map(ph => (
-          <div key={ph.idx} style={{ border: '1px solid #334155', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
-            <div style={{ background: '#1e293b', padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>{ph.idx}현시</div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 2px', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
-                <PhaseArrow p={ph.A} />
-              </div>
-              <div style={{ height: '1px', width: '60%', background: '#334155' }}></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
-                <PhaseArrow p={ph.B} />
+        {phaseDiagramData.map(ph => {
+          const isActiveA = phaseA === ph.idx;
+          const isActiveB = phaseB === ph.idx;
+          const isAnyActive = isActiveA || isActiveB;
+          
+          let headerBg = '#1e293b';
+          let headerColor = '#cbd5e1';
+          let borderColor = '#334155';
+          if (isActiveA && isActiveB) {
+            headerBg = '#f59e0b';
+            headerColor = '#0f172a';
+            borderColor = '#f59e0b';
+          } else if (isActiveA) {
+            headerBg = '#10b981';
+            headerColor = '#0f172a';
+            borderColor = '#10b981';
+          } else if (isActiveB) {
+            headerBg = '#38bdf8';
+            headerColor = '#0f172a';
+            borderColor = '#38bdf8';
+          }
+
+          return (
+            <div key={ph.idx} style={{ border: `1px solid ${borderColor}`, borderRadius: '4px', background: isAnyActive ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)', textAlign: 'center', transition: 'all 0.3s ease', overflow: 'hidden' }}>
+              <div style={{ background: headerBg, padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: headerColor, transition: 'all 0.3s ease' }}>{ph.idx}현시</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 2px', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isActiveA ? 'rgba(16, 185, 129, 0.15)' : 'transparent', borderRadius: '4px', padding: '2px 8px', width: '90%', justifyContent: 'center', transition: 'background 0.3s ease' }}>
+                  <span style={{ fontSize: '10px', color: isActiveA ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px', transition: 'color 0.3s ease' }}>A</span>
+                  <PhaseArrow p={ph.A} />
+                </div>
+                <div style={{ height: '1px', width: '60%', background: '#334155' }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isActiveB ? 'rgba(56, 189, 248, 0.15)' : 'transparent', borderRadius: '4px', padding: '2px 8px', width: '90%', justifyContent: 'center', transition: 'background 0.3s ease' }}>
+                  <span style={{ fontSize: '10px', color: isActiveB ? '#38bdf8' : '#64748b', fontWeight: 'bold', width: '10px', transition: 'color 0.3s ease' }}>B</span>
+                  <PhaseArrow p={ph.B} />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   )}
