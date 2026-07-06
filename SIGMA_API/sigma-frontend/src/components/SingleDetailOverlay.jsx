@@ -55,8 +55,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     const fetchCROP = async () => {
       try {
         const jsDay = new Date().getDay();
-        const todayDy = jsDay === 0 ? 7 : jsDay;
-        const todayPlanNo = weeklyPlans[todayDy];
+        const todayUticDy = jsDay + 1;
+        const todayPlanNo = weeklyPlans[todayUticDy];
         if (!todayPlanNo) return;
 
         const regionCode = intersection.region_cd || 'L02';
@@ -260,9 +260,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       
       let activePlan = cropData;
       if (allTodPlans && Object.keys(allTodPlans).length > 0) {
-        const jsDay = now.getDay();
-        const todayDy = jsDay === 0 ? 7 : jsDay;
-        const todayPlanNo = weeklyPlans[todayDy];
+        const jsDay = new Date().getDay();
+        const todayUticDy = jsDay + 1;
+        const todayPlanNo = weeklyPlans[todayUticDy];
         if (todayPlanNo && allTodPlans[todayPlanNo]) {
           let todaysPlans = allTodPlans[todayPlanNo];
           const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -798,9 +798,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   </thead>
                   <tbody>
                     <tr>
-                      {[1, 2, 3, 4, 5, 6, 7].map((dy) => {
+                      {[2, 3, 4, 5, 6, 7, 1].map((dy) => {
                         const currentJsDay = new Date().getDay();
-                        const currentTodayDy = currentJsDay === 0 ? 7 : currentJsDay;
+                        const currentTodayDy = currentJsDay + 1;
                         const isToday = dy === currentTodayDy;
                         return <td key={dy} style={{ padding: '6px', fontWeight: 'bold', color: isToday ? '#10b981' : '#fff', border: '1px solid #334155', background: isToday ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
                           {weeklyPlans[dy] || '-'}
