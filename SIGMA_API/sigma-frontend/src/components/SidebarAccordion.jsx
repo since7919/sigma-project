@@ -99,7 +99,11 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
           value={localSearchKeyword}
           onChange={(e) => setLocalSearchKeyword(e.target.value)}
         />
-        <button>🔍</button>
+        {localSearchKeyword ? (
+          <button onClick={() => setLocalSearchKeyword('')} title="검색어 지우기" style={{ color: '#ef4444' }}>✖</button>
+        ) : (
+          <button style={{ cursor: 'default', opacity: 0.5 }}>🔍</button>
+        )}
       </div>
       <div className="accordion-wrapper custom-scroll">
       
