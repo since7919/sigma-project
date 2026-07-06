@@ -884,13 +884,15 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
                               const fontColor = isActive ? '#10b981' : '#cbd5e1';
 
+                              const isZeroCycle = matchedData && (matchedData.cycle === 0 || String(matchedData.cycle) === '0');
+
                               return (
                                 <React.Fragment key={`cell-${pNo}-${rIdx}`}>
                                   <td style={{ padding: '4px', borderLeft: '1px solid #334155', background: bg, color: fontColor }}>
-                                    {matchedData ? matchedData.operPlanTm : '-'}
+                                    {matchedData && !isZeroCycle ? matchedData.operPlanTm : '-'}
                                   </td>
                                   <td style={{ padding: '4px', background: bg, color: fontColor }}>
-                                    {matchedData ? matchedData.cycle : '-'}
+                                    {matchedData && !isZeroCycle ? matchedData.cycle : '-'}
                                   </td>
                                   <td style={{ padding: '4px', background: bg, color: fontColor, fontWeight: 'bold' }}>
                                     {matchedData ? matchedData.planIdxNo : '-'}
