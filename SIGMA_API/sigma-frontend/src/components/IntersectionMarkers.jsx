@@ -153,7 +153,7 @@ export function MapAutoResizer() {
   return null;
 }
 
-export default function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, showMapNames, onNodeClick }) {
+export default function IntersectionMarkers({ intersections, onDetailClick, onMultiClick, targetId, uticUpdateTick, activeTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, showMapNames, onNodeClick, uticOpenRegions }) {
   const map = useMap();
   const [zoomLevel, setZoomLevel] = useState(map.getZoom());
   const [bounds, setBounds] = useState(map.getBounds());
@@ -174,7 +174,17 @@ export default function IntersectionMarkers({ intersections, onDetailClick, onMu
     if (!activeTab) return false;
     const isSeoul = intersection.origin_type?.toLowerCase().includes('tdata');
     if (activeTab === 'tdata' && !isSeoul) return false;
-    if (activeTab === 'utic' && isSeoul) return false;
+    
+    // UTIC 탭인 경우
+    if (activeTab === 'utic') {
+      if (isSeoul) return false; // 서울 TDATA 제외
+      
+      // UTIC 지역 필터링 (열려있는 지역만 표시)
+      const regionName = intersection.region_nm || '알수없음';
+      if (!uticOpenRegions || !uticOpenRegions[regionName]) {
+        return false;
+      }
+    }
 
     return true;
   });

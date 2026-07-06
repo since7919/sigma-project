@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle }) {
+export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -83,11 +83,10 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
   // 아코디언 상태 관리
   const [tdataOpen, setTdataOpen] = useState(false);
   const [uticOpen, setUticOpen] = useState(false);
-  const [openRegions, setOpenRegions] = useState({});
   const [tdataLimit, setTdataLimit] = useState(100);
 
-  const toggleRegion = (region) => {
-    setOpenRegions(prev => ({ ...prev, [region]: !prev[region] }));
+  const toggleRegion = (reg) => {
+    setUticOpenRegions(prev => ({...prev, [reg]: !prev[reg]}));
   };
 
   return (
@@ -189,10 +188,10 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
               {Object.entries(uticGroups).map(([region, list]) => (
                 <div key={region} className="acc-subgroup">
                   <div className="acc-sub-header" onClick={() => toggleRegion(region)}>
-                    <span className="acc-icon">{openRegions[region] ? '▼' : '▶'}</span>
+                    <span className="acc-icon">{uticOpenRegions[region] ? '▼' : '▶'}</span>
                     {region} <span className="acc-count">({list.length})</span>
                   </div>
-                  {openRegions[region] && (
+                  {uticOpenRegions[region] && (
                     <div className="acc-sub-body">
                       {list.map(item => (
                         <div 

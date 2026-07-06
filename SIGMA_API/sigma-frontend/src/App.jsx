@@ -48,6 +48,7 @@ function App() {
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
   const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
+  const [uticOpenRegions, setUticOpenRegions] = useState({}); // 현재 열려있는 UTIC 지역 목록
   const [seoulActiveIds, setSeoulActiveIds] = useState([]); // 서울 활성 ID 목록
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
@@ -455,6 +456,8 @@ function App() {
           seoulActiveIds={seoulActiveIds}
           activeMapSignalIds={activeMapSignalIds}
           onMapSignalToggle={handleMapSignalToggle}
+          uticOpenRegions={uticOpenRegions}
+          setUticOpenRegions={setUticOpenRegions}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
@@ -613,6 +616,7 @@ function App() {
               onMapSignalToggle={handleMapSignalToggle}
               showMapNames={showMapNames}
               onNodeClick={handleNodeClick}
+              uticOpenRegions={uticOpenRegions}
             />
             {/* 지도상 신호 표출 레이어 */}
             {isMapSignalOn && intersections
