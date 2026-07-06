@@ -846,6 +846,7 @@ function App() {
           intersection={detailIntersection} 
           onClose={() => setDetailIntersection(null)} 
           uticUpdateTick={uticUpdateTick}
+          isMultiScreenOpen={isMultiScreenOpen}
         />
       )}
 

@@ -26,7 +26,7 @@ const getPlanTpText = (code) => {
   return '-';
 };
 
-export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick }) {
+export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick, isMultiScreenOpen }) {
   const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -617,8 +617,22 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
 
   return (
-    <div className={isDual ? "overlay" : "detail-modal-overlay"}>
-      <div className="detail-modal-content" style={isDual ? {width:'100%', height:'100%', borderRadius:0} : {}}>
+    <div className={isDual ? "overlay" : "detail-modal-overlay"} style={isMultiScreenOpen ? { background: 'transparent', pointerEvents: 'none' } : {}}>
+      <div className="detail-modal-content" style={
+        isDual ? {width:'100%', height:'100%', borderRadius:0} :
+        isMultiScreenOpen ? {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          maxWidth: '1000px',
+          height: '80%',
+          boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
+          pointerEvents: 'auto',
+          border: '1px solid rgba(56, 189, 248, 0.5)'
+        } : {}
+      }>
         <header className="modal-header">
           <h2>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
           <button className="btn-close" onClick={onClose}>×</button>
