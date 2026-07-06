@@ -34,7 +34,7 @@ const PhaseArrow = ({ p }) => {
   const color = p.type === 'L' ? '#f59e0b' : '#38bdf8';
   
   return (
-    <div style={{ transform: `rotate(${p.angle}deg)`, color, fontSize: '14px', fontWeight: 'bold', display: 'inline-block', lineHeight: 1 }} title={`${p.direction} ${p.outputType}`}>
+    <div style={{ transform: `rotate(${(p.angle + 180) % 360}deg)`, color, fontSize: '14px', fontWeight: 'bold', display: 'inline-block', lineHeight: 1 }} title={`${p.direction} ${p.outputType}`}>
       {arrowChar}
     </div>
   );
