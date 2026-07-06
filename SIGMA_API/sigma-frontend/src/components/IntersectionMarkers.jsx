@@ -180,8 +180,10 @@ export default function IntersectionMarkers({ intersections, onDetailClick, onMu
       if (isSeoul) return false; // 서울 TDATA 제외
       
       // UTIC 지역 필터링 (열려있는 지역만 표시)
-      const regionName = intersection.region_nm || '알수없음';
-      if (!uticOpenRegions || !uticOpenRegions[regionName]) {
+      const rCode = intersection.region_cd || '기타';
+      const isOpen = Object.keys(uticOpenRegions || {}).some(key => key.startsWith(rCode) && uticOpenRegions[key]);
+      
+      if (!isOpen) {
         return false;
       }
     }
