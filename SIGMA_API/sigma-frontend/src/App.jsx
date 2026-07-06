@@ -11,7 +11,7 @@ import MapSignalOverlay from './components/MapSignalOverlay';
 import DualDetailOverlay from './components/DualDetailOverlay';
 import SidebarAccordion from './components/SidebarAccordion';
 import MultiSignalCard from './components/MultiSignalCard';
-import IntersectionMarkers from './components/IntersectionMarkers';
+import IntersectionMarkers, { MapAutoResizer } from './components/IntersectionMarkers';
 import HeaderClock from './components/HeaderClock';
 import MapResizer from './components/MapResizer';
 import MapPanner from './components/MapPanner';
