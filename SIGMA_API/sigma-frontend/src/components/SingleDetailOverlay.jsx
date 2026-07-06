@@ -510,7 +510,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
           const cycle = cropData.cycle || 0;
 
           const getPedDuration = (conf) => {
-            const pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+            const currentRemain = conf.ring === 'A' ? remainA : remainB;
+            let pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+            pVal = Math.max(pVal, currentRemain);
+
             let pedDur = pVal;
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
@@ -523,14 +526,15 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             } else {
               pedDur = Math.max(0, pedDur - 5);
             }
-            return pedDur;
+            return Math.min(pedDur, pVal);
           };
 
           let isRed = true;
 
           if (activeConf) {
             const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
-            const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+            let phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+            phaseVal = Math.max(phaseVal, remainingTime);
             const elapsed = phaseVal - remainingTime;
 
             if (m.type === 'P') {

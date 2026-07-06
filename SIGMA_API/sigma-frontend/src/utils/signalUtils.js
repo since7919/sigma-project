@@ -215,8 +215,9 @@ export function calculateArrowSignals({
         if (isPed) {
           const pConf = pPhaseMap[degVal];
           if (pConf && checkActive(pPhaseMap, degVal)) {
-            const elapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-            let pedDuration = getCountdown(pPhaseMap, degVal) + elapsed;
+            const baseElapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+            const elapsed = Math.max(0, baseElapsed);
+            let pedDuration = getCountdown(pPhaseMap, degVal) + Math.max(0, baseElapsed);
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = pConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
               const activeSteps = ringData.filter(step => step[`ped${pConf.idx}`] === 1 || step[`ped${pConf.idx}`] === 5);
