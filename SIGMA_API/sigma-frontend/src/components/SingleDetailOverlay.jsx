@@ -26,20 +26,6 @@ const getPlanTpText = (code) => {
   return '-';
 };
 
-const PhaseArrow = ({ p }) => {
-  if (!p) return <span style={{ color: '#475569' }}>-</span>;
-  if (p.type === 'P') return <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>🚶</span>;
-  
-  const arrowChar = p.type === 'L' ? '↰' : '↑';
-  const color = p.type === 'L' ? '#f59e0b' : '#38bdf8';
-  
-  return (
-    <div style={{ transform: `rotate(${p.angle}deg)`, color, fontSize: '14px', fontWeight: 'bold', display: 'inline-block', lineHeight: 1 }} title={`${p.direction} ${p.outputType}`}>
-      {arrowChar}
-    </div>
-  );
-};
-
 export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick, isMultiScreenOpen }) {
   const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
@@ -63,25 +49,6 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
   }, [intersection]);
-
-  const detailConf = useMemo(() => {
-    if (isSeoul) return null;
-    const data = window.L02_DETAIL_DATA || [];
-    return data.find(d => String(d.INT_NO) === String(intersection.int_no)) || null;
-  }, [isSeoul, intersection.int_no]);
-
-  const phaseDiagramData = useMemo(() => {
-    if (!detailConf) return [];
-    let diagram = [];
-    let hasData = false;
-    for (let i = 1; i <= 8; i++) {
-      const pA = parsePhaseCode(detailConf[`A_RING_${i}_PHASE_CONF_CD`]);
-      const pB = parsePhaseCode(detailConf[`B_RING_${i}_PHASE_CONF_CD`]);
-      if (pA || pB) hasData = true;
-      diagram.push({ idx: i, A: pA, B: pB });
-    }
-    return hasData ? diagram : [];
-  }, [detailConf]);
 
   // CROP TOD 계획 정보 조회
   useEffect(() => {
@@ -741,10 +708,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             <div className="detail-tab-content custom-scroll">
               {localTab === 'remainTime' && (
                 
-<div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
-  <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
-    <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }} className="custom-scroll">
-      <table className="detail-grid-table">
+<div style={{ display: 'flex', gap: '20px', width: '100%', height: '100%' }}>
+  <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }}>
+    <table className="detail-grid-table">
                   <thead>
                     <tr>
                       <th>방향정보</th>
@@ -798,56 +764,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     })()}
                   </tbody>
                 </table>
-
-  {phaseDiagramData.length > 0 && (
-    <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
-      <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
-        {phaseDiagramData.map(ph => {
-          const isActiveA = phaseA === ph.idx;
-          const isActiveB = phaseB === ph.idx;
-          const isAnyActive = isActiveA || isActiveB;
-          
-          let headerBg = '#1e293b';
-          let headerColor = '#cbd5e1';
-          let borderColor = '#334155';
-          if (isActiveA && isActiveB) {
-            headerBg = '#f59e0b';
-            headerColor = '#0f172a';
-            borderColor = '#f59e0b';
-          } else if (isActiveA) {
-            headerBg = '#10b981';
-            headerColor = '#0f172a';
-            borderColor = '#10b981';
-          } else if (isActiveB) {
-            headerBg = '#38bdf8';
-            headerColor = '#0f172a';
-            borderColor = '#38bdf8';
-          }
-
-          return (
-            <div key={ph.idx} style={{ border: `1px solid ${borderColor}`, borderRadius: '4px', background: isAnyActive ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)', textAlign: 'center', transition: 'all 0.3s ease', overflow: 'hidden' }}>
-              <div style={{ background: headerBg, padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: headerColor, transition: 'all 0.3s ease' }}>{ph.idx}현시</div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 2px', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isActiveA ? 'rgba(16, 185, 129, 0.15)' : 'transparent', borderRadius: '4px', padding: '2px 8px', width: '90%', justifyContent: 'center', transition: 'background 0.3s ease' }}>
-                  <span style={{ fontSize: '10px', color: isActiveA ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px', transition: 'color 0.3s ease' }}>A</span>
-                  <PhaseArrow p={ph.A} />
-                </div>
-                <div style={{ height: '1px', width: '60%', background: '#334155' }}></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: isActiveB ? 'rgba(56, 189, 248, 0.15)' : 'transparent', borderRadius: '4px', padding: '2px 8px', width: '90%', justifyContent: 'center', transition: 'background 0.3s ease' }}>
-                  <span style={{ fontSize: '10px', color: isActiveB ? '#38bdf8' : '#64748b', fontWeight: 'bold', width: '10px', transition: 'color 0.3s ease' }}>B</span>
-                  <PhaseArrow p={ph.B} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  )}
-
   </div>
-  <div style={{ width: '50%', height: '100%', overflowY: 'auto' }} className="custom-scroll">
+  <div style={{ width: '50%', height: '100%', overflowY: 'auto' }}>
     <div className="operation-panel" style={{display: "flex", flexDirection: "column", gap: "15px", alignItems: "stretch", padding: "0 10px", height: "100%", overflowY: "auto"}}>
               <div style={{marginBottom: '5px'}}>
                 <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', borderBottom: '2px solid #38bdf8', paddingBottom: '2px' }}>운영정보</span>
@@ -994,7 +912,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             </div>
   </div>
 </div>
-</div>
+
               )}
               {localTab === 'signalmap' && (
                 <div className="sigmap-container">
