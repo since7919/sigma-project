@@ -301,7 +301,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         let currentPhaseIdx = 1;
         let remainingTime = 0;
         for (let i = 1; i <= 8; i++) {
-          const split = cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0;
+          const split = parseInt(cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0, 10);
           if (split === 0) continue;
           if (timeInCycle < cumulativeTime + split) {
             currentPhaseIdx = i;
@@ -477,7 +477,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
           const cycle = cropData.cycle || 0;
 
           const getPedDuration = (conf) => {
-            const pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+            const pVal = parseInt(cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0, 10);
             let pedDur = pVal;
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
@@ -497,7 +497,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
           if (activeConf) {
             const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
-            const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+            const phaseVal = parseInt(cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0, 10);
             const elapsed = phaseVal - remainingTime;
 
             if (m.type === 'P') {
@@ -550,7 +550,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
               let sumTime = 0;
               if (currentPhaseIdx === targetIdx) {
-                const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
+                const phaseVal = parseInt(cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0, 10);
                 const elapsed = phaseVal - currentRemain;
                 sumTime = cycle - elapsed;
               } else {
@@ -559,7 +559,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 while (step !== targetIdx) {
                   step = (step % 8) + 1;
                   if (step === targetIdx) break;
-                  const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                  const split = parseInt(cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0, 10);
                   sumTime += split;
                 }
               }
@@ -573,7 +573,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               if (m.type === 'P') {
                 totalActive += getPedDuration(conf);
               } else {
-                totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
+                totalActive += parseInt(cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0, 10);
               }
             }
             displayTime = Math.max(0, cycle - totalActive) + 's';
