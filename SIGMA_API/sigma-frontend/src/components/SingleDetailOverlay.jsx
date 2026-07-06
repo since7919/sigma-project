@@ -26,6 +26,20 @@ const getPlanTpText = (code) => {
   return '-';
 };
 
+const PhaseArrow = ({ p }) => {
+  if (!p) return <span style={{ color: '#475569' }}>-</span>;
+  if (p.type === 'P') return <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>🚶</span>;
+  
+  const arrowChar = p.type === 'L' ? '↰' : '↑';
+  const color = p.type === 'L' ? '#f59e0b' : '#38bdf8';
+  
+  return (
+    <div style={{ transform: `rotate(${p.angle}deg)`, color, fontSize: '14px', fontWeight: 'bold', display: 'inline-block', lineHeight: 1 }} title={`${p.direction} ${p.outputType}`}>
+      {arrowChar}
+    </div>
+  );
+};
+
 export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick, isMultiScreenOpen }) {
   const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
@@ -49,6 +63,25 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
   }, [intersection]);
+
+  const detailConf = useMemo(() => {
+    if (isSeoul) return null;
+    const data = window.L02_DETAIL_DATA || [];
+    return data.find(d => String(d.INT_NO) === String(intersection.int_no)) || null;
+  }, [isSeoul, intersection.int_no]);
+
+  const phaseDiagramData = useMemo(() => {
+    if (!detailConf) return [];
+    let diagram = [];
+    let hasData = false;
+    for (let i = 1; i <= 8; i++) {
+      const pA = parsePhaseCode(detailConf[`A_RING_${i}_PHASE_CONF_CD`]);
+      const pB = parsePhaseCode(detailConf[`B_RING_${i}_PHASE_CONF_CD`]);
+      if (pA || pB) hasData = true;
+      diagram.push({ idx: i, A: pA, B: pB });
+    }
+    return hasData ? diagram : [];
+  }, [detailConf]);
 
   // CROP TOD 계획 정보 조회
   useEffect(() => {
@@ -708,9 +741,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             <div className="detail-tab-content custom-scroll">
               {localTab === 'remainTime' && (
                 
-<div style={{ display: 'flex', gap: '20px', width: '100%', height: '100%' }}>
-  <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }}>
-    <table className="detail-grid-table">
+<div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+  <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
+    <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }} className="custom-scroll">
+      <table className="detail-grid-table">
                   <thead>
                     <tr>
                       <th>방향정보</th>
@@ -765,7 +799,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   </tbody>
                 </table>
   </div>
-  <div style={{ width: '50%', height: '100%', overflowY: 'auto' }}>
+  <div style={{ width: '50%', height: '100%', overflowY: 'auto' }} className="custom-scroll">
     <div className="operation-panel" style={{display: "flex", flexDirection: "column", gap: "15px", alignItems: "stretch", padding: "0 10px", height: "100%", overflowY: "auto"}}>
               <div style={{marginBottom: '5px'}}>
                 <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', borderBottom: '2px solid #38bdf8', paddingBottom: '2px' }}>운영정보</span>
@@ -911,6 +945,32 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
             </div>
   </div>
+</div>
+
+  {phaseDiagramData.length > 0 && (
+    <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
+      <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
+      <div style={{ display: 'flex', gap: '5px' }}>
+        {phaseDiagramData.map(ph => (
+          <div key={ph.idx} style={{ flex: 1, border: '1px solid #334155', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
+            <div style={{ background: '#1e293b', padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>{ph.idx}현시</div>
+            <div style={{ display: 'flex', justifyContent: 'space-evenly', padding: '8px 2px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span style={{ fontSize: '9px', color: '#64748b', marginBottom: '4px' }}>A</span>
+                <PhaseArrow p={ph.A} />
+              </div>
+              <div style={{ width: '1px', background: '#334155' }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span style={{ fontSize: '9px', color: '#64748b', marginBottom: '4px' }}>B</span>
+                <PhaseArrow p={ph.B} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
 </div>
 
               )}
