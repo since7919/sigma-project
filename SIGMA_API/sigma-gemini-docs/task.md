@@ -1,0 +1,9 @@
+- [x] Create `calculateArrowSignals` and `calculateCompassSignals` in `signalUtils.js`
+- [x] Refactor `CompassOverlay.jsx` to use the helper functions from `signalUtils.js`
+- [x] Refactor `MapSignalOverlay.jsx` to use the helper functions from `signalUtils.js`
+- [x] Extract `HeaderClock` to `src/components/HeaderClock.jsx`
+- [x] Extract `MapResizer` to `src/components/MapResizer.jsx`
+- [x] Extract `MapPanner` to `src/components/MapPanner.jsx`
+- [x] Extract `IntersectionMarkers` and helper components to `src/components/IntersectionMarkers.jsx`
+- [x] Refactor `App.jsx` to import and use the extracted components
+- [x] Run `npm run build` to verify

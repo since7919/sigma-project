@@ -3,7 +3,7 @@ const xlsx = require('xlsx');
 require('dotenv').config();
 
 async function run() {
-  const url = `http://tsihub.utic.go.kr/tsi/api/CrossRoadInfoService/download/crossInfo?serviceKey=${process.env.UTIC_API_KEY}&srchCTId=L02`;
+  const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/download/planCrossInfo?serviceKey=${process.env.UTIC_API_KEY}&srchCTId=L02`;
   try {
     const res = await axios.get(url, { responseType: 'arraybuffer' });
     console.log("Downloaded bytes:", res.data.length);
@@ -12,7 +12,7 @@ async function run() {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet);
     console.log("Parsed rows:", data.length);
-    console.log("First row:", data[0]);
+    console.log("Keys:", Object.keys(data[0]));
   } catch(e) {
     console.error(e);
   }
