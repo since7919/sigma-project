@@ -590,7 +590,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
               let sumTime = 0;
               if (currentPhaseIdx === targetIdx) {
-                const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
+                let phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
+                phaseVal = Math.max(phaseVal, currentRemain);
                 const elapsed = phaseVal - currentRemain;
                 sumTime = cycle - elapsed;
               } else {
@@ -613,7 +614,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               if (m.type === 'P') {
                 totalActive += getPedDuration(conf);
               } else {
-                totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
+                let pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+                const isActive = conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
+                if (isActive) {
+                  const currentRemain = conf.ring === 'A' ? remainA : remainB;
+                  pVal = Math.max(pVal, currentRemain);
+                }
+                totalActive += pVal;
               }
             }
             displayTime = Math.max(0, cycle - totalActive) + 's';
