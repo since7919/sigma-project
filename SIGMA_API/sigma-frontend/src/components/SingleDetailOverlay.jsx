@@ -798,6 +798,31 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     })()}
                   </tbody>
                 </table>
+
+  {phaseDiagramData.length > 0 && (
+    <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
+      <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
+        {phaseDiagramData.map(ph => (
+          <div key={ph.idx} style={{ border: '1px solid #334155', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
+            <div style={{ background: '#1e293b', padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>{ph.idx}현시</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 2px', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
+                <PhaseArrow p={ph.A} />
+              </div>
+              <div style={{ height: '1px', width: '60%', background: '#334155' }}></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
+                <PhaseArrow p={ph.B} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
   </div>
   <div style={{ width: '50%', height: '100%', overflowY: 'auto' }} className="custom-scroll">
     <div className="operation-panel" style={{display: "flex", flexDirection: "column", gap: "15px", alignItems: "stretch", padding: "0 10px", height: "100%", overflowY: "auto"}}>
@@ -946,33 +971,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             </div>
   </div>
 </div>
-
-  {phaseDiagramData.length > 0 && (
-    <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
-      <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
-      <div style={{ display: 'flex', gap: '5px' }}>
-        {phaseDiagramData.map(ph => (
-          <div key={ph.idx} style={{ flex: 1, border: '1px solid #334155', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
-            <div style={{ background: '#1e293b', padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>{ph.idx}현시</div>
-            <div style={{ display: 'flex', justifyContent: 'space-evenly', padding: '8px 2px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '9px', color: '#64748b', marginBottom: '4px' }}>A</span>
-                <PhaseArrow p={ph.A} />
-              </div>
-              <div style={{ width: '1px', background: '#334155' }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '9px', color: '#64748b', marginBottom: '4px' }}>B</span>
-                <PhaseArrow p={ph.B} />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
-
 </div>
-
               )}
               {localTab === 'signalmap' && (
                 <div className="sigmap-container">
