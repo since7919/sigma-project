@@ -528,88 +528,96 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
           let isRed = true;
 
-          if (activeConf) {
-            const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
-            const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
-            const elapsed = phaseVal - remainingTime;
+          if (cropData.cycle === 0) {
+            isGreen = false;
+            statText = '점멸/소등';
+            statClass = 'sig-status-flash';
+            remaining = '-';
+            displayTime = '-';
+          } else {
+            if (activeConf) {
+              const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
+              const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+              const elapsed = phaseVal - remainingTime;
 
-            if (m.type === 'P') {
-              const pedDuration = getPedDuration(activeConf);
-              const pedRemain = Math.max(0, pedDuration - elapsed);
+              if (m.type === 'P') {
+                const pedDuration = getPedDuration(activeConf);
+                const pedRemain = Math.max(0, pedDuration - elapsed);
 
-              if (pedRemain > 0) {
+                if (pedRemain > 0) {
+                  isRed = false;
+                  isGreen = true;
+                  if (pedRemain <= 7) {
+                    statText = '보행 점멸(3)';
+                    statClass = 'sig-status-flash';
+                    displayTime = Math.min(pedDuration, 7) + 's';
+                    remaining = pedRemain + 's';
+                  } else {
+                    statText = '녹색 점등(3)';
+                    statClass = 'sig-status-green';
+                    displayTime = Math.max(0, pedDuration - 7) + 's';
+                    remaining = (pedRemain - 7) + 's';
+                  }
+                }
+              } else {
                 isRed = false;
                 isGreen = true;
-                if (pedRemain <= 7) {
-                  statText = '보행 점멸(3)';
-                  statClass = 'sig-status-flash';
-                  displayTime = Math.min(pedDuration, 7) + 's';
-                  remaining = pedRemain + 's';
+                if (remainingTime <= 3) {
+                  statText = '황색 점등(2)';
+                  statClass = 'sig-status-yellow';
+                  displayTime = '3s';
+                  remaining = remainingTime + 's';
                 } else {
                   statText = '녹색 점등(3)';
                   statClass = 'sig-status-green';
-                  displayTime = Math.max(0, pedDuration - 7) + 's';
-                  remaining = (pedRemain - 7) + 's';
+                  displayTime = Math.max(0, phaseVal - 3) + 's';
+                  remaining = (remainingTime - 3) + 's';
                 }
               }
-            } else {
-              isRed = false;
-              isGreen = true;
-              if (remainingTime <= 3) {
-                statText = '황색 점등(2)';
-                statClass = 'sig-status-yellow';
-                displayTime = '3s';
-                remaining = remainingTime + 's';
-              } else {
-                statText = '녹색 점등(3)';
-                statClass = 'sig-status-green';
-                displayTime = Math.max(0, phaseVal - 3) + 's';
-                remaining = (remainingTime - 3) + 's';
-              }
             }
-          }
 
-          if (isRed) {
-            isGreen = false;
-            statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
-            statClass = 'sig-status-red';
+            if (isRed) {
+              isGreen = false;
+              statText = m.type === 'P' ? '적색 점등(1)' : '적색 점등(1)';
+              statClass = 'sig-status-red';
 
-            let minRedRemain = Infinity;
-            for (const conf of m.confs) {
-              const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
-              const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
-              const currentRemain = conf.ring === 'A' ? remainA : remainB;
-              const targetIdx = conf.idx;
+              let minRedRemain = Infinity;
+              for (const conf of m.confs) {
+                const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
+                const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
+                const currentRemain = conf.ring === 'A' ? remainA : remainB;
+                const targetIdx = conf.idx;
 
-              let sumTime = 0;
-              if (currentPhaseIdx === targetIdx) {
-                const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
-                const elapsed = phaseVal - currentRemain;
-                sumTime = cycle - elapsed;
-              } else {
-                sumTime = currentRemain;
-                let step = currentPhaseIdx;
-                while (step !== targetIdx) {
-                  step = (step % 8) + 1;
-                  if (step === targetIdx) break;
-                  const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
-                  sumTime += split;
+                let sumTime = 0;
+                if (currentPhaseIdx === targetIdx) {
+                  const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
+                  const elapsed = phaseVal - currentRemain;
+                  sumTime = cycle - elapsed;
+                } else {
+                  sumTime = currentRemain;
+                  let step = currentPhaseIdx;
+                  while (step !== targetIdx) {
+                    step = (step % 8) + 1;
+                    if (step === targetIdx) break;
+                    const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                    sumTime += split;
+                  }
+                }
+                if (sumTime < minRedRemain) minRedRemain = sumTime;
+              }
+
+              remaining = minRedRemain + 's';
+
+              let totalActive = 0;
+              for (const conf of m.confs) {
+                if (m.type === 'P') {
+                  totalActive += getPedDuration(conf);
+                } else {
+                  totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
                 }
               }
-              if (sumTime < minRedRemain) minRedRemain = sumTime;
+              displayTime = Math.max(0, cycle - totalActive) + 's';
             }
-
-            remaining = minRedRemain + 's';
-
-            let totalActive = 0;
-            for (const conf of m.confs) {
-              if (m.type === 'P') {
-                totalActive += getPedDuration(conf);
-              } else {
-                totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
-              }
-            }
-            displayTime = Math.max(0, cycle - totalActive) + 's';
           }
         }
       }
@@ -809,22 +817,63 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
       <div style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px', marginBottom: '8px' }}>현시표 (Phase Diagram)</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
-        {phaseDiagramData.map(ph => (
-          <div key={ph.idx} style={{ border: '1px solid #334155', borderRadius: '4px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
-            <div style={{ background: '#1e293b', padding: '4px 2px', fontSize: '11px', fontWeight: 'bold', color: '#cbd5e1' }}>{ph.idx}현시</div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 2px', gap: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
-                <PhaseArrow p={ph.A} />
+        {phaseDiagramData.map(ph => {
+          const isRingAActive = ph.idx === phaseA && cropData && cropData.cycle > 0 && cropData[`A_RING_${ph.idx}_PHASE_VAL`] > 0;
+          const isRingBActive = ph.idx === phaseB && cropData && cropData.cycle > 0 && cropData[`B_RING_${ph.idx}_PHASE_VAL`] > 0;
+          const isAnyActive = isRingAActive || isRingBActive;
+          
+          let remainText = '';
+          if (isRingAActive && isRingBActive) {
+            remainText = remainA === remainB ? `${remainA}s` : `A:${remainA}s B:${remainB}s`;
+          } else if (isRingAActive) {
+            remainText = `${remainA}s`;
+          } else if (isRingBActive) {
+            remainText = `${remainB}s`;
+          }
+
+          return (
+            <div key={ph.idx} style={{ 
+              border: isAnyActive ? '2px solid #10b981' : '1px solid #334155', 
+              borderRadius: '4px', 
+              background: isAnyActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)', 
+              textAlign: 'center',
+              transition: 'all 0.3s'
+            }}>
+              <div style={{ 
+                background: isAnyActive ? '#10b981' : '#1e293b', 
+                padding: '4px 6px', 
+                fontSize: '11px', 
+                fontWeight: 'bold', 
+                color: isAnyActive ? '#0f172a' : '#cbd5e1',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span>{ph.idx}현시</span>
+                {isAnyActive && (
+                  <span style={{ fontSize: '10px', background: 'rgba(0,0,0,0.4)', color: '#fff', padding: '1px 4px', borderRadius: '3px' }}>
+                    {remainText}
+                  </span>
+                )}
               </div>
-              <div style={{ height: '1px', width: '60%', background: '#334155' }}></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
-                <PhaseArrow p={ph.B} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 4px', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                  <span style={{ fontSize: '10px', color: isRingAActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                    <PhaseArrow p={ph.A} />
+                  </div>
+                </div>
+                <div style={{ height: '1px', width: '80%', background: isAnyActive ? 'rgba(16, 185, 129, 0.3)' : '#334155' }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                  <span style={{ fontSize: '10px', color: isRingBActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
+                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                    <PhaseArrow p={ph.B} />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   )}
