@@ -208,9 +208,9 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
         let countdown = 0;
 
         if (isSeoul) {
-          const dirKeys = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-          const refIdx = isPed ? Math.floor((m - 101) / 2) : Math.floor((m - 1) / 2);
-          const key = dirKeys[refIdx % 8];
+          const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+          const degToKey = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+          const key = degToKey[degVal];
           
           let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
           if (spat && spat.status) {
