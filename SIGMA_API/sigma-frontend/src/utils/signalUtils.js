@@ -143,8 +143,8 @@ export function calculateArrowSignals({
     }
 
     const rad = ang * Math.PI / 180;
-    const topPx = 77.5 - Math.cos(rad) * radiusMultiplier;
-    const leftPx = 77.5 + Math.sin(rad) * radiusMultiplier;
+    const topPx = 90 - Math.cos(rad) * radiusMultiplier;
+    const leftPx = 90 + Math.sin(rad) * radiusMultiplier;
 
     let signalState = 'off';
     let countdown = 0;
