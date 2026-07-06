@@ -266,17 +266,12 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
         iconSize: [160, 160],
         iconAnchor: [80, 80]
       }),
-      zIndexOffset: 500
+      zIndexOffset: 500,
+      interactive: false
     });
 
     marker.addTo(map);
     markerRef.current = marker;
-
-    marker.on('click', () => {
-      if (onToggleRef.current) {
-        onToggleRef.current(intersection.id);
-      }
-    });
 
     return () => {
       marker.remove();
