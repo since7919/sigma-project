@@ -2,6 +2,7 @@ import React from 'react';
 import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
 
 export default function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remainB, isSeoul, sigMapData, displayMode }) {
+  if (displayMode === 'off') return null;
   
   if (displayMode === 'arrow') {
     const arrowStates = calculateArrowSignals({

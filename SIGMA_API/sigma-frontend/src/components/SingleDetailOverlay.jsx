@@ -42,6 +42,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const [reservCtrl, setReservCtrl] = useState('-');
   const [reservCode, setReservCode] = useState(0);
   const [localZoomMode, setLocalZoomMode] = useState(false);
+  const [displayMode, setDisplayMode] = useState('circle');
   
   const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
 
@@ -640,9 +641,16 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
         <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
           {!isDual && (
-            <div className="overlay-toolbar">
-              <button className={`toolbar-btn ${!localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(false)}>전체 정보 모드</button>
-              <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
+            <div className="overlay-toolbar" style={{ display: 'flex', gap: '15px' }}>
+              <div>
+                <button className={`toolbar-btn ${!localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(false)}>전체 정보 모드</button>
+                <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
+              </div>
+              <div style={{ display: 'flex' }}>
+                <button className={`toolbar-btn ${displayMode === 'circle' ? 'active' : ''}`} onClick={() => setDisplayMode('circle')} style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}>모양:원형</button>
+                <button className={`toolbar-btn ${displayMode === 'arrow' ? 'active' : ''}`} onClick={() => setDisplayMode('arrow')} style={{ borderRadius: 0, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>모양:화살표</button>
+                <button className={`toolbar-btn ${displayMode === 'off' ? 'active' : ''}`} onClick={() => setDisplayMode('off')} style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>오프</button>
+              </div>
             </div>
           )}
           <div style={{position: 'absolute', top: '10px', right: isDual ? '10px' : '20px', zIndex: 1000, background: 'rgba(15, 23, 42, 0.85)', padding: '6px 10px', borderRadius: '20px', border: `1px solid ${isApiOn ? '#10b981' : '#64748b'}`, display: 'flex', alignItems: 'center', gap: '6px'}}>
@@ -686,6 +694,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               remainB={remainB}
               isSeoul={isSeoul}
               sigMapData={sigMapData}
+              displayMode={displayMode}
             />
           </div>
         </div>
