@@ -62,6 +62,7 @@ function App() {
   const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
   const [compassSizeVal, setCompassSizeVal] = useState(180);
+  const [filterSeoulActive, setFilterSeoulActive] = useState(false);
 
   useEffect(() => {
     const scale = compassSizeVal / 180;
@@ -428,7 +429,15 @@ function App() {
     });
   };
 
-
+  const filteredIntersections = useMemo(() => {
+    if (!filterSeoulActive) return intersections;
+    return intersections.filter(item => {
+      if (item.regionCode === 'seoul') {
+        return seoulActiveIds.includes(String(item.id));
+      }
+      return true; // Keep UTIC intersections
+    });
+  }, [intersections, filterSeoulActive, seoulActiveIds]);
 
   return (
     <>
@@ -444,7 +453,7 @@ function App() {
         </header>
         {/* 트리뷰 컴포넌트 연결 */}
         <SidebarAccordion 
-          intersections={intersections} 
+          intersections={filteredIntersections} 
           onNodeClick={handleNodeClick} 
           activeNodeId={activeNodeId} 
           onRefresh={fetchIntersections}
@@ -579,6 +588,27 @@ function App() {
             </div>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
+              className={`btn-clear ${filterSeoulActive ? 'active' : ''}`}
+              style={{
+                background: filterSeoulActive ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: filterSeoulActive ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setFilterSeoulActive(p => !p)}
+            >
+              📡 수신 교차로만 (서울)
+            </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
               className={`btn-toggle-multi ${isMultiScreenOpen ? 'active' : ''}`}
               style={{
                 background: isMultiScreenOpen ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
@@ -602,10 +632,10 @@ function App() {
 
           <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
             <MapAutoResizer />
-            <MapPanner intersections={intersections} targetId={activeNodeId} />
+            <MapPanner intersections={filteredIntersections} targetId={activeNodeId} />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
             <IntersectionMarkers 
-              intersections={intersections} 
+              intersections={filteredIntersections} 
               onDetailClick={openDetail}
               onMultiClick={handleMultiClick}
               targetId={activeNodeId}
@@ -619,7 +649,7 @@ function App() {
               uticOpenRegions={uticOpenRegions}
             />
             {/* 지도상 신호 표출 레이어 */}
-            {isMapSignalOn && intersections
+            {isMapSignalOn && filteredIntersections
               .filter(item => activeMapSignalIds.includes(item.id))
               .map(item => (
                 <MapSignalOverlay 
