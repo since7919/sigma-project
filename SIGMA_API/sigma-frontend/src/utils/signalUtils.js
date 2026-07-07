@@ -347,28 +347,29 @@ export function calculateCompassSignals({
         });
       }
     }
-  // Pedestrian mapping inference fallback
-  if (!isSeoul && sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-    ['A', 'B'].forEach(ring => {
-      const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-      if (!ringData) return;
-      for (let idx = 1; idx <= 8; idx++) {
-        const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
-        if (hasPedSignal) {
-          const existingAngle = Object.keys(pPhaseMap).find(k => pPhaseMap[k].ring === ring && pPhaseMap[k].idx === idx);
-          if (!existingAngle) {
-            const sameRingVehicles = Object.keys(sPhaseMap)
-              .filter(k => sPhaseMap[k].ring === ring)
-              .map(k => ({ angle: parseInt(k, 10), idx: sPhaseMap[k].idx }));
-            if (sameRingVehicles.length > 0) {
-              sameRingVehicles.sort((a, b) => Math.abs(a.idx - idx) - Math.abs(b.idx - idx));
-              const bestAngle = sameRingVehicles[0].angle;
-              pPhaseMap[bestAngle] = { ring, idx };
+    // Pedestrian mapping inference fallback
+    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+      ['A', 'B'].forEach(ring => {
+        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+        if (!ringData) return;
+        for (let idx = 1; idx <= 8; idx++) {
+          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+          if (hasPedSignal) {
+            const existingAngle = Object.keys(pPhaseMap).find(k => pPhaseMap[k].ring === ring && pPhaseMap[k].idx === idx);
+            if (!existingAngle) {
+              const sameRingVehicles = Object.keys(sPhaseMap)
+                .filter(k => sPhaseMap[k].ring === ring)
+                .map(k => ({ angle: parseInt(k, 10), idx: sPhaseMap[k].idx }));
+              if (sameRingVehicles.length > 0) {
+                sameRingVehicles.sort((a, b) => Math.abs(a.idx - idx) - Math.abs(b.idx - idx));
+                const bestAngle = sameRingVehicles[0].angle;
+                pPhaseMap[bestAngle] = { ring, idx };
+              }
             }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   return directions.map(({ key, deg }) => {
