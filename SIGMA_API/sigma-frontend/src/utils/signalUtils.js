@@ -120,9 +120,6 @@ export function calculateArrowSignals({
         });
       }
     }
-    Object.keys(sPhaseMap).forEach(deg => {
-      if (!pPhaseMap[deg]) pPhaseMap[deg] = sPhaseMap[deg];
-    });
     if (String(intersection.int_no) === '1045') {
       pPhaseMap[225] = { ring: 'A', idx: 1 };
     }
@@ -309,9 +306,6 @@ export function calculateCompassSignals({
           }
         });
       }
-      Object.keys(sPhaseMap).forEach(deg => {
-        if (!pPhaseMap[deg]) pPhaseMap[deg] = sPhaseMap[deg];
-      });
     }
   }
 
