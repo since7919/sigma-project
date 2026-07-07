@@ -476,8 +476,14 @@ export function calculateCompassSignals({
             
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
               const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+              if (conf.idx !== currentPhase) return false;
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
-              return phaseSteps.some(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              return phaseSteps.some(step => {
+                for (let i = 1; i <= 8; i++) {
+                  if (step[`car${i}`] === 1 || step[`car${i}`] === 5) return true;
+                }
+                return false;
+              });
             }
             return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
           };

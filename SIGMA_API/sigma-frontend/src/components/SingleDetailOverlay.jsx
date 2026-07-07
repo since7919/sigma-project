@@ -533,15 +533,22 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
           const activeConf = m.confs.find(conf => {
             const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+            if (conf.idx !== currentPhase) return false;
+
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
               if (m.type === 'P') {
                 return phaseSteps.some(step => step[`ped${conf.idx}`] === 1 || step[`ped${conf.idx}`] === 5);
               } else {
-                return phaseSteps.some(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+                return phaseSteps.some(step => {
+                  for (let i = 1; i <= 8; i++) {
+                    if (step[`car${i}`] === 1 || step[`car${i}`] === 5) return true;
+                  }
+                  return false;
+                });
               }
             }
-            return conf.idx === currentPhase;
+            return true;
           });
 
           const cycle = cropData.cycle || 0;
@@ -604,7 +611,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                   const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
                   const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
-                  const activeSteps = phaseSteps.filter(s => s[`car${activeConf.idx}`] === 1 || s[`car${activeConf.idx}`] === 5);
+                  const activeSteps = phaseSteps.filter(s => {
+                    for (let i = 1; i <= 8; i++) {
+                      if (s[`car${i}`] === 1 || s[`car${i}`] === 5) return true;
+                    }
+                    return false;
+                  });
                   if (activeSteps.length === 0) {
                     carActive = false;
                   }
