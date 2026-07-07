@@ -120,6 +120,37 @@ export function calculateArrowSignals({
         });
       }
     }
+    
+    // Infer missing pedestrian phases from sigMapData
+    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+      ['A', 'B'].forEach(ring => {
+        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+        if (!ringData) return;
+        for (let i = 1; i <= 8; i++) {
+          const hasPedSignal = ringData.some(step => step[`ped${i}`] === 1 || step[`ped${i}`] === 5);
+          if (hasPedSignal) {
+            const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === ring && p.idx === i);
+            if (!alreadyMapped) {
+              let bestDeg = null;
+              let minDiff = 999;
+              Object.entries(sPhaseMap).forEach(([deg, sPhase]) => {
+                if (sPhase.ring === ring) {
+                  const diff = Math.abs(sPhase.idx - i);
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    bestDeg = Number(deg);
+                  }
+                }
+              });
+              if (bestDeg !== null) {
+                pPhaseMap[bestDeg] = { ring, idx: i };
+              }
+            }
+          }
+        }
+      });
+    }
+
     if (String(intersection.int_no) === '1045') {
       pPhaseMap[225] = { ring: 'A', idx: 1 };
     }

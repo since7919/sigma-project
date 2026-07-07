@@ -416,18 +416,41 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         return acc;
       }, []);
 
-      if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-        const straightPhases = phases.filter(p => p.type === 'S');
-        straightPhases.forEach(sPhase => {
-          const ringData = sPhase.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-          const hasPedSignal = ringData.some(step => step[`ped${sPhase.idx}`] === 1 || step[`ped${sPhase.idx}`] === 5);
-          if (hasPedSignal && !phases.some(p => p.type === 'P' && p.angle === sPhase.angle)) {
-            phases.push({
-              ...sPhase,
-              outputType: '보행(3)',
-              type: 'P',
-              pedestrian: 0
-            });
+      if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+        ['A', 'B'].forEach(ring => {
+          const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+          if (!ringData) return;
+          for (let idx = 1; idx <= 8; idx++) {
+            const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+            if (hasPedSignal) {
+              const existingPed = phases.find(p => p.type === 'P' && p.ring === ring && p.idx === idx);
+              if (!existingPed) {
+                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring);
+                let bestAngle = 0;
+                if (sPhases.length > 0) {
+                  sPhases.sort((a, b) => Math.abs(a.idx - idx) - Math.abs(b.idx - idx));
+                  bestAngle = sPhases[0].angle;
+                }
+
+                const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === ring && p.idx === idx);
+                if (uPhaseIndex !== -1) {
+                  phases[uPhaseIndex].type = 'P';
+                  phases[uPhaseIndex].outputType = '보행(3)';
+                  phases[uPhaseIndex].angle = bestAngle;
+                  phases[uPhaseIndex].direction = parsePhaseCode(`S${bestAngle.toString().padStart(3, '0')}`)?.direction || '미지정';
+                } else {
+                  phases.push({
+                    direction: parsePhaseCode(`S${bestAngle.toString().padStart(3, '0')}`)?.direction || '미지정',
+                    outputType: '보행(3)',
+                    pedestrian: 0,
+                    type: 'P',
+                    angle: bestAngle,
+                    ring: ring,
+                    idx: idx
+                  });
+                }
+              }
+            }
           }
         });
       }
