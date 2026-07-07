@@ -29,6 +29,7 @@ const getPlanTpText = (code) => {
 const PhaseArrow = ({ p }) => {
   if (!p) return <span style={{ color: '#475569' }}>-</span>;
   if (p.type === 'P') return <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold' }}>🚶</span>;
+  if (p.type === 'U') return <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold' }}>?</span>;
   
   const arrowChar = p.type === 'L' ? '↰' : '↑';
   const color = p.type === 'L' ? '#f59e0b' : '#38bdf8';
@@ -440,21 +441,6 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       }
       uniqueMovementsMap.get(key).confs.push(p);
     });
-
-    if (!isSeoul) {
-      phases.filter(p => p.type === 'S').forEach(p => {
-        const pedKey = `${p.angle}_P`;
-        if (!uniqueMovementsMap.has(pedKey)) {
-           uniqueMovementsMap.set(pedKey, {
-             ...p,
-             type: 'P',
-             outputType: '보행자(3)',
-             confs: []
-           });
-        }
-        uniqueMovementsMap.get(pedKey).confs.push(p);
-      });
-    }
 
     const mapped = Array.from(uniqueMovementsMap.values()).map(m => {
       let isGreen = false;

@@ -5,7 +5,16 @@ export function parsePhaseCode(code) {
   if (typeChar === 'S') typeName = '직진(1)';
   else if (typeChar === 'L') typeName = '좌회전(2)';
   else if (typeChar === 'P') typeName = '보행(3)';
-  else return null;
+  else return {
+    direction: '미지정',
+    outputType: '미지정',
+    pedestrian: 0,
+    bankCode: '',
+    timeSignal: 0,
+    original: code,
+    type: 'U',
+    angle: 0
+  };
 
   const enterAngle = parseInt(code.substring(1, 4), 10);
   let dirName = '미지정';
