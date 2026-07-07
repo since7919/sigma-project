@@ -275,9 +275,18 @@ export function calculateArrowSignals({
           const isLeftMov = (m % 2 !== 0);
           const mapToUse = isLeftMov ? lPhaseMap : sPhaseMap;
           if (mapToUse[degVal] && checkActive(mapToUse, degVal)) {
-            signalState = 'G';
-            countdown = getCountdown(mapToUse, degVal);
-            if (countdown <= 3) signalState = 'Y';
+            let carActive = true;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+              const conf = mapToUse[degVal];
+              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              const activeSteps = ringData.filter(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              if (activeSteps.length === 0) carActive = false;
+            }
+            if (carActive) {
+              signalState = 'G';
+              countdown = getCountdown(mapToUse, degVal);
+              if (countdown <= 3) signalState = 'Y';
+            }
           }
         }
       }
@@ -453,15 +462,33 @@ export function calculateCompassSignals({
           };
 
           if (checkActive(sPhaseMap)) { 
-            s = 'green'; 
-            carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
+            let carActive = true;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+              const conf = sPhaseMap[deg];
+              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              const activeSteps = ringData.filter(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              if (activeSteps.length === 0) carActive = false;
+            }
+            if (carActive) {
+              s = 'green'; 
+              carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
+            }
           } else if (sPhaseMap[deg]) {
             carCountdown = Math.max(carCountdown, getInactiveCountdown(sPhaseMap));
           }
 
           if (checkActive(lPhaseMap)) { 
-            l = 'green'; 
-            carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
+            let carActive = true;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+              const conf = lPhaseMap[deg];
+              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              const activeSteps = ringData.filter(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              if (activeSteps.length === 0) carActive = false;
+            }
+            if (carActive) {
+              l = 'green'; 
+              carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
+            }
           } else if (lPhaseMap[deg] && !checkActive(sPhaseMap)) {
             carCountdown = Math.max(carCountdown, getInactiveCountdown(lPhaseMap));
           }

@@ -569,18 +569,31 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   }
                 }
               } else {
-                isRed = false;
-                isGreen = true;
-                if (remainingTime <= 3) {
-                  statText = '황색 점등(2)';
-                  statClass = 'sig-status-yellow';
-                  displayTime = '3s';
-                  remaining = remainingTime + 's';
+                let carActive = true;
+                if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
+                  const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                  const activeSteps = ringData.filter(s => s[`car${activeConf.idx}`] === 1 || s[`car${activeConf.idx}`] === 5);
+                  if (activeSteps.length === 0) {
+                    carActive = false;
+                  }
+                }
+
+                if (carActive) {
+                  isRed = false;
+                  isGreen = true;
+                  if (remainingTime <= 3) {
+                    statText = '황색 점등(2)';
+                    statClass = 'sig-status-yellow';
+                    displayTime = '3s';
+                    remaining = remainingTime + 's';
+                  } else {
+                    statText = '녹색 점등(3)';
+                    statClass = 'sig-status-green';
+                    displayTime = Math.max(0, phaseVal - 3) + 's';
+                    remaining = (remainingTime - 3) + 's';
+                  }
                 } else {
-                  statText = '녹색 점등(3)';
-                  statClass = 'sig-status-green';
-                  displayTime = Math.max(0, phaseVal - 3) + 's';
-                  remaining = (remainingTime - 3) + 's';
+                  isRed = true;
                 }
               }
             }
