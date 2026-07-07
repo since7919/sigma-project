@@ -733,12 +733,6 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>시그널맵</button>
             </div>
             <div className="detail-tab-content custom-scroll">
-              <div style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.8)', padding: '5px', fontSize: '10px', color: '#10b981', zIndex: 999 }}>
-                crop: {cropData ? 'Loaded' : 'Null'}, 
-                cycle: {cropData?.cycle || 0}, 
-                pA: {phaseA}, rA: {remainA}, 
-                pB: {phaseB}, rB: {remainB}
-              </div>
               {localTab === 'remainTime' && (
                 
 <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
