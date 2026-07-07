@@ -515,15 +515,45 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         }
       } else {
         if (cropData && m.confs.length > 0) {
-          const activeConf = m.confs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
+          const getStepsForCurrentPhase = (ring, currentPhase) => {
+            const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+            if (!ringData || ringData.length === 0) return [];
+            let p = 1;
+            let stepsInPhase = [];
+            for (let step of ringData) {
+              if (p === currentPhase) {
+                stepsInPhase.push(step);
+              }
+              if (step.eop === 1) {
+                p++;
+              }
+            }
+            return stepsInPhase;
+          };
+
+          const activeConf = m.confs.find(conf => {
+            const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+              const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+              if (m.type === 'P') {
+                return phaseSteps.some(step => step[`ped${conf.idx}`] === 1 || step[`ped${conf.idx}`] === 5);
+              } else {
+                return phaseSteps.some(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              }
+            }
+            return conf.idx === currentPhase;
+          });
+
           const cycle = cropData.cycle || 0;
 
           const getPedDuration = (conf) => {
-            const pVal = cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0;
+            const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+            const pVal = cropData[`${conf.ring}_RING_${currentPhase}_PHASE_VAL`] || 0;
             let pedDur = pVal;
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const activeSteps = ringData.filter(s => s[`ped${conf.idx}`] === 1 || s[`ped${conf.idx}`] === 5);
+              const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+              const activeSteps = phaseSteps.filter(s => s[`ped${conf.idx}`] === 1 || s[`ped${conf.idx}`] === 5);
               if (activeSteps.length > 0) {
                 pedDur = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
               } else {
@@ -546,7 +576,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
           } else {
             if (activeConf) {
               const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
-              const phaseVal = cropData[`${activeConf.ring}_RING_${activeConf.idx}_PHASE_VAL`] || 0;
+              const currentPhase = activeConf.ring === 'A' ? phaseA : phaseB;
+              const phaseVal = cropData[`${activeConf.ring}_RING_${currentPhase}_PHASE_VAL`] || 0;
               const elapsed = phaseVal - remainingTime;
 
               if (m.type === 'P') {
@@ -572,7 +603,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 let carActive = true;
                 if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                   const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                  const activeSteps = ringData.filter(s => s[`car${activeConf.idx}`] === 1 || s[`car${activeConf.idx}`] === 5);
+                  const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
+                  const activeSteps = phaseSteps.filter(s => s[`car${activeConf.idx}`] === 1 || s[`car${activeConf.idx}`] === 5);
                   if (activeSteps.length === 0) {
                     carActive = false;
                   }
@@ -608,7 +640,26 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
                 const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
                 const currentRemain = conf.ring === 'A' ? remainA : remainB;
-                const targetIdx = conf.idx;
+                
+                let targetIdx = conf.idx;
+                if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+                  const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                  let foundTargetPhase = null;
+                  let p = 1;
+                  for (let step of ringData) {
+                    const isActive = m.type === 'P'
+                      ? (step[`ped${conf.idx}`] === 1 || step[`ped${conf.idx}`] === 5)
+                      : (step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+                    if (isActive) {
+                      foundTargetPhase = p;
+                      break;
+                    }
+                    if (step.eop === 1) p++;
+                  }
+                  if (foundTargetPhase !== null) {
+                    targetIdx = foundTargetPhase;
+                  }
+                }
 
                 let sumTime = 0;
                 if (currentPhaseIdx === targetIdx) {
@@ -618,11 +669,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 } else {
                   sumTime = currentRemain;
                   let step = currentPhaseIdx;
-                  while (step !== targetIdx) {
+                  let loopCount = 0;
+                  while (step !== targetIdx && loopCount < 8) {
                     step = (step % 8) + 1;
                     if (step === targetIdx) break;
                     const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
                     sumTime += split;
+                    loopCount++;
                   }
                 }
                 if (sumTime < minRedRemain) minRedRemain = sumTime;
@@ -635,7 +688,19 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 if (m.type === 'P') {
                   totalActive += getPedDuration(conf);
                 } else {
-                  totalActive += (cropData[`${conf.ring}_RING_${conf.idx}_PHASE_VAL`] || 0);
+                  let activePhaseIdx = conf.idx;
+                  if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+                    const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                    let foundTargetPhase = null;
+                    let p = 1;
+                    for (let step of ringData) {
+                      const isActive = step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5;
+                      if (isActive) { foundTargetPhase = p; break; }
+                      if (step.eop === 1) p++;
+                    }
+                    if (foundTargetPhase !== null) activePhaseIdx = foundTargetPhase;
+                  }
+                  totalActive += (cropData[`${conf.ring}_RING_${activePhaseIdx}_PHASE_VAL`] || 0);
                 }
               }
               displayTime = Math.max(0, cycle - totalActive) + 's';
