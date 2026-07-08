@@ -149,6 +149,30 @@ export function calculateArrowSignals({
       });
     }
 
+    // Infer exclusive pedestrian phases (where no S or L vehicles move, but ped is active)
+    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+      ['A', 'B'].forEach(ring => {
+        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+        if (!ringData) return;
+        for (let idx = 1; idx <= 8; idx++) {
+          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+          if (hasPedSignal) {
+            const hasVeh = Object.values(sPhaseMap).some(p => p.ring === ring && p.idx === idx) || 
+                           Object.values(lPhaseMap).some(p => p.ring === ring && p.idx === idx);
+            if (!hasVeh) {
+              const allAngles = new Set([...Object.keys(sPhaseMap), ...Object.keys(lPhaseMap)]);
+              allAngles.forEach(deg => {
+                if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
+                if (!pPhaseMap[deg].some(p => p.ring === ring && p.idx === idx)) {
+                  pPhaseMap[deg].push({ ring, idx });
+                }
+              });
+            }
+          }
+        }
+      });
+    }
+
     if (String(intersection.int_no) === '1045') {
       if (!pPhaseMap[225]) pPhaseMap[225] = [];
       pPhaseMap[225].push({ ring: 'A', idx: 1 });
@@ -386,6 +410,30 @@ export function calculateCompassSignals({
             }
           }
         });
+      });
+    }
+
+    // Infer exclusive pedestrian phases (where no S or L vehicles move, but ped is active)
+    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+      ['A', 'B'].forEach(ring => {
+        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+        if (!ringData) return;
+        for (let idx = 1; idx <= 8; idx++) {
+          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+          if (hasPedSignal) {
+            const hasVeh = Object.values(sPhaseMap).some(p => p.ring === ring && p.idx === idx) || 
+                           Object.values(lPhaseMap).some(p => p.ring === ring && p.idx === idx);
+            if (!hasVeh) {
+              const allAngles = new Set([...Object.keys(sPhaseMap), ...Object.keys(lPhaseMap)]);
+              allAngles.forEach(deg => {
+                if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
+                if (!pPhaseMap[deg].some(p => p.ring === ring && p.idx === idx)) {
+                  pPhaseMap[deg].push({ ring, idx });
+                }
+              });
+            }
+          }
+        }
       });
     }
 

@@ -443,6 +443,37 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             }
           }
         });
+
+        if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+          ['A', 'B'].forEach(ring => {
+            const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+            if (!ringData) return;
+            for (let idx = 1; idx <= 8; idx++) {
+              const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+              if (hasPedSignal) {
+                const hasVeh = phases.some(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+                if (!hasVeh) {
+                  const allAngles = Array.from(new Set(phases.filter(p => p.type === 'S' || p.type === 'L').map(p => p.angle)));
+                  allAngles.forEach(angle => {
+                    const existingPed = phases.find(p => p.type === 'P' && p.ring === ring && p.idx === idx && p.angle === angle);
+                    if (!existingPed) {
+                      const vPhaseMatch = phases.find(p => p.angle === angle && (p.type === 'S' || p.type === 'L'));
+                      phases.push({
+                        direction: vPhaseMatch ? vPhaseMatch.direction : '',
+                        outputType: '보행(3)',
+                        pedestrian: 0,
+                        type: 'P',
+                        angle: angle,
+                        ring: ring,
+                        idx: idx
+                      });
+                    }
+                  });
+                }
+              }
+            }
+          });
+        }
       }
     }
 
