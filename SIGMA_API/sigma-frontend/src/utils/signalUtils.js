@@ -511,6 +511,71 @@ export function calculateCompassSignals({
             return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
           };
 
+          const getCountdown = (map) => {
+            const conf = map[deg];
+            if (!conf) return 0;
+            return conf.ring === 'A' ? remainA : remainB;
+          };
+
+          const getInactiveCountdown = (map, isPedSignal = false) => {
+            const conf = map[deg];
+            if (!conf) return 0;
+            const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
+            const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
+            const currentRemain = conf.ring === 'A' ? remainA : remainB;
+            
+            let targetIdx = conf.idx;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              let foundTargetPhase = null;
+              let p = 1;
+              for (let step of ringData) {
+                const isActive = isPedSignal 
+                  ? isPedActive(step[`ped${conf.idx}`])
+                  : (() => {
+                      for (let i = 1; i <= 8; i++) {
+                        if (isCarActive(step[`car${i}`])) return true;
+                      }
+                      return false;
+                    })();
+                if (isActive) {
+                  foundTargetPhase = p;
+                  break;
+                }
+                if (step.eop === 1) p++;
+              }
+              if (foundTargetPhase !== null) {
+                targetIdx = foundTargetPhase;
+              }
+            }
+
+            let sumTime = currentRemain;
+            let step = currentPhaseIdx;
+            
+            let loopCount = 0;
+            while (step !== targetIdx && loopCount < 8) {
+              step = (step % 8) + 1; 
+              const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+              sumTime += split;
+              loopCount++;
+            }
+            return sumTime;
+          };
+
+          if (checkActiveVeh(sPhaseMap)) { 
+            s = 'green'; 
+            carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
+          } else if (sPhaseMap[deg]) {
+            carCountdown = Math.max(carCountdown, getInactiveCountdown(sPhaseMap, false));
+          }
+
+          if (checkActiveVeh(lPhaseMap)) { 
+            l = 'green'; 
+            carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
+          } else if (lPhaseMap[deg] && !checkActiveVeh(sPhaseMap)) {
+            carCountdown = Math.max(carCountdown, getInactiveCountdown(lPhaseMap, false));
+          }
+
           const checkActivePed = (map) => {
             const confs = map[deg];
             if (!confs || confs.length === 0) return false;
