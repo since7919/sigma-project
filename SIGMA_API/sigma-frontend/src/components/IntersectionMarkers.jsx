@@ -118,14 +118,17 @@ const IntersectionMarkerItem = React.memo(function IntersectionMarkerItem({ inte
               <button className="btn-detail" onClick={(e) => {
                 e.stopPropagation();
                 onDetailClick(intersection);
+                map.closePopup();
               }}>상세보기</button>
               <button className="btn-detail" style={{background:'#10b981', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
                 e.stopPropagation();
                 onMultiClick(intersection);
+                map.closePopup();
               }}>멀티 담기</button>
               <button className="btn-detail" style={{background:'#0284c7', border:'none', padding:'6px 12px', color:'#fff', borderRadius:'4px', cursor:'pointer', fontSize:'0.8rem'}} onClick={(e) => {
                 e.stopPropagation();
                 if (onMapSignalToggle) onMapSignalToggle(intersection.id);
+                map.closePopup();
               }}>
                 {isSignalOverlayActive ? '지도 신호 해제' : '지도 신호 표출'}
               </button>
