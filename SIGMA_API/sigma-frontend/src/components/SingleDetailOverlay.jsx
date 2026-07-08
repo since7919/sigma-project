@@ -361,11 +361,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     return () => clearInterval(interval);
   }, [cropData, isSeoul, allTodPlans, weeklyPlans, phaseA, phaseB, remainA, remainB]);
 
+  const detailData = window.L02_DETAIL_DATA || [];
+  const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
+
   // 실시간 신호 테이블 데이터 가공 로직
   const updatedPhases = useMemo(() => {
     let phases = [];
-    const detailData = window.L02_DETAIL_DATA || [];
-    const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
 
     if (isSeoul) {
       let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
