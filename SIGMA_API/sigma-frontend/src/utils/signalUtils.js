@@ -131,13 +131,11 @@ export function calculateArrowSignals({
       }
     }
     
-    // Infer missing pedestrian phases from sigMapData
-    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+    // Infer missing pedestrian phases from cropData
+    if (cropData) {
       ['A', 'B'].forEach(ring => {
-        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        if (!ringData) return;
         for (let i = 1; i <= 8; i++) {
-          const hasPedSignal = ringData.some(step => isPedActive(step[`ped${i}`]));
+          const hasPedSignal = (cropData[`${ring}_RING_${i}_PHASE_VAL`] || 0) > 0;
           if (hasPedSignal) {
             const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === ring && p.idx === i);
             if (!alreadyMapped) {

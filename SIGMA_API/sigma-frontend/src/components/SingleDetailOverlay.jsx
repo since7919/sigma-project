@@ -416,12 +416,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         return acc;
       }, []);
 
-      if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+      if (cropData) {
         ['A', 'B'].forEach(ring => {
-          const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-          if (!ringData) return;
           for (let idx = 1; idx <= 8; idx++) {
-            const hasPedSignal = ringData.some(step => isPedActive(step[`ped${idx}`]));
+            const hasPedSignal = (cropData[`${ring}_RING_${idx}_PHASE_VAL`] || 0) > 0;
             if (hasPedSignal) {
               const existingPed = phases.find(p => p.type === 'P' && p.ring === ring && p.idx === idx);
               if (!existingPed) {
