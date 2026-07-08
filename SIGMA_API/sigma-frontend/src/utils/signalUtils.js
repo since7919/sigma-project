@@ -52,6 +52,16 @@ export const toHex = (v) => {
   return typeof v === 'number' ? v.toString(16).padStart(2, '0').toUpperCase() : String(v);
 };
 
+export const isCarActive = (v) => {
+  const hex = toHex(v);
+  return hex === '01' || hex === '10' || hex === '11' || hex === '04' || hex === '05' || hex === '02' || hex === '20';
+};
+
+export const isPedActive = (v) => {
+  const hex = toHex(v);
+  return hex === '01' || hex === '05';
+};
+
 export const getCellClass = (val, type) => {
   const hex = toHex(val);
   if (hex === '00') return 'cell-gray';
@@ -127,7 +137,7 @@ export function calculateArrowSignals({
         const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
         if (!ringData) return;
         for (let i = 1; i <= 8; i++) {
-          const hasPedSignal = ringData.some(step => step[`ped${i}`] === 1 || step[`ped${i}`] === 5);
+          const hasPedSignal = ringData.some(step => isPedActive(step[`ped${i}`]));
           if (hasPedSignal) {
             const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === ring && p.idx === i);
             if (!alreadyMapped) {
@@ -248,15 +258,33 @@ export function calculateArrowSignals({
           return conf.ring === 'A' ? remainA : remainB;
         };
 
+        const getStepsForCurrentPhase = (ring, currentPhase) => {
+          const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+          if (!ringData || ringData.length === 0) return [];
+          let p = 1;
+          let stepsInPhase = [];
+          for (let step of ringData) {
+            if (p === currentPhase) {
+              stepsInPhase.push(step);
+            }
+            if (step.eop === 1) {
+              p++;
+            }
+          }
+          return stepsInPhase;
+        };
+
         const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
         if (isPed) {
           const pConf = pPhaseMap[degVal];
           if (pConf && checkActive(pPhaseMap, degVal)) {
+            const currentPhase = pConf.ring === 'A' ? phaseA : phaseB;
             const elapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
             let pedDuration = getCountdown(pPhaseMap, degVal) + elapsed;
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = pConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const activeSteps = ringData.filter(step => step[`ped${pConf.idx}`] === 1 || step[`ped${pConf.idx}`] === 5);
+              const phaseSteps = getStepsForCurrentPhase(pConf.ring, currentPhase);
+              const activeSteps = phaseSteps.filter(step => isPedActive(step[`ped${pConf.idx}`]));
               if (activeSteps.length > 0) {
                 pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
               } else {
@@ -278,8 +306,14 @@ export function calculateArrowSignals({
             let carActive = true;
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
               const conf = mapToUse[degVal];
-              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const activeSteps = ringData.filter(step => step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+              const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+              const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+              const activeSteps = phaseSteps.filter(step => {
+                for (let i = 1; i <= 8; i++) {
+                  if (isCarActive(step[`car${i}`])) return true;
+                }
+                return false;
+              });
               if (activeSteps.length === 0) carActive = false;
             }
             if (carActive) {
@@ -480,7 +514,7 @@ export function calculateCompassSignals({
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
               return phaseSteps.some(step => {
                 for (let i = 1; i <= 8; i++) {
-                  if (step[`car${i}`] === 1 || step[`car${i}`] === 5) return true;
+                  if (isCarActive(step[`car${i}`])) return true;
                 }
                 return false;
               });
@@ -495,7 +529,7 @@ export function calculateCompassSignals({
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
               const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
-              return phaseSteps.some(step => step[`ped${conf.idx}`] === 1 || step[`ped${conf.idx}`] === 5);
+              return phaseSteps.some(step => isPedActive(step[`ped${conf.idx}`]));
             }
             return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
           };
@@ -520,8 +554,13 @@ export function calculateCompassSignals({
               let p = 1;
               for (let step of ringData) {
                 const isActive = isPedSignal 
-                  ? (step[`ped${conf.idx}`] === 1 || step[`ped${conf.idx}`] === 5)
-                  : (step[`car${conf.idx}`] === 1 || step[`car${conf.idx}`] === 5);
+                  ? isPedActive(step[`ped${conf.idx}`])
+                  : (() => {
+                      for (let i = 1; i <= 8; i++) {
+                        if (isCarActive(step[`car${i}`])) return true;
+                      }
+                      return false;
+                    })();
                 if (isActive) {
                   foundTargetPhase = p;
                   break;
@@ -569,7 +608,7 @@ export function calculateCompassSignals({
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
-              const activeSteps = phaseSteps.filter(step => step[`ped${phaseIdx}`] === 1 || step[`ped${phaseIdx}`] === 5);
+              const activeSteps = phaseSteps.filter(step => isPedActive(step[`ped${phaseIdx}`]));
               if (activeSteps.length > 0) {
                 pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
               } else {
