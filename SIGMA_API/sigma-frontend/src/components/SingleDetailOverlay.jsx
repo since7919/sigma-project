@@ -883,11 +883,68 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 <div style={{ padding: '20px', color: '#fff', fontSize: '13px', height: '100%', overflowY: 'auto' }}>
                   <h3 style={{ color: '#00ecff', marginBottom: '15px' }}>L02 교차로 기반 정보 (JSON)</h3>
                   {conf ? (
-                    <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #1e293b' }}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                        {JSON.stringify(conf, null, 2)}
-                      </pre>
-                    </div>
+                    (() => {
+                      const baseRows = [];
+                      ['A', 'B'].forEach(ring => {
+                        for (let i = 1; i <= 8; i++) {
+                          const code = conf[`${ring}_RING_${i}_PHASE_CONF_CD`];
+                          if (code && typeof code === 'string' && code.length >= 7) {
+                            const typeChar = code.charAt(0).toUpperCase();
+                            let typeName = '미지정';
+                            if (typeChar === 'S') typeName = '직진(S)';
+                            else if (typeChar === 'L') typeName = '좌회전(L)';
+                            else if (typeChar === 'P') typeName = '보행(P)';
+                            else if (typeChar === 'U') typeName = '유턴(U)';
+                            const inAngle = parseInt(code.substring(1, 4), 10);
+                            const outAngle = parseInt(code.substring(4, 7), 10);
+                            baseRows.push({
+                              ringStep: `${ring}링 ${i}현시`,
+                              type: typeName,
+                              inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
+                              outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
+                              fullCode: code
+                            });
+                          }
+                        }
+                      });
+                      
+                      return (
+                        <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                          {baseRows.length > 0 ? (
+                            <table className="detail-grid-table" style={{ width: '100%', textAlign: 'center' }}>
+                              <thead>
+                                <tr>
+                                  <th>현시</th>
+                                  <th>신호종류</th>
+                                  <th>진입방위각</th>
+                                  <th>진출방위각</th>
+                                  <th>전체코드</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {baseRows.map((row, idx) => (
+                                  <tr key={idx}>
+                                    <td>{row.ringStep}</td>
+                                    <td>{row.type}</td>
+                                    <td>{row.inAngle}</td>
+                                    <td>{row.outAngle}</td>
+                                    <td style={{ fontFamily: 'monospace', color: '#10b981', fontWeight: 'bold' }}>{row.fullCode}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <div style={{ opacity: 0.5, textAlign: 'center', padding: '20px' }}>유효한 현시 코드가 없습니다.</div>
+                          )}
+                          <details style={{ marginTop: '20px', borderTop: '1px solid #1e293b', paddingTop: '10px' }}>
+                            <summary style={{ cursor: 'pointer', color: '#94a3b8' }}>원본 JSON 데이터 보기</summary>
+                            <pre style={{ margin: '10px 0 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'monospace', fontSize: '11px', color: '#64748b' }}>
+                              {JSON.stringify(conf, null, 2)}
+                            </pre>
+                          </details>
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div style={{ padding: '30px', opacity: 0.5, textAlign: 'center' }}>해당 교차로의 기반 정보가 없습니다.</div>
                   )}
