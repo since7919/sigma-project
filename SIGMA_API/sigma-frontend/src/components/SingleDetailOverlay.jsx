@@ -875,8 +875,23 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             <div className="tabs-header">
               <button className={`tab-btn ${localTab === 'remainTime' ? 'active' : ''}`} onClick={() => setLocalTab('remainTime')}>신호잔여시간</button>
               <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>시그널맵</button>
+              <button className={`tab-btn ${localTab === 'baseinfo' ? 'active' : ''}`} onClick={() => setLocalTab('baseinfo')}>기반정보</button>
             </div>
             <div className="detail-tab-content custom-scroll">
+              {localTab === 'baseinfo' && (
+                <div style={{ padding: '20px', color: '#fff', fontSize: '13px', height: '100%', overflowY: 'auto' }}>
+                  <h3 style={{ color: '#00ecff', marginBottom: '15px' }}>L02 교차로 기반 정보 (JSON)</h3>
+                  {conf ? (
+                    <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                        {JSON.stringify(conf, null, 2)}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '30px', opacity: 0.5, textAlign: 'center' }}>해당 교차로의 기반 정보가 없습니다.</div>
+                  )}
+                </div>
+              )}
               {localTab === 'remainTime' && (
                 
 <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
