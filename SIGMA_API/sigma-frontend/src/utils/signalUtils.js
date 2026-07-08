@@ -125,27 +125,33 @@ export function calculateArrowSignals({
             const degVal = parsed.angle;
             if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
             else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
-            else if (parsed.type === 'P') pPhaseMap[degVal] = { ring, idx: i };
+            else if (parsed.type === 'P') {
+              if (!pPhaseMap[degVal]) pPhaseMap[degVal] = [];
+              pPhaseMap[degVal].push({ ring, idx: i });
+            }
           }
         });
       }
     }
     
-    // Infer missing pedestrian phases from cropData
+    // Infer missing pedestrian phases from cropData (both S and L phases)
     if (cropData) {
-      Object.entries(sPhaseMap).forEach(([deg, sPhase]) => {
-        const hasPhase = (cropData[`${sPhase.ring}_RING_${sPhase.idx}_PHASE_VAL`] || 0) > 0;
-        if (hasPhase) {
-          const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === sPhase.ring && p.idx === sPhase.idx);
-          if (!alreadyMapped && !pPhaseMap[deg]) {
-            pPhaseMap[deg] = { ring: sPhase.ring, idx: sPhase.idx };
+      [sPhaseMap, lPhaseMap].forEach(map => {
+        Object.entries(map).forEach(([deg, phase]) => {
+          const hasPhase = (cropData[`${phase.ring}_RING_${phase.idx}_PHASE_VAL`] || 0) > 0;
+          if (hasPhase) {
+            if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
+            if (!pPhaseMap[deg].some(p => p.ring === phase.ring && p.idx === phase.idx)) {
+              pPhaseMap[deg].push({ ring: phase.ring, idx: phase.idx });
+            }
           }
-        }
+        });
       });
     }
 
     if (String(intersection.int_no) === '1045') {
-      pPhaseMap[225] = { ring: 'A', idx: 1 };
+      if (!pPhaseMap[225]) pPhaseMap[225] = [];
+      pPhaseMap[225].push({ ring: 'A', idx: 1 });
     }
   }
 
@@ -506,91 +512,83 @@ export function calculateCompassSignals({
           };
 
           const checkActivePed = (map) => {
-            const conf = map[deg];
-            if (!conf) return false;
+            const confs = map[deg];
+            if (!confs || confs.length === 0) return false;
 
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-              const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
-              const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
-              return phaseSteps.some(step => isPedActive(step[`ped${conf.idx}`]));
+              for (const conf of confs) {
+                const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+                const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+                if (phaseSteps.some(step => isPedActive(step[`ped${conf.idx}`]))) return true;
+              }
+              return false;
             }
-            return conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB);
+            return confs.some(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
           };
 
-          const getCountdown = (map) => {
-            const conf = map[deg];
-            if (!conf) return 0;
-            return conf.ring === 'A' ? remainA : remainB;
-          };
-
-          const getInactiveCountdown = (map, isPedSignal = false) => {
-            const conf = map[deg];
-            if (!conf) return 0;
-            const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
-            const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
-            const currentRemain = conf.ring === 'A' ? remainA : remainB;
-            
-            let targetIdx = conf.idx;
-            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              let foundTargetPhase = null;
-              let p = 1;
-              for (let step of ringData) {
-                const isActive = isPedSignal 
-                  ? isPedActive(step[`ped${conf.idx}`])
-                  : (() => {
-                      for (let i = 1; i <= 8; i++) {
-                        if (isCarActive(step[`car${i}`])) return true;
-                      }
-                      return false;
-                    })();
-                if (isActive) {
-                  foundTargetPhase = p;
-                  break;
+          const getInactiveCountdownPed = (map) => {
+            const confs = map[deg];
+            if (!confs || confs.length === 0) return 0;
+            let minTime = Infinity;
+            for (const conf of confs) {
+              const ringPrefix = conf.ring === 'A' ? 'A_RING' : 'B_RING';
+              const currentPhaseIdx = conf.ring === 'A' ? phaseA : phaseB;
+              const currentRemain = conf.ring === 'A' ? remainA : remainB;
+              
+              let targetIdx = conf.idx;
+              if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+                const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+                let foundTargetPhase = null;
+                let p = 1;
+                for (let step of ringData) {
+                  if (isPedActive(step[`ped${conf.idx}`])) {
+                    foundTargetPhase = p;
+                    break;
+                  }
+                  if (step.eop === 1) p++;
                 }
-                if (step.eop === 1) p++;
+                if (foundTargetPhase !== null) {
+                  targetIdx = foundTargetPhase;
+                }
               }
-              if (foundTargetPhase !== null) {
-                targetIdx = foundTargetPhase;
-              }
-            }
 
-            let sumTime = currentRemain;
-            let step = currentPhaseIdx;
-            
-            let loopCount = 0;
-            while (step !== targetIdx && loopCount < 8) {
-              step = (step % 8) + 1; 
-              const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
-              sumTime += split;
-              loopCount++;
+              let sumTime = currentRemain;
+              let step = currentPhaseIdx;
+              
+              let loopCount = 0;
+              while (step !== targetIdx && loopCount < 8) {
+                step = (step % 8) + 1; 
+                const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                sumTime += split;
+                loopCount++;
+              }
+              if (sumTime < minTime) minTime = sumTime;
             }
-            return sumTime;
+            return minTime === Infinity ? 0 : minTime;
           };
 
-          if (checkActiveVeh(sPhaseMap)) { 
-            s = 'green'; 
-            carCountdown = Math.max(carCountdown, getCountdown(sPhaseMap)); 
-          } else if (sPhaseMap[deg]) {
-            carCountdown = Math.max(carCountdown, getInactiveCountdown(sPhaseMap, false));
-          }
+          const calcPedestrian = (confs, map) => {
+            let activeConf = null;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+               activeConf = confs.find(conf => {
+                  const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+                  const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+                  return phaseSteps.some(step => isPedActive(step[`ped${conf.idx}`]));
+               });
+            } else {
+               activeConf = confs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
+            }
+            if (!activeConf) return;
 
-          if (checkActiveVeh(lPhaseMap)) { 
-            l = 'green'; 
-            carCountdown = Math.max(carCountdown, getCountdown(lPhaseMap)); 
-          } else if (lPhaseMap[deg] && !checkActiveVeh(sPhaseMap)) {
-            carCountdown = Math.max(carCountdown, getInactiveCountdown(lPhaseMap, false));
-          }
-
-          const calcPedestrian = (conf, map) => {
-            const phaseIdx = conf.idx;
-            const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
-            const elapsed = conf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-            let pedDuration = getCountdown(map) + elapsed;
+            const phaseIdx = activeConf.idx;
+            const currentPhase = activeConf.ring === 'A' ? phaseA : phaseB;
+            const confRemain = activeConf.ring === 'A' ? remainA : remainB;
+            const elapsed = activeConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+            let pedDuration = confRemain + elapsed;
             
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-              const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+              const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+              const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
               const activeSteps = phaseSteps.filter(step => isPedActive(step[`ped${phaseIdx}`]));
               if (activeSteps.length > 0) {
                 pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
@@ -612,9 +610,9 @@ export function calculateCompassSignals({
 
           if (checkActivePed(pPhaseMap)) { 
             calcPedestrian(pPhaseMap[deg], pPhaseMap);
-          } else if (pPhaseMap[deg]) {
+          } else if (pPhaseMap[deg] && pPhaseMap[deg].length > 0) {
             p = 'red';
-            pedCountdown = Math.max(pedCountdown, getInactiveCountdown(pPhaseMap, true));
+            pedCountdown = Math.max(pedCountdown, getInactiveCountdownPed(pPhaseMap));
           }
         }
 

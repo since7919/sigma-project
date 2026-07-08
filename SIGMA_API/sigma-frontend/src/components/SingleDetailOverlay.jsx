@@ -417,27 +417,27 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       }, []);
 
       if (cropData) {
-        const sPhases = phases.filter(p => p.type === 'S');
-        sPhases.forEach(sPhase => {
-          const hasPhase = (cropData[`${sPhase.ring}_RING_${sPhase.idx}_PHASE_VAL`] || 0) > 0;
+        const vehiclePhases = phases.filter(p => p.type === 'S' || p.type === 'L');
+        vehiclePhases.forEach(vPhase => {
+          const hasPhase = (cropData[`${vPhase.ring}_RING_${vPhase.idx}_PHASE_VAL`] || 0) > 0;
           if (hasPhase) {
-            const existingPed = phases.find(p => p.type === 'P' && p.ring === sPhase.ring && p.idx === sPhase.idx);
+            const existingPed = phases.find(p => p.type === 'P' && p.ring === vPhase.ring && p.idx === vPhase.idx);
             if (!existingPed) {
-              const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === sPhase.ring && p.idx === sPhase.idx);
+              const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === vPhase.ring && p.idx === vPhase.idx);
               if (uPhaseIndex !== -1) {
                 phases[uPhaseIndex].type = 'P';
                 phases[uPhaseIndex].outputType = '보행(3)';
-                phases[uPhaseIndex].angle = sPhase.angle;
-                phases[uPhaseIndex].direction = sPhase.direction;
+                phases[uPhaseIndex].angle = vPhase.angle;
+                phases[uPhaseIndex].direction = vPhase.direction;
               } else {
                 phases.push({
-                  direction: sPhase.direction,
+                  direction: vPhase.direction,
                   outputType: '보행(3)',
                   pedestrian: 0,
                   type: 'P',
-                  angle: sPhase.angle,
-                  ring: sPhase.ring,
-                  idx: sPhase.idx
+                  angle: vPhase.angle,
+                  ring: vPhase.ring,
+                  idx: vPhase.idx
                 });
               }
             }
