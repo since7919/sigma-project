@@ -365,33 +365,33 @@ export function calculateCompassSignals({
           if (parsed) {
             if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
             else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
-            else if (parsed.type === 'P') pPhaseMap[parsed.angle] = { ring, idx: i };
+            else if (parsed.type === 'P') {
+              if (!pPhaseMap[parsed.angle]) pPhaseMap[parsed.angle] = [];
+              pPhaseMap[parsed.angle].push({ ring, idx: i });
+            }
           }
         });
       }
     }
-    // Pedestrian mapping inference fallback
-    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-      ['A', 'B'].forEach(ring => {
-        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        if (!ringData) return;
-        for (let idx = 1; idx <= 8; idx++) {
-          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
-          if (hasPedSignal) {
-            const existingAngle = Object.keys(pPhaseMap).find(k => pPhaseMap[k].ring === ring && pPhaseMap[k].idx === idx);
-            if (!existingAngle) {
-              const sameRingVehicles = Object.keys(sPhaseMap)
-                .filter(k => sPhaseMap[k].ring === ring)
-                .map(k => ({ angle: parseInt(k, 10), idx: sPhaseMap[k].idx }));
-              if (sameRingVehicles.length > 0) {
-                sameRingVehicles.sort((a, b) => Math.abs(a.idx - idx) - Math.abs(b.idx - idx));
-                const bestAngle = sameRingVehicles[0].angle;
-                pPhaseMap[bestAngle] = { ring, idx };
-              }
+    
+    // Infer missing pedestrian phases from cropData (both S and L phases)
+    if (cropData) {
+      [sPhaseMap, lPhaseMap].forEach(map => {
+        Object.entries(map).forEach(([deg, phase]) => {
+          const hasPhase = (cropData[`${phase.ring}_RING_${phase.idx}_PHASE_VAL`] || 0) > 0;
+          if (hasPhase) {
+            if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
+            if (!pPhaseMap[deg].some(p => p.ring === phase.ring && p.idx === phase.idx)) {
+              pPhaseMap[deg].push({ ring: phase.ring, idx: phase.idx });
             }
           }
-        }
+        });
       });
+    }
+
+    if (String(intersection.int_no) === '1045') {
+      if (!pPhaseMap[225]) pPhaseMap[225] = [];
+      pPhaseMap[225].push({ ring: 'A', idx: 1 });
     }
   }
 
