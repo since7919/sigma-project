@@ -133,27 +133,12 @@ export function calculateArrowSignals({
     
     // Infer missing pedestrian phases from cropData
     if (cropData) {
-      ['A', 'B'].forEach(ring => {
-        for (let i = 1; i <= 8; i++) {
-          const hasPedSignal = (cropData[`${ring}_RING_${i}_PHASE_VAL`] || 0) > 0;
-          if (hasPedSignal) {
-            const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === ring && p.idx === i);
-            if (!alreadyMapped) {
-              let bestDeg = null;
-              let minDiff = 999;
-              Object.entries(sPhaseMap).forEach(([deg, sPhase]) => {
-                if (sPhase.ring === ring) {
-                  const diff = Math.abs(sPhase.idx - i);
-                  if (diff < minDiff) {
-                    minDiff = diff;
-                    bestDeg = Number(deg);
-                  }
-                }
-              });
-              if (bestDeg !== null) {
-                pPhaseMap[bestDeg] = { ring, idx: i };
-              }
-            }
+      Object.entries(sPhaseMap).forEach(([deg, sPhase]) => {
+        const hasPhase = (cropData[`${sPhase.ring}_RING_${sPhase.idx}_PHASE_VAL`] || 0) > 0;
+        if (hasPhase) {
+          const alreadyMapped = Object.values(pPhaseMap).some(p => p.ring === sPhase.ring && p.idx === sPhase.idx);
+          if (!alreadyMapped && !pPhaseMap[deg]) {
+            pPhaseMap[deg] = { ring: sPhase.ring, idx: sPhase.idx };
           }
         }
       });

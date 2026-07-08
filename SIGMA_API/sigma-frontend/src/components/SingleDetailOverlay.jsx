@@ -417,36 +417,28 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       }, []);
 
       if (cropData) {
-        ['A', 'B'].forEach(ring => {
-          for (let idx = 1; idx <= 8; idx++) {
-            const hasPedSignal = (cropData[`${ring}_RING_${idx}_PHASE_VAL`] || 0) > 0;
-            if (hasPedSignal) {
-              const existingPed = phases.find(p => p.type === 'P' && p.ring === ring && p.idx === idx);
-              if (!existingPed) {
-                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring);
-                let bestAngle = 0;
-                if (sPhases.length > 0) {
-                  sPhases.sort((a, b) => Math.abs(a.idx - idx) - Math.abs(b.idx - idx));
-                  bestAngle = sPhases[0].angle;
-                }
-
-                const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === ring && p.idx === idx);
-                if (uPhaseIndex !== -1) {
-                  phases[uPhaseIndex].type = 'P';
-                  phases[uPhaseIndex].outputType = '보행(3)';
-                  phases[uPhaseIndex].angle = bestAngle;
-                  phases[uPhaseIndex].direction = parsePhaseCode(`S${bestAngle.toString().padStart(3, '0')}`)?.direction || '미지정';
-                } else {
-                  phases.push({
-                    direction: parsePhaseCode(`S${bestAngle.toString().padStart(3, '0')}`)?.direction || '미지정',
-                    outputType: '보행(3)',
-                    pedestrian: 0,
-                    type: 'P',
-                    angle: bestAngle,
-                    ring: ring,
-                    idx: idx
-                  });
-                }
+        const sPhases = phases.filter(p => p.type === 'S');
+        sPhases.forEach(sPhase => {
+          const hasPhase = (cropData[`${sPhase.ring}_RING_${sPhase.idx}_PHASE_VAL`] || 0) > 0;
+          if (hasPhase) {
+            const existingPed = phases.find(p => p.type === 'P' && p.ring === sPhase.ring && p.idx === sPhase.idx);
+            if (!existingPed) {
+              const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === sPhase.ring && p.idx === sPhase.idx);
+              if (uPhaseIndex !== -1) {
+                phases[uPhaseIndex].type = 'P';
+                phases[uPhaseIndex].outputType = '보행(3)';
+                phases[uPhaseIndex].angle = sPhase.angle;
+                phases[uPhaseIndex].direction = sPhase.direction;
+              } else {
+                phases.push({
+                  direction: sPhase.direction,
+                  outputType: '보행(3)',
+                  pedestrian: 0,
+                  type: 'P',
+                  angle: sPhase.angle,
+                  ring: sPhase.ring,
+                  idx: sPhase.idx
+                });
               }
             }
           }
