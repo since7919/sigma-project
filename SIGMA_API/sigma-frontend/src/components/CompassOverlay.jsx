@@ -17,16 +17,19 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
     });
 
     const htmlContent = arrowStates.map(({ m, isPed, arrowData, topPx, leftPx, textRot, signalState, countdown, colorClass }) => {
-      if (signalState === 'off') return null;
+      if (signalState === 'off' && !isPed) return null;
 
       const isPedOnly = isPed;
+      const displayColorClass = signalState === 'off' ? 'red' : colorClass;
+      const textColor = displayColorClass === 'yellow' ? '#ffeb3b' : displayColorClass === 'red' ? '#ef4444' : '#00ffbb';
+      const shadowColor = displayColorClass === 'yellow' ? '#f59e0b' : displayColorClass === 'red' ? '#dc2626' : '#00ffa2';
 
       return (
         <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10000 }}>
-          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${textRot}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb' }}>
+          <div className={`signal-arrow ${displayColorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${textRot}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: textColor }}>
             {isPedOnly ? 'WALK' : arrowData.type}
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 'bold', color: colorClass === 'yellow' ? '#f59e0b' : '#00ffa2', textShadow: '0 0 3px #000, 0 0 5px #000', marginTop: '1px', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 'bold', color: shadowColor, textShadow: '0 0 3px #000, 0 0 5px #000', marginTop: '1px', lineHeight: 1 }}>
             {countdown > 0 ? `${countdown}s` : ''}
           </div>
         </div>
