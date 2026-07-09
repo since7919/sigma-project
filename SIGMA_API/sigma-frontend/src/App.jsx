@@ -51,6 +51,7 @@ function App() {
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
+  const [seoulActiveIds, setSeoulActiveIds] = useState([]);
 
   // 백엔드로부터 Supabase 접속 정보 및 서울 지원 목록 동적 조회
   useEffect(() => {
