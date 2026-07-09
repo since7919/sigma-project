@@ -289,27 +289,40 @@ export function calculateArrowSignals({
 
         const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
         if (isPed) {
-          const pConf = pPhaseMap[degVal];
-          if (pConf && checkActive(pPhaseMap, degVal)) {
-            const currentPhase = pConf.ring === 'A' ? phaseA : phaseB;
-            const elapsed = pConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
-            let pedDuration = getCountdown(pPhaseMap, degVal) + elapsed;
-            if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-              const ringData = pConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-              const phaseSteps = getStepsForCurrentPhase(pConf.ring, currentPhase);
-              const activeSteps = phaseSteps.filter(step => isPedActive(step[`ped${pConf.idx}`]));
-              if (activeSteps.length > 0) {
-                pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+          const pConfs = pPhaseMap[degVal];
+          if (pConfs && pConfs.length > 0) {
+            let activeConf = null;
+            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+               activeConf = pConfs.find(conf => {
+                  const currentPhase = conf.ring === 'A' ? phaseA : phaseB;
+                  if (conf.idx !== currentPhase) return false;
+                  const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
+                  return phaseSteps.some(step => isPedActive(step[`ped${conf.idx}`]));
+               });
+            } else {
+               activeConf = pConfs.find(conf => conf.ring === 'A' ? (conf.idx === phaseA) : (conf.idx === phaseB));
+            }
+
+            if (activeConf) {
+              const currentPhase = activeConf.ring === 'A' ? phaseA : phaseB;
+              const elapsed = activeConf.ring === 'A' ? (cropData[`A_RING_${phaseA}_PHASE_VAL`] || 0) - remainA : (cropData[`B_RING_${phaseB}_PHASE_VAL`] || 0) - remainB;
+              let pedDuration = (activeConf.ring === 'A' ? remainA : remainB) + elapsed;
+              if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
+                const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
+                const activeSteps = phaseSteps.filter(step => isPedActive(step[`ped${activeConf.idx}`]));
+                if (activeSteps.length > 0) {
+                  pedDuration = activeSteps.reduce((acc, step) => acc + (step.maxTm > 0 ? step.maxTm : step.minTm), 0);
+                } else {
+                  pedDuration = Math.max(0, pedDuration - 5);
+                }
               } else {
                 pedDuration = Math.max(0, pedDuration - 5);
               }
-            } else {
-              pedDuration = Math.max(0, pedDuration - 5);
-            }
-            const pedRemain = Math.max(0, pedDuration - elapsed);
-            if (pedRemain > 0) {
-              signalState = pedRemain <= 7 ? 'F' : 'G';
-              countdown = pedRemain;
+              const pedRemain = Math.max(0, pedDuration - elapsed);
+              if (pedRemain > 0) {
+                signalState = pedRemain <= 7 ? 'F' : 'G';
+                countdown = pedRemain;
+              }
             }
           }
         } else {
