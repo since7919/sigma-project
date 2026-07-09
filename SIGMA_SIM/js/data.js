@@ -185,6 +185,67 @@ function viewDBFile(type) {
         const fileName = STATE.loadedFiles ? STATE.loadedFiles[type] : null;
         if (!fileName) { alert("먼저 파일을 로드해 주세요."); return; }
         
+        // 데이터 뷰어 팝업 띄우기 공통 함수
+        const openViewer = (csvText) => {
+            if (!csvText || csvText.startsWith("[")) {
+                alert(csvText || "표시할 데이터가 없습니다.");
+                return;
+            }
+            const lines = csvText.trim().split('\n');
+            let tableHtml = `<table border="1" style="border-collapse: collapse; width: 100%; font-family: 'Pretendard', sans-serif; font-size: 13px; text-align: center;">`;
+            
+            lines.forEach((line, index) => {
+                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => {
+                    s = s.trim();
+                    if (s.startsWith('"') && s.endsWith('"')) s = s.substring(1, s.length - 1).replace(/""/g, '"');
+                    return s;
+                });
+                tableHtml += '<tr class="' + (index === 0 ? 'header-row' : 'data-row') + '">';
+                cols.forEach(col => {
+                    if (index === 0) {
+                        tableHtml += `<th style="background: #2a2d3e; color: #fff; padding: 8px 12px; position: sticky; top: 0; white-space: nowrap; box-shadow: 0 1px 0 #444; z-index: 10;">${col}</th>`;
+                    } else {
+                        tableHtml += `<td style="padding: 6px 10px; white-space: nowrap; border: 1px solid #334155; color: #e2e8f0;">${col}</td>`;
+                    }
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += `</table>`;
+
+            const win = window.open("", "_blank", "width=1200,height=800");
+            if (win) {
+                win.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>[${type}] 데이터 뷰어</title>
+                        <style>
+                            body { background: #0b0f19; margin: 0; padding: 20px; font-family: 'Pretendard', sans-serif; }
+                            table { border-collapse: collapse; width: 100%; }
+                            th, td { border: 1px solid #334155; }
+                            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #334155; }
+                            h2 { margin: 0; color: #38bdf8; font-size: 1.5rem; }
+                            .wrapper { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 100px); border: 1px solid #334155; border-radius: 6px; background: #1e293b; }
+                            .data-row:hover { background: #334155; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h2>${type} 데이터뷰어</h2>
+                            <div style="color:#94a3b8; font-size:13px;">총 <b>${lines.length - 1}</b>개의 행이 로드되었습니다. 가로/세로 스크롤하여 확인하세요.</div>
+                        </div>
+                        <div class="wrapper">
+                            ${tableHtml}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                win.document.close();
+            } else {
+                alert("팝업이 차단되었습니다. 팝업 차단을 해제해 주세요.");
+            }
+        };
+
         // [현실화] 파일 객체가 없으면(자동 로드 시) 현재 메모리 데이터를 익스포트하여 미리보기
         const input = document.getElementById(`file-load-db-${type}`);
         const file = input ? input.files[0] : null;
@@ -192,9 +253,7 @@ function viewDBFile(type) {
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const text = e.target.result;
-                const lines = text.split('\n').slice(0, 15).join('\n');
-                alert(`[현재 파일] 미리보기 (상위 15행):\n\n${lines}\n\n... 이하 생략 ...`);
+                openViewer(e.target.result);
             };
             reader.readAsText(file);
         } else {
@@ -230,8 +289,7 @@ function viewDBFile(type) {
             if (!content || content.startsWith("[")) {
                 alert(content || "표시할 데이터가 없습니다.");
             } else {
-                const lines = content.split('\n').slice(0, 15).join('\n');
-                alert(`[자동 로드/메모리] 미리보기 (상위 15행):\n\n${lines}\n\n... 이하 생략 ...`);
+                openViewer(content);
             }
         }
     } catch (err) {
