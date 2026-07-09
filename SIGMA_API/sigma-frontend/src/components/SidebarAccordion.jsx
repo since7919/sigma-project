@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive }) {
+export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticOpenRegions, setUticOpenRegions }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -126,21 +126,7 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
                           key={item.id} 
                           className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
                           onClick={() => onNodeClick(item.id)}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('application/json', JSON.stringify(item));
-                          }}
                         >
-                          <input 
-                            type="checkbox" 
-                            checked={activeMapSignalIds.includes(item.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              onMapSignalToggle(item.id);
-                            }}
-                            style={{ marginRight: '6px', cursor: 'pointer', accentColor: '#10b981' }}
-                            title="지도상 신호 표출 (최대 3개)"
-                          />
                           <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                           <span className="id-label">[{item.int_no}]</span>
                           <span className="name-label">{item.int_nm}</span>
