@@ -46,6 +46,12 @@ window.addEventListener('DOMContentLoaded', () => {
     // 6. 시작 시 현재 시간으로 점프 (선택 사항 - 여기서는 자동 실행)
     // goToCurrentTime();
 
+    // 7. Render 백엔드 서버 슬립 방지용 Keep-Alive 핑 (1분 간격)
+    setInterval(() => {
+        fetch('/api/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({}) })
+            .catch(err => console.log('Keep-alive ping error:', err));
+    }, 60000);
+
     console.log("SIGMA - Entry Point Logic Connected.");
 
     // 강제로 초기 UI 공란 테이블 렌더링
