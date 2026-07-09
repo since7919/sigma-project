@@ -352,7 +352,7 @@ export function calculateArrowSignals({
       }
     }
 
-    const colorClass = (signalState === 'Y' || signalState === 'F') ? 'yellow' : 'green';
+    const colorClass = (isPed && signalState === 'F') ? 'green' : (signalState === 'Y' || signalState === 'F') ? 'yellow' : 'green';
 
     return {
       m,
