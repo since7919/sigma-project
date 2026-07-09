@@ -1258,13 +1258,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           </tr>
                         </thead>
                         <tbody>
-                          {Array.from({length: 32}, (_, i) => i).map(n => {
+                          {Array.from({length: 32}, (_, i) => i + 1).map(n => {
                             const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
                             const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
                             const isEopRow = stepA.eop === 1 || stepB.eop === 1;
                             return (
                               <tr key={n} className={isEopRow ? 'eop-row' : ''}>
-                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n + 1}</td>
+                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
                                 {[1,2,3,4,5,6,7,8].map(i => (
                                   <React.Fragment key={`a-td-${i}`}>
                                     <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
