@@ -814,14 +814,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
           {!isDual && (
             <div className="overlay-toolbar" style={{ display: 'flex', gap: '15px' }}>
-              <div>
-                <button className={`toolbar-btn ${!localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(false)}>전체 정보 모드</button>
-                <button className={`toolbar-btn ${localZoomMode ? 'active' : ''}`} onClick={() => setLocalZoomMode(true)}>맵 확대 모드</button>
-              </div>
-              <div style={{ display: 'flex' }}>
-                <button className={`toolbar-btn ${displayMode === 'circle' ? 'active' : ''}`} onClick={() => setDisplayMode('circle')} style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}>모양:원형</button>
-                <button className={`toolbar-btn ${displayMode === 'arrow' ? 'active' : ''}`} onClick={() => setDisplayMode('arrow')} style={{ borderRadius: 0, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>모양:화살표</button>
-                <button className={`toolbar-btn ${displayMode === 'off' ? 'active' : ''}`} onClick={() => setDisplayMode('off')} style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: '1px solid rgba(255,255,255,0.2)' }}>오프</button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="toolbar-btn" onClick={() => setLocalZoomMode(!localZoomMode)}>
+                  {localZoomMode ? '맵 축소 (전체 정보)' : '맵 확대 모드'}
+                </button>
+                <button className="toolbar-btn" onClick={() => setDisplayMode(displayMode === 'circle' ? 'arrow' : 'circle')}>
+                  모양: {displayMode === 'circle' ? '원형' : '화살표'}
+                </button>
               </div>
             </div>
           )}
