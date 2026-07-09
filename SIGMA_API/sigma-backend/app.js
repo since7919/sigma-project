@@ -159,69 +159,6 @@ app.get('/api/intersections/sync', async (req, res) => {
   }
 });
 
-// 1-1-S. 서울 T-Data 교차로 마스터 데이터 수동 갱신 (CSV -> DB)
-app.get('/api/intersections/sync-seoul', async (req, res) => {
-  const results = [];
-  const seoulCsvPath = path.join(__dirname, 'seoul_map.csv');
-  
-  if (!fs.existsSync(seoulCsvPath)) {
-    return res.status(404).json({ error: 'seoul_map.csv 파일을 찾을 수 없습니다.' });
-  }
-
-  const parseCoord = (val) => {
-    if (!val) return 0;
-    const num = parseFloat(val);
-    return isNaN(num) ? 0 : num;
-  };
-
-  const now = new Date();
-  
-  fs.createReadStream(seoulCsvPath)
-    .pipe(csv())
-    .on('data', (data) => {
-      // BOM 제거 처리
-      const keys = Object.keys(data);
-      keys.forEach(k => {
-        if (k.charCodeAt(0) === 0xFEFF) {
-          data[k.substring(1)] = data[k];
-        }
-      });
-
-      const itstId = data.itstId || data['교차로ID'];
-      if (!itstId) return;
-
-      results.push({
-        region_cd: 'seoul',
-        int_no: parseInt(itstId, 10),
-        int_nm: data.itstNm || data['교차로명'],
-        x_coord: parseCoord(data.mapCtptIntLot || data['경도']),
-        y_coord: parseCoord(data.mapCtptIntLat || data['위도']),
-        node_id: data.rgtrId || null,
-        origin_type: '서울tdata',
-        updated_at: now
-      });
-    })
-    .on('end', async () => {
-      try {
-        // 기존 서울 데이터 삭제
-        await supabase.from('utic_intersections').delete().eq('origin_type', '서울tdata');
-        
-        const chunkSize = 1000;
-        let insertedCount = 0;
-        
-        for (let i = 0; i < results.length; i += chunkSize) {
-          const chunk = results.slice(i, i + chunkSize);
-          const { error } = await supabase.from('utic_intersections').insert(chunk);
-          if (error) console.error('Seoul Insert chunk error:', error);
-          else insertedCount += chunk.length;
-        }
-        
-        res.json({ success: true, count: insertedCount });
-      } catch (err) {
-        sendErrorResponse(res, err, '서울 교차로 동기화에 실패했습니다.');
-      }
-    });
-});
 
 // 1-2. 교차로 마스터 데이터 조회 (Supabase)
 app.get('/api/intersections', async (req, res) => {
