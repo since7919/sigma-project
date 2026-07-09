@@ -7,9 +7,12 @@ import './index.css';
 
 // Import split components
 import SingleDetailOverlay from './components/SingleDetailOverlay';
+import MapSignalOverlay from './components/MapSignalOverlay';
 import DualDetailOverlay from './components/DualDetailOverlay';
 import SidebarAccordion from './components/SidebarAccordion';
+import MultiSignalCard from './components/MultiSignalCard';
 import IntersectionMarkers, { MapAutoResizer } from './components/IntersectionMarkers';
+import HeaderClock from './components/HeaderClock';
 import MapResizer from './components/MapResizer';
 import MapPanner from './components/MapPanner';
 
@@ -51,7 +54,117 @@ function App() {
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
-  const [seoulActiveIds, setSeoulActiveIds] = useState([]);
+  const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
+  const [isMapSignalOn, setIsMapSignalOn] = useState(false);
+  const [mapSignalType, setMapSignalType] = useState('compass'); // 'compass' | 'arrow'
+  const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
+  const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
+  const [compassSizeVal, setCompassSizeVal] = useState(180);
+
+  useEffect(() => {
+    const scale = compassSizeVal / 180;
+    document.documentElement.style.setProperty('--compass-scale', scale);
+    document.documentElement.style.setProperty('--compass-scale-11', scale * 1.1);
+    document.documentElement.style.setProperty('--compass-scale-115', scale * 1.15);
+  }, [compassSizeVal]);
+
+
+  // 멀티스크린 상태
+  const [gridConfig, setGridConfig] = useState({ r: 1, c: 2 }); // 초기 옵션 1x2
+  const [multiScreenItems, setMultiScreenItems] = useState(Array(2).fill(null));
+  const [showGridSelector, setShowGridSelector] = useState(false);
+  const [hoverGrid, setHoverGrid] = useState({ r: 0, c: 0 });
+  
+  // 클럭 상태 추출 완료 (HeaderClock 컴포넌트로 이동)
+  const handleGridConfigChange = (r, c) => {
+    setSoloFullscreenIndex(null);
+    setGridConfig({ r, c });
+    setShowGridSelector(false);
+    setMultiScreenItems(prev => {
+      const newLength = r * c;
+      const next = Array(newLength).fill(null);
+      // 기존 아이템 순서대로 새 슬롯에 복사
+      let count = 0;
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i] !== null && count < newLength) {
+          next[count++] = prev[i];
+        }
+      }
+      return next;
+    });
+  };
+  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
+  const [isMultiScreenFullscreen, setIsMultiScreenFullscreen] = useState(false); // 멀티스크린 전체화면 상태 state
+  const [soloFullscreenIndex, setSoloFullscreenIndex] = useState(null); // 개별 카드 전체화면 인덱스
+  const dragOverIndexRef = useRef(null);
+  const draggedIndexRef = useRef(null);
+  const [multiWidth, setMultiWidth] = useState(750);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizingRef = React.useRef(false);
+
+  const handleMouseDownResize = (e) => {
+    e.preventDefault();
+    resizingRef.current = true;
+    setIsResizing(true);
+    document.addEventListener('mousemove', handleMouseMoveResize);
+    document.addEventListener('mouseup', handleMouseUpResize);
+  };
+
+  const handleMouseMoveResize = (e) => {
+    if (!resizingRef.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 300 && newWidth < window.innerWidth - 300) {
+      setMultiWidth(newWidth);
+    }
+  };
+
+  const handleMouseUpResize = () => {
+    resizingRef.current = false;
+    setIsResizing(false);
+    document.removeEventListener('mousemove', handleMouseMoveResize);
+    document.removeEventListener('mouseup', handleMouseUpResize);
+  };
+
+  const handleDropOnSlot = (e, index) => {
+    e.preventDefault();
+    dragOverIndexRef.current = null;
+    try {
+      // 1. 내부 이동 (Swap) 인 경우
+      if (draggedIndexRef.current !== null && draggedIndexRef.current !== undefined) {
+        const sourceIndex = draggedIndexRef.current;
+        if (sourceIndex !== index) {
+          setMultiScreenItems(prev => {
+            const next = [...prev];
+            const temp = next[index];
+            next[index] = next[sourceIndex];
+            next[sourceIndex] = temp;
+            return next;
+          });
+        }
+        draggedIndexRef.current = null;
+        return;
+      }
+      
+      // 2. 외부(사이드바)에서 드래그하여 새로 올리는 경우
+      const dataStr = e.dataTransfer.getData('application/json');
+      if (!dataStr) return;
+      const intersection = JSON.parse(dataStr);
+      
+      // 중복 체크
+      if (multiScreenItems.some(item => item && item.id === intersection.id)) {
+        alert('이미 멀티스크린에 등록된 교차로입니다.');
+        return;
+      }
+      
+      setMultiScreenItems(prev => {
+        const next = [...prev];
+        next[index] = intersection;
+        return next;
+      });
+    } catch (err) {
+      console.error('Drop error:', err);
+    }
+  };
 
   // 백엔드로부터 Supabase 접속 정보 및 서울 지원 목록 동적 조회
   useEffect(() => {
@@ -138,6 +251,11 @@ function App() {
     dualSelection.forEach(item => {
       activeIds.push(String(item.int_no));
     });
+    multiScreenItems.forEach(item => {
+      if (item) {
+        activeIds.push(String(item.int_no));
+      }
+    });
 
     if (activeIds.length === 0) return;
 
@@ -153,7 +271,67 @@ function App() {
     const intervalId = setInterval(sendPing, 10000); // 10초 주기 핑
 
     return () => clearInterval(intervalId);
-  }, [detailIntersection, dualSelection]);
+  }, [detailIntersection, dualSelection, multiScreenItems]);
+
+  const handleMapSignalToggle = (id) => {
+    // 만약 신호가 꺼진 상태에서 신호등 표출을 켰다면 자동으로 ON 모드로 활성화
+    setIsMapSignalOn(true);
+
+    setActiveMapSignalIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(x => x !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const prevMultiIdsRef = useRef([]);
+
+  // 신호등 제거 모드('off')로 변경 시 지도상의 신호 활성 목록을 완전히 비움
+  useEffect(() => {
+    if (!isMapSignalOn) {
+      setActiveMapSignalIds([]);
+    } else {
+      // 켜질 때 멀티스크린에 있는 교차로들을 다시 활성화
+      setActiveMapSignalIds(prev => {
+        let newIds = [...prev];
+        multiScreenItems.filter(item => item !== null).forEach(item => {
+          if (!newIds.includes(item.id)) {
+            newIds.push(item.id);
+          }
+        });
+        return newIds;
+      });
+    }
+  }, [isMapSignalOn, multiScreenItems]);
+
+  // 멀티스크린 담기/삭제 시 자동으로 지도 신호 표출 동기화
+  useEffect(() => {
+    const multiIds = multiScreenItems.filter(item => item !== null).map(item => item.id);
+    const prevMultiIds = prevMultiIdsRef.current;
+    
+    const addedIds = multiIds.filter(id => !prevMultiIds.includes(id));
+    const removedIds = prevMultiIds.filter(id => !multiIds.includes(id));
+
+    if (addedIds.length > 0 || removedIds.length > 0) {
+      setActiveMapSignalIds(prev => {
+        let newIds = [...prev];
+        addedIds.forEach(id => {
+          if (!newIds.includes(id)) newIds.push(id);
+        });
+        removedIds.forEach(id => {
+          newIds = newIds.filter(x => x !== id);
+        });
+        return newIds;
+      });
+
+      if (addedIds.length > 0) {
+        setIsMapSignalOn(true);
+      }
+    }
+
+    prevMultiIdsRef.current = multiIds;
+  }, [multiScreenItems]);
 
   // UTIC 제어기 상태(CRST) (API 폐기로 인한 Mock 처리)
   useEffect(() => {
@@ -224,6 +402,25 @@ function App() {
     });
   };
 
+  const handleMultiClick = (intersection) => {
+    setMultiScreenItems(prev => {
+      if (prev.some(item => item && item.id === intersection.id)) {
+        alert('이미 멀티스크린에 등록된 교차로입니다.');
+        return prev;
+      }
+      const next = [...prev];
+      const emptyIndex = next.findIndex(item => item === null);
+      if (emptyIndex !== -1) {
+        next[emptyIndex] = intersection;
+      } else {
+        // FIFO 방식 유지 (가득 찬 경우 가장 오래된 것을 제거)
+        next.shift();
+        next.push(intersection);
+      }
+      return next;
+    });
+  };
+
   const filteredIntersections = intersections;
 
   return (
@@ -249,6 +446,8 @@ function App() {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          activeMapSignalIds={activeMapSignalIds}
+          onMapSignalToggle={handleMapSignalToggle}
           uticOpenRegions={uticOpenRegions}
           setUticOpenRegions={setUticOpenRegions}
         />
@@ -265,7 +464,127 @@ function App() {
 
       <main className="main-content">
         <div className="top-map-wrapper" style={{ position: 'relative' }}>
+          {/* 지도상 신호 표출 모드 선택기 */}
+          <div 
+            className="map-control-overlay glass" 
+            style={{ 
+              position: 'absolute', 
+              top: '15px', 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              zIndex: 1000, 
+              display: 'flex', 
+              gap: '6px', 
+              padding: '6px 10px', 
+              borderRadius: '20px', 
+              background: 'rgba(15, 23, 42, 0.75)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.47)'
+            }}
+          >
+            <button 
+              className={`btn-clear ${isMapSignalOn ? 'active' : ''}`}
+              style={{
+                background: isMapSignalOn ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: isMapSignalOn ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setIsMapSignalOn(prev => !prev)}
+            >
+              {isMapSignalOn ? '🚦 신호등 ON' : '🚦 신호등 OFF'}
+            </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-clear ${isMapSignalOn ? 'active' : ''}`}
+              style={{
+                background: isMapSignalOn ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
+                color: isMapSignalOn ? '#10b981' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: isMapSignalOn ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                opacity: isMapSignalOn ? 1 : 0.5
+              }}
+              onClick={() => {
+                if (isMapSignalOn) {
+                  setMapSignalType(prev => prev === 'compass' ? 'arrow' : 'compass');
+                }
+              }}
+            >
+              모양: {mapSignalType === 'compass' ? '원형' : '화살표'}
+            </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-clear ${showMapNames ? 'active' : ''}`}
+              style={{
+                background: showMapNames ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: showMapNames ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setShowMapNames(p => !p)}
+            >
+              📛 교차로명
+            </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>영역</span>
+              <input 
+                type="range" 
+                min="100" 
+                max="300" 
+                value={compassSizeVal}
+                onChange={(e) => setCompassSizeVal(Number(e.target.value))}
+                style={{ width: '60px', accentColor: '#38bdf8' }}
+                title="신호등 영역 크기 조절"
+              />
+            </div>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
 
+            <button 
+              className={`btn-toggle-multi ${isMultiScreenOpen ? 'active' : ''}`}
+              style={{
+                background: isMultiScreenOpen ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: isMultiScreenOpen ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setIsMultiScreenOpen(prev => !prev)}
+            >
+              🖥️ 멀티스크린
+            </button>
+          </div>
 
           <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
             <MapAutoResizer />
@@ -274,14 +593,29 @@ function App() {
             <IntersectionMarkers 
               intersections={filteredIntersections} 
               onDetailClick={openDetail}
+              onMultiClick={handleMultiClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
               activeTab={activeTab}
               seoulActiveIds={seoulActiveIds}
+              activeMapSignalIds={activeMapSignalIds}
+              onMapSignalToggle={handleMapSignalToggle}
+              showMapNames={showMapNames}
               onNodeClick={handleNodeClick}
               uticOpenRegions={uticOpenRegions}
             />
-
+            {/* 지도상 신호 표출 레이어 */}
+            {isMapSignalOn && filteredIntersections
+              .filter(item => activeMapSignalIds.includes(item.id))
+              .map(item => (
+                <MapSignalOverlay 
+                  key={`map-signal-${item.id}`} 
+                  intersection={item} 
+                  uticUpdateTick={uticUpdateTick}
+                  onMapSignalToggle={handleMapSignalToggle}
+                  displayMode={mapSignalType}
+                />
+              ))}
           </MapContainer>
 
         </div>
@@ -290,13 +624,219 @@ function App() {
       </main>
 
       {/* 우측 멀티디스플레이 패널 */}
-
+      <section 
+        className={`multi-screen-panel ${isMultiScreenOpen ? '' : 'closed'} ${isMultiScreenFullscreen ? 'fullscreen' : ''}`}
+        style={{ 
+          width: isMultiScreenOpen ? (isMultiScreenFullscreen ? '100vw' : `${multiWidth}px`) : '0px',
+          transition: isResizing ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-right 0.3s ease',
+          position: 'relative'
+        }}
+      >
+        {isMultiScreenOpen && !isMultiScreenFullscreen && (
+          <div 
+            className="panel-resizer" 
+            onMouseDown={handleMouseDownResize}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '8px',
+              cursor: 'ew-resize',
+              zIndex: 10,
+              backgroundColor: 'transparent'
+            }}
+          />
+        )}
+        <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridConfig.r * gridConfig.c})</h2>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button 
+              className="btn-clear active"
+              style={{
+                background: 'rgba(16, 185, 129, 0.25)',
+                color: '#10b981',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => {
+                setMultiSignalDisplayMode(prev => prev === 'compass' ? 'arrow' : 'compass');
+              }}
+            >
+              모양: {multiSignalDisplayMode === 'compass' ? '원형' : '화살표'}
+            </button>
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="btn-clear active"
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '0.75rem',
+                  borderRadius: '15px',
+                  background: 'rgba(56,189,248,0.2)',
+                  color: '#38bdf8',
+                  border: '1px solid #38bdf8',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                onClick={() => setShowGridSelector(p => !p)}
+              >
+                ▦ 화면 분할 ({gridConfig.r}x{gridConfig.c})
+              </button>
+              {showGridSelector && (
+                <div 
+                  className="grid-selector-popup"
+                  onMouseLeave={() => setHoverGrid({ r: 0, c: 0 })}
+                >
+                  {[1, 2, 3, 4, 5].map(r => (
+                    <div key={`r-${r}`} className="grid-selector-row">
+                      {[1, 2, 3, 4, 5].map(c => {
+                        const isActive = r <= hoverGrid.r && c <= hoverGrid.c;
+                        return (
+                          <div 
+                            key={`c-${c}`} 
+                            className={`grid-selector-cell ${isActive ? 'active' : ''}`}
+                            onMouseEnter={() => setHoverGrid({ r, c })}
+                            onClick={() => handleGridConfigChange(r, c)}
+                          ></div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                  <div className="grid-selector-info">
+                    {hoverGrid.r > 0 ? `${hoverGrid.r} x ${hoverGrid.c}` : '격자 선택'}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              className="btn-clear" 
+              style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38bdf8',
+                padding: '4px 10px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+              onClick={() => setIsMultiScreenFullscreen(p => !p)}
+            >
+              {isMultiScreenFullscreen ? '🗗 전체화면 닫기' : '🗖 전체화면'}
+            </button>
+            <button className="btn-clear" onClick={() => setMultiScreenItems(Array(gridConfig.r * gridConfig.c).fill(null))}>전체 비우기</button>
+          </div>
+        </header>
+        <div className="multi-overlay-content" style={{
+          gridTemplateColumns: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridConfig.c}, 1fr)`,
+          gridTemplateRows: soloFullscreenIndex !== null ? '1fr' : `repeat(${gridConfig.r}, 1fr)`
+        }}>
+          {(soloFullscreenIndex !== null
+            ? [{ item: multiScreenItems[soloFullscreenIndex], index: soloFullscreenIndex }]
+            : multiScreenItems.map((item, index) => ({ item, index }))
+          ).map(({ item, index }) => {
+            return (
+              <div
+                key={item ? item.id : `empty-${index}`}
+                className="multi-grid-slot-wrapper"
+                draggable={soloFullscreenIndex !== null ? false : !!item}
+                onDragStart={(e) => {
+                  if (soloFullscreenIndex !== null) return;
+                  if (item) {
+                    draggedIndexRef.current = index;
+                    e.dataTransfer.setData('text/plain', String(index));
+                  }
+                }}
+                onDragEnd={(e) => {
+                  draggedIndexRef.current = null;
+                  if (dragOverIndexRef.current !== null) {
+                    dragOverIndexRef.current = null;
+                  }
+                  e.currentTarget.closest('.multi-grid')?.querySelectorAll('.multi-grid-slot-wrapper').forEach(el => {
+                    el.style.border = 'none';
+                  });
+                }}
+                onDragOver={(e) => {
+                  if (soloFullscreenIndex !== null) return;
+                  e.preventDefault();
+                  if (dragOverIndexRef.current !== index) {
+                    e.currentTarget.closest('.multi-grid')?.querySelectorAll('.multi-grid-slot-wrapper').forEach(el => {
+                      el.style.border = 'none';
+                    });
+                    dragOverIndexRef.current = index;
+                    e.currentTarget.style.border = '2px dashed #38bdf8';
+                  }
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.style.border = 'none';
+                  dragOverIndexRef.current = null;
+                }}
+                onDrop={(e) => {
+                  e.currentTarget.style.border = 'none';
+                  handleDropOnSlot(e, index);
+                }}
+                onDoubleClick={() => {
+                  if (item) {
+                    setSoloFullscreenIndex(prev => prev !== null ? null : index);
+                  }
+                }}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  display: 'flex', 
+                  boxSizing: 'border-box',
+                  borderRadius: '8px',
+                  cursor: item ? 'pointer' : 'default'
+                }}
+              >
+                {item ? (
+                  <MultiSignalCard
+                    intersection={item}
+                    uticUpdateTick={uticUpdateTick}
+                    displayMode={multiSignalDisplayMode}
+                    onRemove={() => {
+                      setSoloFullscreenIndex(null);
+                      setMultiScreenItems(prev => {
+                        const next = [...prev];
+                        next[index] = null;
+                        return next;
+                      });
+                    }}
+                  />
+                ) : (
+                  <div className="empty-slot" style={{ width: '100%', height: '100%' }}>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                    </svg>
+                    <span>교차로 드롭</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {isMultiScreenOpen && <HeaderClock />}
+      </section>
 
       {detailIntersection && dualSelection.length === 0 && (
         <SingleDetailOverlay 
           intersection={detailIntersection} 
           onClose={() => setDetailIntersection(null)} 
           uticUpdateTick={uticUpdateTick}
+          isMultiScreenOpen={isMultiScreenOpen}
         />
       )}
 
