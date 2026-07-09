@@ -42,7 +42,8 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
   };
 
   // 데이터 그룹화 로직 (useMemo 활용)
-  const { uticGroups } = useMemo(() => {
+  const { tdataList, uticGroups } = useMemo(() => {
+    const tdata = [];
     const utic = {};
 
     // Initialize all 31 regions to guarantee they appear in the tree
@@ -61,18 +62,28 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
         }
       }
 
-      const rCode = item.region_cd || '기타';
-      const rName = REGION_MAP[rCode] || '';
-      const groupKey = rName ? `${rCode} ${rName}` : rCode;
-      if (!utic[groupKey]) utic[groupKey] = [];
-      utic[groupKey].push(item);
+      // origin_type 판별 (가정: '서울tdata', 'tdata' 또는 'UTIC', 'utic')
+      const isTdata = item.origin_type?.toLowerCase().includes('tdata');
+      if (isTdata) {
+        tdata.push(item);
+      } else {
+        const rCode = item.region_cd || '기타';
+        const rName = REGION_MAP[rCode] || '';
+        const groupKey = rName ? `${rCode} ${rName}` : rCode;
+        if (!utic[groupKey]) utic[groupKey] = [];
+        utic[groupKey].push(item);
+      }
     });
 
-    return { uticGroups: utic };
+    tdata.sort((a, b) => parseInt(a.int_no || 0, 10) - parseInt(b.int_no || 0, 10));
+
+    return { tdataList: tdata, uticGroups: utic };
   }, [intersections, debouncedKeyword]);
 
   // 아코디언 상태 관리
-  const [uticOpen, setUticOpen] = useState(true);
+  const [tdataOpen, setTdataOpen] = useState(false);
+  const [uticOpen, setUticOpen] = useState(false);
+  const [tdataLimit, setTdataLimit] = useState(100);
 
   const toggleRegion = (reg) => {
     setUticOpenRegions(prev => ({...prev, [reg]: !prev[reg]}));
@@ -94,12 +105,108 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
         )}
       </div>
       <div className="accordion-wrapper custom-scroll">
+      
+        {/* 1. 서울 Tdata 그룹 */}
+        <div className="acc-group">
+          <div className="acc-header" onClick={() => {
+            const nextOpen = !tdataOpen;
+            setTdataOpen(nextOpen);
+            if (nextOpen) {
+              setUticOpen(false);
+              setActiveTab('tdata');
+            } else {
+              if (activeTab === 'tdata') setActiveTab(null);
+            }
+          }} style={{ display: 'flex', alignItems: 'center' }}>
+            <span className="acc-icon">{tdataOpen ? '▼' : '▶'}</span>
+            <span style={{ flex: 1 }}>🏛️ 서울Tdata 개방데이터 <span className="acc-count">({tdataList.length})</span></span>
+            {tdataOpen && (
+              <div 
+                className="filter-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (setFilterSeoulActive) setFilterSeoulActive(!filterSeoulActive);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: '12px',
+                  padding: '2px 4px',
+                  cursor: 'pointer',
+                  marginLeft: '8px'
+                }}
+              >
+                <div style={{
+                  padding: '2px 8px',
+                  fontSize: '0.65rem',
+                  fontWeight: 'bold',
+                  borderRadius: '10px',
+                  background: filterSeoulActive ? '#10b981' : 'transparent',
+                  color: filterSeoulActive ? '#fff' : '#64748b'
+                }}>Live</div>
+                <div style={{
+                  padding: '2px 8px',
+                  fontSize: '0.65rem',
+                  fontWeight: 'bold',
+                  borderRadius: '10px',
+                  background: !filterSeoulActive ? '#38bdf8' : 'transparent',
+                  color: !filterSeoulActive ? '#fff' : '#64748b'
+                }}>ALL</div>
+              </div>
+            )}
+          </div>
+          {tdataOpen && (
+            <div className="acc-body">
+              {tdataList.slice(0, tdataLimit).map(item => (
+                <div 
+                  key={item.id} 
+                  className={`tree-item ${activeNodeId === item.id ? 'selected' : ''}`}
+                  onClick={() => onNodeClick(item.id)}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify(item));
+                  }}
+                >
+                  <input 
+                    type="checkbox" 
+                    checked={activeMapSignalIds.includes(item.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onMapSignalToggle(item.id);
+                    }}
+                    style={{ marginRight: '6px', cursor: 'pointer', accentColor: '#10b981' }}
+                    title="지도상 신호 표출 (최대 3개)"
+                  />
+                  <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (seoulActiveIds && seoulActiveIds.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
+                  <span className="id-label">[{item.int_no}]</span>
+                  <span className="name-label">{item.int_nm}</span>
+                </div>
+              ))}
+              {tdataList.length > tdataLimit && (
+                <div 
+                  className="tree-item" 
+                  style={{ textAlign: 'center', color: '#3b82f6', cursor: 'pointer', justifyContent: 'center' }}
+                  onClick={() => setTdataLimit(l => l + 200)}
+                >
+                  + 더보기 ({tdataLimit} / {tdataList.length})
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 2. UTIC 그룹 */}
         <div className="acc-group">
           <div className="acc-header" onClick={() => {
             const nextOpen = !uticOpen;
             setUticOpen(nextOpen);
+            if (nextOpen) {
+              setTdataOpen(false);
+              setActiveTab('utic');
+            } else {
+              if (activeTab === 'utic') setActiveTab(null);
+            }
           }} style={{ position: 'relative' }}>
             <span className="acc-icon">{uticOpen ? '▼' : '▶'}</span>
             🚓 경찰청 UTIC 개방데이터

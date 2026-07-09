@@ -47,10 +47,12 @@ function App() {
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
-  const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'utic'
+  const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
   const [uticOpenRegions, setUticOpenRegions] = useState({}); // 현재 열려있는 UTIC 지역 목록
+  const [seoulActiveIds, setSeoulActiveIds] = useState([]); // 서울 활성 ID 목록
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
   const [apiStatus, setApiStatus] = useState({
+    seoul: { status: 'Off', time: '-ms', color: '#ef4444' },
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
@@ -60,6 +62,7 @@ function App() {
   const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
   const [compassSizeVal, setCompassSizeVal] = useState(180);
+  const [filterSeoulActive, setFilterSeoulActive] = useState(false);
 
   useEffect(() => {
     const scale = compassSizeVal / 180;
@@ -248,11 +251,16 @@ function App() {
   // 현재 관심 대상인 활성 교차로를 백엔드에 주기적으로 Ping 등록 (데이터 필터링 및 Sleep 방지용)
   useEffect(() => {
     const activeIds = [];
+    if (detailIntersection && detailIntersection.origin_type?.toLowerCase().includes('tdata')) {
+      activeIds.push(String(detailIntersection.int_no));
+    }
     dualSelection.forEach(item => {
-      activeIds.push(String(item.int_no));
+      if (item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
     });
     multiScreenItems.forEach(item => {
-      if (item) {
+      if (item && item.origin_type?.toLowerCase().includes('tdata')) {
         activeIds.push(String(item.int_no));
       }
     });
@@ -421,7 +429,17 @@ function App() {
     });
   };
 
-  const filteredIntersections = intersections;
+  const filteredIntersections = useMemo(() => {
+    if (!filterSeoulActive) return intersections;
+    return intersections.filter(item => {
+      const originLower = String(item.origin_type || '').toLowerCase();
+      if (originLower.includes('tdata')) {
+        const hasSeoulSpat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[item.int_no];
+        return seoulActiveIds.includes(String(item.id)) || hasSeoulSpat;
+      }
+      return true; // Keep UTIC intersections
+    });
+  }, [intersections, filterSeoulActive, seoulActiveIds, uticUpdateTick]);
 
   return (
     <>
@@ -446,13 +464,23 @@ function App() {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          seoulActiveIds={seoulActiveIds}
           activeMapSignalIds={activeMapSignalIds}
           onMapSignalToggle={handleMapSignalToggle}
           uticOpenRegions={uticOpenRegions}
           setUticOpenRegions={setUticOpenRegions}
+          filterSeoulActive={filterSeoulActive}
+          setFilterSeoulActive={setFilterSeoulActive}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
+          <div className="api-status" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>서울Tdata</span>
+            <span className="status-dot" style={{ width: '8px', height: '8px', background: apiStatus.seoul.color, borderRadius: '50%', boxShadow: `0 0 5px ${apiStatus.seoul.color}` }}></span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: apiStatus.seoul.color }}>{apiStatus.seoul.status}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: '-2px' }}>{apiStatus.seoul.time}</span>
+          </div>
+          <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.15)' }}></div>
           <div className="api-status" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>경찰청(UTIC)</span>
             <span className="status-dot" style={{ width: '8px', height: '8px', background: apiStatus.utic.color, borderRadius: '50%', boxShadow: `0 0 5px ${apiStatus.utic.color}` }}></span>
