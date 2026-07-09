@@ -1615,7 +1615,7 @@ body.sidebar-collapsed .controls {
 }
 
 .signal-arrow.R:not(.editing) {
-    display: none !important;
+    /* Make red traffic lights visible by default */
 }
 
 .signal-arrow.editing {
