@@ -7,12 +7,9 @@ import './index.css';
 
 // Import split components
 import SingleDetailOverlay from './components/SingleDetailOverlay';
-import MapSignalOverlay from './components/MapSignalOverlay';
 import DualDetailOverlay from './components/DualDetailOverlay';
 import SidebarAccordion from './components/SidebarAccordion';
-import MultiSignalCard from './components/MultiSignalCard';
 import IntersectionMarkers, { MapAutoResizer } from './components/IntersectionMarkers';
-import HeaderClock from './components/HeaderClock';
 import MapResizer from './components/MapResizer';
 import MapPanner from './components/MapPanner';
 
@@ -54,117 +51,6 @@ function App() {
     utic: { status: 'Off', time: '-ms', color: '#ef4444' }
   });
   const [supabaseConfig, setSupabaseConfig] = useState(null);
-  const [activeMapSignalIds, setActiveMapSignalIds] = useState([]); // 지도상 신호 표출 활성화할 교차로 ID (최대 3개)
-  const [isMapSignalOn, setIsMapSignalOn] = useState(false);
-  const [mapSignalType, setMapSignalType] = useState('compass'); // 'compass' | 'arrow'
-  const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
-  const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
-  const [compassSizeVal, setCompassSizeVal] = useState(180);
-
-  useEffect(() => {
-    const scale = compassSizeVal / 180;
-    document.documentElement.style.setProperty('--compass-scale', scale);
-    document.documentElement.style.setProperty('--compass-scale-11', scale * 1.1);
-    document.documentElement.style.setProperty('--compass-scale-115', scale * 1.15);
-  }, [compassSizeVal]);
-
-
-  // 멀티스크린 상태
-  const [gridConfig, setGridConfig] = useState({ r: 1, c: 2 }); // 초기 옵션 1x2
-  const [multiScreenItems, setMultiScreenItems] = useState(Array(2).fill(null));
-  const [showGridSelector, setShowGridSelector] = useState(false);
-  const [hoverGrid, setHoverGrid] = useState({ r: 0, c: 0 });
-  
-  // 클럭 상태 추출 완료 (HeaderClock 컴포넌트로 이동)
-  const handleGridConfigChange = (r, c) => {
-    setSoloFullscreenIndex(null);
-    setGridConfig({ r, c });
-    setShowGridSelector(false);
-    setMultiScreenItems(prev => {
-      const newLength = r * c;
-      const next = Array(newLength).fill(null);
-      // 기존 아이템 순서대로 새 슬롯에 복사
-      let count = 0;
-      for (let i = 0; i < prev.length; i++) {
-        if (prev[i] !== null && count < newLength) {
-          next[count++] = prev[i];
-        }
-      }
-      return next;
-    });
-  };
-  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
-  const [isMultiScreenFullscreen, setIsMultiScreenFullscreen] = useState(false); // 멀티스크린 전체화면 상태 state
-  const [soloFullscreenIndex, setSoloFullscreenIndex] = useState(null); // 개별 카드 전체화면 인덱스
-  const dragOverIndexRef = useRef(null);
-  const draggedIndexRef = useRef(null);
-  const [multiWidth, setMultiWidth] = useState(750);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizingRef = React.useRef(false);
-
-  const handleMouseDownResize = (e) => {
-    e.preventDefault();
-    resizingRef.current = true;
-    setIsResizing(true);
-    document.addEventListener('mousemove', handleMouseMoveResize);
-    document.addEventListener('mouseup', handleMouseUpResize);
-  };
-
-  const handleMouseMoveResize = (e) => {
-    if (!resizingRef.current) return;
-    const newWidth = window.innerWidth - e.clientX;
-    if (newWidth > 300 && newWidth < window.innerWidth - 300) {
-      setMultiWidth(newWidth);
-    }
-  };
-
-  const handleMouseUpResize = () => {
-    resizingRef.current = false;
-    setIsResizing(false);
-    document.removeEventListener('mousemove', handleMouseMoveResize);
-    document.removeEventListener('mouseup', handleMouseUpResize);
-  };
-
-  const handleDropOnSlot = (e, index) => {
-    e.preventDefault();
-    dragOverIndexRef.current = null;
-    try {
-      // 1. 내부 이동 (Swap) 인 경우
-      if (draggedIndexRef.current !== null && draggedIndexRef.current !== undefined) {
-        const sourceIndex = draggedIndexRef.current;
-        if (sourceIndex !== index) {
-          setMultiScreenItems(prev => {
-            const next = [...prev];
-            const temp = next[index];
-            next[index] = next[sourceIndex];
-            next[sourceIndex] = temp;
-            return next;
-          });
-        }
-        draggedIndexRef.current = null;
-        return;
-      }
-      
-      // 2. 외부(사이드바)에서 드래그하여 새로 올리는 경우
-      const dataStr = e.dataTransfer.getData('application/json');
-      if (!dataStr) return;
-      const intersection = JSON.parse(dataStr);
-      
-      // 중복 체크
-      if (multiScreenItems.some(item => item && item.id === intersection.id)) {
-        alert('이미 멀티스크린에 등록된 교차로입니다.');
-        return;
-      }
-      
-      setMultiScreenItems(prev => {
-        const next = [...prev];
-        next[index] = intersection;
-        return next;
-      });
-    } catch (err) {
-      console.error('Drop error:', err);
-    }
-  };
 
   // 백엔드로부터 Supabase 접속 정보 및 서울 지원 목록 동적 조회
   useEffect(() => {
@@ -251,11 +137,6 @@ function App() {
     dualSelection.forEach(item => {
       activeIds.push(String(item.int_no));
     });
-    multiScreenItems.forEach(item => {
-      if (item) {
-        activeIds.push(String(item.int_no));
-      }
-    });
 
     if (activeIds.length === 0) return;
 
@@ -272,18 +153,6 @@ function App() {
 
     return () => clearInterval(intervalId);
   }, [detailIntersection, dualSelection, multiScreenItems]);
-
-  const handleMapSignalToggle = (id) => {
-    // 만약 신호가 꺼진 상태에서 신호등 표출을 켰다면 자동으로 ON 모드로 활성화
-    setIsMapSignalOn(true);
-
-    setActiveMapSignalIds(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(x => x !== id);
-      }
-      return [...prev, id];
-    });
-  };
 
   const prevMultiIdsRef = useRef([]);
 
@@ -402,25 +271,6 @@ function App() {
     });
   };
 
-  const handleMultiClick = (intersection) => {
-    setMultiScreenItems(prev => {
-      if (prev.some(item => item && item.id === intersection.id)) {
-        alert('이미 멀티스크린에 등록된 교차로입니다.');
-        return prev;
-      }
-      const next = [...prev];
-      const emptyIndex = next.findIndex(item => item === null);
-      if (emptyIndex !== -1) {
-        next[emptyIndex] = intersection;
-      } else {
-        // FIFO 방식 유지 (가득 찬 경우 가장 오래된 것을 제거)
-        next.shift();
-        next.push(intersection);
-      }
-      return next;
-    });
-  };
-
   const filteredIntersections = intersections;
 
   return (
@@ -446,8 +296,6 @@ function App() {
           onDualClick={handleDualClick}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          activeMapSignalIds={activeMapSignalIds}
-          onMapSignalToggle={handleMapSignalToggle}
           uticOpenRegions={uticOpenRegions}
           setUticOpenRegions={setUticOpenRegions}
         />
@@ -593,14 +441,10 @@ function App() {
             <IntersectionMarkers 
               intersections={filteredIntersections} 
               onDetailClick={openDetail}
-              onMultiClick={handleMultiClick}
               targetId={activeNodeId}
               uticUpdateTick={uticUpdateTick}
               activeTab={activeTab}
               seoulActiveIds={seoulActiveIds}
-              activeMapSignalIds={activeMapSignalIds}
-              onMapSignalToggle={handleMapSignalToggle}
-              showMapNames={showMapNames}
               onNodeClick={handleNodeClick}
               uticOpenRegions={uticOpenRegions}
             />
@@ -836,7 +680,6 @@ function App() {
           intersection={detailIntersection} 
           onClose={() => setDetailIntersection(null)} 
           uticUpdateTick={uticUpdateTick}
-          isMultiScreenOpen={isMultiScreenOpen}
         />
       )}
 
