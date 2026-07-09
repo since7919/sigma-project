@@ -63,12 +63,25 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSaveDb.disabled = true;
 
         try {
+            const password = prompt("백엔드 데이터베이스를 직접 수정합니다.\n승인된 관리자만 접근 가능합니다. 비밀번호를 입력하세요:");
+            if (!password) {
+                btnSaveDb.textContent = "💾 DB에 일괄 저장";
+                btnSaveDb.disabled = false;
+                return;
+            }
+            if (password !== '1234') {
+                alert("비밀번호가 일치하지 않습니다.");
+                btnSaveDb.textContent = "💾 DB에 일괄 저장";
+                btnSaveDb.disabled = false;
+                return;
+            }
+
             const response = await fetch(`${API_BASE}/${currentTable}/bulk`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(validData)
+                body: JSON.stringify({ password, records: validData })
             });
 
             const result = await response.json();

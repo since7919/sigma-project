@@ -1050,41 +1050,90 @@ async function revertActiveJunctionFromDB() {
 }
 
 
-async function syncSigmaIntersections() {
-    if (!STATE.junctions || Object.keys(STATE.junctions).length === 0) {
-        alert("동기화할 교차로 데이터가 없습니다. 먼저 파일을 로드해주세요.");
+async function syncSigmaDB(type) {
+    const typeToTable = {
+        'maps': 'signal_maps',
+        'plans': 'tod_plans',
+        'groups': 'groups'
+    };
+
+    if (type !== 'inter' && !typeToTable[type]) {
+        alert("해당 데이터(통계, 링크, 연감, 폴리곤 등)는 아직 백엔드 DB 일괄 동기화가 지원되지 않습니다.");
         return;
     }
-    
+
     const password = prompt("백엔드 데이터베이스를 직접 수정합니다.\n승인된 관리자만 접근 가능합니다. 비밀번호를 입력하세요:");
     if (!password) {
         return;
     }
-
-    if (!confirm("현재 로드된 교차로 마스터 데이터를 백엔드 데이터베이스에 'SIGMA_SIM' 분류로 일괄 덮어쓰기 하시겠습니까?")) {
+    if (password !== '1234') {
+        alert("비밀번호가 일치하지 않습니다.");
         return;
     }
 
-    const intersections = Object.values(STATE.junctions).map(j => ({
-        id: j.id,
-        name: j.name,
-        lat: j.lat,
-        lng: j.lng,
-        region: j.region || 'L01'
-    }));
+    if (type === 'inter') {
+        if (!STATE.junctions || Object.keys(STATE.junctions).length === 0) {
+            alert("동기화할 교차로 데이터가 없습니다. 먼저 파일을 로드해주세요.");
+            return;
+        }
+        if (!confirm("현재 로드된 교차로 마스터 데이터를 백엔드 데이터베이스에 'SIGMA_SIM' 분류로 일괄 덮어쓰기 하시겠습니까?")) return;
+
+        const intersections = Object.values(STATE.junctions).map(j => ({
+            id: j.id,
+            name: j.name,
+            lat: j.lat,
+            lng: j.lng,
+            region: j.region || 'L01'
+        }));
+
+        try {
+            const response = await fetch('/api/intersections/sync-sim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password, intersections })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(`✅ 총 ${result.count}건의 SIGMA_SIM 교차로 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
+            } else {
+                throw new Error(result.error || '알 수 없는 오류');
+            }
+        } catch (err) {
+            alert("백엔드 동기화 실패: " + err.message);
+        }
+        return;
+    }
+
+    // For maps, plans, groups
+    if (!confirm(`현재 로드된 [${type}] 데이터를 백엔드 데이터베이스(${typeToTable[type]})에 일괄 덮어쓰기 하시겠습니까?`)) return;
 
     try {
-        const response = await fetch('/api/intersections/sync-sim', {
+        const { mapCsv, todCsv, groupCsv } = exportNormalizedDB();
+        let targetCsv = '';
+        if (type === 'maps') targetCsv = mapCsv;
+        else if (type === 'plans') targetCsv = todCsv;
+        else if (type === 'groups') targetCsv = groupCsv;
+
+        if (!targetCsv) {
+            alert("동기화할 데이터가 없습니다.");
+            return;
+        }
+
+        const records = parseCSV(targetCsv);
+        if (!records || records.length === 0) {
+            alert("파싱된 데이터가 없습니다.");
+            return;
+        }
+
+        const response = await fetch(`/api/sim/tables/${typeToTable[type]}/bulk`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ password, intersections })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password, records })
         });
         
         const result = await response.json();
         if (result.success) {
-            alert(`✅ 총 ${result.count}건의 SIGMA_SIM 교차로 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
+            alert(`✅ 총 ${result.count}건의 ${typeToTable[type]} 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
         } else {
             throw new Error(result.error || '알 수 없는 오류');
         }
@@ -1092,3 +1141,4 @@ async function syncSigmaIntersections() {
         alert("백엔드 동기화 실패: " + err.message);
     }
 }
+

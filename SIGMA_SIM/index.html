@@ -800,7 +800,7 @@
                                     <div class="db-type-badge">DB</div>
                                     <div id="expl-status-inter" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaIntersections()" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('inter')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-inter').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('inter')" class="btn-db-action"
@@ -817,6 +817,7 @@
                                     <div class="db-type-badge">MAP</div>
                                     <div id="expl-status-maps" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('maps')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-maps').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('maps')" class="btn-db-action"
@@ -833,6 +834,7 @@
                                     <div class="db-type-badge">TOD</div>
                                     <div id="expl-status-plans" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('plans')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-plans').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('plans')" class="btn-db-action"
@@ -849,6 +851,7 @@
                                     <div class="db-type-badge">GRP</div>
                                     <div id="expl-status-groups" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('groups')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-groups').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('groups')" class="btn-db-action"
@@ -865,6 +868,7 @@
                                     <div class="db-type-badge">ST</div>
                                     <div id="expl-status-stats" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('stats')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-stats').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('stats')" class="btn-db-action"
@@ -881,6 +885,7 @@
                                     <div class="db-type-badge">GEO</div>
                                     <div id="expl-status-links" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('links')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-links').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('links')" class="btn-db-action"
@@ -897,6 +902,7 @@
                                     <div class="db-type-badge">PLY</div>
                                     <div id="expl-status-poly" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('poly')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-poly').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('poly')" class="btn-db-action"
@@ -913,6 +919,7 @@
                                     <div class="db-type-badge">ARC</div>
                                     <div id="expl-status-yearbook" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
+                                        <button onclick="syncSigmaDB('yearbook')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-yearbook').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('yearbook')" class="btn-db-action"

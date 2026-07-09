@@ -506,7 +506,12 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
 // 1-3-C. 데이터 뷰어용 일괄 수정/추가(Bulk Upsert) API
 app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   const { tableName } = req.params;
-  const records = req.body; // 배열 형태의 데이터
+  const { password, records } = req.body;
+  
+  if (password !== '1234') {
+    return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+  }
+
   const allowedTables = ['junctions', 'signal_maps', 'tod_plans', 'groups'];
   
   if (!allowedTables.includes(tableName)) {
