@@ -432,12 +432,14 @@ function App() {
   const filteredIntersections = useMemo(() => {
     if (!filterSeoulActive) return intersections;
     return intersections.filter(item => {
-      if (item.regionCode === 'seoul') {
-        return seoulActiveIds.includes(String(item.id));
+      const originLower = String(item.origin_type || '').toLowerCase();
+      if (originLower.includes('tdata')) {
+        const hasSeoulSpat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[item.int_no];
+        return seoulActiveIds.includes(String(item.id)) || hasSeoulSpat;
       }
       return true; // Keep UTIC intersections
     });
-  }, [intersections, filterSeoulActive, seoulActiveIds]);
+  }, [intersections, filterSeoulActive, seoulActiveIds, uticUpdateTick]);
 
   return (
     <>
@@ -589,27 +591,7 @@ function App() {
               />
             </div>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
-            <button 
-              className={`btn-clear ${filterSeoulActive ? 'active' : ''}`}
-              style={{
-                background: filterSeoulActive ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: filterSeoulActive ? '#38bdf8' : '#94a3b8',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '15px',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              onClick={() => setFilterSeoulActive(p => !p)}
-            >
-              📡 수신 교차로만 (서울)
-            </button>
-            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+
             <button 
               className={`btn-toggle-multi ${isMultiScreenOpen ? 'active' : ''}`}
               style={{
