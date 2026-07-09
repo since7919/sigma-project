@@ -160,6 +160,48 @@ app.get('/api/intersections/sync', async (req, res) => {
 });
 
 
+// 1-1-S. 시그마 시뮬레이터(SIGMA_SIM) 대량 동기화 API (JSON -> DB)
+app.post('/api/intersections/sync-sim', express.json({ limit: '50mb' }), async (req, res) => {
+  const { password, intersections } = req.body;
+  if (password !== '1234') {
+    return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+  }
+  if (!Array.isArray(intersections)) {
+    return res.status(400).json({ error: '유효하지 않은 데이터 형식입니다.' });
+  }
+
+  try {
+    const now = new Date().toISOString();
+    const records = intersections.map(item => ({
+      region_cd: item.region || 'L01',
+      int_no: parseInt(String(item.id).replace(/\D/g, ''), 10) || 0,
+      int_nm: item.name || 'Node',
+      x_coord: parseFloat(item.lng) || 0,
+      y_coord: parseFloat(item.lat) || 0,
+      node_id: item.id || null,
+      origin_type: 'SIGMA_SIM',
+      updated_at: now
+    }));
+
+    // 기존 SIGMA_SIM 데이터 삭제
+    await supabase.from('utic_intersections').delete().eq('origin_type', 'SIGMA_SIM');
+
+    const chunkSize = 1000;
+    let insertedCount = 0;
+    for (let i = 0; i < records.length; i += chunkSize) {
+      const chunk = records.slice(i, i + chunkSize);
+      const { error } = await supabase.from('utic_intersections').insert(chunk);
+      if (error) throw error;
+      insertedCount += chunk.length;
+    }
+
+    res.json({ success: true, count: insertedCount });
+  } catch (error) {
+    sendErrorResponse(res, error, 'SIGMA_SIM 교차로 동기화에 실패했습니다.');
+  }
+});
+
+
 // 1-2. 교차로 마스터 데이터 조회 (Supabase)
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
