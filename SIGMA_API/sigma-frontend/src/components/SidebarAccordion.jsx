@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions }) {
+export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -117,9 +117,44 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
             } else {
               if (activeTab === 'tdata') setActiveTab(null);
             }
-          }}>
+          }} style={{ display: 'flex', alignItems: 'center' }}>
             <span className="acc-icon">{tdataOpen ? '▼' : '▶'}</span>
-            🏛️ 서울Tdata 개방데이터 <span className="acc-count">({tdataList.length})</span>
+            <span style={{ flex: 1 }}>🏛️ 서울Tdata 개방데이터 <span className="acc-count">({tdataList.length})</span></span>
+            {tdataOpen && (
+              <div 
+                className="filter-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (setFilterSeoulActive) setFilterSeoulActive(!filterSeoulActive);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: '12px',
+                  padding: '2px 4px',
+                  cursor: 'pointer',
+                  marginLeft: '8px'
+                }}
+              >
+                <div style={{
+                  padding: '2px 8px',
+                  fontSize: '0.65rem',
+                  fontWeight: 'bold',
+                  borderRadius: '10px',
+                  background: filterSeoulActive ? '#10b981' : 'transparent',
+                  color: filterSeoulActive ? '#fff' : '#64748b'
+                }}>Live</div>
+                <div style={{
+                  padding: '2px 8px',
+                  fontSize: '0.65rem',
+                  fontWeight: 'bold',
+                  borderRadius: '10px',
+                  background: !filterSeoulActive ? '#38bdf8' : 'transparent',
+                  color: !filterSeoulActive ? '#fff' : '#64748b'
+                }}>ALL</div>
+              </div>
+            )}
           </div>
           {tdataOpen && (
             <div className="acc-body">

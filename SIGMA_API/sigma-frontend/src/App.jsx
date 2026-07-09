@@ -467,6 +467,8 @@ function App() {
           onMapSignalToggle={handleMapSignalToggle}
           uticOpenRegions={uticOpenRegions}
           setUticOpenRegions={setUticOpenRegions}
+          filterSeoulActive={filterSeoulActive}
+          setFilterSeoulActive={setFilterSeoulActive}
         />
         
         <footer className="sidebar-footer" style={{ padding: '10px 14px', display: 'flex', flexDirection: 'row', gap: '8px', justifyContent: 'space-around', borderTop: '1px solid var(--glass-border)', alignItems: 'center', marginTop: 'auto' }}>
