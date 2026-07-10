@@ -238,7 +238,7 @@ app.post('/api/intersections/sync-sim', express.json({ limit: '50mb' }), async (
     const now = new Date().toISOString();
     const records = intersections.map(item => ({
       region_cd: item.region || 'L01',
-      int_no: parseInt(String(item.id).replace(/\D/g, ''), 10) || 0,
+      int_no: parseInt(String(item.id).replace(/\D/g, '').slice(-8), 10) || 0,
       int_nm: item.name || 'Node',
       x_coord: parseFloat(item.lng) || 0,
       y_coord: parseFloat(item.lat) || 0,
@@ -255,12 +255,16 @@ app.post('/api/intersections/sync-sim', express.json({ limit: '50mb' }), async (
     for (let i = 0; i < records.length; i += chunkSize) {
       const chunk = records.slice(i, i + chunkSize);
       const { error } = await supabase.from('utic_intersections').insert(chunk);
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Insert Error Details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
       insertedCount += chunk.length;
     }
 
     res.json({ success: true, count: insertedCount });
   } catch (error) {
+    console.error('sync-sim Catch Error:', error);
     sendErrorResponse(res, error, 'SIGMA_SIM 교차로 동기화에 실패했습니다.');
   }
 });
