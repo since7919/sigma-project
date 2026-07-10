@@ -587,31 +587,58 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   }
 
   try {
-    // 빈 셀들이나 잘못된 데이터로 인한 오류 방지를 위해, 필수 키(예: id)가 있는 레코드만 필터링
-    const validRecords = records.filter(r => r.id !== null && r.id !== undefined && String(r.id).trim() !== '');
+    // 빈 셀들이나 잘못된 데이터로 인한 오류 방지를 위해, 필수 키(예: id, ID)가 있는 레코드만 필터링
+    const validRecords = records.filter(r => (r.id || r.ID) !== undefined && String(r.id || r.ID).trim() !== '');
     
     if (validRecords.length === 0) {
-      return res.status(400).json({ error: '유효한 레코드(ID 포함)가 존재하지 않습니다.' });
+      return res.status(400).json({ error: '유효한 레코드(ID 포함)가 존재하지 않습니다. CSV 형식을 확인해주세요.' });
     }
 
-    // JSON 필드를 문자열로 보냈을 수 있으므로 다시 객체로 파싱 시도 (tod_plans 등)
+    // 카멜케이스(CamelCase) 또는 대문자 헤더를 Supabase 스네이크케이스(snake_case)로 변환
     const processedRecords = validRecords.map(row => {
-      const newRow = { ...row };
-      for (let key in newRow) {
-        if (typeof newRow[key] === 'string' && (newRow[key].startsWith('{') || newRow[key].startsWith('['))) {
-          try {
-             newRow[key] = JSON.parse(newRow[key]);
-          } catch(e) {
-             // 파싱 실패시 그냥 문자열 유지
-          }
+      const newRow = {};
+      for (let key in row) {
+        let snakeKey = key;
+        
+        // 특정 키 강제 매핑
+        if (key.toUpperCase() === 'ID') snakeKey = 'id';
+        else if (key === 'MapIdx') snakeKey = 'map_idx';
+        else if (key === 'SignalMap') snakeKey = 'signal_map';
+        else if (key === 'GroupID') snakeKey = 'group_id';
+        else if (key === 'Seq') snakeKey = 'seq';
+        else if (key === 'Name') snakeKey = 'name';
+        else if (key === 'Type') snakeKey = 'type';
+        else if (key === 'Cycle') snakeKey = 'cycle';
+        else if (key === 'Offset') snakeKey = 'offset';
+        else if (key === 'Members') snakeKey = 'members';
+        else if (key === 'Day_plan') snakeKey = 'day_plan';
+        else if (key.startsWith('Time_plan')) snakeKey = key.toLowerCase();
+        else {
+          // 일반 camelCase -> snake_case
+          snakeKey = key.replace(/^([A-Z])/, m => m.toLowerCase()).replace(/([A-Z])/g, m => '_' + m.toLowerCase());
         }
+
+        let val = row[key];
+        // Parse arrays/objects
+        if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+          try { val = JSON.parse(val); } catch(e) {}
+        }
+        
+        // 값이 빈 문자열이면 null로 처리할지? Supabase 제약조건에 따라 다르지만 보통 빈칸은 그대로 두거나 null
+        if (val === '') val = null;
+
+        newRow[snakeKey] = val;
       }
       return newRow;
     });
 
+    let conflictKeys = 'id';
+    if (tableName === 'signal_maps') conflictKeys = 'id, map_idx';
+    if (tableName === 'tod_plans') conflictKeys = 'id, seq';
+
     const { data, error } = await supabase
       .from(tableName)
-      .upsert(processedRecords, { onConflict: 'id' }); // id를 기준으로 덮어쓰거나 새로 추가
+      .upsert(processedRecords, { onConflict: conflictKeys }); // 복합키 충돌 처리
       
     if (error) throw error;
     
