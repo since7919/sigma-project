@@ -372,7 +372,7 @@ async function saveNormalizedDBFiles() {
 /** [정교화] 데이터 통합 익스포트 */
 function exportNormalizedDB() {
     const junctions = Object.values(STATE.junctions);
-    const interHeaders = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan"];
+    const interHeaders = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
     let interCsv = "\ufeff" + interHeaders.join(",") + "\n";
     junctions.forEach(j => {
         const row = [
@@ -390,7 +390,8 @@ function exportNormalizedDB() {
             serializeArrows(j), 
             j.controller || "", 
             (j.extra?.diagramOrder !== undefined ? j.extra.diagramOrder : -1), 
-            j.weeklyPlan || "1;1;1;1;1;2;3"
+            j.weeklyPlan || "1;1;1;1;1;2;3",
+            j.apiIntNo !== undefined && j.apiIntNo !== null ? j.apiIntNo : ""
         ];
         interCsv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
     });
@@ -463,11 +464,14 @@ function processIntersectionCSV(csv) {
         cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
         let id = getCol(cols, ["ID", "교차로번호", "No", "JID"]); if (!id) continue;
         const region = getCol(cols, ["Region", "지역"]) || (id.startsWith("L02-") ? "L02" : "L01");
+        const apiIntNoRaw = getCol(cols, ["API_Int_No", "api_int_no", "apiIntNo"]);
+        const apiIntNo = apiIntNoRaw ? parseInt(apiIntNoRaw, 10) : null;
         newJuncts[id] = {
             id, region, name: getCol(cols, ["Name", "이름", "교차로명"]) || "Node",
             lat: parseFloat(getCol(cols, ["Lat", "위도"])) || 37.5, lng: parseFloat(getCol(cols, ["Lng", "경도"])) || 127.0,
             seq: getCol(cols, ["Seq", "연등번호"]), police: getCol(cols, ["Police", "경찰서"]) || "", office: getCol(cols, ["Office", "관리청"]) || "",
             group: parseInt(getCol(cols, ["GroupID", "그룹ID"])) || 0, weeklyPlan: getCol(cols, ["Weekly_plan"]) || "1;1;1;1;1;2;3",
+            apiIntNo: isNaN(apiIntNo) ? null : apiIntNo,
             signalMaps: Array.from({ length: 6 }, () => createEmptySignalMap()), dayPlans: Array.from({ length: 10 }, () => createEmptyPlans()),
             schedules: Array.from({ length: 10 }, () => createEmptySched()), dayPlanMapIds: new Array(10).fill(0), extra: {}
         };
@@ -1052,12 +1056,13 @@ async function revertActiveJunctionFromDB() {
 
 async function syncSigmaDB(type) {
     const typeToTable = {
+        'inter': 'junctions',
         'maps': 'signal_maps',
         'plans': 'tod_plans',
         'groups': 'groups'
     };
 
-    if (type !== 'inter' && !typeToTable[type]) {
+    if (!typeToTable[type]) {
         alert("해당 데이터(통계, 링크, 연감, 폴리곤 등)는 아직 백엔드 DB 일괄 동기화가 지원되지 않습니다.");
         return;
     }
@@ -1071,46 +1076,13 @@ async function syncSigmaDB(type) {
         return;
     }
 
-    if (type === 'inter') {
-        if (!STATE.junctions || Object.keys(STATE.junctions).length === 0) {
-            alert("동기화할 교차로 데이터가 없습니다. 먼저 파일을 로드해주세요.");
-            return;
-        }
-        if (!confirm("현재 로드된 교차로 마스터 데이터를 백엔드 데이터베이스에 'SIGMA_SIM' 분류로 일괄 덮어쓰기 하시겠습니까?")) return;
-
-        const intersections = Object.values(STATE.junctions).map(j => ({
-            id: j.id,
-            name: j.name,
-            lat: j.lat,
-            lng: j.lng,
-            region: j.region || 'L01'
-        }));
-
-        try {
-            const response = await fetch('/api/intersections/sync-sim', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password, intersections })
-            });
-            const result = await response.json();
-            if (result.success) {
-                alert(`✅ 총 ${result.count}건의 SIGMA_SIM 교차로 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
-            } else {
-                throw new Error(result.error || '알 수 없는 오류');
-            }
-        } catch (err) {
-            alert("백엔드 동기화 실패: " + err.message);
-        }
-        return;
-    }
-
-    // For maps, plans, groups
     if (!confirm(`현재 로드된 [${type}] 데이터를 백엔드 데이터베이스(${typeToTable[type]})에 일괄 덮어쓰기 하시겠습니까?`)) return;
 
     try {
-        const { mapCsv, todCsv, groupCsv } = exportNormalizedDB();
+        const { interCsv, mapCsv, todCsv, groupCsv } = exportNormalizedDB();
         let targetCsv = '';
-        if (type === 'maps') targetCsv = mapCsv;
+        if (type === 'inter') targetCsv = interCsv;
+        else if (type === 'maps') targetCsv = mapCsv;
         else if (type === 'plans') targetCsv = todCsv;
         else if (type === 'groups') targetCsv = groupCsv;
 

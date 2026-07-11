@@ -270,6 +270,72 @@ app.post('/api/intersections/sync-sim', express.json({ limit: '50mb' }), async (
 });
 
 
+// 하버사인 거리 계산 함수 (단위: km)
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // 지구 반지름
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// 1-2-N. 가장 가까운 API 교차로 조회 (위치 기반)
+app.get('/api/intersections/nearest', async (req, res) => {
+  const { lat, lng, regionCode } = req.query;
+  if (!lat || !lng) {
+    return res.status(400).json({ error: '위도(lat)와 경도(lng)는 필수 입력 항목입니다.' });
+  }
+
+  try {
+    const targetLat = parseFloat(lat);
+    const targetLng = parseFloat(lng);
+    const region = regionCode || 'L01';
+
+    // 해당 지역의 교차로 마스터 전체 조회
+    const { data: list, error } = await supabase
+      .from('utic_intersections')
+      .select('region_cd, int_no, int_nm, x_coord, y_coord, node_id, origin_type')
+      .eq('region_cd', region)
+      .limit(5000);
+
+    if (error) throw error;
+    if (!list || list.length === 0) {
+      return res.json({ success: false, message: '비교할 API 교차로가 존재하지 않습니다.' });
+    }
+
+    let nearest = null;
+    let minDistance = Infinity;
+
+    for (const item of list) {
+      if (!item.y_coord || !item.x_coord) continue;
+      const distance = getDistance(targetLat, targetLng, parseFloat(item.y_coord), parseFloat(item.x_coord));
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearest = item;
+      }
+    }
+
+    if (nearest) {
+      res.json({
+        success: true,
+        int_no: nearest.int_no,
+        int_nm: nearest.int_nm,
+        distance: minDistance, // km
+        origin_type: nearest.origin_type
+      });
+    } else {
+      res.json({ success: false, message: '가장 가까운 교차로를 찾을 수 없습니다.' });
+    }
+  } catch (err) {
+    sendErrorResponse(res, err, '가장 가까운 교차로 조회 중 오류가 발생했습니다.');
+  }
+});
+
+
 // 1-2. 교차로 마스터 데이터 조회 (Supabase)
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
@@ -339,7 +405,7 @@ app.get('/api/sim/data', async (req, res) => {
             .order('id');
           if (error) throw error;
           
-          const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan"];
+          const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
           let csvContent = "\ufeff" + headers.join(",") + "\n";
           
           (rows || []).forEach(r => {
@@ -366,7 +432,8 @@ app.get('/api/sim/data', async (req, res) => {
               arrowStr,
               r.controller || "",
               r.diagram_order !== null ? r.diagram_order : -1,
-              r.weekly_plan || "1;1;1;1;1;2;3"
+              r.weekly_plan || "1;1;1;1;1;2;3",
+              r.api_int_no !== null && r.api_int_no !== undefined ? r.api_int_no : ""
             ];
             csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
           });
@@ -608,7 +675,7 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         if (key.toUpperCase() === 'ID') snakeKey = 'id';
         else if (key === 'MapIdx') snakeKey = 'map_idx';
         else if (key === 'SignalMap') snakeKey = 'signal_map';
-        else if (key === 'GroupID') snakeKey = 'group_id';
+        else if (key === 'GroupID' || key === 'GroupId') snakeKey = 'group_id';
         else if (key === 'Seq') snakeKey = 'seq';
         else if (key === 'Name') snakeKey = 'name';
         else if (key === 'Type') snakeKey = 'type';
@@ -616,6 +683,12 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         else if (key === 'Offset') snakeKey = 'offset';
         else if (key === 'Members') snakeKey = 'members';
         else if (key === 'Day_plan') snakeKey = 'day_plan';
+        else if (key === 'Region') snakeKey = 'region_cd';
+        else if (key === 'Lat') snakeKey = 'lat';
+        else if (key === 'Lng') snakeKey = 'lng';
+        else if (key === 'ArrowConfigs') snakeKey = 'arrow_configs';
+        else if (key === 'DiagramOrder') snakeKey = 'diagram_order';
+        else if (key.toLowerCase() === 'api_int_no' || key === 'API_Int_No') snakeKey = 'api_int_no';
         else if (key.startsWith('Time_plan')) snakeKey = key.toLowerCase();
         else {
           // 일반 camelCase -> snake_case

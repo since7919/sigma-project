@@ -605,6 +605,9 @@ function selectJunction(jid, isMulti = false) {
     document.getElementById('inp-police').value = j.police;
     document.getElementById('inp-office').value = j.office;
     if (document.getElementById('inp-controller')) document.getElementById('inp-controller').value = j.controller || "";
+    if (document.getElementById('inp-api-int-no')) {
+        document.getElementById('inp-api-int-no').value = (j.apiIntNo !== undefined && j.apiIntNo !== null) ? j.apiIntNo : "";
+    }
 
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const pIdx = parseInt(UI.planIdx.value) || 0;
@@ -777,8 +780,9 @@ function deselectJunction() {
         }
     });
 
-    ['inp-id', 'inp-name', 'inp-seq', 'inp-police', 'inp-office', 'inp-cycle', 'inp-lat', 'inp-lng', 'inp-group-id'].forEach(id => {
-        document.getElementById(id).value = "";
+    ['inp-id', 'inp-name', 'inp-seq', 'inp-police', 'inp-office', 'inp-cycle', 'inp-lat', 'inp-lng', 'inp-group-id', 'inp-api-int-no'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
     });
 
     const titleEl = document.getElementById('phase-editor-title');
@@ -879,6 +883,7 @@ function syncActiveJunctionData() {
     const elCycle = document.getElementById('inp-cycle');
     const elLat = document.getElementById('inp-lat');
     const elLng = document.getElementById('inp-lng');
+    const elApiIntNo = document.getElementById('inp-api-int-no');
 
     if (elId) j.id = elId.value;
     if (elName) j.name = elName.value;
@@ -889,6 +894,10 @@ function syncActiveJunctionData() {
     if (elCycle) j.cycle = parseInt(elCycle.value) || 100;
     if (elLat) j.lat = parseFloat(elLat.value) || 37.5;
     if (elLng) j.lng = parseFloat(elLng.value) || 127.0;
+    if (elApiIntNo) {
+        const val = parseInt(elApiIntNo.value, 10);
+        j.apiIntNo = isNaN(val) ? null : val;
+    }
 
     // 점멸 설정 동기화
     const flEnable = document.getElementById('flash-enable');
@@ -1024,4 +1033,48 @@ function applyGroupTOD() {
     renderRingTables();
     if (typeof sendToDashboard === 'function') sendToDashboard();
     alert(`그룹 ${gid}번으로 지정 및 5일 TOD 일괄 적용되었습니다.`);
+}
+
+/**
+ * 위치정보(lat, lng)를 기반으로 백엔드에서 가장 가까운 API 교차로를 조회하여
+ * API 매칭번호(api_int_no) 입력창에 자동으로 입력한다.
+ */
+async function autoMatchNearestAPIIntersection() {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) {
+        alert("교차로를 먼저 선택해 주세요.");
+        return;
+    }
+
+    const j = STATE.junctions[jid];
+    if (!j.lat || !j.lng) {
+        alert("교차로의 위도와 경도가 유효하지 않습니다.");
+        return;
+    }
+
+    const region = j.region || (jid.startsWith("L02-") ? "L02" : "L01");
+
+    try {
+        const response = await fetch(`/api/intersections/nearest?lat=${j.lat}&lng=${j.lng}&regionCode=${region}`);
+        const result = await response.json();
+        
+        if (result.success && result.int_no !== undefined) {
+            if (confirm(`가장 가까운 API 교차로를 찾았습니다.\n\n교차로명: ${result.int_nm} (${result.origin_type})\n번호: ${result.int_no}\n거리: ${result.distance.toFixed(3)} km\n\n이 교차로 번호로 매칭하시겠습니까?`)) {
+                
+                const el = document.getElementById('inp-api-int-no');
+                if (el) {
+                    el.value = result.int_no;
+                    // 모델 데이터 동기화
+                    j.apiIntNo = result.int_no;
+                    syncActiveJunctionData();
+                    alert(`✅ API 교차로 번호 [${result.int_no}]가 정상 매칭되었습니다.`);
+                }
+            }
+        } else {
+            alert(result.message || "가까운 API 교차로를 찾을 수 없습니다.");
+        }
+    } catch (e) {
+        console.error("자동 매칭 중 오류 발생:", e);
+        alert("자동 매칭 요청 중 오류가 발생했습니다. 백엔드 서버 상태를 확인해 주세요.");
+    }
 }

@@ -190,6 +190,22 @@ function renderInfoFields() {
         {
             content: `
             <div class="info-row-v3">
+                <label>API 매칭번호</label>
+                <div style="display: flex; gap: 4px; flex: 1; min-width: 0;">
+                    <input type="number" id="inp-api-int-no" class="sigma-input" 
+                           style="font-size: 11px; padding: 4px; flex: 1; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.15);" 
+                           oninput="syncActiveJunctionData()" placeholder="API 번호">
+                    <button onclick="autoMatchNearestAPIIntersection()" class="btn-sm" 
+                            style="padding: 2px 8px; font-size: 9.5px; background: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; height: 22px;">
+                        자동매칭
+                    </button>
+                </div>
+                <input type="checkbox" id="chk-show-api-int-no" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()">
+            </div>`
+        },
+        {
+            content: `
+            <div class="info-row-v3">
                 <label>위경도</label>
                 <div style="display: flex; gap: 3px; flex: 1; min-width: 0;">
                     <input type="number" id="inp-lat" step="0.000000001" class="sigma-input" 
@@ -199,7 +215,7 @@ function renderInfoFields() {
                            style="font-size: 9.5px; padding: 4px; width: 48%; text-align: center; background: rgba(0,0,0,0.2);" 
                            oninput="syncActiveJunctionData()">
                 </div>
-                <input type="checkbox" id="chk-show-latlng" onchange="refreshVisibleTooltips()">
+                <input type="checkbox" id="chk-show-latlng" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()">
             </div>`
         }
     ]);
