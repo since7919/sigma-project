@@ -54,6 +54,11 @@ window.onRegionChange = async function() {
     const regionCode = document.getElementById('api-region-select').value;
     console.log(`[Region] 지역 변경: ${regionCode}`);
     
+    // 외부 교차로 API 레이어 초기화
+    if (window.ApiLayers) {
+        window.ApiLayers.onRegionChanged(regionCode);
+    }
+    
     // [Clean up] 기존 교차로 마커 지도에서 모두 제거
     if (typeof STATE !== 'undefined' && STATE.junctions) {
         Object.values(STATE.junctions).forEach(j => {

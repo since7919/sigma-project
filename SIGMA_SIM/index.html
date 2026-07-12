@@ -155,6 +155,8 @@
         <button id="btn-road-network-toggle" class="btn-neon" onclick="toggleRoadNetworkVisibility()">🔗 연동</button>
         <button id="btn-civil-map" class="btn-neon" onclick="toggleCivilMapLayer()">📋 민원</button>
         <button id="btn-tooltip-all" class="btn-neon" onclick="toggleAllTooltips()">🏷️ 정보</button>
+        <button id="btn-layer-tdata" class="btn-neon" onclick="toggleApiLayer('tdata')">🌐 TDATA</button>
+        <button id="btn-layer-utic" class="btn-neon" onclick="toggleApiLayer('utic')">🌐 UTIC</button>
         <button id="btn-data-viewer" class="btn-neon" onclick="location.href='data_viewer.html'">📂 데이터</button>
         <button id="btn-dashboard" class="btn-neon" onclick="openDashboard()">📊 HOME</button>
         <button id="btn-export-network" class="btn-neon magenta" style="display:none" onclick="exportRoadNetwork()">📥
@@ -1901,6 +1903,7 @@
     <script src="js/tsd.js?v=4"></script>
     <script src="js/simulation.js?v=4"></script> <!-- 이 부분이 핵심입니다 -->
     <script src="js/stats.js?v=4"></script>
+    <script src="js/api_layers.js?v=4"></script>
     <script src="js/intersection_search.js?v=4"></script>
     <script src="js/junction_optimizer.js?v=4"></script>
     <script src="js/civil.js?v=4"></script>
