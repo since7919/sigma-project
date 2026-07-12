@@ -13,7 +13,7 @@ require('dotenv').config();
 const app = express();
 app.use(compression());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 // 통합 랜딩 페이지 및 서비스 서빙 설정
 app.get('/', (req, res) => {
@@ -662,16 +662,22 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   }
 
   try {
-    // 빈 셀들이나 잘못된 데이터로 인한 오류 방지를 위해, 필수 키(예: id, ID)가 있는 레코드만 필터링
-    const validRecords = records.filter(r => (r.id || r.ID) !== undefined && String(r.id || r.ID).trim() !== '');
+    // 빈 셀들이나 잘못된 데이터로 인한 오류 방지를 위해, 필수 식별자 키가 있는 레코드만 필터링
+    const validRecords = records.filter(r => {
+      const idVal = r.id || r.ID || r.GroupID || r.GroupId || r.group_id;
+      return idVal !== undefined && String(idVal).trim() !== '';
+    });
     
     if (validRecords.length === 0) {
-      return res.status(400).json({ error: '유효한 레코드(ID 포함)가 존재하지 않습니다. CSV 형식을 확인해주세요.' });
+      return res.status(400).json({ error: '유효한 레코드(ID 또는 GroupID 포함)가 존재하지 않습니다. CSV 형식을 확인해주세요.' });
     }
 
-    // 카멜케이스(CamelCase) 또는 대문자 헤더를 Supabase 스네이크케이스(snake_case)로 변환
+    // 카멜케이스(CamelCase) 또는 대문자 헤더를 Supabase 스네이크케이스(snake_case)로 변환 및 테이블 맞춤 파싱
     const processedRecords = validRecords.map(row => {
       const newRow = {};
+      const timePlanCols = {};
+      const dayPlanCols = {};
+
       for (let key in row) {
         let snakeKey = key;
         
@@ -679,7 +685,7 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         if (key.toUpperCase() === 'ID') snakeKey = 'id';
         else if (key === 'MapIdx') snakeKey = 'map_idx';
         else if (key === 'SignalMap') snakeKey = 'signal_map';
-        else if (key === 'GroupID' || key === 'GroupId') snakeKey = 'group_id';
+        else if (key === 'GroupID' || key === 'GroupId' || key === 'group_id') snakeKey = 'group_id';
         else if (key === 'Seq') snakeKey = 'seq';
         else if (key === 'Name') snakeKey = 'name';
         else if (key === 'Type') snakeKey = 'type';
@@ -693,33 +699,117 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         else if (key === 'ArrowConfigs') snakeKey = 'arrow_configs';
         else if (key === 'DiagramOrder') snakeKey = 'diagram_order';
         else if (key.toLowerCase() === 'api_int_no' || key === 'API_Int_No') snakeKey = 'api_int_no';
-        else if (key.startsWith('Time_plan')) snakeKey = key.toLowerCase();
+        else if (key.startsWith('Time_plan') || key.startsWith('time_plan')) {
+          const match = key.match(/\d+/);
+          if (match) {
+            timePlanCols[parseInt(match[0])] = row[key];
+          }
+          continue; // DB 컬럼이 아니므로 newRow 매핑에서 제외
+        }
+        else if (key.startsWith('Day_plan') || key.startsWith('day_plan')) {
+          const match = key.match(/\d+/);
+          if (match) {
+            dayPlanCols[parseInt(match[0])] = row[key];
+          }
+          continue; // DB 컬럼이 아니므로 newRow 매핑에서 제외
+        }
         else {
           // 일반 camelCase -> snake_case
           snakeKey = key.replace(/^([A-Z])/, m => m.toLowerCase()).replace(/([A-Z])/g, m => '_' + m.toLowerCase());
         }
 
         let val = row[key];
-        // Parse arrays/objects
+        // Parse JSON arrays/objects
         if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
           try { val = JSON.parse(val); } catch(e) {}
         }
         
-        // 값이 빈 문자열이면 null로 처리할지? Supabase 제약조건에 따라 다르지만 보통 빈칸은 그대로 두거나 null
         if (val === '') val = null;
-
         newRow[snakeKey] = val;
       }
+
+      // 1. junctions: ArrowConfigs 문자열 파싱
+      if (tableName === 'junctions' && typeof newRow.arrow_configs === 'string' && newRow.arrow_configs.trim()) {
+        const arrowConfigs = {};
+        newRow.arrow_configs.split(';').forEach(conf => {
+          const parts = conf.split(':');
+          if (parts.length >= 4) {
+            const mov = parts[0];
+            if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
+            arrowConfigs[mov].push({
+              dLat: parseFloat(parts[1]) || 0,
+              dLng: parseFloat(parts[2]) || 0,
+              rot: parseInt(parts[3]) || 0
+            });
+          }
+        });
+        newRow.arrow_configs = arrowConfigs;
+      }
+
+      // 2. tod_plans: Time_plan1 ~ 16 열을 time_plans JSONB로 복원
+      if (tableName === 'tod_plans') {
+        const timePlans = [];
+        for (let i = 1; i <= 16; i++) {
+          const val = timePlanCols[i];
+          if (val && val !== "-1") {
+            const tpParts = val.split('|');
+            if (tpParts.length >= 6) {
+              const timeParts = tpParts[0].split(':');
+              timePlans.push({
+                slot_idx: i,
+                h: parseInt(timeParts[0]) || 0,
+                m: parseInt(timeParts[1]) || 0,
+                cycle: parseInt(tpParts[1]) || 100,
+                offset: parseInt(tpParts[2]) || 0,
+                splitA: tpParts[3] ? tpParts[3].split(';').map(Number) : [],
+                splitB: tpParts[4] ? tpParts[4].split(';').map(Number) : [],
+                idx: parseInt(tpParts[5]) || 1
+              });
+            }
+          }
+        }
+        newRow.time_plans = timePlans;
+      }
+
+      // 3. groups: Day_plan1 ~ 10 열을 schedules JSONB로 복원
+      if (tableName === 'groups') {
+        const schedules = [];
+        for (let d = 1; d <= 10; d++) {
+          const val = dayPlanCols[d];
+          if (val && val !== "-1") {
+            const slots = val.split(';').map(slot => {
+              const parts = slot.split('|');
+              return {
+                time: parts[0],
+                cycle: parseInt(parts[1]) || 100,
+                idx: parseInt(parts[2]) || 1
+              };
+            }).filter(s => s.time);
+            if (slots.length > 0) {
+              schedules.push({
+                day_plan_idx: d,
+                slots: slots
+              });
+            }
+          }
+        }
+        newRow.schedules = schedules;
+      }
+
+      // 불필요한 임시/중복 속성 클린업
+      delete newRow.seq; 
+      
       return newRow;
     });
 
     let conflictKeys = 'id';
     if (tableName === 'signal_maps') conflictKeys = 'id, map_idx';
-    if (tableName === 'tod_plans') conflictKeys = 'id, seq';
+    if (tableName === 'tod_plans') conflictKeys = 'id, day_plan';
+    if (tableName === 'groups') conflictKeys = 'group_id';
 
     const { data, error } = await supabase
       .from(tableName)
-      .upsert(processedRecords, { onConflict: conflictKeys }); // 복합키 충돌 처리
+      .upsert(processedRecords, { onConflict: conflictKeys });
       
     if (error) throw error;
     
