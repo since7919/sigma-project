@@ -78,9 +78,9 @@ const ApiLayers = {
                 if (j.origin_type === '서울tdata') layerType = 'tdata';
                 else if (j.origin_type === 'UTIC') layerType = 'utic';
                 
-                if (layerType && j.lat && j.lng) {
+                if (layerType && j.y_coord && j.x_coord) {
                     const style = this.styles[layerType];
-                    const marker = L.circleMarker([j.lat, j.lng], {
+                    const marker = L.circleMarker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
                         radius: style.radius,
                         color: 'white',
                         weight: 1,

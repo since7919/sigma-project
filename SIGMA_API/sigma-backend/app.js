@@ -340,7 +340,7 @@ app.get('/api/intersections/nearest', async (req, res) => {
 app.get('/api/intersections', async (req, res) => {
   const { regionCode } = req.query;
   try {
-    let countQuery = supabase.from('utic_intersections').select('*', { count: 'exact', head: true });
+    let countQuery = supabase.from('utic_intersections').select('int_no', { count: 'exact', head: true });
     if (regionCode) countQuery = countQuery.eq('region_cd', regionCode);
     const { count, error: countError } = await countQuery;
     if (countError) throw countError;
@@ -357,7 +357,11 @@ app.get('/api/intersections', async (req, res) => {
     const step = 1000;
     const promises = [];
     for (let i = 0; i < count; i += step) {
-      let q = supabase.from('utic_intersections').select('*').range(i, i + step - 1).order('region_cd').order('int_no');
+      let q = supabase.from('utic_intersections')
+        .select('region_cd, int_no, int_nm, x_coord, y_coord, origin_type, updated_at')
+        .range(i, i + step - 1)
+        .order('region_cd')
+        .order('int_no');
       if (regionCode) q = q.eq('region_cd', regionCode);
       promises.push(q);
     }
