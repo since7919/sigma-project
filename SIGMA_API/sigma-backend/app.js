@@ -796,8 +796,14 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         newRow.schedules = schedules;
       }
 
-      // 불필요한 임시/중복 속성 클린업
-      delete newRow.seq; 
+      // 테이블별 불필요한 속성 클린업
+      if (tableName === 'junctions') {
+        delete newRow.flash_cfg;
+        delete newRow.op_intervention;
+      }
+      if (tableName === 'tod_plans') {
+        delete newRow.seq;
+      }
       
       return newRow;
     });
@@ -815,7 +821,10 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
     
     res.json({ success: true, count: processedRecords.length, message: `${processedRecords.length}건이 성공적으로 저장되었습니다.` });
   } catch (err) {
-    sendErrorResponse(res, err, `${tableName} 테이블 대량 업데이트에 실패했습니다.`);
+    console.error("Bulk update error:", err);
+    res.status(500).json({
+      error: `${tableName} 테이블 대량 업데이트에 실패했습니다. 상세 오류: ${err.message || ''} ${err.details || ''} ${JSON.stringify(err)}`
+    });
   }
 });
 
