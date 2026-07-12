@@ -819,6 +819,29 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
       
     if (error) throw error;
     
+    // 업로드된 데이터에 없는 항목 삭제 처리 (교차로의 경우 해당 지역 기준으로 삭제)
+    if (tableName === 'junctions') {
+      const uploadedRegions = [...new Set(processedRecords.map(r => r.region_cd).filter(Boolean))];
+      const uploadedIds = processedRecords.map(r => String(r.id));
+      
+      if (uploadedRegions.length > 0) {
+        const { data: existingData } = await supabase
+          .from('junctions')
+          .select('id')
+          .in('region_cd', uploadedRegions);
+          
+        if (existingData) {
+          const idsToDelete = existingData
+            .map(r => String(r.id))
+            .filter(id => !uploadedIds.includes(id));
+            
+          if (idsToDelete.length > 0) {
+            await supabase.from('junctions').delete().in('id', idsToDelete);
+          }
+        }
+      }
+    }
+    
     res.json({ success: true, count: processedRecords.length, message: `${processedRecords.length}건이 성공적으로 저장되었습니다.` });
   } catch (err) {
     console.error("Bulk update error:", err);
