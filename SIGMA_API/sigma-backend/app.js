@@ -59,6 +59,21 @@ function sendErrorResponse(res, error, defaultMessage = '서버 내부 오류가
   });
 }
 
+async function fetchAllSupabase(queryBuilderFn, selectFields = '*') {
+  let allData = [];
+  let from = 0;
+  const step = 1000;
+  while (true) {
+    const { data, error } = await queryBuilderFn().select(selectFields).range(from, from + step - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (data.length < step) break;
+    from += step;
+  }
+  return allData;
+}
+
 async function fetchUrl(url) {
   if (!isValidProxyUrl(url)) {
     throw new Error('허용되지 않은 외부 URL 요청입니다.');
@@ -402,12 +417,7 @@ app.get('/api/sim/data', async (req, res) => {
         
         // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
         if (type === 'intersections') {
-          const { data: rows, error } = await supabase
-            .from('junctions')
-            .select('*')
-            .eq('region_cd', regionCode)
-            .order('id');
-          if (error) throw error;
+          const rows = await fetchAllSupabase(() => supabase.from('junctions').eq('region_cd', regionCode).order('id'));
           
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
           let csvContent = "\ufeff" + headers.join(",") + "\n";
@@ -546,12 +556,7 @@ app.get('/api/sim/data', async (req, res) => {
         
         // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
         if (type === 'groups') {
-          const { data: rows, error } = await supabase
-            .from('groups')
-            .select('*')
-            .eq('region_cd', regionCode)
-            .order('group_id');
-          if (error) throw error;
+          const rows = await fetchAllSupabase(() => supabase.from('groups').eq('region_cd', regionCode).order('group_id'));
           
           const headers = ["GroupID", "Region", "Name"];
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
@@ -843,12 +848,9 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
       const uploadedIds = processedRecords.map(r => String(r.id));
       
       if (uploadedRegions.length > 0) {
-        const { data: existingData } = await supabase
-          .from('junctions')
-          .select('id')
-          .in('region_cd', uploadedRegions);
+        const existingData = await fetchAllSupabase(() => supabase.from('junctions').in('region_cd', uploadedRegions), 'id');
           
-        if (existingData) {
+        if (existingData && existingData.length > 0) {
           const idsToDelete = existingData
             .map(r => String(r.id))
             .filter(id => !uploadedIds.includes(id));
