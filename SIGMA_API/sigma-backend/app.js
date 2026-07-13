@@ -59,12 +59,12 @@ function sendErrorResponse(res, error, defaultMessage = '서버 내부 오류가
   });
 }
 
-async function fetchAllSupabase(queryBuilderFn, selectFields = '*') {
+async function fetchAllSupabase(queryBuilderFn) {
   let allData = [];
   let from = 0;
   const step = 1000;
   while (true) {
-    const { data, error } = await queryBuilderFn().select(selectFields).range(from, from + step - 1);
+    const { data, error } = await queryBuilderFn().range(from, from + step - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     allData = allData.concat(data);
@@ -417,7 +417,7 @@ app.get('/api/sim/data', async (req, res) => {
         
         // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
         if (type === 'intersections') {
-          const rows = await fetchAllSupabase(() => supabase.from('junctions').eq('region_cd', regionCode).order('id'));
+          const rows = await fetchAllSupabase(() => supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id'));
           
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
           let csvContent = "\ufeff" + headers.join(",") + "\n";
@@ -458,20 +458,8 @@ app.get('/api/sim/data', async (req, res) => {
         
         // B. 신호 현시계획 (signal_maps 테이블 쿼리 및 CSV 재가공)
         if (type === 'signal_maps') {
-          const { data: jList, error: jErr } = await supabase
-            .from('junctions')
-            .select('id')
-            .eq('region_cd', regionCode);
-          if (jErr) throw jErr;
-          
-          const jids = (jList || []).map(j => j.id);
-          const { data: rows, error } = await supabase
-            .from('signal_maps')
-            .select('*')
-            .in('id', jids)
-            .order('id')
-            .order('map_idx');
-          if (error) throw error;
+          // id 컬럼은 L01-1007 형태이므로, regionCode로 시작하는지 필터링
+          const rows = await fetchAllSupabase(() => supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id'));
           
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime"];
           let csvContent = "\ufeff" + headers.join(",") + "\n";
@@ -509,20 +497,8 @@ app.get('/api/sim/data', async (req, res) => {
         
         // C. TOD 운영계획 (tod_plans 테이블 쿼리 및 CSV 재가공)
         if (type === 'tod_plans') {
-          const { data: jList, error: jErr } = await supabase
-            .from('junctions')
-            .select('id')
-            .eq('region_cd', regionCode);
-          if (jErr) throw jErr;
-          
-          const jids = (jList || []).map(j => j.id);
-          const { data: rows, error } = await supabase
-            .from('tod_plans')
-            .select('*')
-            .in('id', jids)
-            .order('id')
-            .order('day_plan');
-          if (error) throw error;
+          // tod_plans도 id 컬럼이 L01-1007 형태임
+          const rows = await fetchAllSupabase(() => supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan'));
           
           const headers = ["ID", "Seq", "SignalMap", "GroupID", "Day_plan"];
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
@@ -556,7 +532,7 @@ app.get('/api/sim/data', async (req, res) => {
         
         // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
         if (type === 'groups') {
-          const rows = await fetchAllSupabase(() => supabase.from('groups').eq('region_cd', regionCode).order('group_id'));
+          const rows = await fetchAllSupabase(() => supabase.from('groups').select('*').eq('region_cd', regionCode).order('group_id'));
           
           const headers = ["GroupID", "Region", "Name"];
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
@@ -848,7 +824,7 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
       const uploadedIds = processedRecords.map(r => String(r.id));
       
       if (uploadedRegions.length > 0) {
-        const existingData = await fetchAllSupabase(() => supabase.from('junctions').in('region_cd', uploadedRegions), 'id');
+        const existingData = await fetchAllSupabase(() => supabase.from('junctions').select('id').in('region_cd', uploadedRegions));
           
         if (existingData && existingData.length > 0) {
           const idsToDelete = existingData
