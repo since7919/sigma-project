@@ -836,7 +836,15 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
             .filter(id => !uploadedIds.includes(id));
             
           if (idsToDelete.length > 0) {
-            await supabase.from('junctions').delete().in('id', idsToDelete);
+            // URL 길이 제한 방지를 위해 100개씩 청크 단위로 삭제
+            const chunkSize = 100;
+            for (let i = 0; i < idsToDelete.length; i += chunkSize) {
+              const chunk = idsToDelete.slice(i, i + chunkSize);
+              const { error: delErr } = await supabase.from('junctions').delete().in('id', chunk);
+              if (delErr) {
+                console.error("Delete chunk error:", delErr);
+              }
+            }
           }
         }
       }
