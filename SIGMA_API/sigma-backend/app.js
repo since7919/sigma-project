@@ -616,27 +616,45 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
   }
 
   try {
-    let query = supabase.from(tableName).select('*');
+    let countQuery = supabase.from(tableName).select('id', { count: 'exact', head: true });
     
-    // junctions나 groups는 region_cd 필드가 직접 존재함
-    // signal_maps나 tod_plans는 직접 region_cd가 없으므로 id 접두사로 필터링해야 할 수 있음.
-    // 일단 전체 데이터를 주거나, 지원 가능한 경우만 필터링.
     if (regionCode) {
       if (tableName === 'junctions' || tableName === 'groups') {
-        query = query.eq('region_cd', regionCode);
+        countQuery = countQuery.eq('region_cd', regionCode);
       } else {
-         query = query.like('id', `${regionCode}-%`);
+        countQuery = countQuery.like('id', `${regionCode}-%`);
       }
     }
     
-    // 테이블 크기가 클 수 있으므로 limit을 적절히 주거나 전체 로딩. 
-    // 여기서는 뷰어 목적이므로 최대 5000건 정도로 제한
-    query = query.limit(5000);
+    const { count, error: countErr } = await countQuery;
+    if (countErr) throw countErr;
     
-    const { data, error } = await query;
-    if (error) throw error;
+    if (!count || count === 0) {
+      return res.json([]);
+    }
     
-    res.json(data);
+    const step = 1000;
+    const promises = [];
+    for (let i = 0; i < count; i += step) {
+      let q = supabase.from(tableName).select('*').range(i, i + step - 1);
+      if (regionCode) {
+        if (tableName === 'junctions' || tableName === 'groups') {
+          q = q.eq('region_cd', regionCode);
+        } else {
+          q = q.like('id', `${regionCode}-%`);
+        }
+      }
+      promises.push(q);
+    }
+    
+    const results = await Promise.all(promises);
+    let allData = [];
+    for (const r of results) {
+      if (r.error) throw r.error;
+      if (r.data) allData = allData.concat(r.data);
+    }
+    
+    res.json(allData);
   } catch (err) {
     sendErrorResponse(res, err, `${tableName} 테이블 조회에 실패했습니다.`);
   }
