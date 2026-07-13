@@ -845,6 +845,14 @@ function processGeoJSON(json) {
                 layer.on({
                     mouseover: (e) => {
                         // 호버 시에도 과한 네온 효과 제거 (부드러운 포커스)
+                        STATE.junctions[id] = {
+                        id: id,
+                        region: row.Region,
+                        name: row.Name,
+                        lat: parseFloat(row.Lat),
+                        lng: parseFloat(row.Lng),
+                        seq: row.Seq,
+                        office: row.Office,
                         e.target.setStyle({ 
                             weight: 8, 
                             opacity: 0.8, 
