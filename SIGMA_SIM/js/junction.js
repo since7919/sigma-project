@@ -776,7 +776,9 @@ function deselectJunction() {
     oldJids.forEach(jid => {
         if (STATE.junctions[jid]) {
             drawJunction(jid);
-            removeArrows(jid);
+            if (!STATE.showSignalArrows) {
+                removeArrows(jid);
+            }
         }
     });
 
