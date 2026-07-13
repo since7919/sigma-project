@@ -9,7 +9,7 @@
 /* ══════════════════════════════════════════
  *  지도 초기화 (Canvas 최적화 활성화)
  * ══════════════════════════════════════════ */
-const map = L.map('map', { zoomControl: false, maxZoom: 22, preferCanvas: true }).setView(CONFIG.DEFAULT_LATLNG, 18);
+const map = L.map('map', { zoomControl: false, maxZoom: 22, preferCanvas: true, boxZoom: false }).setView(CONFIG.DEFAULT_LATLNG, 18);
 window.map = map; // [중요] 전역 객체 명시적 할당 (t.addLayer 에러 방지)
 const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 22, maxNativeZoom: 20 });
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19 });

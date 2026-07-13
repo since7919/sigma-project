@@ -86,8 +86,6 @@ function drawJunction(jid, onlyStyle) {
         // [복구] 편집 모드일 경우 RoadManager의 로직으로 즉시 전달 (안전장치)
         if (STATE.appMode === CONFIG.APP_MODE.NETWORK_EDIT && window.RoadManager) {
             window.RoadManager.handleNodeClick(j);
-        } else if (e.originalEvent.shiftKey) {
-            toggleSelectJunction(jid);
         } else {
             // [수정] 이미 선택된 경우라도 selectJunction을 다시 호출하여 UI와 민원 탭 상태가 항상 동기화되도록 함
             selectJunction(jid);
