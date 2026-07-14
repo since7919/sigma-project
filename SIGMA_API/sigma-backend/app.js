@@ -392,7 +392,12 @@ app.get('/api/intersections', async (req, res) => {
     if (regionCode && (allData.length === 0 || (new Date() - new Date(allData[0].updated_at) > 24 * 60 * 60 * 1000))) {
       console.log(`[Sync] ${regionCode} 교차로 데이터 자동 갱신 수행`);
       const syncedData = await syncUticIntersections(regionCode);
-      return res.json(syncedData);
+      if (syncedData.length > 0) {
+        return res.json(syncedData);
+      } else if (allData.length > 0) {
+        console.log(`[Sync] 갱신 실패로 기존 캐시 데이터(${allData.length}건)를 반환합니다.`);
+        return res.json(allData);
+      }
     }
     
     res.json(allData);
