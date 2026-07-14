@@ -110,6 +110,9 @@ function openTab(evt, tabName) {
     if (tabName === 'tab-home') { if (typeof renderHomeDashboard === 'function') renderHomeDashboard(); }
     if (tabName === 'tab-stats') renderStats();
     if (tabName === 'tab-group') { loadGroupInfo(); }
+    if (tabName === 'tab-sigmap') {
+        if (typeof renderSignalMapTab === 'function') renderSignalMapTab();
+    }
     if (tabName === 'tab-phase') { 
         if (typeof renderRingTables === 'function') renderRingTables();
         if (typeof renderSummaryTable === 'function') renderSummaryTable();

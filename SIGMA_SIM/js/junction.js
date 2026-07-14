@@ -737,6 +737,9 @@ function selectJunction(jid, isMulti = false) {
                     if (typeof renderSummaryTable === 'function') renderSummaryTable();
                     if (typeof updateJunctionDayUI === 'function') updateJunctionDayUI();
                 }
+            }},
+            { name: 'Signal Map Sync', fn: () => {
+                if (typeof renderSignalMapTab === 'function') renderSignalMapTab();
             }}
         ];
 

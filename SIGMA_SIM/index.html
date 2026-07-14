@@ -266,6 +266,7 @@
             <div class="tab" onclick="openTab(event, 'tab-db')">📂 DB Center</div>
             <div class="tab active" onclick="openTab(event, 'tab-info')">Node/Link</div>
             <div class="tab" onclick="openTab(event, 'tab-phase')">Phase/Split</div>
+            <div class="tab" onclick="openTab(event, 'tab-sigmap')">Signal Map</div>
             <div class="tab" onclick="openTab(event, 'tab-group')">Group TOD</div>
             <div class="tab" onclick="openTab(event, 'tab-stats1')">Stats Input</div>
             <div class="tab" onclick="openTab(event, 'tab-stats')">Stats View</div>
@@ -766,6 +767,43 @@
                 </div>
             </div>
         </div> <!-- end tab-phase -->
+
+        <div id="tab-sigmap" class="tab-content">
+            <div class="sigma-panel" style="background: rgba(20, 20, 25, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);">
+                <div class="card-title" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <h3 style="margin: 0; color: var(--accent); font-family: 'Outfit'; font-weight: 800; font-size: 16px;">📊 시그널맵 (Signal Map)</h3>
+                </div>
+                <div class="foldable-content">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
+                        <span style="font-weight: bold; color: #fff; font-size: 13px;">시그널맵 번호:</span>
+                        <select id="sigmap-index-select" class="input-premium" style="width: 100px; height: 32px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white;" onchange="renderSignalMapTab()">
+                            <option value="0">1번 맵 (Plan 1)</option>
+                            <option value="1">2번 맵 (Plan 2)</option>
+                            <option value="2">3번 맵 (Plan 3)</option>
+                            <option value="3">4번 맵 (Plan 4)</option>
+                            <option value="4">5번 맵 (Plan 5)</option>
+                            <option value="5">6번 맵 (Plan 6)</option>
+                        </select>
+                        
+                        <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">🌐 유틱 데이터 가져와 복사</button>
+                        
+                        <label class="btn-neon magenta" style="display: inline-block; cursor: pointer; padding: 0 12px; height: 30px; line-height: 30px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 4px; margin: 0;">
+                            📁 엑셀 시그널맵 가져오기
+                            <input type="file" id="sigmap-excel-loader" style="display:none;" onchange="loadSignalMapFromExcel(this)">
+                        </label>
+                    </div>
+                    
+                    <div id="sigmap-loading-indicator" style="display:none; padding: 30px; text-align: center; color: #38bdf8; font-weight: bold;">
+                        <span style="display: inline-block; animation: blink 1.5s infinite;">⏳ 시그널맵 데이터를 불러오는 중...</span>
+                    </div>
+                    
+                    <div id="sigmap-table-container" class="sigmap-container" style="overflow-x: auto; max-height: 700px; scrollbar-width: thin;">
+                        <!-- Table rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- [New Tab] DB Center (Integrated Database Operations) -->
         <div id="tab-db" class="tab-content">
             <div class="op-col"
@@ -1899,6 +1937,7 @@
     <script src="js/junction.js?v=4"></script>
     <script src="js/data.js?v=4"></script>
     <script src="js/phase.js?v=4"></script>
+    <script src="js/sigmap_tab.js?v=4"></script>
     <script src="js/group.js?v=4"></script>
     <script src="js/tsd.js?v=4"></script>
     <script src="js/simulation.js?v=4"></script> <!-- 이 부분이 핵심입니다 -->

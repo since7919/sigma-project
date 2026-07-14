@@ -611,7 +611,7 @@ async function handleExcelSignalLoad(input) {
             const baseRowMapStart = 247;
             const processRingData = (startRow, baseMovs, eopSourceRow = null) => {
                 const phaseData = Array.from({ length: 8 }, () => ({ vId: 0, pId: 0, g: 0, f: 0, yellow: 0 }));
-                const lsuHasPed = Array(8).fill(false);
+                const rawSteps = [];
                 
                 // 1. 전체 32스텝 로드
                 const allSteps = [];
@@ -624,26 +624,26 @@ async function handleExcelSignalLoad(input) {
                         eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y',
                         sigsV: [], sigsP: []
                     };
+                    const uticStep = {
+                        stepNo: s + 1,
+                        minTm: parseInt(getVal(r, 53)) || 0,
+                        maxTm: 0,
+                        eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y' ? 1 : 0
+                    };
                     for (let l = 0; l < 8; l++) {
                         // 차량신호(V)는 E열(5)부터 6칸씩, 보행신호(P)는 H열(8)부터 6칸씩
-                        info.sigsV.push(parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0);
-                        info.sigsP.push(parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0);
+                        const vVal = parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0;
+                        const pVal = parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0;
+                        info.sigsV.push(vVal);
+                        info.sigsP.push(pVal);
+                        uticStep[`car${l+1}`] = vVal;
+                        uticStep[`ped${l+1}`] = pVal;
                     }
                     allSteps.push(info);
+                    rawSteps.push(uticStep);
                 }
 
-                // 2. LSU별 보행맵 보유 여부 판정 (규칙: 보행 코드가 01(녹색) 또는 05(점멸)인 경우가 있는지 확인)
-                for (let l = 0; l < 8; l++) {
-                    for (let s = 0; s < 32; s++) {
-                        const pCode = allSteps[s].sigsP[l];
-                        if (pCode === 1 || pCode === 5) {
-                            lsuHasPed[l] = true;
-                            break;
-                        }
-                    }
-                }
-
-                // 3. 현시순서에 따라 매핑
+                // 2. 현시순서에 따라 매핑
                 let currentStep = 0;
                 for (let pIdx = 0; pIdx < 8; pIdx++) {
                     if (currentStep >= 32) break;
@@ -654,64 +654,40 @@ async function handleExcelSignalLoad(input) {
                         if (st.eop) break;
                     }
 
-                    // 현시 종료(EOP) 스텝의 시간을 해당 현시의 황색(또는 클리어런스) 시간으로 지정
                     if (stepsInPhase.length > 0) {
                         const eopStep = stepsInPhase[stepsInPhase.length - 1];
-                        if (eopStep.eop) {
-                            phaseData[pIdx].yellow = eopStep.min;
-                        }
+                        if (eopStep.eop) phaseData[pIdx].yellow = eopStep.min;
                     }
 
-                    // [A] 차량 이동류 번호는 5행/12행(baseMovs)에서 예외 없이 순서대로 매핑
                     const currentVId = baseMovs[pIdx] || 0;
                     phaseData[pIdx].vId = currentVId;
 
-                    // [B] 보행 신호가 등화되는 LSU 탐색 (코드 1, 5, 10, 50 포함)
                     let pLSU = -1;
                     const checkPedActive = (l) => stepsInPhase.some(st => {
                         const p = st.sigsP[l];
                         return (p === 1 || p === 5 || p === 10 || p === 50);
                     });
                     
-                    // 1~4번 LSU 우선 탐색, 없으면 5~8번 탐색
                     for (let l = 0; l < 4; l++) { if (checkPedActive(l)) { pLSU = l; break; } }
                     if (pLSU === -1) { for (let l = 4; l < 8; l++) { if (checkPedActive(l)) { pLSU = l; break; } } }
 
-                    // [C] 데이터 기록 (보행 - 시간이 반드시 존재해야 ID 부여)
                     if (pLSU !== -1) {
                         let currentPhaseTime = 0;
                         let foundFirstGreen = false;
-
                         stepsInPhase.forEach(st => {
                             const pCode = st.sigsP[pLSU];
                             if (pCode === 1 || pCode === 10) {
-                                if (!foundFirstGreen) {
-                                    phaseData[pIdx].delay = currentPhaseTime;
-                                    foundFirstGreen = true;
-                                }
+                                if (!foundFirstGreen) { phaseData[pIdx].delay = currentPhaseTime; foundFirstGreen = true; }
                                 phaseData[pIdx].g += st.min;
-                            } else if (pCode === 5 || pCode === 50) {
-                                phaseData[pIdx].f += st.min;
-                            }
+                            } else if (pCode === 5 || pCode === 50) { phaseData[pIdx].f += st.min; }
                             currentPhaseTime += st.min;
                         });
-
-                        // 시간이 실제로 계산된 경우에만 보행 ID 부여
                         if (phaseData[pIdx].g > 0 || phaseData[pIdx].f > 0) {
-                            if (currentVId > 0 && currentVId % 2 === 0) {
-                                phaseData[pIdx].pId = currentVId + 100;
-                            } else {
-                                // 차량 이동류가 직진(짝수)이 아니면, 해당 보행 신호가 있는 LSU의 고유 번호 할당
-                                phaseData[pIdx].pId = pLSU + 101; 
-                            }
-                        } else {
-                            phaseData[pIdx].pId = 0;
+                            phaseData[pIdx].pId = (currentVId > 0 && currentVId % 2 === 0) ? (currentVId + 100) : (pLSU + 101);
                         }
-                    } else {
-                        phaseData[pIdx].pId = 0;
                     }
                 }
-                return phaseData;
+                return { phaseData, rawSteps };
             };
 
             for (let m = 0; m < 6; m++) {
