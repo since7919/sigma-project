@@ -64,7 +64,8 @@ const ApiLayers = {
             const data = await response.json();
 
             data.forEach(j => {
-                if (j.origin_type === 'UTIC' && j.y_coord && j.x_coord) {
+                // 서울은 DB에 '서울tdata'로 저장되어 있으므로 함께 UTIC 레이어에 포함시킵니다.
+                if ((j.origin_type === 'UTIC' || j.origin_type === '서울tdata') && j.y_coord && j.x_coord) {
                     const marker = L.marker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
                         icon: L.divIcon({
                             className: 'utic-icon-custom',
