@@ -187,7 +187,7 @@ function createArrows(jid) {
             const icon = L.divIcon({
                 className: 'signal-arrow-container',
                 html: `
-                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible;">
+                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible; ${!isEditing ? 'display:none;' : ''}">
                             ${isPed ? 'WALK' : arrowData.type}
                             ${labelHtml}
                             <div id="timer-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>

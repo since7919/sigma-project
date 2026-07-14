@@ -5,23 +5,14 @@
 
 const ApiLayers = {
     layers: {
-        tdata: L.layerGroup(),
         utic: L.layerGroup()
     },
     state: {
-        tdata: false,
         utic: false
     },
     loadedRegion: null,
 
     styles: {
-        tdata: {
-            color: '#e67e22',
-            fillColor: '#e67e22',
-            fillOpacity: 0.8,
-            radius: 5,
-            weight: 2
-        },
         utic: {
             color: '#27ae60',
             fillColor: '#27ae60',
@@ -64,7 +55,6 @@ const ApiLayers = {
         console.log(`[ApiLayers] Fetching API intersections for region ${regionCode}...`);
         
         // 기존 마커 초기화
-        this.layers.tdata.clearLayers();
         this.layers.utic.clearLayers();
         this.loadedRegion = regionCode;
 
@@ -74,18 +64,14 @@ const ApiLayers = {
             const data = await response.json();
 
             data.forEach(j => {
-                let layerType = null;
-                if (j.origin_type === '서울tdata') layerType = 'tdata';
-                else if (j.origin_type === 'UTIC') layerType = 'utic';
-                
-                if (layerType && j.y_coord && j.x_coord) {
-                    const style = this.styles[layerType];
-                    const marker = L.circleMarker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
-                        radius: style.radius,
-                        color: 'white',
-                        weight: 1,
-                        fillColor: style.fillColor,
-                        fillOpacity: style.fillOpacity,
+                if (j.origin_type === 'UTIC' && j.y_coord && j.x_coord) {
+                    const marker = L.marker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
+                        icon: L.divIcon({
+                            className: 'utic-icon-custom',
+                            html: `<div style="background-color: #9b59b6; color: white; border: 2px solid #fff; border-radius: 6px; padding: 3px 6px; font-size: 11px; font-weight: 800; box-shadow: 0 0 10px #9b59b6; white-space: nowrap; transform: translate(-50%, -50%);">UTIC</div>`,
+                            iconSize: [0, 0],
+                            iconAnchor: [0, 0]
+                        }),
                         pane: 'markerPane'
                     });
 
@@ -95,13 +81,13 @@ const ApiLayers = {
                             ID: ${j.int_no}<br/>
                             출처: ${j.origin_type}
                         </div>
-                    `, { direction: 'top', offset: [0, -5] });
+                    `, { direction: 'top', offset: [0, -10] });
 
-                    this.layers[layerType].addLayer(marker);
+                    this.layers.utic.addLayer(marker);
                 }
             });
 
-            console.log(`[ApiLayers] Loaded ${this.layers.tdata.getLayers().length} T-Data markers, ${this.layers.utic.getLayers().length} UTIC markers.`);
+            console.log(`[ApiLayers] Loaded ${this.layers.utic.getLayers().length} UTIC markers.`);
         } catch (err) {
             console.error('[ApiLayers] Error loading API data:', err);
             alert('외부 교차로 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -112,13 +98,11 @@ const ApiLayers = {
     onRegionChanged(newRegionCode) {
         if (this.loadedRegion !== newRegionCode) {
             this.loadedRegion = null; // 초기화 처리
-            this.layers.tdata.clearLayers();
             this.layers.utic.clearLayers();
             
             // 만약 레이어가 켜져있다면 다시 로드
-            if (this.state.tdata || this.state.utic) {
+            if (this.state.utic) {
                 this.loadDataForRegion(newRegionCode).then(() => {
-                    if (!this.state.tdata) map.removeLayer(this.layers.tdata);
                     if (!this.state.utic) map.removeLayer(this.layers.utic);
                 });
             }

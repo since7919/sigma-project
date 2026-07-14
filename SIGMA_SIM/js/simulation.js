@@ -490,6 +490,14 @@ function updateSim() {
             // 클래스 업데이트 (성능을 위해 변경 시에만)
             if (cache.lastState !== st) {
                 cache.arrow.className = `signal-arrow ${st} ${walk} ${editing ? 'editing' : ''}`;
+                
+                // [추가] 대기 중인 적색 신호(R)는 편집 모드가 아니면 숨겨서 DOM 렌더링 부하 방지
+                if (st === 'R' && !editing) {
+                    cache.arrow.style.display = 'none';
+                } else {
+                    cache.arrow.style.display = '';
+                }
+                
                 cache.lastState = st;
             }
 
