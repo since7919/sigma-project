@@ -265,7 +265,6 @@ async function loadSignalMapFromExcel(input) {
         const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const getVal = (r, c) => (sheetData[r-1] ? sheetData[r-1][c-1] : null);
 
-        const mIdx = parseInt(document.getElementById('sigmap-index-select').value) || 0;
         const jid = STATE.activeJid;
         if (!jid) {
             alert("먼저 교차로를 선택해주세요.");
@@ -273,56 +272,99 @@ async function loadSignalMapFromExcel(input) {
         }
         const j = STATE.junctions[jid];
 
-        const baseRowMapStart = 247;
-        const startRowA = baseRowMapStart + (mIdx * 67);
-        const startRowB = startRowA + 32;
-
-        const baseMovA = [], baseMovB = [];
-        for (let c = 19; c <= 54; c += 5) {
-            baseMovA.push(parseInt(getVal(5, c)) || 0);
-            baseMovB.push(parseInt(getVal(12, c)) || 0);
-        }
-
-        const parseSteps = (startRow, eopSourceRow = null) => {
-            const steps = [];
-            for (let s = 0; s < 32; s++) {
-                const r = startRow + s;
-                const eopRow = eopSourceRow ? eopSourceRow + s : r;
-                const step = {
-                    stepNo: s + 1,
-                    minTm: parseInt(getVal(r, 53)) || 0,
-                    maxTm: 0,
-                    eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y' ? 1 : 0
-                };
-                for (let l = 0; l < 8; l++) {
-                    step[`car${l+1}`] = parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0;
-                    step[`ped${l+1}`] = parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0;
+        // 1) Find the name from Excel and compare
+        let excelName = "";
+        for(let r = 1; r <= 10; r++) {
+            for(let c = 1; c <= 40; c++) {
+                const cell = String(getVal(r,c) || "").replace(/\s/g, '');
+                if(cell === "교차로명" || cell === "명칭") {
+                    for(let offset = 1; offset <= 5; offset++) {
+                        const nextCell = String(getVal(r, c+offset) || "").trim();
+                        if(nextCell && nextCell !== ":") {
+                            excelName = nextCell;
+                            break;
+                        }
+                    }
+                    if(excelName) break;
                 }
-                steps.push(step);
             }
-            return steps;
-        };
-
-        const ringA = parseSteps(startRowA);
-        const ringB = parseSteps(startRowB, startRowA);
-
-        if (!j.signalMaps) j.signalMaps = [];
-        if (!j.signalMaps[mIdx]) {
-            j.signalMaps[mIdx] = {
-                yellowA: [3, 3, 3, 3, 0, 0, 0, 0], yellowB: [3, 3, 3, 3, 0, 0, 0, 0],
-                allredA: [2, 2, 2, 2, 0, 0, 0, 0], allredB: [2, 2, 2, 2, 0, 0, 0, 0],
-                pedA: [0, 0, 0, 0, 0, 0, 0, 0], pedB: [0, 0, 0, 0, 0, 0, 0, 0],
-                pedDelayA: [0, 0, 0, 0, 0, 0, 0, 0], pedDelayB: [0, 0, 0, 0, 0, 0, 0, 0]
-            };
+            if(excelName) break;
         }
-        
-        const sm = j.signalMaps[mIdx];
-        sm.stepsA = ringA;
-        sm.stepsB = ringB;
 
-        parseStepsToSignalMap(sm, ringA, ringB);
+        if (excelName && j.name) {
+            const cleanExcel = excelName.replace(/\s/g, '');
+            const cleanJ = j.name.replace(/\s/g, '');
+            if (cleanExcel !== cleanJ) {
+                const proceed = confirm(`⚠️ 엑셀 파일의 교차로명(${excelName})과 현재 선택된 교차로명(${j.name})이 일치하지 않습니다.\n\n그래도 계속 진행하시겠습니까?`);
+                if (!proceed) {
+                    input.value = "";
+                    return;
+                }
+            }
+        }
 
-        alert(`엑셀 파일에서 ${mIdx + 1}번 시차맵 데이터를 성공적으로 가져와 저장했습니다.`);
+        // 2) Parse all 6 maps
+        if (!j.signalMaps) j.signalMaps = [];
+        let loadedCount = 0;
+        const baseRowMapStart = 247;
+
+        for (let mIdx = 0; mIdx < 6; mIdx++) {
+            const startRowA = baseRowMapStart + (mIdx * 67);
+            const startRowB = startRowA + 32;
+
+            const step1Min = parseInt(getVal(startRowA, 53));
+            if (isNaN(step1Min) || step1Min === 0 && mIdx > 0) {
+                // If there's no first step data, skip this plan
+                continue;
+            }
+
+            const baseMovA = [], baseMovB = [];
+            for (let c = 19; c <= 54; c += 5) {
+                baseMovA.push(parseInt(getVal(5, c)) || 0);
+                baseMovB.push(parseInt(getVal(12, c)) || 0);
+            }
+
+            const parseSteps = (startRow, eopSourceRow = null) => {
+                const steps = [];
+                for (let s = 0; s < 32; s++) {
+                    const r = startRow + s;
+                    const eopRow = eopSourceRow ? eopSourceRow + s : r;
+                    const step = {
+                        stepNo: s + 1,
+                        minTm: parseInt(getVal(r, 53)) || 0,
+                        maxTm: 0,
+                        eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y' ? 1 : 0
+                    };
+                    for (let l = 0; l < 8; l++) {
+                        step[`car${l+1}`] = parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0;
+                        step[`ped${l+1}`] = parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0;
+                    }
+                    steps.push(step);
+                }
+                return steps;
+            };
+
+            const ringA = parseSteps(startRowA);
+            const ringB = parseSteps(startRowB, startRowA);
+
+            if (!j.signalMaps[mIdx]) {
+                j.signalMaps[mIdx] = {
+                    yellowA: [3, 3, 3, 3, 0, 0, 0, 0], yellowB: [3, 3, 3, 3, 0, 0, 0, 0],
+                    allredA: [2, 2, 2, 2, 0, 0, 0, 0], allredB: [2, 2, 2, 2, 0, 0, 0, 0],
+                    pedA: [0, 0, 0, 0, 0, 0, 0, 0], pedB: [0, 0, 0, 0, 0, 0, 0, 0],
+                    pedDelayA: [0, 0, 0, 0, 0, 0, 0, 0], pedDelayB: [0, 0, 0, 0, 0, 0, 0, 0]
+                };
+            }
+            
+            const sm = j.signalMaps[mIdx];
+            sm.stepsA = ringA;
+            sm.stepsB = ringB;
+
+            parseStepsToSignalMap(sm, ringA, ringB);
+            loadedCount++;
+        }
+
+        alert(`엑셀 파일에서 ${loadedCount}개의 시차맵 데이터를 성공적으로 가져와 저장했습니다.`);
         renderSignalMapTab();
         if (typeof renderRingTables === 'function') renderRingTables();
 
