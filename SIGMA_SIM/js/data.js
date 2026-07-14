@@ -695,9 +695,12 @@ async function handleExcelSignalLoad(input) {
                 const startRowA = baseRowMapStart + (m * 67);
                 const startRowB = startRowA + 32;
 
-                const dataA = processRingData(startRowA, baseMovA);
+                const { phaseData: dataA, rawSteps: stepsA } = processRingData(startRowA, baseMovA);
                 // B링 분석 시 A링의 EOP 행 위치를 함께 전달하여 동기화
-                const dataB = processRingData(startRowB, baseMovB, startRowA);
+                const { phaseData: dataB, rawSteps: stepsB } = processRingData(startRowB, baseMovB, startRowA);
+
+                sm.stepsA = stepsA;
+                sm.stepsB = stepsB;
 
                 sm.movA = dataA.map(d => d.vId);
                 sm.movB = dataB.map(d => d.vId);
