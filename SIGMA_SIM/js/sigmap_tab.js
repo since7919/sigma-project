@@ -207,8 +207,12 @@ async function fetchAndCopyUTICSignalMap() {
         const targetIntNo = j.apiIntNo || jid;
 
         const processItem = (item) => {
-            // UTIC 응답에서 맵 번호 추출 (일반적으로 PLAN_NO 등 사용)
-            const planNoText = item.getElementsByTagName("PLAN_NO")[0]?.textContent || item.getElementsByTagName("PL_NO")[0]?.textContent || item.getElementsByTagName("MAP_NO")[0]?.textContent || "1";
+            // UTIC 응답에서 맵 번호 추출 (PLAN_TP 가 시차제 계획번호인 경우가 많음)
+            const planTpNode = item.getElementsByTagName("PLAN_TP")[0];
+            const planNoNode = item.getElementsByTagName("PLAN_NO")[0];
+            
+            // PLAN_TP가 있으면 우선 사용, 없으면 PLAN_NO 사용
+            const planNoText = (planTpNode && planTpNode.textContent !== "0") ? planTpNode.textContent : (planNoNode?.textContent || "1");
             const planNo = parseInt(planNoText, 10);
             if (!plansData[planNo]) plansData[planNo] = { ringA: [], ringB: [] };
 
