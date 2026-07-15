@@ -172,8 +172,21 @@ async function fetchAndCopyUTICSignalMap() {
         const xmlText = await response.text();
         console.log("[UTIC API Response]", xmlText);
 
+        let rawXml = xmlText;
+        try {
+            // 프록시 서버가 XML을 JSON 문자열로 감싸서 반환했을 경우 처리
+            const parsed = JSON.parse(xmlText);
+            if (typeof parsed === "string") {
+                rawXml = parsed;
+            } else if (parsed.data && typeof parsed.data === "string") {
+                rawXml = parsed.data;
+            }
+        } catch (e) {
+            // 그냥 XML 문자열인 경우 그대로 사용
+        }
+
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        const xmlDoc = parser.parseFromString(rawXml, "text/xml");
 
         // 에러 코드 체크
         const resultMsg = xmlDoc.getElementsByTagName("resultMsg")[0]?.textContent;
