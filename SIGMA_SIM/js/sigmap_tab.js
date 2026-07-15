@@ -170,10 +170,25 @@ async function fetchAndCopyUTICSignalMap() {
         if (!response.ok) throw new Error("API request failed");
         
         const xmlText = await response.text();
+        console.log("[UTIC API Response]", xmlText);
+
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+        // 에러 코드 체크
+        const resultMsg = xmlDoc.getElementsByTagName("resultMsg")[0]?.textContent;
+        if (resultMsg && resultMsg !== "NORMAL_SERVICE") {
+            alert("UTIC API 오류 발생: " + resultMsg);
+            return;
+        }
+
         let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
         if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+
+        if (items.length === 0) {
+            alert(`UTIC에서 '${intName}' 교차로에 대한 검색 결과가 0건입니다. (이름이 다르거나 데이터가 없을 수 있습니다.)`);
+            return;
+        }
 
         const plansData = {};
         const targetIntNo = j.apiIntNo || jid;
