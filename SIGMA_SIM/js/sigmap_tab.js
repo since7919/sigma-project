@@ -176,7 +176,7 @@ async function fetchAndCopyUTICSignalMap() {
         if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
 
         const plansData = {};
-        const targetIntNo = j.apiIntNo || (jid.includes("-") ? parseInt(jid.split("-")[1]) : parseInt(jid));
+        const targetIntNo = j.apiIntNo || jid;
 
         const processItem = (item) => {
             // UTIC 응답에서 맵 번호 추출 (일반적으로 PLAN_NO 등 사용)

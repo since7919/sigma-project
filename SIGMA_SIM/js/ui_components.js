@@ -192,7 +192,7 @@ function renderInfoFields() {
             <div class="info-row-v3">
                 <label>API 매칭번호</label>
                 <div style="display: flex; gap: 4px; flex: 1; min-width: 0;">
-                    <input type="number" id="inp-api-int-no" class="sigma-input" 
+                    <input type="text" id="inp-api-int-no" class="sigma-input" 
                            style="font-size: 11px; padding: 4px; flex: 1; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.15);" 
                            oninput="syncActiveJunctionData()" placeholder="API 번호">
                     <button onclick="autoMatchNearestAPIIntersection()" class="btn-sm" 

@@ -898,8 +898,8 @@ function syncActiveJunctionData() {
     if (elLat) j.lat = parseFloat(elLat.value) || 37.5;
     if (elLng) j.lng = parseFloat(elLng.value) || 127.0;
     if (elApiIntNo) {
-        const val = parseInt(elApiIntNo.value, 10);
-        j.apiIntNo = isNaN(val) ? null : val;
+        const val = elApiIntNo.value.trim();
+        j.apiIntNo = val !== "" ? val : null;
     }
 
     // 점멸 설정 동기화
