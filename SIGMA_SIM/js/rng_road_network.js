@@ -567,10 +567,15 @@ class RoadNetworkManager {
         // Visual Feedback Layer for Deletion
         const previewLayer = L.layerGroup().addTo(map);
         let lastNearest = null;
+        let isPreviewLayerEmpty = true;
 
         map.on('mousemove', (e) => {
             if (!this.isActive || !this.isEditMode || !e.originalEvent.altKey) {
-                previewLayer.clearLayers();
+                if (!isPreviewLayerEmpty) {
+                    previewLayer.clearLayers();
+                    isPreviewLayerEmpty = true;
+                    lastNearest = null;
+                }
                 return;
             }
 
@@ -587,9 +592,13 @@ class RoadNetworkManager {
                         dashArray: '5, 5'
                     }).addTo(previewLayer);
                     lastNearest = nearest.idx;
+                    isPreviewLayerEmpty = false;
                 }
             } else {
-                previewLayer.clearLayers();
+                if (!isPreviewLayerEmpty) {
+                    previewLayer.clearLayers();
+                    isPreviewLayerEmpty = true;
+                }
                 lastNearest = null;
             }
         });
