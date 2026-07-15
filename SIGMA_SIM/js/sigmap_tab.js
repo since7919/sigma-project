@@ -200,10 +200,16 @@ async function fetchAndCopyUTICSignalMap() {
         };
 
         let foundMatch = false;
+        const targetStr = String(targetIntNo || "").trim();
+        const cleanTarget = targetStr.replace(/[^0-9]/g, '');
+
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
-            const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
-            if (String(intNo) === String(targetIntNo)) {
+            const intNoStr = String(item.getElementsByTagName("INT_NO")[0]?.textContent || "").trim();
+            const cleanIntNo = intNoStr.replace(/[^0-9]/g, '');
+            
+            // 완전 일치하거나, 숫자 부분만 같거나, 뒤에 번호가 똑같이 끝나는 경우 매칭
+            if (intNoStr === targetStr || (cleanIntNo && cleanIntNo === cleanTarget) || intNoStr.endsWith(targetStr)) {
                 processItem(item);
                 foundMatch = true;
             }
