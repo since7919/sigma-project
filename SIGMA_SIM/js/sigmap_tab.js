@@ -175,71 +175,82 @@ async function fetchAndCopyUTICSignalMap() {
         let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
         if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
 
-        const ringA = [];
-        const ringB = [];
+        const plansData = {};
         const targetIntNo = j.apiIntNo || (jid.includes("-") ? parseInt(jid.split("-")[1]) : parseInt(jid));
 
+        const processItem = (item) => {
+            // UTIC 응답에서 맵 번호 추출 (일반적으로 PLAN_NO 등 사용)
+            const planNoText = item.getElementsByTagName("PLAN_NO")[0]?.textContent || item.getElementsByTagName("PL_NO")[0]?.textContent || item.getElementsByTagName("MAP_NO")[0]?.textContent || "1";
+            const planNo = parseInt(planNoText, 10);
+            if (!plansData[planNo]) plansData[planNo] = { ringA: [], ringB: [] };
+
+            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
+            const step = {
+                stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
+                minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
+                maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
+                eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
+            };
+            for (let k = 1; k <= 8; k++) {
+                step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
+                step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
+            }
+            if (ringNo === 0) plansData[planNo].ringA.push(step);
+            else if (ringNo === 1) plansData[planNo].ringB.push(step);
+        };
+
+        let foundMatch = false;
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
             if (String(intNo) === String(targetIntNo)) {
-                const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
-                const step = {
-                    stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
-                    minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
-                    maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
-                    eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
-                };
-                for (let k = 1; k <= 8; k++) {
-                    step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
-                    step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
-                }
-                if (ringNo === 0) ringA.push(step);
-                else if (ringNo === 1) ringB.push(step);
+                processItem(item);
+                foundMatch = true;
             }
         }
 
         // Fallback to first INT_NO from results
-        if (ringA.length === 0 && items.length > 0) {
+        if (!foundMatch && items.length > 0) {
             const firstIntNo = items[0].getElementsByTagName("INT_NO")[0]?.textContent;
             for (let i = 0; i < items.length; i++) {
                 const item = items[i];
                 const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
                 if (String(intNo) === String(firstIntNo)) {
-                    const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
-                    const step = {
-                        stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
-                        minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
-                        maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
-                        eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
-                    };
-                    for (let k = 1; k <= 8; k++) {
-                        step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
-                        step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
-                    }
-                    if (ringNo === 0) ringA.push(step);
-                    else if (ringNo === 1) ringB.push(step);
+                    processItem(item);
                 }
             }
         }
 
-        if (ringA.length === 0 && ringB.length === 0) {
+        const planKeys = Object.keys(plansData);
+        if (planKeys.length === 0) {
             alert("해당 교차로 이름으로 조회된 UTIC 시그널맵 데이터가 없습니다.");
             return;
         }
 
-        ringA.sort((a, b) => a.stepNo - b.stepNo);
-        ringB.sort((a, b) => a.stepNo - b.stepNo);
+        let appliedPlans = [];
+        planKeys.forEach(planNoStr => {
+            const pNo = parseInt(planNoStr, 10);
+            const pData = plansData[pNo];
+            pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
+            pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
 
-        const mIdx = parseInt(document.getElementById('sigmap-index-select').value) || 0;
-        const sm = j.signalMaps[mIdx];
-        sm.stepsA = ringA;
-        sm.stepsB = ringB;
+            // 맵번호(1~6)에 매칭하여 signalMaps[0~5]에 저장. 
+            let mIdx = pNo - 1;
+            if (mIdx >= 0 && mIdx < 6) {
+                const sm = j.signalMaps[mIdx];
+                sm.stepsA = pData.ringA;
+                sm.stepsB = pData.ringB;
+                parseStepsToSignalMap(sm, pData.ringA, pData.ringB);
+                appliedPlans.push(pNo);
+            }
+        });
 
-        // Parse to standard signalMap splits
-        parseStepsToSignalMap(sm, ringA, ringB);
+        if (appliedPlans.length > 0) {
+            alert(`UTIC 시그널맵 데이터를 성공적으로 가져와 각 맵번호(${appliedPlans.join(', ')}번)에 저장하고 적용했습니다.`);
+        } else {
+            alert("UTIC 데이터는 가져왔으나 매칭되는 맵번호(1~6)가 없습니다. (수신된 맵번호: " + planKeys.join(', ') + ")");
+        }
 
-        alert(`UTIC 시그널맵 데이터를 성공적으로 가져와 ${mIdx + 1}번 시차맵에 저장하고 적용했습니다.`);
         renderSignalMapTab();
         if (typeof renderRingTables === 'function') renderRingTables();
     } catch (e) {
