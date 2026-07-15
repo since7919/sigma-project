@@ -1062,19 +1062,23 @@ async function autoMatchNearestAPIIntersection() {
         const result = await response.json();
         
         if (result.success && result.int_no !== undefined) {
-            if (confirm(`가장 가까운 API 교차로를 찾았습니다.\n\n교차로명: ${result.int_nm} (${result.origin_type})\n번호: ${result.int_no}\n거리: ${result.distance.toFixed(3)} km\n\n이 교차로 번호로 매칭하시겠습니까?`)) {
-                
-                const el = document.getElementById('inp-api-int-no');
-                if (el) {
-                    el.value = result.int_no;
-                    // 모델 데이터 동기화
-                    j.apiIntNo = result.int_no;
-                    syncActiveJunctionData();
-                    alert(`✅ API 교차로 번호 [${result.int_no}]가 정상 매칭되었습니다.`);
+            if (result.distance <= 0.03) { // 30m 이내
+                if (confirm(`가장 가까운 유틱 교차로를 찾았습니다.\n\n교차로명: ${result.int_nm} (${result.origin_type})\n번호: ${result.int_no}\n거리: ${(result.distance * 1000).toFixed(1)} m\n\n이 교차로 번호로 매칭하시겠습니까?`)) {
+                    
+                    const el = document.getElementById('inp-api-int-no');
+                    if (el) {
+                        el.value = result.int_no;
+                        // 모델 데이터 동기화
+                        j.apiIntNo = result.int_no;
+                        syncActiveJunctionData();
+                        alert(`✅ 유틱 교차로 번호 [${result.int_no}]가 정상 매칭되었습니다.`);
+                    }
                 }
+            } else {
+                alert("30m 이내에 유틱 교차로가 없습니다.");
             }
         } else {
-            alert(result.message || "가까운 API 교차로를 찾을 수 없습니다.");
+            alert("30m 이내에 유틱 교차로가 없습니다.");
         }
     } catch (e) {
         console.error("자동 매칭 중 오류 발생:", e);
