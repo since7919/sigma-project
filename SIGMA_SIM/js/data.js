@@ -1178,7 +1178,9 @@ async function fetchJunctionDetail(jid) {
                 if (row.main_movements) {
                     sm.mainMovements = Array.isArray(row.main_movements) ? row.main_movements : String(row.main_movements).split(';');
                 }
-                sm.startTime = row.start_time || ""; sm.endTime = row.end_time || "";
+                let st = row.start_time || ""; if (st.includes(';')) st = "";
+                let et = row.end_time || ""; if (et.includes(';')) et = "";
+                sm.startTime = st; sm.endTime = et;
             });
 
             // tod_plans

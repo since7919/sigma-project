@@ -280,10 +280,10 @@ function renderSignalMapButtons() {
         } else {
             html += `
                 <div style="display:flex; align-items:center; gap:0px; justify-content:center; height:16px;">
-                    <input type="text" class="input-dark inp-sm-start" data-index="${i}" value="${startTime}" placeholder="00:00" 
+                    <input type="text" class="input-dark inp-sm-start" data-index="${i}" value="${startTime}" placeholder="00:00" onchange="updateSignalMapTime(${i}, 'startTime', this.value)"
                            style="width:42px; height:14px; font-size:9px; text-align:center; border:none; background:rgba(0,0,0,0.3); padding:0; border-radius:2px;">
                     <span style="color:#444; font-size:8px; margin:0 1px;">~</span>
-                    <input type="text" class="input-dark inp-sm-end" data-index="${i}" value="${endTime}" placeholder="00:00" 
+                    <input type="text" class="input-dark inp-sm-end" data-index="${i}" value="${endTime}" placeholder="00:00" onchange="updateSignalMapTime(${i}, 'endTime', this.value)"
                            style="width:42px; height:14px; font-size:9px; text-align:center; border:none; background:rgba(0,0,0,0.3); padding:0; border-radius:2px;">
                 </div>`;
         }
@@ -302,6 +302,15 @@ function copySignalMap() {
     const toIdx = STATE.currentSignalMapIdx || 0;
 
     if (fromIdx === toIdx) { alert("출발지와 목적지가 동일합니다."); return; }
+
+window.updateSignalMapTime = function(mapIdx, field, val) {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) return;
+    const j = STATE.junctions[jid];
+    if (j.signalMaps && j.signalMaps[mapIdx]) {
+        j.signalMaps[mapIdx][field] = val;
+    }
+};
 
     /* ══════════════════════════════════════════
  *  실시간 동기화 (saveSettingsAndApply 삭제됨)
