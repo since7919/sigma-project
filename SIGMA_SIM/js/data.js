@@ -992,6 +992,12 @@ async function updateActiveJunctionToDB() {
         return;
     }
 
+    const pwd = prompt("DB 반영을 위해 관리자 비밀번호를 입력하세요.");
+    if (pwd !== "251227") {
+        alert("비밀번호가 일치하지 않습니다. DB 반영이 취소되었습니다.");
+        return;
+    }
+
     showLoading(`교차로 [${jName}] DB 저장 중...`);
     try {
         const payload = exportSingleJunctionCSV(jid);
