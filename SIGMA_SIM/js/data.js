@@ -622,19 +622,21 @@ async function handleExcelSignalLoad(input) {
             const jNo = parseInt(getVal(3, 37));
             if (isNaN(jNo)) throw new Error(`[C37] 교차로 번호 누락`);
             
+            const expectedSeq = jNo * 10;
+            
             // Phase/Split 탭 등에서 현재 활성화된 교차로가 있을 경우 번호 비교
             if (STATE.activeJid && STATE.junctions[STATE.activeJid]) {
                 const activeSeq = parseInt(STATE.junctions[STATE.activeJid].seq);
-                if (!isNaN(activeSeq) && activeSeq !== jNo) {
-                    if (!confirm(`현재 선택된 교차로번호(${activeSeq})와 엑셀파일의 번호(${jNo})가 같지 않습니다.\n교차로번호가 다르다 정말 업데이트하겠냐`)) {
+                if (!isNaN(activeSeq) && activeSeq !== expectedSeq) {
+                    if (!confirm(`현재 선택된 교차로(No. ${activeSeq})와 업로드하신 엑셀 파일의 교차로(No. ${expectedSeq})가 일치하지 않습니다.\n그래도 업데이트를 진행하시겠습니까?`)) {
                         throw new Error(`사용자 취소 (교차로번호 불일치)`);
                     }
                 }
             }
 
             // L01 또는 L02 접두사를 포함해 매칭
-            let junction = STATE.junctions[`L01-${jNo}0`] || STATE.junctions[`L02-${jNo}0`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(jNo));
-            if (!junction) throw new Error(`시스템에 교차로(No. ${jNo})가 없습니다.`);
+            let junction = STATE.junctions[`L01-${expectedSeq}`] || STATE.junctions[`L02-${expectedSeq}`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(expectedSeq));
+            if (!junction) throw new Error(`시스템에 교차로(No. ${expectedSeq})가 없습니다.`);
 
             // [1] 이동류(Movement) ID 추출 (Row 5 & 12)
             const baseMovA = [], baseMovB = [];
