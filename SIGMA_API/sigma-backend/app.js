@@ -53,9 +53,9 @@ function isValidProxyUrl(urlStr) {
 
 function sendErrorResponse(res, error, defaultMessage = '서버 내부 오류가 발생했습니다.') {
   console.error(error);
-  const isDev = process.env.NODE_ENV !== 'production';
   res.status(500).json({
-    error: isDev ? error.message : defaultMessage
+    error: error.message || defaultMessage,
+    details: error.stack
   });
 }
 
