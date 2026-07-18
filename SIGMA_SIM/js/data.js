@@ -487,40 +487,95 @@ function processIntersectionCSV(csv) {
 }
 
 function processSignalMapCSV(csv) {
-    const rows = parseCSV(csv);
-    rows.forEach(row => {
-        let jid = row["ID"] || row["id"]; if (!jid || !STATE.junctions[jid]) return;
-        const midx = parseInt(row["MapIdx"]); if (isNaN(midx) || midx >= 10) return;
+    const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
+    const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    
+    const idIdx = headers.findIndex(h => h === "ID" || h === "id");
+    const mapIdxIdx = headers.findIndex(h => h === "MapIdx");
+    
+    const fields = ["movA","movB","pedMovA","pedMovB","yellowA","yellowB","allredA","allredB","pedA","pedB","pedDelayA","pedDelayB","pedFlashA","pedFlashB","pedGreenA","pedGreenB"];
+    const fieldIndices = fields.map(f => headers.findIndex(h => h === f));
+    const mainMovIdx = headers.findIndex(h => h === "mainMovements");
+    const startIdx = headers.findIndex(h => h === "startTime");
+    const endIdx = headers.findIndex(h => h === "endTime");
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const cols = [];
+        let start = 0, inQ = false;
+        for (let c = 0; c < line.length; c++) {
+            if (line[c] === '"') inQ = !inQ;
+            else if (line[c] === ',' && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
+        }
+        cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+
+        let jid = cols[idIdx]; if (!jid || !STATE.junctions[jid]) continue;
+        const midx = parseInt(cols[mapIdxIdx]); if (isNaN(midx) || midx >= 10) continue;
+        
         const sm = STATE.junctions[jid].signalMaps[midx];
-        ["movA","movB","pedMovA","pedMovB","yellowA","yellowB","allredA","allredB","pedA","pedB","pedDelayA","pedDelayB","pedFlashA","pedFlashB","pedGreenA","pedGreenB"].forEach(k => {
-            if (row[k] !== undefined) sm[k] = String(row[k]).split(';').map(Number);
-        });
-        if (row["mainMovements"]) sm.mainMovements = row["mainMovements"].split(';');
-        sm.startTime = row["startTime"] || ""; sm.endTime = row["endTime"] || "";
-    });
+        
+        for (let f = 0; f < fields.length; f++) {
+            const cIdx = fieldIndices[f];
+            if (cIdx !== -1 && cols[cIdx] !== undefined) {
+                sm[fields[f]] = String(cols[cIdx]).split(';').map(Number);
+            }
+        }
+        
+        if (mainMovIdx !== -1 && cols[mainMovIdx]) sm.mainMovements = String(cols[mainMovIdx]).split(';');
+        if (startIdx !== -1) sm.startTime = cols[startIdx] || ""; 
+        if (endIdx !== -1) sm.endTime = cols[endIdx] || "";
+    }
 }
 
 function processTodPlanCSV(csv) {
-    const rows = parseCSV(csv);
-    rows.forEach(row => {
-        let jid = row["ID"] || row["id"]; if (!jid || !STATE.junctions[jid]) return;
-        const d_plan = parseInt(row["Day_plan"]); if (isNaN(d_plan) || d_plan < 1 || d_plan > 10) return;
+    const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
+    const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    
+    const idIdx = headers.findIndex(h => h === "ID" || h === "id");
+    const dayPlanIdx = headers.findIndex(h => h === "Day_plan");
+    const sigMapIdx = headers.findIndex(h => h === "SignalMap");
+    
+    const tpIndices = [];
+    for (let i = 1; i <= 16; i++) {
+        tpIndices.push(headers.findIndex(h => h === `Time_plan${i}`));
+    }
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const cols = [];
+        let start = 0, inQ = false;
+        for (let c = 0; c < line.length; c++) {
+            if (line[c] === '"') inQ = !inQ;
+            else if (line[c] === ',' && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
+        }
+        cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+
+        let jid = cols[idIdx]; if (!jid || !STATE.junctions[jid]) continue;
+        const d_plan = parseInt(cols[dayPlanIdx]); if (isNaN(d_plan) || d_plan < 1 || d_plan > 10) continue;
         const dIdx = d_plan - 1;
-        STATE.junctions[jid].dayPlanMapIds[dIdx] = parseInt(row["SignalMap"]) || 0;
+        
+        STATE.junctions[jid].dayPlanMapIds[dIdx] = parseInt(cols[sigMapIdx]) || 0;
+        
         for (let sIdx = 0; sIdx < 16; sIdx++) {
-            const slot = row[`Time_plan${sIdx+1}`]; if (!slot) continue;
+            const slotIdx = tpIndices[sIdx];
+            if (slotIdx === -1) continue;
+            const slot = cols[slotIdx]; if (!slot) continue;
+            
             const p = slot.split('|');
             if (p[0] === "-1") STATE.junctions[jid].schedules[dIdx][sIdx].h = -1;
-            else if (p[0].includes(':')) { const [h, m] = p[0].split(':').map(Number); STATE.junctions[jid].schedules[dIdx][sIdx].h = h; STATE.junctions[jid].schedules[dIdx][sIdx].m = m; }
+            else if (p[0].includes(':')) { 
+                const hm = p[0].split(':'); 
+                STATE.junctions[jid].schedules[dIdx][sIdx].h = parseInt(hm[0]) || 0; 
+                STATE.junctions[jid].schedules[dIdx][sIdx].m = parseInt(hm[1]) || 0; 
+            }
             if (p[1]) STATE.junctions[jid].schedules[dIdx][sIdx].cycle = parseInt(p[1]);
             if (p[2]) STATE.junctions[jid].dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
             if (p[3]) STATE.junctions[jid].dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
             if (p[4]) STATE.junctions[jid].dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);
             if (p[5]) STATE.junctions[jid].schedules[dIdx][sIdx].idx = parseInt(p[5]);
-            else STATE.junctions[jid].schedules[dIdx][sIdx].idx = (parseInt(row["SignalMap"]) || 0) + 1;
+            else STATE.junctions[jid].schedules[dIdx][sIdx].idx = (parseInt(cols[sigMapIdx]) || 0) + 1;
         }
-
-    });
+    }
 }
 
 function parseCSV(csv) {
