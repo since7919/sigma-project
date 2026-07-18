@@ -1166,12 +1166,18 @@ async function fetchJunctionDetail(jid) {
                 if (isNaN(midx) || midx >= 10) return;
                 const sm = j.signalMaps[midx];
                 ["mov_a","mov_b","ped_mov_a","ped_mov_b","yellow_a","yellow_b","allred_a","allred_b","ped_a","ped_b","ped_delay_a","ped_delay_b","ped_flash_a","ped_flash_b","ped_green_a","ped_green_b"].forEach(k => {
-                    if (row[k] !== undefined && row[k] !== null && String(row[k]).length > 0) {
+                    if (row[k] !== undefined && row[k] !== null) {
                         const camelK = k.replace(/_([a-z])/g, g => g[1].toUpperCase());
-                        sm[camelK] = String(row[k]).split(';').map(Number);
+                        if (Array.isArray(row[k])) {
+                            sm[camelK] = row[k].map(Number);
+                        } else if (String(row[k]).length > 0) {
+                            sm[camelK] = String(row[k]).split(';').map(Number);
+                        }
                     }
                 });
-                if (row.main_movements) sm.mainMovements = String(row.main_movements).split(';');
+                if (row.main_movements) {
+                    sm.mainMovements = Array.isArray(row.main_movements) ? row.main_movements : String(row.main_movements).split(';');
+                }
                 sm.startTime = row.start_time || ""; sm.endTime = row.end_time || "";
             });
 
