@@ -15,8 +15,6 @@ async function autoLoadFiles() {
     // [Step 1] Core CSV 리스트 (지역별 동적 분할 파일 URL 맵핑)
     const coreFiles = [
         { url: `/api/sim/data?file=db_${regionCode}_intersections.csv`, type: 'inter', func: typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, label: '교차로' },
-        { url: `/api/sim/data?file=db_${regionCode}_signal_maps.csv`, type: 'maps', func: typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, label: '현시계획' },
-        { url: `/api/sim/data?file=db_${regionCode}_tod_plans.csv`, type: 'plans', func: typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, label: '운영계획' },
         { url: `/api/sim/data?file=db_${regionCode}_groups.csv`, type: 'groups', func: typeof processGroupCSV === 'function' ? processGroupCSV : null, label: '그룹정보' },
         { url: `/api/sim/data?file=db_${regionCode}_stats.csv`, type: 'stats', func: typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, label: '접근로통계' }
     ];

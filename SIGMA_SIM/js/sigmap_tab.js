@@ -211,8 +211,8 @@ async function fetchAndCopyUTICSignalMap() {
             const planTpNode = item.getElementsByTagName("PLAN_TP")[0];
             const planNoNode = item.getElementsByTagName("PLAN_NO")[0];
             
-            // PLAN_TP가 있으면 우선 사용, 없으면 PLAN_NO 사용
-            const planNoText = (planTpNode && planTpNode.textContent !== "0") ? planTpNode.textContent : (planNoNode?.textContent || "1");
+            // PLAN_NO를 우선적으로 사용하고 (일반적인 시그널맵 번호), 없을 경우 PLAN_TP 사용
+            const planNoText = (planNoNode && planNoNode.textContent && planNoNode.textContent !== "0") ? planNoNode.textContent : (planTpNode?.textContent || "1");
             const planNo = parseInt(planNoText, 10);
             if (!plansData[planNo]) plansData[planNo] = { ringA: [], ringB: [] };
 

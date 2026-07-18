@@ -440,8 +440,8 @@ app.get('/api/sim/data', async (req, res) => {
               r.id,
               r.region_cd,
               r.name,
-              r.lat.toFixed(9),
-              r.lng.toFixed(9),
+              r.lat ? Number(r.lat).toFixed(9) : "37.5",
+              r.lng ? Number(r.lng).toFixed(9) : "127.0",
               r.seq || "",
               r.police || "",
               r.office || "",
@@ -473,23 +473,23 @@ app.get('/api/sim/data', async (req, res) => {
             const line = [
               r.id,
               r.map_idx,
-              r.mov_a || "",
-              r.mov_b || "",
-              r.ped_mov_a || "",
-              r.ped_mov_b || "",
-              r.main_movements || "A0;B0",
-              r.yellow_a || "",
-              r.yellow_b || "",
-              r.allred_a || "",
-              r.allred_b || "",
-              r.ped_a || "",
-              r.ped_b || "",
-              r.ped_delay_a || "",
-              r.ped_delay_b || "",
-              r.ped_flash_a || "",
-              r.ped_flash_b || "",
-              r.ped_green_a || "",
-              r.ped_green_b || "",
+              Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""),
+              Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""),
+              Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""),
+              Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""),
+              Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || "A0;B0"),
+              Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""),
+              Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""),
+              Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""),
+              Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""),
+              Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""),
+              Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""),
+              Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""),
+              Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""),
+              Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""),
+              Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""),
+              Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
+              Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
               r.start_time || "",
               r.end_time || ""
             ];
@@ -588,6 +588,28 @@ app.get('/api/sim/data', async (req, res) => {
     res.send(data.file_content);
   } catch (err) {
     sendErrorResponse(res, err, '시뮬레이터 데이터 조회에 실패했습니다.');
+  }
+});
+
+// On-Demand Junction Detail API
+app.get('/api/sim/junction-detail/:id', async (req, res) => {
+  const jid = req.params.id;
+  try {
+    const [mapsResult, plansResult] = await Promise.all([
+      supabase.from('signal_maps').select('*').eq('id', jid).order('map_idx'),
+      supabase.from('tod_plans').select('*').eq('id', jid).order('day_plan')
+    ]);
+
+    if (mapsResult.error) throw mapsResult.error;
+    if (plansResult.error) throw plansResult.error;
+
+    res.json({
+      success: true,
+      signal_maps: mapsResult.data || [],
+      tod_plans: plansResult.data || []
+    });
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 상세 정보 조회에 실패했습니다.');
   }
 });
 
@@ -1115,23 +1137,23 @@ app.post('/api/sim/update-junction', async (req, res) => {
           mapsPayload.push({
             id: jid,
             map_idx: mapIdx,
-            mov_a: cols[2] || "",
-            mov_b: cols[3] || "",
-            ped_mov_a: cols[4] || "",
-            ped_mov_b: cols[5] || "",
-            main_movements: cols[6] || "A0;B0",
-            yellow_a: cols[7] || "",
-            yellow_b: cols[8] || "",
-            allred_a: cols[9] || "",
-            allred_b: cols[10] || "",
-            ped_a: cols[11] || "",
-            ped_b: cols[12] || "",
-            ped_delay_a: cols[13] || "",
-            ped_delay_b: cols[14] || "",
-            ped_flash_a: cols[15] || "",
-            ped_flash_b: cols[16] || "",
-            ped_green_a: cols[17] || "",
-            ped_green_b: cols[18] || "",
+            mov_a: cols[2] ? cols[2].split(';').map(Number) : [],
+            mov_b: cols[3] ? cols[3].split(';').map(Number) : [],
+            ped_mov_a: cols[4] ? cols[4].split(';').map(Number) : [],
+            ped_mov_b: cols[5] ? cols[5].split(';').map(Number) : [],
+            main_movements: cols[6] ? cols[6].split(';') : ["A0", "B0"],
+            yellow_a: cols[7] ? cols[7].split(';').map(Number) : [],
+            yellow_b: cols[8] ? cols[8].split(';').map(Number) : [],
+            allred_a: cols[9] ? cols[9].split(';').map(Number) : [],
+            allred_b: cols[10] ? cols[10].split(';').map(Number) : [],
+            ped_a: cols[11] ? cols[11].split(';').map(Number) : [],
+            ped_b: cols[12] ? cols[12].split(';').map(Number) : [],
+            ped_delay_a: cols[13] ? cols[13].split(';').map(Number) : [],
+            ped_delay_b: cols[14] ? cols[14].split(';').map(Number) : [],
+            ped_flash_a: cols[15] ? cols[15].split(';').map(Number) : [],
+            ped_flash_b: cols[16] ? cols[16].split(';').map(Number) : [],
+            ped_green_a: cols[17] ? cols[17].split(';').map(Number) : [],
+            ped_green_b: cols[18] ? cols[18].split(';').map(Number) : [],
             start_time: cols[19] || "",
             end_time: cols[20] || "",
             updated_at: new Date().toISOString()

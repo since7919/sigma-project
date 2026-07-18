@@ -523,6 +523,18 @@ function selectJunction(jid, isMulti = false) {
         return;
     }
 
+    // [On-Demand 로딩] 상세 데이터가 없으면 백엔드에서 비동기로 가져옵니다.
+    if (!STATE.junctions[jid]._detailLoaded) {
+        document.body.style.cursor = 'wait';
+        fetchJunctionDetail(jid).then(() => {
+            document.body.style.cursor = 'default';
+            // 재귀 호출하여 이후 로직(사이드바 렌더링 등)을 수행합니다.
+            selectJunction(jid, isMulti);
+        });
+        return; // 데이터가 로드된 후 다시 실행되므로 여기서 일시 중지
+    }
+
+
     // [추가] 새로운 교차로 선택 시 기존의 민원 강조(지도 상의 원형 표시)를 제거하여 가독성 확보
     if (typeof clearCivilHighlight === 'function') clearCivilHighlight();
     const oldJids = [...STATE.selectedJids];

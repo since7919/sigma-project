@@ -76,21 +76,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const response = await fetch(`${API_BASE}/${currentTable}/bulk`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ password, records: validData })
-            });
+            // junctions는 백엔드에서 없는 항목을 삭제하는 로직이 있으므로 전체를 한 번에 보냄
+            const chunkSize = currentTable === 'junctions' ? validData.length : 500;
+            let totalCount = 0;
 
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || '저장 실패');
+            for (let i = 0; i < validData.length; i += chunkSize) {
+                const chunk = validData.slice(i, i + chunkSize);
+                
+                const pct = Math.round((i / validData.length) * 100);
+                btnSaveDb.textContent = `저장 중... (${i}/${validData.length}건, ${pct}%)`;
+
+                const response = await fetch(`${API_BASE}/${currentTable}/bulk`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password, records: chunk })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '저장 실패');
+                }
+                totalCount += result.count;
             }
 
-            alert(result.message || '성공적으로 저장되었습니다.');
+            alert(`총 ${totalCount}건이 성공적으로 저장되었습니다.`);
             loadData(); // 저장 후 새로고침
         } catch (error) {
             console.error(error);

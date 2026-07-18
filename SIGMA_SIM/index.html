@@ -438,6 +438,29 @@
                 </div>
             </div>
 
+            <div class="box-green" style="margin-bottom: 10px;">
+                <div class="xlsx-loader-header">
+                    <div class="flex-row gap-12">
+                        <div class="xlsx-icon-box">📗</div>
+                        <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
+                    </div>
+                    <button onclick="document.getElementById('xlsx-file-input').click()" class="btn-neon green"
+                        style="height:38px; padding:0 18px;">📁 파일 선택</button>
+                </div>
+                <div id="xlsx-progress-container-phase" class="p-10"
+                    style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
+                    <div class="xlsx-info-row">
+                        <span id="xlsx-info-text-phase" class="fs-12" style="color:#2ecc71;">준비됨</span>
+                        <span id="xlsx-percent-text-phase" class="fs-12" style="color:#aaa;">0%</span>
+                    </div>
+                    <div class="xlsx-progress-bg">
+                        <div id="xlsx-progress-bar-phase" style="width:0%; height:100%; background:#2ecc71;"></div>
+                    </div>
+                    <div id="xlsx-loaded-list-phase" class="mt-10 pt-10 fs-11"
+                        style="max-height:120px; overflow-y:auto; color:#bbb; border-top:1px solid rgba(255,255,255,0.05); display:none;">
+                    </div>
+                </div>
+            </div>
 
             <!-- [일반 제어 영역] -->
             <div class="sigma-panel">

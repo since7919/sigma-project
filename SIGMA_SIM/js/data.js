@@ -551,27 +551,53 @@ async function handleExcelSignalLoad(input) {
     const contEl = document.getElementById('xlsx-progress-container');
     const listEl = document.getElementById('xlsx-loaded-list');
 
+    const infoElPh = document.getElementById('xlsx-info-text-phase');
+    const progElPh = document.getElementById('xlsx-progress-bar-phase');
+    const percElPh = document.getElementById('xlsx-percent-text-phase');
+    const contElPh = document.getElementById('xlsx-progress-container-phase');
+    const listElPh = document.getElementById('xlsx-loaded-list-phase');
+
     if (contEl) contEl.style.display = 'block';
+    if (contElPh) contElPh.style.display = 'block';
+
     if (listEl) {
         listEl.style.display = 'block';
         listEl.innerHTML = '<div style="margin-bottom:5px; font-weight:bold; color:#2ecc71;">로드 목록 (최대 50개):</div>';
+    }
+    if (listElPh) {
+        listElPh.style.display = 'block';
+        listElPh.innerHTML = '<div style="margin-bottom:5px; font-weight:bold; color:#2ecc71;">로드 목록 (최대 50개):</div>';
     }
 
     const updateProgress = (pct, msg) => {
         if (progEl) progEl.style.width = pct + '%';
         if (percEl) percEl.textContent = pct + '%';
         if (infoEl) infoEl.textContent = msg;
+
+        if (progElPh) progElPh.style.width = pct + '%';
+        if (percElPh) percElPh.textContent = pct + '%';
+        if (infoElPh) infoElPh.textContent = msg;
     };
 
     const addToList = (filename, status, errorMsg = "") => {
-        if (!listEl) return;
         const color = (status === 'success') ? '#2ecc71' : '#e74c3c';
         const icon = (status === 'success') ? '✅' : '❌';
-        const div = document.createElement('div');
-        div.style.marginBottom = '2px';
-        div.innerHTML = `<span style="color:${color}">${icon}</span> ${filename}${errorMsg ? `<span style="color:#e74c3c; font-size:10px;"> (${errorMsg})</span>` : ''}`;
-        listEl.appendChild(div);
-        listEl.scrollTop = listEl.scrollHeight;
+        const html = `<span style="color:${color}">${icon}</span> ${filename}${errorMsg ? `<span style="color:#e74c3c; font-size:10px;"> (${errorMsg})</span>` : ''}`;
+
+        if (listEl) {
+            const div = document.createElement('div');
+            div.style.marginBottom = '2px';
+            div.innerHTML = html;
+            listEl.appendChild(div);
+            listEl.scrollTop = listEl.scrollHeight;
+        }
+        if (listElPh) {
+            const divPh = document.createElement('div');
+            divPh.style.marginBottom = '2px';
+            divPh.innerHTML = html;
+            listElPh.appendChild(divPh);
+            listElPh.scrollTop = listElPh.scrollHeight;
+        }
     };
 
     if (typeof XLSX === 'undefined') {
@@ -596,6 +622,16 @@ async function handleExcelSignalLoad(input) {
             const jNo = parseInt(getVal(3, 37));
             if (isNaN(jNo)) throw new Error(`[C37] 교차로 번호 누락`);
             
+            // Phase/Split 탭 등에서 현재 활성화된 교차로가 있을 경우 번호 비교
+            if (STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+                const activeSeq = parseInt(STATE.junctions[STATE.activeJid].seq);
+                if (!isNaN(activeSeq) && activeSeq !== jNo) {
+                    if (!confirm(`현재 선택된 교차로번호(${activeSeq})와 엑셀파일의 번호(${jNo})가 같지 않습니다.\n교차로번호가 다르다 정말 업데이트하겠냐`)) {
+                        throw new Error(`사용자 취소 (교차로번호 불일치)`);
+                    }
+                }
+            }
+
             // L01 또는 L02 접두사를 포함해 매칭
             let junction = STATE.junctions[`L01-${jNo}0`] || STATE.junctions[`L02-${jNo}0`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(jNo));
             if (!junction) throw new Error(`시스템에 교차로(No. ${jNo})가 없습니다.`);
@@ -1077,20 +1113,80 @@ async function syncSigmaDB(type) {
             return;
         }
 
-        const response = await fetch(`/api/sim/tables/${typeToTable[type]}/bulk`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password, records })
-        });
-        
-        const result = await response.json();
-        if (result.success) {
-            alert(`✅ 총 ${result.count}건의 ${typeToTable[type]} 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
-        } else {
-            throw new Error(result.error || '알 수 없는 오류');
+        const tableName = typeToTable[type];
+        const chunkSize = tableName === 'junctions' ? records.length : 500;
+        let totalCount = 0;
+
+        for (let i = 0; i < records.length; i += chunkSize) {
+            const chunk = records.slice(i, i + chunkSize);
+            const response = await fetch(`/api/sim/tables/${tableName}/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password, records: chunk })
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || '알 수 없는 오류');
+            }
+            totalCount += result.count || chunk.length;
+            console.log(`[${tableName}] Uploaded ${Math.min(i + chunkSize, records.length)} / ${records.length}`);
         }
+        
+        alert(`✅ 총 ${totalCount}건의 ${tableName} 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
     } catch (err) {
         alert("백엔드 동기화 실패: " + err.message);
     }
 }
 
+async function fetchJunctionDetail(jid) {
+    const j = STATE.junctions[jid];
+    if (!j) return;
+    if (j._detailLoaded) return;
+    
+    try {
+        const res = await fetch(`/api/sim/junction-detail/${jid}`);
+        if (!res.ok) throw new Error('Failed to fetch detail');
+        const data = await res.json();
+        
+        if (data.success) {
+            // signal_maps
+            data.signal_maps.forEach(row => {
+                const midx = parseInt(row.map_idx);
+                if (isNaN(midx) || midx >= 10) return;
+                const sm = j.signalMaps[midx];
+                ["mov_a","mov_b","ped_mov_a","ped_mov_b","yellow_a","yellow_b","allred_a","allred_b","ped_a","ped_b","ped_delay_a","ped_delay_b","ped_flash_a","ped_flash_b","ped_green_a","ped_green_b"].forEach(k => {
+                    if (row[k] !== undefined && row[k] !== null && String(row[k]).length > 0) {
+                        const camelK = k.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                        sm[camelK] = String(row[k]).split(';').map(Number);
+                    }
+                });
+                if (row.main_movements) sm.mainMovements = String(row.main_movements).split(';');
+                sm.startTime = row.start_time || ""; sm.endTime = row.end_time || "";
+            });
+
+            // tod_plans
+            data.tod_plans.forEach(row => {
+                const dIdx = parseInt(row.day_plan) - 1;
+                if (isNaN(dIdx) || dIdx < 0 || dIdx >= 10) return;
+                j.dayPlanMapIds[dIdx] = parseInt(row.signal_map) || 0;
+                for (let sIdx = 0; sIdx < 16; sIdx++) {
+                    const slot = row[`time_plan${sIdx+1}`]; if (!slot) continue;
+                    const p = slot.split('|');
+                    if (p[0] === "-1") j.schedules[dIdx][sIdx].h = -1;
+                    else if (p[0].includes(':')) { const [h, m] = p[0].split(':').map(Number); j.schedules[dIdx][sIdx].h = h; j.schedules[dIdx][sIdx].m = m; }
+                    if (p[1]) j.schedules[dIdx][sIdx].cycle = parseInt(p[1]);
+                    if (p[2]) j.dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
+                    if (p[3]) j.dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
+                    if (p[4]) j.dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);
+                    if (p[5]) j.schedules[dIdx][sIdx].idx = parseInt(p[5]);
+                    else j.schedules[dIdx][sIdx].idx = (parseInt(row.signal_map) || 0) + 1;
+                }
+            });
+
+            j._detailLoaded = true;
+        }
+    } catch (err) {
+        console.error(`Error loading details for ${jid}:`, err);
+    }
+}
