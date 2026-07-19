@@ -220,17 +220,37 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       setIsSigMapLoading(true);
       try {
         const regionCode = intersection.region_cd || 'L02';
-        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=999`;
-        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
-        
         const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(res.data, "text/xml");
-        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
-        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
+        const getPage = async (page) => {
+          const url = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=${page}&numOfRows=100`;
+          const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(url)}`);
+          return parser.parseFromString(res.data, "text/xml");
+        };
+
+        const xmlDoc1 = await getPage(1);
+        const totPage = parseInt(xmlDoc1.getElementsByTagName("totPage")[0]?.textContent || '1', 10);
+        
+        let allItems = [];
+        let items1 = xmlDoc1.getElementsByTagName("SigMapCRInfo");
+        if (items1.length === 0) items1 = xmlDoc1.getElementsByTagName("item");
+        allItems.push(...Array.from(items1));
+
+        if (totPage > 1) {
+          const promises = [];
+          for (let p = 2; p <= totPage; p++) {
+            promises.push(getPage(p));
+          }
+          const docs = await Promise.all(promises);
+          for (const doc of docs) {
+            let its = doc.getElementsByTagName("SigMapCRInfo");
+            if (its.length === 0) its = doc.getElementsByTagName("item");
+            allItems.push(...Array.from(its));
+          }
+        }
 
         const plans = {};
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
+        for (let i = 0; i < allItems.length; i++) {
+          const item = allItems[i];
           const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
           if (String(intNo) === String(intersection.int_no)) {
             const planTp = item.getElementsByTagName("PLAN_TP")[0]?.textContent || '0';
