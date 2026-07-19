@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
@@ -96,7 +96,7 @@ function App() {
       return next;
     });
   };
-  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(true);
+  const [isMultiScreenOpen, setIsMultiScreenOpen] = useState(false); // 멀티스크린 패널 열림 여부 state (초기값 false)
   const [isMultiScreenFullscreen, setIsMultiScreenFullscreen] = useState(false); // 멀티스크린 전체화면 상태 state
   const [soloFullscreenIndex, setSoloFullscreenIndex] = useState(null); // 개별 카드 전체화면 인덱스
   const dragOverIndexRef = useRef(null);
@@ -411,6 +411,7 @@ function App() {
   };
 
   const handleMultiClick = (intersection) => {
+    setIsMultiScreenOpen(true);
     setMultiScreenItems(prev => {
       if (prev.some(item => item && item.id === intersection.id)) {
         alert('이미 멀티스크린에 등록된 교차로입니다.');
@@ -644,7 +645,8 @@ function App() {
             </button>
           </div>
 
-          <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true}>
+          <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true} zoomControl={false}>
+            <ZoomControl position="bottomright" />
             <MapAutoResizer />
             <MapPanner intersections={filteredIntersections} targetId={activeNodeId} />
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
