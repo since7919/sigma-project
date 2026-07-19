@@ -614,7 +614,7 @@ function App() {
               }}
               onClick={() => setIsMultiScreenOpen(prev => !prev)}
             >
-              🖥️ 멀티스크린
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="멀티스크린"><rect x="2" y="2" width="9" height="9" rx="1" /><rect x="13" y="2" width="9" height="9" rx="1" /><rect x="2" y="13" width="9" height="9" rx="1" /><rect x="13" y="13" width="9" height="9" rx="1" /></svg>
             </button>
           </div>
 
