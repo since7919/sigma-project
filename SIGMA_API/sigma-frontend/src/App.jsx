@@ -597,15 +597,28 @@ function App() {
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>영역</span>
-              <input 
-                type="range" 
-                min="100" 
-                max="300" 
-                value={compassSizeVal}
-                onChange={(e) => setCompassSizeVal(Number(e.target.value))}
-                style={{ width: '60px', accentColor: '#38bdf8' }}
-                title="신호등 영역 크기 조절"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '50px', height: '12px' }} title="신호등 영역 크기 조절">
+                <div style={{ position: 'absolute', left: '4px', right: '4px', height: '4px', background: '#475569', top: '4px', zIndex: 1, borderRadius: '2px' }} />
+                <div style={{ position: 'absolute', left: '4px', width: compassSizeVal === 100 ? '0%' : compassSizeVal === 200 ? '50%' : 'calc(100% - 8px)', height: '4px', background: '#38bdf8', top: '4px', zIndex: 1, transition: 'width 0.2s', borderRadius: '2px' }} />
+                {[100, 200, 300].map((val, idx) => (
+                  <div 
+                    key={val}
+                    onClick={() => setCompassSizeVal(val)}
+                    style={{
+                      position: 'absolute',
+                      left: idx === 0 ? '0' : idx === 1 ? 'calc(50% - 6px)' : 'calc(100% - 12px)',
+                      top: '0',
+                      width: compassSizeVal === val ? '12px' : '10px',
+                      height: compassSizeVal === val ? '12px' : '10px',
+                      marginTop: compassSizeVal === val ? '0' : '1px',
+                      borderRadius: '50%',
+                      background: val <= compassSizeVal ? '#38bdf8' : '#475569',
+                      cursor: 'pointer', zIndex: 2,
+                      transition: 'all 0.2s'
+                    }}
+                  />
+                ))}
+              </div>
             </div>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
 
