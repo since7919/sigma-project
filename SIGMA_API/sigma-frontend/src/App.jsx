@@ -709,7 +709,10 @@ function App() {
           />
         )}
         <header className="multi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <h2>🖥️ 멀티디스플레이 ({multiScreenItems.filter(Boolean).length}/{gridConfig.r * gridConfig.c})</h2>
+          <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginRight: '8px' }}><rect x="2" y="2" width="9" height="9" rx="1" /><rect x="13" y="2" width="9" height="9" rx="1" /><rect x="2" y="13" width="9" height="9" rx="1" /><rect x="13" y="13" width="9" height="9" rx="1" /></svg>
+            <span style={{ verticalAlign: 'middle' }}>멀티스크린 ({multiScreenItems.filter(Boolean).length}/{gridConfig.r * gridConfig.c})</span>
+          </h2>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <button 
               className="btn-clear active"
@@ -755,7 +758,8 @@ function App() {
                 }}
                 onClick={() => setShowGridSelector(p => !p)}
               >
-                ▦ 화면 분할 ({gridConfig.r}x{gridConfig.c})
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="화면 분할 레이아웃 변경"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>{gridConfig.r}x{gridConfig.c}</span>
               </button>
               {showGridSelector && (
                 <div 
