@@ -165,7 +165,7 @@ export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
       
-      const currentMainPhase = mainPhases?.[intersection.id] || 1;
+      const currentMainPhase = mainPhases?.[intersection.id] || (intersection.id?.startsWith('L02') ? 2 : 1);
       let splitSum = 0;
       if (currentMainPhase > 1 && cropData) {
          for (let i = 1; i < currentMainPhase; i++) {

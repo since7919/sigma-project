@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive }) {
+export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive, mainPhases }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -180,7 +180,8 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
                   />
                   <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (((window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[String(item.int_no)]) || (seoulActiveIds && seoulActiveIds.includes(String(item.int_no)))) ? '#3b82f6' : '#64748b')}}></div>
                   <span className="id-label">[{item.int_no}]</span>
-                  <span className="name-label">{item.int_nm}</span>
+                  <span className="name-label" style={{flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'}}>{item.int_nm}</span>
+                  <span className="phase-label" style={{fontSize: '0.7rem', color: '#f59e0b', marginLeft: 'auto', marginRight: '5px'}}>{mainPhases?.[item.id] || (item.id.startsWith('L02') ? 2 : 1)}현시</span>
                 </div>
               ))}
               {tdataList.length > tdataLimit && (
@@ -250,7 +251,8 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
                           />
                           <div className="status-dot" style={{background: activeNodeId === item.id ? '#38bdf8' : (window.UTIC_SPAT_MAP && window.UTIC_SPAT_MAP[item.int_no] ? '#3b82f6' : '#64748b')}}></div>
                           <span className="id-label">[{item.int_no}]</span>
-                          <span className="name-label">{item.int_nm}</span>
+                          <span className="name-label" style={{flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap'}}>{item.int_nm}</span>
+                          <span className="phase-label" style={{fontSize: '0.7rem', color: '#f59e0b', marginLeft: 'auto', marginRight: '5px'}}>{mainPhases?.[item.id] || (item.id.startsWith('L02') ? 2 : 1)}현시</span>
                         </div>
                       ))}
                     </div>

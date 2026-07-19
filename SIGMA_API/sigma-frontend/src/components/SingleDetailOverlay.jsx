@@ -65,7 +65,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:4000' : 'https://sigma-project-245n.onrender.com';
 
-  const currentMainPhase = mainPhases?.[intersection?.id] || 1;
+  const currentMainPhase = mainPhases?.[intersection?.id] || (intersection?.id?.startsWith('L02') ? 2 : 1);
 
   const handleMainPhaseChange = async (e) => {
     const newPhase = e.target.value;
