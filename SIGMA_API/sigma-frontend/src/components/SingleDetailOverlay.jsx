@@ -8,35 +8,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function MapResizer({ mapZoomMode }) {
   const map = useMap();
-  const [animPlay, setAnimPlay] = useState(true);
-
-  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:4000' : 'https://sigma-project-245n.onrender.com';
-
-  const currentMainPhase = mainPhases?.[intersection?.id] || 1;
-
-  const handleMainPhaseChange = async (e) => {
-    const newPhase = e.target.value;
-    const pwd = prompt('주현시 정보를 변경하려면 비밀번호를 입력하세요:');
-    if (pwd) {
-      try {
-        const res = await fetch(`${API_BASE}/api/main-phases`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ int_no: intersection.id, main_phase: newPhase, password: pwd })
-        });
-        const data = await res.json();
-        if (data.success) {
-          alert('주현시가 저장되었습니다.');
-          if (onMainPhaseUpdate) onMainPhaseUpdate(intersection.id, Number(newPhase));
-        } else {
-          alert(`오류: ${data.error}`);
-        }
-      } catch (err) {
-        alert('저장 중 오류가 발생했습니다.');
-      }
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
