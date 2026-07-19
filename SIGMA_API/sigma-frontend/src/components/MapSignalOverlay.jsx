@@ -6,7 +6,7 @@ import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalU
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, displayMode }) {
+export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, displayMode, mainPhases }) {
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
   const [phaseB, setPhaseB] = useState(1);
@@ -118,13 +118,23 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
       if (!cropData || !cropData.cycle) return;
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
+      
+      const currentMainPhase = mainPhases?.[intersection.id] || 1;
+      let splitSum = 0;
+      if (currentMainPhase > 1 && cropData) {
+         for (let i = 1; i < currentMainPhase; i++) {
+            splitSum += (cropData[`A_RING_${i}_PHASE_VAL`] || 0);
+         }
+      }
+      const adjustedOffset = (offset - splitSum + cycle * 10) % cycle;
+      
       const now = new Date();
       const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
       const kstNow = new Date(kstTimeStr);
       
       const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
-      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+      const timeInCycle = (secondsSinceMidnight - adjustedOffset + cycle * 10) % cycle;
 
       const calcRingState = (ringPrefix) => {
         let cumulativeTime = 0;

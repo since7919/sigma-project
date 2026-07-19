@@ -31,7 +31,7 @@ function MapAutoResizer() {
   return null;
 }
 
-export default function MultiSignalCard({ intersection, onRemove, uticUpdateTick, displayMode }) {
+export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove, displayMode, isSoloFullscreen, mainPhases }) {
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
   const [phaseB, setPhaseB] = useState(1);
@@ -165,13 +165,22 @@ export default function MultiSignalCard({ intersection, onRemove, uticUpdateTick
       const cycle = cropData.cycle;
       const offset = cropData.offset || 0;
       
+      const currentMainPhase = mainPhases?.[intersection.id] || 1;
+      let splitSum = 0;
+      if (currentMainPhase > 1 && cropData) {
+         for (let i = 1; i < currentMainPhase; i++) {
+            splitSum += (cropData[`A_RING_${i}_PHASE_VAL`] || 0);
+         }
+      }
+      const adjustedOffset = (offset - splitSum + cycle * 10) % cycle;
+      
       const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
       const kstNow = new Date(kstTimeStr);
       
       const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
       
-      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+      const timeInCycle = (secondsSinceMidnight - adjustedOffset + cycle * 10) % cycle;
 
       const calcRingState = (ringPrefix) => {
         let cumulativeTime = 0;

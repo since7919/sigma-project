@@ -8,6 +8,36 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function MapResizer({ mapZoomMode }) {
   const map = useMap();
+  const [animPlay, setAnimPlay] = useState(true);
+
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:4000' : 'https://sigma-project-245n.onrender.com';
+
+  const currentMainPhase = mainPhases?.[intersection?.id] || 1;
+
+  const handleMainPhaseChange = async (e) => {
+    const newPhase = e.target.value;
+    const pwd = prompt('주현시 정보를 변경하려면 비밀번호를 입력하세요:');
+    if (pwd) {
+      try {
+        const res = await fetch(`${API_BASE}/api/main-phases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ int_no: intersection.id, main_phase: newPhase, password: pwd })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('주현시가 저장되었습니다.');
+          if (onMainPhaseUpdate) onMainPhaseUpdate(intersection.id, Number(newPhase));
+        } else {
+          alert(`오류: ${data.error}`);
+        }
+      } catch (err) {
+        alert('저장 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
@@ -41,7 +71,7 @@ const PhaseArrow = ({ p }) => {
   );
 };
 
-export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick, isMultiScreenOpen }) {
+export default function SingleDetailOverlay({ intersection, onClose, isDual, forceZoom, uticUpdateTick, isMultiScreenOpen, mainPhases, onMainPhaseUpdate }) {
   const [localTab, setLocalTab] = useState('remainTime');
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -60,6 +90,34 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const [displayMode, setDisplayMode] = useState('circle');
   
   const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
+
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:4000' : 'https://sigma-project-245n.onrender.com';
+
+  const currentMainPhase = mainPhases?.[intersection?.id] || 1;
+
+  const handleMainPhaseChange = async (e) => {
+    const newPhase = e.target.value;
+    const pwd = prompt('주현시 정보를 변경하려면 비밀번호를 입력하세요:');
+    if (pwd) {
+      try {
+        const res = await fetch(`${API_BASE}/api/main-phases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ int_no: intersection.id, main_phase: newPhase, password: pwd })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('주현시가 저장되었습니다.');
+          if (onMainPhaseUpdate) onMainPhaseUpdate(intersection.id, Number(newPhase));
+        } else {
+          alert(`오류: ${data.error}`);
+        }
+      } catch (err) {
+        alert('저장 중 오류가 발생했습니다.');
+      }
+    }
+  };
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
@@ -322,13 +380,21 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       const cycle = activePlan.cycle;
       const offset = activePlan.offset || 0;
       
+      let splitSum = 0;
+      if (currentMainPhase > 1 && cropData) {
+         for (let i = 1; i < currentMainPhase; i++) {
+            splitSum += (cropData[`A_RING_${i}_PHASE_VAL`] || 0);
+         }
+      }
+      const adjustedOffset = (offset - splitSum + cycle * 10) % cycle;
+      
       const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
       const kstNow = new Date(kstTimeStr);
       
       const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
       const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
       
-      const timeInCycle = (secondsSinceMidnight - offset + cycle) % cycle;
+      const timeInCycle = (secondsSinceMidnight - adjustedOffset + cycle * 10) % cycle;
 
       const calcRingState = (ringPrefix) => {
         let cumulativeTime = 0;
@@ -1087,6 +1153,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   <thead>
                     <tr style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>
                       <th style={{ padding: '6px', border: '1px solid #334155' }}>주기(Cycle)</th>
+                      <th style={{ padding: '6px', border: '1px solid #334155' }}>주현시</th>
                       <th style={{ padding: '6px', border: '1px solid #334155' }}>연동값(Offset)</th>
                       <th style={{ padding: '6px', border: '1px solid #334155' }}>요일계획(Day plan)</th>
                       <th style={{ padding: '6px', border: '1px solid #334155' }}>시간계획(Time plan)</th>
@@ -1097,6 +1164,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   <tbody>
                     <tr>
                       <td style={{ padding: '6px', border: '1px solid #334155', color: '#38bdf8', fontWeight: 'bold' }}>{cropData ? `${cropData.cycle}초` : '미연동'}</td>
+                      <td style={{ padding: '6px', border: '1px solid #334155' }}>
+                        <select value={currentMainPhase} onChange={handleMainPhaseChange} style={{ background: '#1e293b', color: '#fff', border: '1px solid #475569', borderRadius: '4px', padding: '2px', cursor: 'pointer' }}>
+                          {[1,2,3,4,5,6,7,8].map(p => <option key={p} value={p}>{p}현시</option>)}
+                        </select>
+                      </td>
                       <td style={{ padding: '6px', border: '1px solid #334155', color: '#fff', fontWeight: 'bold' }}>{cropData ? `${cropData.offset}초` : '-'}</td>
                       <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planNo : '-'}</td>
                       <td style={{ padding: '6px', border: '1px solid #334155', color: '#f472b6', fontWeight: 'bold' }}>{cropData ? cropData.planIdxNo : '-'}</td>

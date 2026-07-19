@@ -1526,6 +1526,69 @@ const startSeoulSpatWorker = () => {
 startSeoulSpatWorker();
 // --------------------------------
 
+// --------------------------------
+// 주현시(Main Phase) 관리 API
+// --------------------------------
+
+app.get('/api/main-phases', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('intersection_main_phases')
+      .select('int_no, main_phase');
+    
+    if (error) {
+      console.error('Error fetching main phases:', error);
+      return res.status(500).json({ error: error.message });
+    }
+    
+    const phaseMap = {};
+    if (data) {
+      data.forEach(item => {
+        phaseMap[item.int_no] = item.main_phase;
+      });
+    }
+    
+    res.json(phaseMap);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/main-phases', async (req, res) => {
+  try {
+    const { int_no, main_phase, password } = req.body;
+    
+    if (!int_no || !main_phase || !password) {
+      return res.status(400).json({ error: '교차로 번호, 주현시, 비밀번호를 모두 입력해주세요.' });
+    }
+    
+    // Check password
+    const { data: adminData, error: adminErr } = await supabase
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'main_phase_password')
+      .single();
+      
+    if (adminErr || !adminData || adminData.setting_value !== password) {
+      return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+    }
+    
+    // Upsert main phase
+    const { error: upsertErr } = await supabase
+      .from('intersection_main_phases')
+      .upsert({ int_no: String(int_no), main_phase: Number(main_phase), updated_at: new Date().toISOString() }, { onConflict: 'int_no' });
+      
+    if (upsertErr) {
+      console.error('Error saving main phase:', upsertErr);
+      return res.status(500).json({ error: upsertErr.message });
+    }
+    
+    res.json({ success: true, message: '주현시가 저장되었습니다.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
 
 app.listen(PORT, HOST, () => {
