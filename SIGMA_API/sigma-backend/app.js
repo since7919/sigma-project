@@ -152,14 +152,16 @@ async function syncUticIntersections(regionCode) {
   // 기존 지역 데이터 삭제 후 1000개씩 청크로 나누어 삽입
   await supabase.from('utic_intersections').delete().eq('region_cd', regionCode);
   
+  const insertedRecords = [];
   const chunkSize = 1000;
   for (let i = 0; i < records.length; i += chunkSize) {
     const chunk = records.slice(i, i + chunkSize);
-    const { error } = await supabase.from('utic_intersections').insert(chunk);
+    const { data, error } = await supabase.from('utic_intersections').insert(chunk).select();
     if (error) console.error('Insert chunk error:', error);
+    if (data) insertedRecords.push(...data);
   }
   
-  return records;
+  return insertedRecords;
 }
 
 // 1-1. 교차로 마스터 데이터 수동 갱신 (UTIC -> DB)
@@ -313,7 +315,7 @@ app.get('/api/intersections/nearest', async (req, res) => {
     // 해당 지역의 교차로 마스터 전체 조회
     const { data: list, error } = await supabase
       .from('utic_intersections')
-      .select('region_cd, int_no, int_nm, x_coord, y_coord, node_id, origin_type')
+      .select('id, region_cd, int_no, int_nm, x_coord, y_coord, node_id, origin_type')
       .eq('region_cd', region)
       .limit(5000);
 
@@ -373,7 +375,7 @@ app.get('/api/intersections', async (req, res) => {
     const promises = [];
     for (let i = 0; i < count; i += step) {
       let q = supabase.from('utic_intersections')
-        .select('region_cd, int_no, int_nm, x_coord, y_coord, origin_type, updated_at')
+        .select('id, region_cd, int_no, int_nm, x_coord, y_coord, origin_type, updated_at')
         .range(i, i + step - 1)
         .order('region_cd')
         .order('int_no');
