@@ -50,7 +50,14 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const [remainA, setRemainA] = useState(0);
   const [remainB, setRemainB] = useState(0);
   const [currentTimeStr, setCurrentTimeStr] = useState('-');
-  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+  const [sigMapDataList, setSigMapDataList] = useState([]);
+  const sigMapData = useMemo(() => {
+    if (!sigMapDataList || sigMapDataList.length === 0) return { ringA: [], ringB: [] };
+    if (!cropData || cropData.planTp === undefined) return sigMapDataList[0];
+    const planTp = cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP;
+    const active = sigMapDataList.find(p => String(p.planTp) === String(planTp));
+    return active || sigMapDataList[0];
+  }, [sigMapDataList, cropData]);
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
   const [weeklyPlans, setWeeklyPlans] = useState({});
   const [allTodPlans, setAllTodPlans] = useState({});
@@ -206,7 +213,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   // SigMap 정보 조회
   useEffect(() => {
     if (isSeoul) {
-      setSigMapData({ ringA: [], ringB: [] });
+      setSigMapDataList([]);
       return;
     }
     const fetchSigMap = async () => {
@@ -221,12 +228,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
         if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
 
-        const ringA = [];
-        const ringB = [];
+        const plans = {};
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
           if (String(intNo) === String(intersection.int_no)) {
+            const planTp = item.getElementsByTagName("PLAN_TP")[0]?.textContent || '0';
             const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
             const step = {
               stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
@@ -238,17 +245,22 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
               step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
             }
-            if (ringNo === 0) ringA.push(step);
-            else if (ringNo === 1) ringB.push(step);
+            if (!plans[planTp]) plans[planTp] = { ringA: [], ringB: [], planTp };
+            if (ringNo === 0) plans[planTp].ringA.push(step);
+            else if (ringNo === 1) plans[planTp].ringB.push(step);
           }
         }
-        ringA.sort((a, b) => a.stepNo - b.stepNo);
-        ringB.sort((a, b) => a.stepNo - b.stepNo);
         
-        setSigMapData({ ringA, ringB });
+        const list = Object.values(plans).map(p => {
+          p.ringA.sort((a, b) => a.stepNo - b.stepNo);
+          p.ringB.sort((a, b) => a.stepNo - b.stepNo);
+          return p;
+        }).sort((a, b) => parseInt(a.planTp) - parseInt(b.planTp));
+        
+        setSigMapDataList(list);
       } catch (err) {
         console.error('Error fetching SigMap:', err);
-        setSigMapData({ ringA: [], ringB: [] });
+        setSigMapDataList([]);
       } finally {
         setIsSigMapLoading(false);
       }
@@ -1276,64 +1288,68 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
                   {isSigMapLoading ? (
                     <div style={{padding: '30px', textAlign: 'center', color: '#38bdf8'}}>시그널맵 데이터를 불러오는 중...</div>
-                  ) : (sigMapData.ringA.length === 0 && sigMapData.ringB.length === 0) ? (
+                  ) : (sigMapDataList.length === 0) ? (
                     <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
                   ) : (
                     <>
-                      <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>시그널맵 (A-RING & B-RING 병렬 표출)</h4>
-                      <table className="sigmap-ring-table">
-                        <thead>
-                          <tr>
-                            <th rowSpan="3" style={{width: '40px'}}>Step</th>
-                            <th colSpan="19" style={{color: '#10b981'}}>A-RING</th>
-                            <th colSpan="19" style={{color: '#38bdf8'}}>B-RING</th>
-                          </tr>
-                          <tr>
-                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`a-${i}`}>{i}</th>)}
-                            <th rowSpan="2">Min</th>
-                            <th rowSpan="2">Max</th>
-                            <th rowSpan="2">EOP</th>
-                            {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`b-${i}`}>{i}</th>)}
-                            <th rowSpan="2">Min</th>
-                            <th rowSpan="2">Max</th>
-                            <th rowSpan="2">EOP</th>
-                          </tr>
-                          <tr>
-                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`a-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
-                            {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`b-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Array.from({length: 32}, (_, i) => i + 1).map(n => {
-                            const stepA = sigMapData.ringA.find(s => s.stepNo === n) || {};
-                            const stepB = sigMapData.ringB.find(s => s.stepNo === n) || {};
-                            const isEopRow = stepA.eop === 1 || stepB.eop === 1;
-                            return (
-                              <tr key={n} className={isEopRow ? 'eop-row' : ''}>
-                                <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
-                                {[1,2,3,4,5,6,7,8].map(i => (
-                                  <React.Fragment key={`a-td-${i}`}>
-                                    <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
-                                    <td className={stepA[`ped${i}`] !== undefined ? getCellClass(stepA[`ped${i}`], 'ped') : 'cell-gray'}>{stepA[`ped${i}`] !== undefined ? toHex(stepA[`ped${i}`]) : '-'}</td>
-                                  </React.Fragment>
-                                ))}
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
-                                <td className={stepA.eop === 1 ? 'cell-yellow' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
-                                {[1,2,3,4,5,6,7,8].map(i => (
-                                  <React.Fragment key={`b-td-${i}`}>
-                                    <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
-                                    <td className={stepB[`ped${i}`] !== undefined ? getCellClass(stepB[`ped${i}`], 'ped') : 'cell-gray'}>{stepB[`ped${i}`] !== undefined ? toHex(stepB[`ped${i}`]) : '-'}</td>
-                                  </React.Fragment>
-                                ))}
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
-                                <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
-                                <td className={stepB.eop === 1 ? 'cell-yellow' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
+                      {sigMapDataList.map((planData, pIdx) => (
+                        <div key={pIdx} style={{marginBottom: '20px'}}>
+                          <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>플랜 {planData.planTp} 시그널맵 (A-RING & B-RING 병렬 표출)</h4>
+                          <table className="sigmap-ring-table">
+                            <thead>
+                              <tr>
+                                <th rowSpan="3" style={{width: '40px'}}>Step</th>
+                                <th colSpan="19" style={{color: '#10b981'}}>A-RING</th>
+                                <th colSpan="19" style={{color: '#38bdf8'}}>B-RING</th>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                              <tr>
+                                {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`a-${i}`}>{i}</th>)}
+                                <th rowSpan="2">Min</th>
+                                <th rowSpan="2">Max</th>
+                                <th rowSpan="2">EOP</th>
+                                {[1,2,3,4,5,6,7,8].map(i => <th colSpan="2" key={`b-${i}`}>{i}</th>)}
+                                <th rowSpan="2">Min</th>
+                                <th rowSpan="2">Max</th>
+                                <th rowSpan="2">EOP</th>
+                              </tr>
+                              <tr>
+                                {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`a-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                                {[1,2,3,4,5,6,7,8].map(i => <React.Fragment key={`b-sub-${i}`}><th>V</th><th>P</th></React.Fragment>)}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Array.from({length: 32}, (_, i) => i + 1).map(n => {
+                                const stepA = planData.ringA.find(s => s.stepNo === n) || {};
+                                const stepB = planData.ringB.find(s => s.stepNo === n) || {};
+                                const isEopRow = stepA.eop === 1 || stepB.eop === 1;
+                                return (
+                                  <tr key={n} className={isEopRow ? 'eop-row' : ''}>
+                                    <td style={{fontWeight: 'bold', background: 'rgba(0,0,0,0.2)'}}>{n}</td>
+                                    {[1,2,3,4,5,6,7,8].map(i => (
+                                      <React.Fragment key={`a-td-${i}`}>
+                                        <td className={stepA[`car${i}`] !== undefined ? getCellClass(stepA[`car${i}`], 'car') : 'cell-gray'}>{stepA[`car${i}`] !== undefined ? toHex(stepA[`car${i}`]) : '-'}</td>
+                                        <td className={stepA[`ped${i}`] !== undefined ? getCellClass(stepA[`ped${i}`], 'ped') : 'cell-gray'}>{stepA[`ped${i}`] !== undefined ? toHex(stepA[`ped${i}`]) : '-'}</td>
+                                      </React.Fragment>
+                                    ))}
+                                    <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.minTm !== undefined ? stepA.minTm : '-'}</td>
+                                    <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepA.maxTm !== undefined ? stepA.maxTm : '-'}</td>
+                                    <td className={stepA.eop === 1 ? 'cell-yellow' : ''}>{stepA.eop === 1 ? 'Y' : ''}</td>
+                                    {[1,2,3,4,5,6,7,8].map(i => (
+                                      <React.Fragment key={`b-td-${i}`}>
+                                        <td className={stepB[`car${i}`] !== undefined ? getCellClass(stepB[`car${i}`], 'car') : 'cell-gray'}>{stepB[`car${i}`] !== undefined ? toHex(stepB[`car${i}`]) : '-'}</td>
+                                        <td className={stepB[`ped${i}`] !== undefined ? getCellClass(stepB[`ped${i}`], 'ped') : 'cell-gray'}>{stepB[`ped${i}`] !== undefined ? toHex(stepB[`ped${i}`]) : '-'}</td>
+                                      </React.Fragment>
+                                    ))}
+                                    <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.minTm !== undefined ? stepB.minTm : '-'}</td>
+                                    <td style={{background: 'rgba(0,0,0,0.2)'}}>{stepB.maxTm !== undefined ? stepB.maxTm : '-'}</td>
+                                    <td className={stepB.eop === 1 ? 'cell-yellow' : ''}>{stepB.eop === 1 ? 'Y' : ''}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
                     </>
                   )}
                 </div>
