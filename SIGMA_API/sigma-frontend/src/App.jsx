@@ -527,8 +527,19 @@ function App() {
                 gap: '5px'
               }}
               onClick={() => setIsMapSignalOn(prev => !prev)}
+              title="신호등 켜기/끄기"
             >
-              {isMapSignalOn ? '🚦 신호등 ON' : '🚦 신호등 OFF'}
+              <div style={{
+                width: '36px', height: '20px', borderRadius: '10px', 
+                background: isMapSignalOn ? '#38bdf8' : '#475569',
+                position: 'relative', transition: 'background 0.3s'
+              }}>
+                <div style={{
+                  width: '16px', height: '16px', borderRadius: '50%', background: '#fff',
+                  position: 'absolute', top: '2px', left: isMapSignalOn ? '18px' : '2px',
+                  transition: 'left 0.3s'
+                }} />
+              </div>
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <button 
@@ -553,6 +564,7 @@ function App() {
                   setMapSignalType(prev => prev === 'compass' ? 'arrow' : 'compass');
                 }
               }}
+              title={mapSignalType === 'compass' ? "신호등 모드" : "화살표 모드"}
             >
               {mapSignalType === 'compass' ? (
                 <svg width="28" height="14" viewBox="0 0 28 14" fill="none" xmlns="http://www.w3.org/2000/svg" title="신호등 모드"><rect x="1" y="1" width="26" height="12" rx="4" fill="#222" stroke="#555" strokeWidth="2"></rect><circle cx="7" cy="7" r="3" fill="#ef4444"></circle><circle cx="14" cy="7" r="3" fill="#eab308"></circle><circle cx="21" cy="7" r="3" fill="#22c55e"></circle></svg>
@@ -578,8 +590,9 @@ function App() {
                 gap: '5px'
               }}
               onClick={() => setShowMapNames(p => !p)}
+              title="교차로명 표시 토글"
             >
-              📛 교차로명
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
@@ -613,6 +626,7 @@ function App() {
                 gap: '5px'
               }}
               onClick={() => setIsMultiScreenOpen(prev => !prev)}
+              title="멀티스크린"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="멀티스크린"><rect x="2" y="2" width="9" height="9" rx="1" /><rect x="13" y="2" width="9" height="9" rx="1" /><rect x="2" y="13" width="9" height="9" rx="1" /><rect x="13" y="13" width="9" height="9" rx="1" /></svg>
             </button>
