@@ -174,13 +174,19 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
       const htmlContent = arrowStates.map(({ m, isPed, arrowData, topPx, leftPx, textRot, signalState, countdown, colorClass }) => {
         if (signalState === 'off') return '';
         const isPedOnly = isPed;
+        
+        const dx = leftPx - 90;
+        const dy = topPx - 90;
+        const len = Math.sqrt(dx*dx + dy*dy) || 1;
+        const outX = (dx / len) * 18;
+        const outY = (dy / len) * 18;
 
         return `
-          <div class="signal-slot" style="position: absolute; top: ${topPx}px; left: ${leftPx}px; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; z-index: 10000;">
+          <div class="signal-slot" style="position: absolute; top: ${topPx}px; left: ${leftPx}px; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10000; width: 40px; height: 40px;">
             <div class="signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}" style="transform: rotate(${textRot}deg); font-weight: 800; font-size: ${isPedOnly ? '11px' : '22px'}; line-height: 1; color: ${colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb'};">
               ${isPedOnly ? 'WALK' : arrowData.type}
             </div>
-            <div style="font-family: monospace; font-size: 10px; font-weight: bold; color: ${colorClass === 'yellow' ? '#f59e0b' : '#00ffa2'}; text-shadow: 0 0 3px #000, 0 0 5px #000; margin-top: 1px; transform: rotate(0deg); line-height: 1;">
+            <div style="position: absolute; font-family: monospace; font-size: 12px; font-weight: bold; color: ${colorClass === 'yellow' ? '#f59e0b' : '#00ffa2'}; text-shadow: 0 0 3px #000, 0 0 5px #000; line-height: 1; transform: translate(${outX}px, ${outY}px);">
               ${countdown > 0 ? `${countdown}s` : ''}
             </div>
           </div>

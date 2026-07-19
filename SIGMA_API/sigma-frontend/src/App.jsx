@@ -596,7 +596,6 @@ function App() {
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>영역</span>
               <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '50px', height: '12px' }} title="신호등 영역 크기 조절">
                 <div style={{ position: 'absolute', left: '4px', right: '4px', height: '4px', background: '#475569', top: '4px', zIndex: 1, borderRadius: '2px' }} />
                 <div style={{ position: 'absolute', left: '4px', width: compassSizeVal === 100 ? '0%' : compassSizeVal === 200 ? '50%' : 'calc(100% - 8px)', height: '4px', background: '#38bdf8', top: '4px', zIndex: 1, transition: 'width 0.2s', borderRadius: '2px' }} />
