@@ -759,12 +759,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   for (let step of ringData) {
                     const isActive = m.type === 'P'
                       ? isPedActive(step[`ped${conf.idx}`])
-                      : (() => {
-                          for (let i = 1; i <= 8; i++) {
-                            if (isCarActive(step[`car${i}`])) return true;
-                          }
-                          return false;
-                        })();
+                      : isCarActive(step[`car${conf.idx}`]);
                     if (isActive) {
                       foundTargetPhase = p;
                       break;
@@ -809,12 +804,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     let foundTargetPhase = null;
                     let p = 1;
                     for (let step of ringData) {
-                      const isActive = (() => {
-                        for (let i = 1; i <= 8; i++) {
-                          if (isCarActive(step[`car${i}`])) return true;
-                        }
-                        return false;
-                      })();
+                      const isActive = isCarActive(step[`car${conf.idx}`]);
                       if (isActive) { foundTargetPhase = p; break; }
                       if (step.eop === 1) p++;
                     }
@@ -1089,6 +1079,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     })()}
                   </tbody>
                 </table>
+                <div style={{ textAlign: 'right', marginTop: '5px', fontSize: '11px', color: '#94a3b8' }}>
+                  교차로시각: {currentTimeStr}
+                </div>
 
   {phaseDiagramData.length > 0 && (
     <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px solid #1e293b' }}>
