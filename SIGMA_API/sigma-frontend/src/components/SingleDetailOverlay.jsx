@@ -548,7 +548,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               });
               if (hasPedSignal) {
                 console.log(`[DEBUG] hasPedSignal TRUE for ring ${ring} idx ${idx}`);
-                const vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+                if (vehPhases.length === 0) {
+                  // 유틱에서 차량 직진 신호가 N+1 현시에만 주어지는 경우 보행자 방향 유추
+                  vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (idx + 1));
+                }
                 console.log(`[DEBUG] vehPhases for ring ${ring} idx ${idx}:`, vehPhases);
                 if (vehPhases.length > 0) {
                   vehPhases.forEach(vPhase => {
