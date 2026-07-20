@@ -889,13 +889,16 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       };
     });
 
-    return mapped.sort((a, b) => {
-      if (a.angle !== b.angle) return a.angle - b.angle;
-      const typeWeight = { 'S': 1, 'L': 2, 'P': 3 };
-      const weightA = typeWeight[a.type] || 4;
-      const weightB = typeWeight[b.type] || 4;
-      return weightA - weightB;
-    });
+    return {
+      unique: mapped.sort((a, b) => {
+        if (a.angle !== b.angle) return a.angle - b.angle;
+        const typeWeight = { 'S': 1, 'L': 2, 'P': 3 };
+        const weightA = typeWeight[a.type] || 4;
+        const weightB = typeWeight[b.type] || 4;
+        return weightA - weightB;
+      }),
+      all: phases
+    };
   }, [intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData]);
 
   // TOD 운영계획 다운로드
@@ -1035,7 +1038,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               remark: '기반정보'
                             });
                           }
-                          const inferredPhases = phases.filter(p => p.ring === ring && p.idx === i && p.inferred);
+                          const inferredPhases = updatedPhases.all.filter(p => p.ring === ring && p.idx === i && p.inferred);
                           inferredPhases.forEach(p => {
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
@@ -1110,11 +1113,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   </thead>
                   <tbody>
                     {(() => {
-                      if (updatedPhases.length === 0) {
+                      if (updatedPhases.unique.length === 0) {
                         return <tr><td colSpan="5" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td></tr>;
                       }
                       
-                      const grouped = updatedPhases.reduce((acc, p) => {
+                      const grouped = updatedPhases.unique.reduce((acc, p) => {
                         if (!acc[p.direction]) acc[p.direction] = [];
                         acc[p.direction].push(p);
                         return acc;
