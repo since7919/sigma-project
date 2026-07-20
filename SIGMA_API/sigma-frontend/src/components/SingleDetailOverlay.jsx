@@ -791,10 +791,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
               remaining = minRedRemain + 's';
 
-              let totalActive = 0;
+              let ringTotals = { A: 0, B: 0 };
               for (const conf of m.confs) {
                 if (m.type === 'P') {
-                  totalActive += getPedDuration(conf);
+                  ringTotals[conf.ring] += getPedDuration(conf);
                 } else {
                   let activePhaseIdx = conf.idx;
                   if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
@@ -813,9 +813,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     }
                     if (foundTargetPhase !== null) activePhaseIdx = foundTargetPhase;
                   }
-                  totalActive += (cropData[`${conf.ring}_RING_${activePhaseIdx}_PHASE_VAL`] || 0);
+                  ringTotals[conf.ring] += (cropData[`${conf.ring}_RING_${activePhaseIdx}_PHASE_VAL`] || 0);
                 }
               }
+              let totalActive = Math.max(ringTotals.A, ringTotals.B);
               displayTime = Math.max(0, cycle - totalActive) + 's';
             }
           }
@@ -1034,7 +1035,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       <th>출력형태</th>
                       <th>신호등상태</th>
                       <th>잔여시간</th>
-                      <th>표출시간</th>
+                      <th>총 부여시간</th>
                     </tr>
                   </thead>
                   <tbody>
