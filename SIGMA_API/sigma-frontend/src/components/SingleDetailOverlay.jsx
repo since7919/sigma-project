@@ -526,7 +526,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
             if (!ringData) return;
             for (let idx = 1; idx <= 8; idx++) {
-              const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
+              const hasPedSignal = ringData.some(step => {
+                const hex = toHex(step[`ped${idx}`]);
+                return hex === '01' || hex === '05';
+              });
               if (hasPedSignal) {
                 const vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
                 if (vehPhases.length > 0) {
@@ -539,24 +542,6 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                         pedestrian: 0,
                         type: 'P',
                         angle: vPhase.angle,
-                        ring: ring,
-                        idx: idx,
-                        inferred: true
-                      });
-                    }
-                  });
-                } else {
-                  const allAngles = Array.from(new Set(phases.filter(p => p.type === 'S' || p.type === 'L').map(p => p.angle)));
-                  allAngles.forEach(angle => {
-                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === idx && p.angle === angle);
-                    if (!existingPed) {
-                      const vPhaseMatch = phases.find(p => p.angle === angle && (p.type === 'S' || p.type === 'L'));
-                      phases.push({
-                        direction: vPhaseMatch ? vPhaseMatch.direction : '',
-                        outputType: '보행(3)',
-                        pedestrian: 0,
-                        type: 'P',
-                        angle: angle,
                         ring: ring,
                         idx: idx,
                         inferred: true
