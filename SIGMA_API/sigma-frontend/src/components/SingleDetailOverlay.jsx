@@ -994,9 +994,21 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               type: typeName,
                               inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
                               outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
-                              fullCode: code
+                              fullCode: code,
+                              remark: '기반정보'
                             });
                           }
+                          const inferredPhases = phases.filter(p => p.ring === ring && p.idx === i && p.inferred);
+                          inferredPhases.forEach(p => {
+                            baseRows.push({
+                              ringStep: `${ring}링 ${i}현시`,
+                              type: p.type === 'L' ? '좌회전(L)' : '보행(P)',
+                              inAngle: '-',
+                              outAngle: '-',
+                              fullCode: '-',
+                              remark: '시그널맵 유추'
+                            });
+                          });
                         }
                       });
                       
@@ -1011,6 +1023,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                   <th>진입방위각</th>
                                   <th>진출방위각</th>
                                   <th>전체코드</th>
+                                  <th>비고</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1021,6 +1034,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                     <td>{row.inAngle}</td>
                                     <td>{row.outAngle}</td>
                                     <td style={{ fontFamily: 'monospace', color: '#10b981', fontWeight: 'bold' }}>{row.fullCode}</td>
+                                    <td style={{ color: row.remark === '시그널맵 유추' ? '#f59e0b' : '#38bdf8', fontSize: '11px' }}>{row.remark}</td>
                                   </tr>
                                 ))}
                               </tbody>
