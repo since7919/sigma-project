@@ -547,13 +547,20 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 });
               });
               if (hasPedSignal) {
-                console.log(`[DEBUG] hasPedSignal TRUE for ring ${ring} idx ${idx}`);
                 let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+                
                 if (vehPhases.length === 0) {
-                  // 유틱에서 차량 직진 신호가 N+1 현시에만 주어지는 경우 보행자 방향 유추
-                  vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (idx + 1));
+                  // 1. 해당 링(Ring)에 배정된 차량 신호 방향이 모두 동일하다면(단일 방향 링), 그 방향을 보행 신호 방향으로 유추
+                  const ringVehs = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring);
+                  const uniqueDirs = [...new Set(ringVehs.map(p => p.direction))];
+                  if (uniqueDirs.length === 1) {
+                    vehPhases = [ringVehs[0]]; // 대표값 하나만 사용하여 방향/각도 추출
+                  } else {
+                    // 2. 여러 방향이 섞여 있다면 N+1 현시 룰 적용
+                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (idx + 1));
+                  }
                 }
-                console.log(`[DEBUG] vehPhases for ring ${ring} idx ${idx}:`, vehPhases);
+
                 if (vehPhases.length > 0) {
                   vehPhases.forEach(vPhase => {
                     const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === idx && p.angle === vPhase.angle);
