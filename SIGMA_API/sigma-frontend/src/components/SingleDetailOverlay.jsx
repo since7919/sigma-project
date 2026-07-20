@@ -134,6 +134,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=200`;
         const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
         
+        if (res.headers && res.headers.date) {
+          const serverTime = new Date(res.headers.date).getTime();
+          if (!isNaN(serverTime)) {
+            window.SIGMA_TIME_OFFSET = serverTime - Date.now();
+          }
+        }
+        
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(res.data, "text/xml");
         const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
@@ -346,7 +353,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   // 실시간 신호 연동 시각 연산 루프
   useEffect(() => {
     const updateRealtime = () => {
-      const now = new Date();
+      const now = new Date(Date.now() + (window.SIGMA_TIME_OFFSET || 0));
       setCurrentTimeStr(now.getFullYear() + '-' + 
         String(now.getMonth()+1).padStart(2,'0') + '-' + 
         String(now.getDate()).padStart(2,'0') + ' ' + 
@@ -1033,9 +1040,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     <tr>
                       <th>방향정보</th>
                       <th>출력형태</th>
-                      <th>신호등상태</th>
+                      <th style={{width: '90px'}}>신호등상태</th>
                       <th>잔여시간</th>
-                      <th>총 부여시간</th>
+                      <th>Split</th>
                     </tr>
                   </thead>
                   <tbody>
