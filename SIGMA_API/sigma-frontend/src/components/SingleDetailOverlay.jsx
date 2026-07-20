@@ -548,6 +548,28 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   });
                 }
               }
+
+              const hasLeftSignal = ringData.some(step => {
+                const hex = toHex(step[`car${idx}`]);
+                return hex === '10' || hex === '11' || hex === '20';
+              });
+              if (hasLeftSignal) {
+                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring && p.idx === idx);
+                sPhases.forEach(sPhaseMatch => {
+                  const hasLeftPhase = phases.some(p => p.type === 'L' && p.ring === ring && p.idx === idx && p.angle === sPhaseMatch.angle);
+                  if (!hasLeftPhase) {
+                    phases.push({
+                      direction: sPhaseMatch.direction,
+                      outputType: '좌회전(2)',
+                      pedestrian: 0,
+                      type: 'L',
+                      angle: sPhaseMatch.angle,
+                      ring: ring,
+                      idx: idx
+                    });
+                  }
+                });
+              }
             }
           });
         }
