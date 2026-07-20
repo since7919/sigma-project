@@ -1035,7 +1035,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               remark: '기반정보'
                             });
                           }
-                          const inferredPhases = updatedPhases.filter(p => p.ring === ring && p.idx === i && p.inferred);
+                          const inferredPhases = phases.filter(p => p.ring === ring && p.idx === i && p.inferred);
                           inferredPhases.forEach(p => {
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
