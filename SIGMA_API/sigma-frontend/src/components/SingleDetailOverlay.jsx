@@ -542,7 +542,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                         type: 'P',
                         angle: angle,
                         ring: ring,
-                        idx: idx
+                        idx: idx,
+                        inferred: true
                       });
                     }
                   });
@@ -565,7 +566,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       type: 'L',
                       angle: sPhaseMatch.angle,
                       ring: ring,
-                      idx: idx
+                      idx: idx,
+                      inferred: true
                     });
                   }
                 });
