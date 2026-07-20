@@ -66,6 +66,19 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const [reservCode, setReservCode] = useState(0);
   const [localZoomMode, setLocalZoomMode] = useState(false);
   const [displayMode, setDisplayMode] = useState('circle');
+  const [selectedSigMapPlan, setSelectedSigMapPlan] = useState('0');
+
+  useEffect(() => {
+    if (sigMapDataList && sigMapDataList.length > 0) {
+      if (cropData && cropData.planTp !== undefined) {
+        const planTp = cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP;
+        const active = sigMapDataList.find(p => String(p.planTp) === String(planTp));
+        setSelectedSigMapPlan(String(active ? active.planTp : sigMapDataList[0].planTp));
+      } else {
+        setSelectedSigMapPlan(String(sigMapDataList[0].planTp));
+      }
+    }
+  }, [sigMapDataList, cropData]);
   
   const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
 
@@ -526,16 +539,23 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
             if (!ringData) return;
             for (let idx = 1; idx <= 8; idx++) {
-              const hasPedSignal = ringData.some(step => {
-                const hex = toHex(step[`ped${idx}`]);
-                return hex === '01' || hex === '05';
+              const hasPedSignal = sigMapDataList.some(plan => {
+                const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+                return planRingData.some(step => {
+                  const hex = toHex(step[`ped${idx}`]);
+                  return hex === '01' || hex === '05';
+                });
               });
               if (hasPedSignal) {
+                console.log(`[DEBUG] hasPedSignal TRUE for ring ${ring} idx ${idx}`);
                 const vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+                console.log(`[DEBUG] vehPhases for ring ${ring} idx ${idx}:`, vehPhases);
                 if (vehPhases.length > 0) {
                   vehPhases.forEach(vPhase => {
                     const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === idx && p.angle === vPhase.angle);
+                    console.log(`[DEBUG] existingPed for angle ${vPhase.angle}:`, existingPed);
                     if (!existingPed) {
+                      console.log(`[DEBUG] Pushing P phase for ring ${ring} idx ${idx} angle ${vPhase.angle}`);
                       phases.push({
                         direction: vPhase.direction,
                         outputType: '보행(3)',
@@ -551,9 +571,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 }
               }
 
-              const hasLeftSignal = ringData.some(step => {
-                const hex = toHex(step[`car${idx}`]);
-                return hex === '10' || hex === '11' || hex === '20';
+              const hasLeftSignal = sigMapDataList.some(plan => {
+                const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+                return planRingData.some(step => {
+                  const hex = toHex(step[`car${idx}`]);
+                  return hex === '10' || hex === '11' || hex === '20';
+                });
               });
               if (hasLeftSignal) {
                 const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring && p.idx === idx);
@@ -1343,7 +1366,19 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     <div style={{padding: '30px', textAlign: 'center', color: '#f59e0b'}}>현재 이 교차로의 시그널맵 데이터가 없습니다.</div>
                   ) : (
                     <>
-                      {sigMapDataList.map((planData, pIdx) => (
+                      <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <label style={{ color: '#94a3b8', fontSize: '13px' }}>플랜 선택:</label>
+                        <select 
+                          value={selectedSigMapPlan}
+                          onChange={(e) => setSelectedSigMapPlan(e.target.value)}
+                          style={{ background: '#334155', color: '#fff', border: '1px solid #475569', borderRadius: '4px', padding: '4px 8px', fontSize: '13px' }}
+                        >
+                          {sigMapDataList.map((p, idx) => (
+                            <option key={idx} value={String(p.planTp)}>플랜 {p.planTp}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {sigMapDataList.filter(p => String(p.planTp) === selectedSigMapPlan).map((planData, pIdx) => (
                         <div key={pIdx} style={{marginBottom: '20px'}}>
                           <h4 style={{color: '#38bdf8', marginBottom: '5px', fontSize: '13px', textAlign: 'left'}}>플랜 {planData.planTp} 시그널맵 (A-RING & B-RING 병렬 표출)</h4>
                           <table className="sigmap-ring-table">
