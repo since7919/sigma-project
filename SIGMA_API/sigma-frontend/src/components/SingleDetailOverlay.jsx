@@ -998,7 +998,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               remark: '기반정보'
                             });
                           }
-                          const inferredPhases = phases.filter(p => p.ring === ring && p.idx === i && p.inferred);
+                          const inferredPhases = updatedPhases.filter(p => p.ring === ring && p.idx === i && p.inferred);
                           inferredPhases.forEach(p => {
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
@@ -1068,7 +1068,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       <th>출력형태</th>
                       <th style={{width: '90px'}}>신호등상태</th>
                       <th>잔여시간</th>
-                      <th>Split</th>
+                      <th>표출시간</th>
                     </tr>
                   </thead>
                   <tbody>
