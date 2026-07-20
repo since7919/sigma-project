@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 :root {
   --bg-dark: #0f172a; --bg-panel: rgba(15, 23, 42, 0.8);
@@ -303,7 +303,7 @@ details.footer-section summary::marker { content: ''; }
 .cell-green { background-color: #10b981; color: #fff; font-weight: bold; }
 .cell-red { background-color: #ef4444; color: #fff; font-weight: bold; }
 .cell-yellow { background-color: #f59e0b; color: #fff; font-weight: bold; }
-.cell-flash { background-color: #f59e0b; color: #fff; animation: blink 1s infinite; }
+.cell-flash { background-color: #10b981; color: #fff; animation: blink 1s infinite; }
 .cell-yellow-flash { background-color: #f59e0b; color: #fff; animation: blink 1s infinite; }
 .cell-red-flash { background-color: #ef4444; color: #fff; animation: blink 1s infinite; }
 
