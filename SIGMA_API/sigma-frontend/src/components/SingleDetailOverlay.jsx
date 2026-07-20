@@ -946,7 +946,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         {!mapZoomMode && (
           <div className="modal-bottom-data">
             <div className="tabs-header">
-              <button className={`tab-btn ${localTab === 'remainTime' ? 'active' : ''}`} onClick={() => setLocalTab('remainTime')}>신호잔여시간</button>
+              <button className={`tab-btn ${localTab === 'remainTime' ? 'active' : ''}`} onClick={() => setLocalTab('remainTime')}>신호계획정보</button>
               <button className={`tab-btn ${localTab === 'signalmap' ? 'active' : ''}`} onClick={() => setLocalTab('signalmap')}>시그널맵</button>
               <button className={`tab-btn ${localTab === 'baseinfo' ? 'active' : ''}`} onClick={() => setLocalTab('baseinfo')}>기반정보</button>
             </div>
@@ -1184,16 +1184,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 </table>
               </div>
 
-              <div className="op-items" style={{display: 'flex', justifyContent: 'flex-start', flexWrap: 'wrap', gap: '15px'}}>
-                <div className="op-item">
-                  <span className="op-label">예약제어</span>
-                  <span className="op-val">{reservCtrl}</span>
-                </div>
-                <div className="op-item"><span className="op-label">감응</span><span className="op-val" style={{color: reservCode === 5 || reservCode === 8 || reservCode === 9 ? '#10b981' : '#64748b', fontWeight: reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'bold' : 'normal'}}>{reservCode === 5 || reservCode === 8 || reservCode === 9 ? 'ON' : 'OFF'}</span></div>
-                <div className="op-item"><span className="op-label">소등</span><span className="op-val" style={{color: reservCode === 3 ? '#10b981' : '#64748b', fontWeight: reservCode === 3 ? 'bold' : 'normal'}}>{reservCode === 3 ? 'ON' : 'OFF'}</span></div>
-                <div className="op-item"><span className="op-label">점멸</span><span className="op-val" style={{color: reservCode === 2 ? '#10b981' : '#64748b', fontWeight: reservCode === 2 ? 'bold' : 'normal'}}>{reservCode === 2 ? 'ON' : 'OFF'}</span></div>
-              </div>
-              
+
               <div style={{ marginTop: '15px' }}>
                 <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '13px' }}>주간 일계획표</span>
                 <table style={{ width: '100%', marginTop: '8px', borderCollapse: 'collapse', textAlign: 'center', fontSize: '12px' }}>
