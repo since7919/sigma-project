@@ -1452,6 +1452,17 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       ))}
                     </>
                   )}
+                  <div style={{marginTop: '20px', padding: '15px', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '8px', fontSize: '13px', lineHeight: '1.6', color: '#e2e8f0'}}>
+                    <h4 style={{color: '#38bdf8', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold'}}>💡 시그널맵 보행신호 유추 로직</h4>
+                    <ol style={{paddingLeft: '20px', margin: 0}}>
+                      <li style={{marginBottom: '4px'}}>기반정보의 차량신호와 시그널맵의 LSU 정보를 매치하여 방향을 특정합니다.</li>
+                      <li style={{marginBottom: '4px'}}>매치된 방향의 LSU에 보행신호가 있다면, 해당 보행신호가 점등되는 현시에 보행정보를 <b>기반정보 탭</b>에 표시합니다. (비고: "시그널맵 유추")</li>
+                      <li style={{marginBottom: '4px'}}>보행신호 시간은 시그널맵 상의 보행녹색(01)과 보행점멸(05) 유지 시간의 합계로 계산합니다.</li>
+                    </ol>
+                    <p style={{marginTop: '8px', marginBottom: 0, color: '#94a3b8', fontSize: '12px'}}>
+                      ※ 참고: 기본적으로 LSU는 1번부터 북행(NB), 동행(EB), 남행(SB), 서행(WB), 북동, 동남, 남서, 서북 순으로 배치되나, 현장 상황에 따라 달라질 수 있으므로 기반정보를 최우선 기준으로 참고합니다.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
