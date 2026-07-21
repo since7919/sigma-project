@@ -1164,6 +1164,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
   <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
     <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }} className="custom-scroll">
+      <h3 style={{ color: '#00ecff', marginBottom: '15px' }}>신호계획정보</h3>
       <table className="detail-grid-table">
                   <thead>
                     <tr>
@@ -1172,12 +1173,13 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       <th style={{width: '90px'}}>신호등상태</th>
                       <th>잔여시간</th>
                       <th>표출시간</th>
+                      <th>현시</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
                       if (updatedPhases.unique.length === 0) {
-                        return <tr><td colSpan="5" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td></tr>;
+                        return <tr><td colSpan="6" style={{padding: '30px', opacity: 0.5}}>신호 구성 계획 정보가 없습니다.</td></tr>;
                       }
                       
                       const grouped = updatedPhases.unique.reduce((acc, p) => {
@@ -1185,6 +1187,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                         acc[p.direction].push(p);
                         return acc;
                       }, {});
+
+                      const getActivePhasesStr = (pObj) => {
+                        if (!pObj.confs || pObj.confs.length === 0) return '-';
+                        const phasesArr = [...new Set(pObj.confs.map(c => c.idx))].filter(Boolean).sort((a,b) => a - b);
+                        return phasesArr.length > 0 ? phasesArr.join(',') : '-';
+                      };
 
                       return Object.entries(grouped).map(([dir, phases]) => (
                         <React.Fragment key={dir}>
@@ -1200,6 +1208,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                             <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b', padding: '4px 8px', fontSize: '12px'}}>
                               {phases[0].displayTime || '-'}
                             </td>
+                            <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#10b981', padding: '4px 8px', fontSize: '12px'}}>
+                              {getActivePhasesStr(phases[0])}
+                            </td>
                           </tr>
                           {phases.slice(1).map((p, idx) => (
                             <tr key={`${dir}-${idx}`}>
@@ -1210,6 +1221,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               </td>
                               <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#f59e0b', padding: '4px 8px', fontSize: '12px'}}>
                                 {p.displayTime || '-'}
+                              </td>
+                              <td style={{fontFamily: 'monospace', fontWeight: 'bold', color: '#10b981', padding: '4px 8px', fontSize: '12px'}}>
+                                {getActivePhasesStr(p)}
                               </td>
                             </tr>
                           ))}
