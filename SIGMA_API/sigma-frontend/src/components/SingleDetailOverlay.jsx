@@ -549,8 +549,39 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               });
 
               if (hasPedLSU) {
+                // 차량 신호가 어느 현시에 켜지는지 전역 현시 번호를 계산합니다.
+                const getPhaseNoForStep = (stepIndex, plan) => {
+                  let phaseNo = 1;
+                  for (let i = 0; i < stepIndex; i++) {
+                    const eopA = plan.ringA[i]?.eop || 0;
+                    const eopB = plan.ringB[i]?.eop || 0;
+                    if (eopA === 1 || eopB === 1) phaseNo++;
+                  }
+                  return phaseNo;
+                };
+
+                let targetDirection = null;
+                let targetAngle = null;
+                let vehiclePhaseNo = -1;
+
+                // 시그널맵을 통째로 뒤져 차량 신호(car)가 녹색(01)이 되는 스텝을 찾고, 해당 스텝의 전역 현시 번호를 계산합니다.
+                for (const plan of sigMapDataList) {
+                  const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+                  for (let i = 0; i < planRingData.length; i++) {
+                    if (toHex(planRingData[i][`car${lsuIdx}`]) === '01') {
+                      vehiclePhaseNo = getPhaseNoForStep(i, plan);
+                      break;
+                    }
+                  }
+                  if (vehiclePhaseNo !== -1) break;
+                }
+
+                if (vehiclePhaseNo === -1) {
+                  vehiclePhaseNo = lsuIdx; // Fallback
+                }
+
                 // 2. 방향 특정: 이 LSU(lsuIdx)를 담당하는 차량 신호의 방향을 기반정보에서 찾는다.
-                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === lsuIdx);
+                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === vehiclePhaseNo);
                 
                 if (vehPhases.length === 0) {
                   // 단일 방향 링
@@ -560,28 +591,24 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     vehPhases = [ringVehs[0]];
                   } else {
                     // 최후 수단: N+1
-                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (lsuIdx + 1));
+                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (vehiclePhaseNo + 1));
                   }
                 }
 
                 if (vehPhases.length > 0) {
-                  const targetDirection = vehPhases[0].direction;
-                  const targetAngle = vehPhases[0].angle;
+                  targetDirection = vehPhases[0].direction;
+                  targetAngle = vehPhases[0].angle;
 
-                  // 3. '어느 현시에 켜지는가?': 시그널맵에서 EOP를 기준으로 현시 번호를 계산하여 보행 신호(01, 05)가 등장하는 현시를 추출
+                  // 3. '어느 현시에 켜지는가?': 보행 신호(01, 05)가 등장하는 전역 현시 번호를 추출
                   let pedPhases = new Set();
                   sigMapDataList.forEach(plan => {
                     const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
-                    let currentPhase = 1;
-                    planRingData.forEach(step => {
-                      const hex = toHex(step[`ped${lsuIdx}`]);
+                    for (let i = 0; i < planRingData.length; i++) {
+                      const hex = toHex(planRingData[i][`ped${lsuIdx}`]);
                       if (hex === '01' || hex === '05') {
-                        pedPhases.add(currentPhase);
+                        pedPhases.add(getPhaseNoForStep(i, plan));
                       }
-                      if (step.eop === 1) {
-                        currentPhase++;
-                      }
-                    });
+                    }
                   });
 
                   // 추출된 각각의 현시에 보행 신호를 푸시
