@@ -568,21 +568,25 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   const targetDirection = vehPhases[0].direction;
                   const targetAngle = vehPhases[0].angle;
 
-                  // 3. '어느 현시에 켜지는가?': 시그널맵에서 보행 신호(01, 05)가 등장하는 stepNo(현시)를 추출
-                  let pedSteps = new Set();
+                  // 3. '어느 현시에 켜지는가?': 시그널맵에서 EOP를 기준으로 현시 번호를 계산하여 보행 신호(01, 05)가 등장하는 현시를 추출
+                  let pedPhases = new Set();
                   sigMapDataList.forEach(plan => {
                     const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+                    let currentPhase = 1;
                     planRingData.forEach(step => {
                       const hex = toHex(step[`ped${lsuIdx}`]);
                       if (hex === '01' || hex === '05') {
-                        pedSteps.add(step.stepNo);
+                        pedPhases.add(currentPhase);
+                      }
+                      if (step.eop === 1) {
+                        currentPhase++;
                       }
                     });
                   });
 
-                  // 추출된 각각의 현시(stepNo)에 보행 신호를 푸시
-                  pedSteps.forEach(stepNo => {
-                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === stepNo && p.angle === targetAngle);
+                  // 추출된 각각의 현시에 보행 신호를 푸시
+                  pedPhases.forEach(phaseNo => {
+                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === phaseNo && p.angle === targetAngle);
                     if (!existingPed) {
                       phases.push({
                         direction: targetDirection,
@@ -591,7 +595,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                         type: 'P',
                         angle: targetAngle,
                         ring: ring,
-                        idx: stepNo, // LSU 인덱스가 아니라 점등되는 'stepNo(현시)'를 기반정보 현시로 매핑!
+                        idx: phaseNo, // 정확히 계산된 현시 번호(Phase No)를 매핑!
                         inferred: true
                       });
                     }
