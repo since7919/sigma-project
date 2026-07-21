@@ -586,19 +586,18 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
                   // 추출된 각각의 현시에 보행 신호를 푸시
                   pedPhases.forEach(phaseNo => {
-                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === phaseNo && p.angle === targetAngle);
-                    if (!existingPed) {
-                      phases.push({
-                        direction: targetDirection,
-                        outputType: '보행(3)',
-                        pedestrian: 0,
-                        type: 'P',
-                        angle: targetAngle,
-                        ring: ring,
-                        idx: phaseNo, // 정확히 계산된 현시 번호(Phase No)를 매핑!
-                        inferred: true
-                      });
-                    }
+                    // 기반정보(L02)에 이미 보행 신호가 있더라도, 시그널맵 유추를 통해 확인된 경우
+                    // 항상 '시그널맵 유추'로 표출하기 위해 조건 없이 추가합니다. (이후 필터에서 기존 기반정보 P코드는 제거됨)
+                    phases.push({
+                      direction: targetDirection,
+                      outputType: '보행(3)',
+                      pedestrian: 0,
+                      type: 'P',
+                      angle: targetAngle,
+                      ring: ring,
+                      idx: phaseNo, // 정확히 계산된 현시 번호(Phase No)를 매핑!
+                      inferred: true
+                    });
                   });
                 }
               }
@@ -1053,26 +1052,38 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       const baseRows = [];
                       ['A', 'B'].forEach(ring => {
                         for (let i = 1; i <= 8; i++) {
+                          const inferredPhases = updatedPhases.all.filter(p => p.ring === ring && p.idx === i && p.inferred);
                           const code = conf[`${ring}_RING_${i}_PHASE_CONF_CD`];
+                          
                           if (code && typeof code === 'string' && code.length >= 7) {
                             const typeChar = code.charAt(0).toUpperCase();
-                            let typeName = '미지정';
-                            if (typeChar === 'S') typeName = '직진(S)';
-                            else if (typeChar === 'L') typeName = '좌회전(L)';
-                            else if (typeChar === 'P') typeName = '보행(P)';
-                            else if (typeChar === 'U') typeName = '유턴(U)';
-                            const inAngle = parseInt(code.substring(1, 4), 10);
-                            const outAngle = parseInt(code.substring(4, 7), 10);
-                            baseRows.push({
-                              ringStep: `${ring}링 ${i}현시`,
-                              type: typeName,
-                              inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
-                              outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
-                              fullCode: code,
-                              remark: '기반정보'
-                            });
+                            
+                            // 만약 기반정보가 P(보행)코드이고, 우리가 시그널맵을 통해 유추한 보행 신호가 있다면
+                            // 기반정보 row는 표출하지 않고 건너뜁니다 (아래에서 '시그널맵 유추' row로 표출됨)
+                            let skipBase = false;
+                            if (typeChar === 'P' && inferredPhases.some(p => p.type === 'P')) {
+                              skipBase = true;
+                            }
+                            
+                            if (!skipBase) {
+                              let typeName = '미지정';
+                              if (typeChar === 'S') typeName = '직진(S)';
+                              else if (typeChar === 'L') typeName = '좌회전(L)';
+                              else if (typeChar === 'P') typeName = '보행(P)';
+                              else if (typeChar === 'U') typeName = '유턴(U)';
+                              const inAngle = parseInt(code.substring(1, 4), 10);
+                              const outAngle = parseInt(code.substring(4, 7), 10);
+                              baseRows.push({
+                                ringStep: `${ring}링 ${i}현시`,
+                                type: typeName,
+                                inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
+                                outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
+                                fullCode: code,
+                                remark: '기반정보'
+                              });
+                            }
                           }
-                          const inferredPhases = updatedPhases.all.filter(p => p.ring === ring && p.idx === i && p.inferred);
+                          
                           inferredPhases.forEach(p => {
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
