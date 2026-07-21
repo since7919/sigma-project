@@ -538,43 +538,60 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
           ['A', 'B'].forEach(ring => {
             const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
             if (!ringData) return;
-            for (let idx = 1; idx <= 8; idx++) {
-              const hasPedSignal = sigMapDataList.some(plan => {
+            for (let lsuIdx = 1; lsuIdx <= 8; lsuIdx++) {
+              // 1. 시그널맵을 통째로 뒤져서, 이 링의 이 LSU 인덱스에 '보행 신호'가 존재하는지 확인.
+              const hasPedLSU = sigMapDataList.some(plan => {
                 const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                 return planRingData.some(step => {
-                  const hex = toHex(step[`ped${idx}`]);
+                  const hex = toHex(step[`ped${lsuIdx}`]);
                   return hex === '01' || hex === '05';
                 });
               });
-              if (hasPedSignal) {
-                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === idx);
+
+              if (hasPedLSU) {
+                // 2. 방향 특정: 이 LSU(lsuIdx)를 담당하는 차량 신호의 방향을 기반정보에서 찾는다.
+                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === lsuIdx);
                 
                 if (vehPhases.length === 0) {
-                  // 1. 해당 링(Ring)에 배정된 차량 신호 방향이 모두 동일하다면(단일 방향 링), 그 방향을 보행 신호 방향으로 유추
+                  // 단일 방향 링
                   const ringVehs = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring);
                   const uniqueDirs = [...new Set(ringVehs.map(p => p.direction))];
                   if (uniqueDirs.length === 1) {
-                    vehPhases = [ringVehs[0]]; // 대표값 하나만 사용하여 방향/각도 추출
+                    vehPhases = [ringVehs[0]];
                   } else {
-                    // 2. 여러 방향이 섞여 있다면 N+1 현시 룰 적용
-                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (idx + 1));
+                    // 최후 수단: N+1
+                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (lsuIdx + 1));
                   }
                 }
 
                 if (vehPhases.length > 0) {
-                  vehPhases.forEach(vPhase => {
-                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === idx && p.angle === vPhase.angle);
-                    console.log(`[DEBUG] existingPed for angle ${vPhase.angle}:`, existingPed);
+                  const targetDirection = vehPhases[0].direction;
+                  const targetAngle = vehPhases[0].angle;
+
+                  // 3. '어느 현시에 켜지는가?': 시그널맵에서 보행 신호(01, 05)가 등장하는 stepNo(현시)를 추출
+                  let pedSteps = new Set();
+                  sigMapDataList.forEach(plan => {
+                    const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+                    planRingData.forEach(step => {
+                      const hex = toHex(step[`ped${lsuIdx}`]);
+                      if (hex === '01' || hex === '05') {
+                        pedSteps.add(step.stepNo);
+                      }
+                    });
+                  });
+
+                  // 추출된 각각의 현시(stepNo)에 보행 신호를 푸시
+                  pedSteps.forEach(stepNo => {
+                    const existingPed = phases.some(p => p.type === 'P' && p.ring === ring && p.idx === stepNo && p.angle === targetAngle);
                     if (!existingPed) {
-                      console.log(`[DEBUG] Pushing P phase for ring ${ring} idx ${idx} angle ${vPhase.angle}`);
                       phases.push({
-                        direction: vPhase.direction,
+                        direction: targetDirection,
                         outputType: '보행(3)',
                         pedestrian: 0,
                         type: 'P',
-                        angle: vPhase.angle,
+                        angle: targetAngle,
                         ring: ring,
-                        idx: idx,
+                        idx: stepNo, // LSU 인덱스가 아니라 점등되는 'stepNo(현시)'를 기반정보 현시로 매핑!
                         inferred: true
                       });
                     }
