@@ -635,6 +635,17 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     }
 
     const uniqueMovementsMap = new Map();
+    // 시그널맵 데이터가 존재한다면, 시그널맵 유추 결과에 없는 보행 신호(SPaT 등에서 임의 생성된 것)는 제거
+    if (sigMapDataList && sigMapDataList.length > 0) {
+      const validPedAngles = new Set(phases.filter(p => p.type === 'P' && p.inferred).map(p => p.angle));
+      phases = phases.filter(p => {
+        if (p.type === 'P' && !p.inferred) {
+          return validPedAngles.has(p.angle);
+        }
+        return true;
+      });
+    }
+
     phases.forEach(p => {
       const key = `${p.angle}_${p.type}`;
       if (!uniqueMovementsMap.has(key)) {
