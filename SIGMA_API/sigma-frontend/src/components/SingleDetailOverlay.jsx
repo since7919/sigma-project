@@ -602,14 +602,14 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               const hasLeftSignal = sigMapDataList.some(plan => {
                 const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                 return planRingData.some(step => {
-                  const hex = toHex(step[`car${idx}`]);
+                  const hex = toHex(step[`car${lsuIdx}`]);
                   return hex === '10' || hex === '11' || hex === '20';
                 });
               });
               if (hasLeftSignal) {
-                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring && p.idx === idx);
+                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring && p.lsuIdx === lsuIdx);
                 sPhases.forEach(sPhaseMatch => {
-                  const hasLeftPhase = phases.some(p => p.type === 'L' && p.ring === ring && p.idx === idx && p.angle === sPhaseMatch.angle);
+                  const hasLeftPhase = phases.some(p => p.type === 'L' && p.ring === ring && p.lsuIdx === lsuIdx && p.angle === sPhaseMatch.angle);
                   if (!hasLeftPhase) {
                     phases.push({
                       direction: sPhaseMatch.direction,
@@ -618,7 +618,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       type: 'L',
                       angle: sPhaseMatch.angle,
                       ring: ring,
-                      idx: idx,
+                      lsuIdx: lsuIdx,
                       inferred: true
                     });
                   }
