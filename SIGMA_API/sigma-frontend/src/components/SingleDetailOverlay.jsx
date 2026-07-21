@@ -543,8 +543,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               const hasPedLSU = sigMapDataList.some(plan => {
                 const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                 return planRingData.some(step => {
-                  const hex = toHex(step[`ped${lsuIdx}`]);
-                  return hex === '01' || hex === '05';
+                  return isPedActive(step[`ped${lsuIdx}`]);
                 });
               });
 
@@ -604,8 +603,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   sigMapDataList.forEach(plan => {
                     const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                     for (let i = 0; i < planRingData.length; i++) {
-                      const hex = toHex(planRingData[i][`ped${lsuIdx}`]);
-                      if (hex === '01' || hex === '05') {
+                      if (isPedActive(planRingData[i][`ped${lsuIdx}`])) {
                         pedPhases.add(getPhaseNoForStep(i, plan));
                       }
                     }

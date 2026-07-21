@@ -59,7 +59,7 @@ export const isCarActive = (v) => {
 
 export const isPedActive = (v) => {
   const hex = toHex(v);
-  return hex === '01' || hex === '05';
+  return hex === '01' || hex === '05' || hex === '10' || hex === '20';
 };
 
 export const getCellClass = (val, type) => {
@@ -71,9 +71,9 @@ export const getCellClass = (val, type) => {
     if (hex === '08') return 'cell-red';
     if (hex === '04') return 'cell-green';
   } else {
-    if (hex === '01') return 'cell-green';
+    if (hex === '01' || hex === '10') return 'cell-green';
     if (hex === '08' || hex === '02') return 'cell-red';
-    if (hex === '05') return 'cell-flash';
+    if (hex === '05' || hex === '20') return 'cell-flash';
   }
   const num = parseInt(hex, 16);
   if (num & 0x55) return 'cell-green';
