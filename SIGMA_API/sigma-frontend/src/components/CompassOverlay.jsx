@@ -1,7 +1,7 @@
 import React from 'react';
 import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
 
-export default function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remainB, isSeoul, sigMapData, displayMode }) {
+export default function CompassOverlay({ intersection, cropData, phaseA, phaseB, remainA, remainB, isSeoul, sigMapData, displayMode, updatedPhases }) {
   if (displayMode === 'off') return null;
   
   if (displayMode === 'arrow') {
@@ -13,7 +13,8 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
       phaseB,
       remainA,
       remainB,
-      sigMapData
+      sigMapData,
+      updatedPhases
     });
 
     const htmlContent = arrowStates.map(({ m, isPed, arrowData, topPx, leftPx, textRot, signalState, countdown, colorClass }) => {
@@ -50,8 +51,9 @@ export default function CompassOverlay({ intersection, cropData, phaseA, phaseB,
     phaseB,
     remainA,
     remainB,
-    sigMapData
-  });
+    sigMapData,
+      updatedPhases
+    });
 
   return (
     <div className="compass-center-overlay-wrapper" style={{

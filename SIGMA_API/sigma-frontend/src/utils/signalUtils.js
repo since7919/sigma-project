@@ -107,76 +107,23 @@ export function calculateArrowSignals({
   phaseB,
   remainA,
   remainB,
-  sigMapData
+  sigMapData,
+  updatedPhases
 }) {
   const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
   const peds = Array.from({ length: 16 }, (_, i) => i + 101);
   const allMovs = [...vehicles, ...peds];
 
   let sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
-  if (!isSeoul) {
-    const detailData = window.L02_DETAIL_DATA || [];
-    const conf = detailData.find(d => String(d.INT_NO) === String(intersection.int_no));
-    if (conf) {
-      for (let i = 1; i <= 8; i++) {
-        ['A', 'B'].forEach(ring => {
-          const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
-          if (parsed) {
-            const degVal = parsed.angle;
-            if (parsed.type === 'S') sPhaseMap[degVal] = { ring, idx: i };
-            else if (parsed.type === 'L') lPhaseMap[degVal] = { ring, idx: i };
-            else if (parsed.type === 'P') {
-              if (!pPhaseMap[degVal]) pPhaseMap[degVal] = [];
-              pPhaseMap[degVal].push({ ring, idx: i });
-            }
-          }
-        });
+  if (updatedPhases && updatedPhases.length > 0) {
+    updatedPhases.forEach(p => {
+      if (p.type === 'S') sPhaseMap[p.angle] = { ring: p.ring, idx: p.idx };
+      else if (p.type === 'L') lPhaseMap[p.angle] = { ring: p.ring, idx: p.idx };
+      else if (p.type === 'P') {
+        if (!pPhaseMap[p.angle]) pPhaseMap[p.angle] = [];
+        pPhaseMap[p.angle].push({ ring: p.ring, idx: p.idx });
       }
-    }
-    
-    // Infer missing pedestrian phases from cropData (both S and L phases)
-    if (cropData) {
-      [sPhaseMap, lPhaseMap].forEach(map => {
-        Object.entries(map).forEach(([deg, phase]) => {
-          const hasPhase = (cropData[`${phase.ring}_RING_${phase.idx}_PHASE_VAL`] || 0) > 0;
-          if (hasPhase) {
-            if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
-            if (!pPhaseMap[deg].some(p => p.ring === phase.ring && p.idx === phase.idx)) {
-              pPhaseMap[deg].push({ ring: phase.ring, idx: phase.idx });
-            }
-          }
-        });
-      });
-    }
-
-    // Infer exclusive pedestrian phases (where no S or L vehicles move, but ped is active)
-    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-      ['A', 'B'].forEach(ring => {
-        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        if (!ringData) return;
-        for (let idx = 1; idx <= 8; idx++) {
-          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
-          if (hasPedSignal) {
-            const hasVeh = Object.values(sPhaseMap).some(p => p.ring === ring && p.idx === idx) || 
-                           Object.values(lPhaseMap).some(p => p.ring === ring && p.idx === idx);
-            if (!hasVeh) {
-              const allAngles = new Set([...Object.keys(sPhaseMap), ...Object.keys(lPhaseMap)]);
-              allAngles.forEach(deg => {
-                if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
-                if (!pPhaseMap[deg].some(p => p.ring === ring && p.idx === idx)) {
-                  pPhaseMap[deg].push({ ring, idx });
-                }
-              });
-            }
-          }
-        }
-      });
-    }
-
-    if (String(intersection.int_no) === '1045') {
-      if (!pPhaseMap[225]) pPhaseMap[225] = [];
-      pPhaseMap[225].push({ ring: 'A', idx: 1 });
-    }
+    });
   }
 
   return allMovs.map(m => {
@@ -230,7 +177,10 @@ export function calculateArrowSignals({
         const pdTime = timingObj[pfx + 'PdsgRmdrCs'];
 
         if (isPed) {
-          if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
+          const isValidPed = (updatedPhases && updatedPhases.length > 0) ? !!pPhaseMap[degVal] : true;
+          if (!isValidPed) {
+            signalState = 'off';
+          } else if (pdsg === 'protected-Movement-Allowed' || pdsg === 'permissive-Movement-Allowed' || pdsg === '녹색') { 
             signalState = 'G';
             if (pdTime) countdown = Math.floor(pdTime / 10);
           } else if (pdsg === 'protected-clearance' || pdsg === '황색') {
@@ -376,7 +326,8 @@ export function calculateCompassSignals({
   phaseB,
   remainA,
   remainB,
-  sigMapData
+  sigMapData,
+  updatedPhases
 }) {
   const directions = [
     { key: 'N', deg: 0 },
@@ -391,69 +342,16 @@ export function calculateCompassSignals({
 
   let sPhaseMap = {}, lPhaseMap = {}, pPhaseMap = {};
   let hasConf = false;
-  if (!isSeoul) {
-    const detailData = window.L02_DETAIL_DATA || [];
-    const conf = detailData.find(d => String(d.INT_NO) === String(intersection.int_no));
-    if (conf) {
-      hasConf = true;
-      for (let i = 1; i <= 8; i++) {
-        ['A', 'B'].forEach(ring => {
-          const parsed = parsePhaseCode(conf[`${ring}_RING_${i}_PHASE_CONF_CD`]);
-          if (parsed) {
-            if (parsed.type === 'S') sPhaseMap[parsed.angle] = { ring, idx: i };
-            else if (parsed.type === 'L') lPhaseMap[parsed.angle] = { ring, idx: i };
-            else if (parsed.type === 'P') {
-              if (!pPhaseMap[parsed.angle]) pPhaseMap[parsed.angle] = [];
-              pPhaseMap[parsed.angle].push({ ring, idx: i });
-            }
-          }
-        });
+  if (updatedPhases && updatedPhases.length > 0) {
+    hasConf = true;
+    updatedPhases.forEach(p => {
+      if (p.type === 'S') sPhaseMap[p.angle] = { ring: p.ring, idx: p.idx };
+      else if (p.type === 'L') lPhaseMap[p.angle] = { ring: p.ring, idx: p.idx };
+      else if (p.type === 'P') {
+        if (!pPhaseMap[p.angle]) pPhaseMap[p.angle] = [];
+        pPhaseMap[p.angle].push({ ring: p.ring, idx: p.idx });
       }
-    }
-    
-    // Infer missing pedestrian phases from cropData (both S and L phases)
-    if (cropData) {
-      [sPhaseMap, lPhaseMap].forEach(map => {
-        Object.entries(map).forEach(([deg, phase]) => {
-          const hasPhase = (cropData[`${phase.ring}_RING_${phase.idx}_PHASE_VAL`] || 0) > 0;
-          if (hasPhase) {
-            if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
-            if (!pPhaseMap[deg].some(p => p.ring === phase.ring && p.idx === phase.idx)) {
-              pPhaseMap[deg].push({ ring: phase.ring, idx: phase.idx });
-            }
-          }
-        });
-      });
-    }
-
-    // Infer exclusive pedestrian phases (where no S or L vehicles move, but ped is active)
-    if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-      ['A', 'B'].forEach(ring => {
-        const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        if (!ringData) return;
-        for (let idx = 1; idx <= 8; idx++) {
-          const hasPedSignal = ringData.some(step => step[`ped${idx}`] === 1 || step[`ped${idx}`] === 5);
-          if (hasPedSignal) {
-            const hasVeh = Object.values(sPhaseMap).some(p => p.ring === ring && p.idx === idx) || 
-                           Object.values(lPhaseMap).some(p => p.ring === ring && p.idx === idx);
-            if (!hasVeh) {
-              const allAngles = new Set([...Object.keys(sPhaseMap), ...Object.keys(lPhaseMap)]);
-              allAngles.forEach(deg => {
-                if (!pPhaseMap[deg]) pPhaseMap[deg] = [];
-                if (!pPhaseMap[deg].some(p => p.ring === ring && p.idx === idx)) {
-                  pPhaseMap[deg].push({ ring, idx });
-                }
-              });
-            }
-          }
-        }
-      });
-    }
-
-    if (String(intersection.int_no) === '1045') {
-      if (!pPhaseMap[225]) pPhaseMap[225] = [];
-      pPhaseMap[225].push({ ring: 'A', idx: 1 });
-    }
+    });
   }
 
   return directions.map(({ key, deg }) => {
@@ -479,9 +377,15 @@ export function calculateCompassSignals({
         const ltTime = timingObj[pfx + 'LtsgRmdrCs'];
         const pdTime = timingObj[pfx + 'PdsgRmdrCs'];
 
-        if (stsg && stsg !== 'null' && stsg !== 'unknown') vehHasData = true;
-        if (ltsg && ltsg !== 'null' && ltsg !== 'unknown') vehHasData = true;
-        if (pdsg && pdsg !== 'null' && pdsg !== 'unknown') pedHasData = true;
+        if (stsg && stsg !== 'null' && stsg !== 'unknown') {
+          vehHasData = hasConf ? !!(sPhaseMap[deg] || lPhaseMap[deg]) : true;
+        }
+        if (ltsg && ltsg !== 'null' && ltsg !== 'unknown') {
+          vehHasData = hasConf ? !!(sPhaseMap[deg] || lPhaseMap[deg]) : true;
+        }
+        if (pdsg && pdsg !== 'null' && pdsg !== 'unknown') {
+          pedHasData = hasConf ? !!pPhaseMap[deg] : true;
+        }
 
         const hasAnySeoulSignal = Object.keys(statObj).some(k => k.endsWith('StatNm') && statObj[k] && statObj[k] !== 'null');
         if (!hasAnySeoulSignal && ['N', 'E', 'S', 'W'].includes(key)) {

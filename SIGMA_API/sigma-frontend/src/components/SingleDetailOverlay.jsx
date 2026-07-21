@@ -1029,7 +1029,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               remainA={remainA}
               remainB={remainB}
               isSeoul={isSeoul}
-              sigMapData={sigMapData}
+              sigMapData={sigMapData} updatedPhases={updatedPhases.unique}
               displayMode={displayMode}
             />
           </div>
@@ -1238,14 +1238,30 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
                   <span style={{ fontSize: '10px', color: isRingAActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <PhaseArrow p={ph.A} />
+                    {(() => {
+                      const ringPhases = updatedPhases.unique.filter(p => p.ring === 'A' && p.idx === ph.idx);
+                      if (ringPhases.length === 0) return <span style={{ color: '#475569' }}>-</span>;
+                      return (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {ringPhases.map((p, i) => <PhaseArrow key={i} p={p} />)}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div style={{ height: '1px', width: '80%', background: isAnyActive ? 'rgba(16, 185, 129, 0.3)' : '#334155' }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
                   <span style={{ fontSize: '10px', color: isRingBActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <PhaseArrow p={ph.B} />
+                    {(() => {
+                      const ringPhases = updatedPhases.unique.filter(p => p.ring === 'B' && p.idx === ph.idx);
+                      if (ringPhases.length === 0) return <span style={{ color: '#475569' }}>-</span>;
+                      return (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {ringPhases.map((p, i) => <PhaseArrow key={i} p={p} />)}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
