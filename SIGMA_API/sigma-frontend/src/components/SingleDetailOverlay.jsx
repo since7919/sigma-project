@@ -640,7 +640,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
       const validPedAngles = new Set(phases.filter(p => p.type === 'P' && p.inferred).map(p => p.angle));
       phases = phases.filter(p => {
         if (p.type === 'P' && !p.inferred) {
-          return validPedAngles.has(p.angle);
+          // 시그널맵을 통해 유추된 보행 신호가 있다면, 기존 기반정보(L02)나 
+          // SPaT의 잘못된 보행 현시 정보를 제거하여 중복 표출 및 현시 꼬임을 방지합니다.
+          return !validPedAngles.has(p.angle);
         }
         return true;
       });
@@ -1239,7 +1241,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   <span style={{ fontSize: '10px', color: isRingAActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>A</span>
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                     {(() => {
-                      const ringPhases = updatedPhases.unique.filter(p => p.ring === 'A' && p.idx === ph.idx);
+                      const ringPhases = updatedPhases.all.filter(p => p.ring === 'A' && p.idx === ph.idx);
                       if (ringPhases.length === 0) return <span style={{ color: '#475569' }}>-</span>;
                       return (
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1254,7 +1256,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   <span style={{ fontSize: '10px', color: isRingBActive ? '#10b981' : '#64748b', fontWeight: 'bold', width: '10px' }}>B</span>
                   <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                     {(() => {
-                      const ringPhases = updatedPhases.unique.filter(p => p.ring === 'B' && p.idx === ph.idx);
+                      const ringPhases = updatedPhases.all.filter(p => p.ring === 'B' && p.idx === ph.idx);
                       if (ringPhases.length === 0) return <span style={{ color: '#475569' }}>-</span>;
                       return (
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
