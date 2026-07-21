@@ -1058,30 +1058,21 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           if (code && typeof code === 'string' && code.length >= 7) {
                             const typeChar = code.charAt(0).toUpperCase();
                             
-                            // 만약 기반정보가 P(보행)코드이고, 우리가 시그널맵을 통해 유추한 보행 신호가 있다면
-                            // 기반정보 row는 표출하지 않고 건너뜁니다 (아래에서 '시그널맵 유추' row로 표출됨)
-                            let skipBase = false;
-                            if (typeChar === 'P' && inferredPhases.some(p => p.type === 'P')) {
-                              skipBase = true;
-                            }
-                            
-                            if (!skipBase) {
-                              let typeName = '미지정';
-                              if (typeChar === 'S') typeName = '직진(S)';
-                              else if (typeChar === 'L') typeName = '좌회전(L)';
-                              else if (typeChar === 'P') typeName = '보행(P)';
-                              else if (typeChar === 'U') typeName = '유턴(U)';
-                              const inAngle = parseInt(code.substring(1, 4), 10);
-                              const outAngle = parseInt(code.substring(4, 7), 10);
-                              baseRows.push({
-                                ringStep: `${ring}링 ${i}현시`,
-                                type: typeName,
-                                inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
-                                outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
-                                fullCode: code,
-                                remark: '기반정보'
-                              });
-                            }
+                            let typeName = '미지정';
+                            if (typeChar === 'S') typeName = '직진(S)';
+                            else if (typeChar === 'L') typeName = '좌회전(L)';
+                            else if (typeChar === 'P') typeName = '보행(P)';
+                            else if (typeChar === 'U') typeName = '유턴(U)';
+                            const inAngle = parseInt(code.substring(1, 4), 10);
+                            const outAngle = parseInt(code.substring(4, 7), 10);
+                            baseRows.push({
+                              ringStep: `${ring}링 ${i}현시`,
+                              type: typeName,
+                              inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
+                              outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
+                              fullCode: code,
+                              remark: '기반정보'
+                            });
                           }
                           
                           inferredPhases.forEach(p => {
