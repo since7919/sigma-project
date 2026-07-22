@@ -12,12 +12,18 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
 
       const isPedOnly = isPed;
 
+      const dx = leftPx - 90;
+      const dy = topPx - 90;
+      const len = Math.sqrt(dx*dx + dy*dy) || 1;
+      const outX = (dx / len) * 18;
+      const outY = (dy / len) * 18;
+
       return (
-        <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10000 }}>
-          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${textRot}deg)`, fontWeight: 800, fontSize: isPedOnly ? '10px' : '20px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb', opacity: signalState === 'F' ? 0.8 : 1, animation: signalState === 'F' ? 'blink 1s infinite' : 'none' }}>
+        <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10000, width: '40px', height: '40px' }}>
+          <div className={`signal-arrow ${colorClass} ${isPedOnly ? 'walk-mode' : ''}`} style={{ transform: `rotate(${textRot}deg)`, fontWeight: 800, fontSize: isPedOnly ? '11px' : '22px', lineHeight: 1, color: colorClass === 'yellow' ? '#ffeb3b' : '#00ffbb', opacity: signalState === 'F' ? 0.8 : 1, animation: signalState === 'F' ? 'blink 1s infinite' : 'none' }}>
             {isPedOnly ? 'WALK' : arrowData.type}
           </div>
-          <div style={{ fontFamily: 'monospace', fontSize: '9px', fontWeight: 'bold', color: colorClass === 'yellow' ? '#f59e0b' : '#00ffa2', textShadow: '0 0 3px #000, 0 0 5px #000', marginTop: '1px', lineHeight: 1 }}>
+          <div style={{ position: 'absolute', fontFamily: 'monospace', fontSize: '12px', fontWeight: 'bold', color: colorClass === 'yellow' ? '#f59e0b' : '#00ffa2', textShadow: '0 0 3px #000, 0 0 5px #000', lineHeight: 1, transform: `translate(${outX}px, ${outY}px)` }}>
             {countdown > 0 ? `${countdown}s` : ''}
           </div>
         </div>
