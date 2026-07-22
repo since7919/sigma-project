@@ -3,6 +3,7 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
+import { useSignalPhases } from '../hooks/useSignalPhases';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -111,6 +112,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     fetchSigMap();
   }, [intersection, isSeoul]);
 
+  const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData });
   // 실시간 타이머 연동
   useEffect(() => {
     if (isSeoul) return;
@@ -171,6 +173,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
   const htmlString = useMemo(() => {
     if (displayMode === 'arrow') {
       const arrowStates = calculateArrowSignals({
+        updatedPhases: updatedPhases.unique,
         intersection,
         isSeoul,
         cropData,
@@ -213,6 +216,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
 
     // Compass Mode
     const compassStates = calculateCompassSignals({
+        updatedPhases: updatedPhases.unique,
       intersection,
       isSeoul,
       cropData,
