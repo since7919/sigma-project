@@ -232,9 +232,9 @@ export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA,
         if (activeSteps.length === 0) return false;
         
         let hasActiveVal = false;
-        for (let s of activeSteps) {
+        for (let stepItem of activeSteps) {
           for (let i = 1; i <= 8; i++) {
-            if (isCarActive(s[`car${i}`])) hasActiveVal = true;
+            if (isCarActive(stepItem[`car${i}`])) hasActiveVal = true;
           }
         }
         if (!hasActiveVal) return false;
@@ -257,9 +257,9 @@ export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA,
           if (activeSteps.length === 0) return false;
           
           let hasPed = false;
-          for (let s of activeSteps) {
+          for (let stepItem of activeSteps) {
             for (let i = 1; i <= 8; i++) {
-              if (isPedActive(s[`ped${i}`])) hasPed = true;
+              if (isPedActive(stepItem[`ped${i}`])) hasPed = true;
             }
           }
           if (!hasPed) return false;
@@ -404,7 +404,7 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
     };
 
     return directions.map(({ key, deg }) => {
-      let s = 'off', l = 'off', p = 'off';
+      let sigS = 'off', sigL = 'off', sigP = 'off';
       let carCountdown = 0;
       let pedCountdown = 0;
       let vehHasData = false;
@@ -562,9 +562,9 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
         if (activeSteps.length === 0) return false;
         
         let hasActiveVal = false;
-        for (let s of activeSteps) {
+        for (let stepItem of activeSteps) {
           for (let i = 1; i <= 8; i++) {
-            if (isCarActive(s[`car${i}`])) hasActiveVal = true;
+            if (isCarActive(stepItem[`car${i}`])) hasActiveVal = true;
           }
         }
         if (!hasActiveVal) return false;
@@ -587,9 +587,9 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
           if (activeSteps.length === 0) return false;
           
           let hasPed = false;
-          for (let s of activeSteps) {
+          for (let stepItem of activeSteps) {
             for (let i = 1; i <= 8; i++) {
-              if (isPedActive(s[`ped${i}`])) hasPed = true;
+              if (isPedActive(stepItem[`ped${i}`])) hasPed = true;
             }
           }
           if (!hasPed) return false;
@@ -599,7 +599,7 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
     };
 
     return directions.map(({ key, deg }) => {
-      let s = 'off', l = 'off', p = 'off';
+      let sigS = 'off', sigL = 'off', sigP = 'off';
       let carCountdown = 0;
       let pedCountdown = 0;
       let vehHasData = false;

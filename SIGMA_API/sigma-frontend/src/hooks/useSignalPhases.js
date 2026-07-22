@@ -328,9 +328,9 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
               const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
               const phaseSteps = getStepsForCurrentPhase(conf.ring, currentPhase);
-              const activeSteps = phaseSteps.filter(s => isPedActive(s[`ped${conf.idx}`]));
+              const activeSteps = phaseSteps.filter(stepObj => isPedActive(stepObj[`ped${conf.idx}`]));
               if (activeSteps.length > 0) {
-                pedDur = activeSteps.reduce((acc, s) => acc + (s.maxTm > 0 ? s.maxTm : s.minTm), 0);
+                pedDur = activeSteps.reduce((acc, stepObj) => acc + (stepObj.maxTm > 0 ? s.maxTm : s.minTm), 0);
               } else {
                 pedDur = Math.max(0, pedDur - 5);
               }
@@ -379,9 +379,9 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                 if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
                   const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
                   const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
-                  const activeSteps = phaseSteps.filter(s => {
+                  const activeSteps = phaseSteps.filter(stepObj => {
                     for (let i = 1; i <= 8; i++) {
-                      if (isCarActive(s[`car${i}`])) return true;
+                      if (isCarActive(stepObj[`car${i}`])) return true;
                     }
                     return false;
                   });
