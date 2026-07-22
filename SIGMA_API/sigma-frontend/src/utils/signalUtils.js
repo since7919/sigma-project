@@ -113,13 +113,17 @@ export function calculateArrowSignals({ updatedPhases }) {
     let topPx = 90;
     let leftPx = 90;
     
+    let textRot = 0;
     if (isPed) {
-      const pedAngles = [0, 90, 180, 270, 0, 90, 180, 270];
-      const a = pedAngles[(m - 101) % 8];
-      const r = 55;
-      const rad = (a - 90) * Math.PI / 180;
+      const refM = m - 100;
+      const baseAng = defPosAngles[(refM - 1) % 16] || 0;
+      const ang = (baseAng - 90 + 360) % 360;
+      const r = 48;
+      const rad = (ang - 90) * Math.PI / 180;
       leftPx = 90 + r * Math.cos(rad);
       topPx = 90 + r * Math.sin(rad);
+      textRot = ang;
+      if (textRot > 90 && textRot < 270) textRot -= 180;
     } else {
       let a = defPosAngles[(m - 1) % 16] || 0;
       if (m % 2 !== 0) a += 10;
@@ -129,10 +133,6 @@ export function calculateArrowSignals({ updatedPhases }) {
       const rad = (a - 90) * Math.PI / 180;
       leftPx = 90 + r * Math.cos(rad);
       topPx = 90 + r * Math.sin(rad);
-    }
-    
-    let textRot = 0;
-    if (!isPed) {
       textRot = arrowData.ang;
     }
     
