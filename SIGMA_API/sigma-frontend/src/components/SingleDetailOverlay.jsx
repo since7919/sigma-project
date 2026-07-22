@@ -474,26 +474,69 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
   const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
 
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseMove = (e) => {
+        setPosition({
+          x: e.clientX - dragOffset.x,
+          y: e.clientY - dragOffset.y
+        });
+      };
+      const handleGlobalMouseUp = () => setIsDragging(false);
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleGlobalMouseMove);
+        window.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset]);
+
+  const handleMouseDown = (e) => {
+    if (isDual || isMultiScreenOpen) return;
+    // Remove the target closest check since we will bind this directly to the header
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
   return (
-    <div className={isDual ? "overlay" : "detail-modal-overlay"} style={isMultiScreenOpen ? { background: 'transparent', pointerEvents: 'none' } : {}}>
-      <div className="detail-modal-content" style={
-        isDual ? {width:'100%', height:'100%', borderRadius:0} :
-        isMultiScreenOpen ? {
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '80%',
-          maxWidth: '1000px',
-          height: '80%',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
-          pointerEvents: 'auto',
-          border: '1px solid rgba(56, 189, 248, 0.5)'
-        } : {}
-      }>
-        <header className="modal-header">
-          <h2>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
-          <button className="btn-close" onClick={onClose}>×</button>
+    <div className={isDual ? "overlay" : "detail-modal-overlay"} style={isMultiScreenOpen ? { background: 'transparent', pointerEvents: 'none' } : { background: 'transparent', pointerEvents: 'none' }}>
+      <div 
+        className="detail-modal-content"
+        style={
+          isDual ? {width:'100%', height:'100%', borderRadius:0, pointerEvents: 'auto'} :
+          isMultiScreenOpen ? {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
+            maxWidth: '1000px',
+            height: '80%',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
+            pointerEvents: 'auto',
+            border: '1px solid rgba(56, 189, 248, 0.5)'
+          } : {
+            pointerEvents: 'auto',
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+          }
+        }
+      >
+        <header 
+          className="modal-header" 
+          onMouseDown={handleMouseDown}
+          style={{ cursor: isDual || isMultiScreenOpen ? 'auto' : (isDragging ? 'grabbing' : 'grab') }}
+        >
+          <h2 style={{ pointerEvents: 'none' }}>🚦 {intersection.int_nm} <span style={{fontSize:'0.8rem', color:'#94a3b8', marginLeft:10}}>ID: {intersection.int_no}</span></h2>
+          <button className="btn-close" onMouseDown={(e) => e.stopPropagation()} onClick={onClose}>×</button>
         </header>
 
         <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
