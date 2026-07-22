@@ -4,169 +4,25 @@ import L from 'leaflet';
 import axios from 'axios';
 import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
 import { useSignalPhases } from '../hooks/useSignalPhases';
+import { useRealtimeSignal } from '../hooks/useRealtimeSignal';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSignalToggle, displayMode, mainPhases }) {
-  const [cropData, setCropData] = useState(null);
-  const [phaseA, setPhaseA] = useState(1);
-  const [phaseB, setPhaseB] = useState(1);
-  const [remainA, setRemainA] = useState(0);
-  const [remainB, setRemainB] = useState(0);
-  const [sigMapData, setSigMapData] = useState({ ringA: [], ringB: [] });
+  const {
+    cropData,
+    phaseA,
+    phaseB,
+    remainA,
+    remainB,
+    sigMapData
+  } = useRealtimeSignal({ intersection, mainPhases });
 
   const isSeoul = useMemo(() => {
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
   }, [intersection]);
 
-  // CROP 정보
-  useEffect(() => {
-    if (isSeoul) return;
-    const fetchCROP = async () => {
-      try {
-        const regionCode = intersection.region_cd || 'L02';
-        const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
-        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(res.data, "text/xml");
-        const items = xmlDoc.getElementsByTagName("PlanCROPInfo");
-        let rawItems = [];
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const obj = {};
-          for (let j = 0; j < item.children.length; j++) {
-            obj[item.children[j].tagName] = item.children[j].textContent;
-          }
-          rawItems.push(obj);
-        }
-        let matched = null;
-        for (let item of rawItems) {
-          const intNo = item.INT_NO || item.itstId;
-          if (String(intNo) === String(intersection.int_no)) {
-            matched = {
-              planNo: item.INT_PLAN_NO || item.planNo,
-              cycle: parseInt(item.INT_OPER_CYCLE_VAL || item.cycle || 120),
-              offset: parseInt(item.INT_OPER_OFFSET_VAL || item.offset || 0),
-            };
-            let sumA = 0;
-            let sumB = 0;
-            for (let i = 1; i <= 8; i++) {
-              matched[`A_RING_${i}_PHASE_VAL`] = parseInt(item[`A_RING_${i}_PHASE_VAL`] || 0);
-              matched[`B_RING_${i}_PHASE_VAL`] = parseInt(item[`B_RING_${i}_PHASE_VAL`] || 0);
-              sumA += matched[`A_RING_${i}_PHASE_VAL`];
-              sumB += matched[`B_RING_${i}_PHASE_VAL`];
-            }
-            const calculatedCycle = Math.max(sumA, sumB);
-            if (calculatedCycle > 0) matched.cycle = calculatedCycle;
-            break;
-          }
-        }
-        if (matched) setCropData(matched);
-      } catch (err) {
-        console.error('Error fetching CROP for map overlay:', err);
-      }
-    };
-    fetchCROP();
-  }, [intersection, isSeoul]);
-
-  // SigMap 정보
-  useEffect(() => {
-    if (isSeoul) return;
-    const fetchSigMap = async () => {
-      try {
-        const regionCode = intersection.region_cd || 'L02';
-        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=100`;
-        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(res.data, "text/xml");
-        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
-        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
-        const ringA = [];
-        const ringB = [];
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          const intNo = item.getElementsByTagName("INT_NO")[0]?.textContent;
-          if (String(intNo) === String(intersection.int_no)) {
-            const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
-            const step = {
-              stepNo: parseInt(item.getElementsByTagName("STEP_NO")[0]?.textContent || 0, 10),
-              minTm: parseInt(item.getElementsByTagName("MIN_TM")[0]?.textContent || 0, 10),
-              maxTm: parseInt(item.getElementsByTagName("MAX_TM")[0]?.textContent || 0, 10),
-              eop: parseInt(item.getElementsByTagName("EOP")[0]?.textContent || 0, 10),
-            };
-            for (let k = 1; k <= 8; k++) {
-              step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
-              step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
-            }
-            if (ringNo === 0) ringA.push(step);
-            else if (ringNo === 1) ringB.push(step);
-          }
-        }
-        ringA.sort((a, b) => a.stepNo - b.stepNo);
-        ringB.sort((a, b) => a.stepNo - b.stepNo);
-        setSigMapData({ ringA, ringB });
-      } catch (err) {
-        console.error('Error fetching SigMap for map overlay:', err);
-      }
-    };
-    fetchSigMap();
-  }, [intersection, isSeoul]);
-
   const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData });
-  // 실시간 타이머 연동
-  useEffect(() => {
-    if (isSeoul) return;
-    const updateRealtime = () => {
-      if (!cropData || !cropData.cycle) return;
-      const cycle = cropData.cycle;
-      const offset = cropData.offset || 0;
-      
-      const currentMainPhase = mainPhases?.[intersection.id] || (intersection.region_cd === 'L02' ? 2 : 1);
-      let splitSum = 0;
-      if (currentMainPhase > 1 && cropData) {
-         for (let i = 1; i < currentMainPhase; i++) {
-            splitSum += (cropData[`A_RING_${i}_PHASE_VAL`] || 0);
-         }
-      }
-      const adjustedOffset = (offset - splitSum + cycle * 10) % cycle;
-      
-      const now = new Date();
-      const kstTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Seoul" });
-      const kstNow = new Date(kstTimeStr);
-      
-      const midnight = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate(), 0, 0, 0, 0);
-      const secondsSinceMidnight = Math.floor((kstNow.getTime() - midnight.getTime()) / 1000);
-      const timeInCycle = (secondsSinceMidnight - adjustedOffset + cycle * 10) % cycle;
-
-      const calcRingState = (ringPrefix) => {
-        let cumulativeTime = 0;
-        let currentPhaseIdx = 1;
-        let remainingTime = 0;
-        for (let i = 1; i <= 8; i++) {
-          const split = cropData[`${ringPrefix}_${i}_PHASE_VAL`] || 0;
-          if (split === 0) continue;
-          if (timeInCycle < cumulativeTime + split) {
-            currentPhaseIdx = i;
-            remainingTime = (cumulativeTime + split) - timeInCycle;
-            break;
-          }
-          cumulativeTime += split;
-        }
-        return { currentPhaseIdx, remainingTime };
-      };
-
-      const ringA = calcRingState('A_RING');
-      const ringB = calcRingState('B_RING');
-
-      setPhaseA(ringA.currentPhaseIdx);
-      setRemainA(ringA.remainingTime);
-      setPhaseB(ringB.currentPhaseIdx);
-      setRemainB(ringB.remainingTime);
-    };
-    updateRealtime();
-    const interval = setInterval(updateRealtime, 1000);
-    return () => clearInterval(interval);
-  }, [cropData, isSeoul]);
 
   const markerRef = useRef(null);
 
