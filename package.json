@@ -1,0 +1,9 @@
+{
+  "name": "sigma-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd SIGMA_API/sigma-frontend && npm install && npm run build",
+    "postinstall": "cd SIGMA_API/sigma-frontend && npm install && npm run build"
+  }
+}
