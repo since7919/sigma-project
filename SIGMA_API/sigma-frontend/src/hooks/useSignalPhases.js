@@ -448,12 +448,12 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                   sumTime = cycle - elapsed;
                 } else {
                   sumTime = currentRemain;
-                  let step = currentPhaseIdx;
+                  let currStep = currentPhaseIdx;
                   let loopCount = 0;
-                  while (step !== targetIdx && loopCount < 8) {
-                    step = (step % 8) + 1;
-                    if (step === targetIdx) break;
-                    const split = cropData[`${ringPrefix}_${step}_PHASE_VAL`] || 0;
+                  while (currStep !== targetIdx && loopCount < 8) {
+                    currStep = (currStep % 8) + 1;
+                    if (currStep === targetIdx) break;
+                    const split = cropData[`${ringPrefix}_${currStep}_PHASE_VAL`] || 0;
                     sumTime += split;
                     loopCount++;
                   }
