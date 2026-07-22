@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { parsePhaseCode, isCarActive, isPedActive } from '../utils/signalUtils';
+import { parsePhaseCode, isCarActive, isPedActive, toHex } from '../utils/signalUtils';
 
 export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList }) {
     return useMemo(() => {
