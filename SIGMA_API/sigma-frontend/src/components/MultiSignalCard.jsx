@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
 import axios from 'axios';
 import CompassOverlay from './CompassOverlay';
+import { useSignalPhases } from '../hooks/useSignalPhases';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -215,6 +216,18 @@ export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove
 
   const isApiOn = isSeoul ? (window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no]) : cropData;
 
+  const phasesInfo = useSignalPhases({
+    intersection,
+    isSeoul,
+    cropData,
+    phaseA,
+    phaseB,
+    remainA,
+    remainB,
+    uticUpdateTick,
+    sigMapData
+  });
+
   return (
     <div className="multi-card">
       <header className="multi-card-header">
@@ -259,6 +272,7 @@ export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove
             isSeoul={isSeoul}
             sigMapData={sigMapData}
             displayMode={displayMode}
+            updatedPhases={phasesInfo.unique}
           />
         </div>
       </div>
