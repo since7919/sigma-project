@@ -3,6 +3,10 @@ import { parsePhaseCode, isCarActive, isPedActive } from '../utils/signalUtils';
 
 export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData }) {
     return useMemo(() => {
+    const conf = isSeoul ? null : (() => {
+      const detailData = window.L02_DETAIL_DATA || [];
+      return detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) || null;
+    })();
     let phases = [];
 
     if (isSeoul) {
