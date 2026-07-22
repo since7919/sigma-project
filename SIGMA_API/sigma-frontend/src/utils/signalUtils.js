@@ -204,6 +204,23 @@ export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA,
       }
     }
 
+    
+    const getStepsForCurrentPhase = (ring, currentPhase) => {
+      const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+      if (!ringData || ringData.length === 0) return [];
+      let p = 1;
+      let stepsInPhase = [];
+      for (let step of ringData) {
+        if (p === currentPhase) {
+          stepsInPhase.push(step);
+        }
+        if (step.eop === 1) {
+          p++;
+        }
+      }
+      return stepsInPhase;
+    };
+
     const checkActive = (phaseMapDict, degVal) => {
       const conf = phaseMapDict[degVal];
       if (!conf) return false;
@@ -211,17 +228,16 @@ export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA,
       if (conf.idx !== activePhaseIdx) return false;
 
       if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-        const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        const currentPhaseVal = cropData ? (cropData[`${conf.ring}_RING_${activePhaseIdx}_PHASE_VAL`] || 0) : 0;
-        const activeSteps = ringData.filter(s => {
-          const matchPhase = s.phaseNo === activePhaseIdx;
-          let hasActiveVal = false;
+        const activeSteps = getStepsForCurrentPhase(conf.ring, activePhaseIdx);
+        if (activeSteps.length === 0) return false;
+        
+        let hasActiveVal = false;
+        for (let s of activeSteps) {
           for (let i = 1; i <= 8; i++) {
             if (isCarActive(s[`car${i}`])) hasActiveVal = true;
           }
-          return matchPhase && hasActiveVal;
-        });
-        if (activeSteps.length === 0) return false;
+        }
+        if (!hasActiveVal) return false;
       }
       return true;
     };
@@ -237,16 +253,16 @@ export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA,
         if (pedRemain <= 0) return false;
 
         if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-          const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-          const activeSteps = ringData.filter(s => {
-            const matchPhase = s.phaseNo === activePhaseIdx;
-            let hasPed = false;
+          const activeSteps = getStepsForCurrentPhase(conf.ring, activePhaseIdx);
+          if (activeSteps.length === 0) return false;
+          
+          let hasPed = false;
+          for (let s of activeSteps) {
             for (let i = 1; i <= 8; i++) {
               if (isPedActive(s[`ped${i}`])) hasPed = true;
             }
-            return matchPhase && hasPed;
-          });
-          if (activeSteps.length === 0) return false;
+          }
+          if (!hasPed) return false;
         }
         return true;
       });
@@ -518,6 +534,23 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
       }
     }
 
+    
+    const getStepsForCurrentPhase = (ring, currentPhase) => {
+      const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
+      if (!ringData || ringData.length === 0) return [];
+      let p = 1;
+      let stepsInPhase = [];
+      for (let step of ringData) {
+        if (p === currentPhase) {
+          stepsInPhase.push(step);
+        }
+        if (step.eop === 1) {
+          p++;
+        }
+      }
+      return stepsInPhase;
+    };
+
     const checkActive = (phaseMapDict, degVal) => {
       const conf = phaseMapDict[degVal];
       if (!conf) return false;
@@ -525,16 +558,16 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
       if (conf.idx !== activePhaseIdx) return false;
 
       if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-        const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-        const activeSteps = ringData.filter(s => {
-          const matchPhase = s.phaseNo === activePhaseIdx;
-          let hasActiveVal = false;
+        const activeSteps = getStepsForCurrentPhase(conf.ring, activePhaseIdx);
+        if (activeSteps.length === 0) return false;
+        
+        let hasActiveVal = false;
+        for (let s of activeSteps) {
           for (let i = 1; i <= 8; i++) {
             if (isCarActive(s[`car${i}`])) hasActiveVal = true;
           }
-          return matchPhase && hasActiveVal;
-        });
-        if (activeSteps.length === 0) return false;
+        }
+        if (!hasActiveVal) return false;
       }
       return true;
     };
@@ -550,16 +583,16 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
         if (pedRemain <= 0) return false;
 
         if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-          const ringData = conf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-          const activeSteps = ringData.filter(s => {
-            const matchPhase = s.phaseNo === activePhaseIdx;
-            let hasPed = false;
+          const activeSteps = getStepsForCurrentPhase(conf.ring, activePhaseIdx);
+          if (activeSteps.length === 0) return false;
+          
+          let hasPed = false;
+          for (let s of activeSteps) {
             for (let i = 1; i <= 8; i++) {
               if (isPedActive(s[`ped${i}`])) hasPed = true;
             }
-            return matchPhase && hasPed;
-          });
-          if (activeSteps.length === 0) return false;
+          }
+          if (!hasPed) return false;
         }
         return true;
       });
