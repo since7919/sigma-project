@@ -173,15 +173,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
   const htmlString = useMemo(() => {
     if (displayMode === 'arrow') {
       const arrowStates = calculateArrowSignals({
-        updatedPhases: updatedPhases.unique,
-        intersection,
-        isSeoul,
-        cropData,
-        phaseA,
-        phaseB,
-        remainA,
-        remainB,
-        sigMapData
+        updatedPhases: updatedPhases.unique
       });
 
       const htmlContent = arrowStates.map(({ m, isPed, arrowData, topPx, leftPx, textRot, signalState, countdown, colorClass }) => {
@@ -216,15 +208,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
 
     // Compass Mode
     const compassStates = calculateCompassSignals({
-        updatedPhases: updatedPhases.unique,
-      intersection,
-      isSeoul,
-      cropData,
-      phaseA,
-      phaseB,
-      remainA,
-      remainB,
-      sigMapData
+        updatedPhases: updatedPhases.unique
     });
 
     return `

@@ -263,14 +263,6 @@ export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove
             </MapContainer>
           ), [intersection.y_coord, intersection.x_coord])}
           <CompassOverlay 
-            intersection={intersection}
-            cropData={cropData}
-            phaseA={phaseA}
-            phaseB={phaseB}
-            remainA={remainA}
-            remainB={remainB}
-            isSeoul={isSeoul}
-            sigMapData={sigMapData}
             displayMode={displayMode}
             updatedPhases={phasesInfo.unique}
           />

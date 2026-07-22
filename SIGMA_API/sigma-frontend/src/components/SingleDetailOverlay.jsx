@@ -546,14 +546,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             </MapContainer>
           ), [intersection.y_coord, intersection.x_coord, mapZoomMode])}
             <CompassOverlay 
-              intersection={intersection}
-              cropData={cropData}
-              phaseA={phaseA}
-              phaseB={phaseB}
-              remainA={remainA}
-              remainB={remainB}
-              isSeoul={isSeoul}
-              sigMapData={sigMapData} updatedPhases={updatedPhases.unique}
+              updatedPhases={updatedPhases.unique}
               displayMode={displayMode}
             />
           </div>
