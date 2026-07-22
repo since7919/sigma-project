@@ -135,7 +135,10 @@ export function calculateArrowSignals({ updatedPhases }) {
     let countdown = 0;
 
     if (updatedPhases && updatedPhases.length > 0) {
-      const match = updatedPhases.find(p => p.m === m);
+      const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+      const mType = isPed ? 'P' : (m % 2 !== 0 ? 'L' : 'S');
+      const match = updatedPhases.find(p => p.angle === degVal && p.type === mType);
+      
       if (match) {
         if (match.statusClass === 'sig-status-green') signalState = 'G';
         else if (match.statusClass === 'sig-status-yellow') signalState = 'Y';
@@ -196,15 +199,14 @@ export function calculateCompassSignals({ updatedPhases }) {
 
       const getStatusAndCountdown = (matches) => {
         if (matches.length === 0) return { state: 'off', countdown: 0 };
-        // 우선순위: green -> flash -> yellow -> red -> off
+        // 우선순위: green -> flash -> yellow -> red/gray
         const activeMatch = matches.find(m => m.statusClass === 'sig-status-green' || m.statusClass === 'sig-status-flash' || m.statusClass === 'sig-status-yellow');
         const matchToUse = activeMatch || matches[0];
         
-        let state = 'off';
+        let state = 'red'; // 기본적으로 신호등이 존재하면 불이 꺼져있지 않고 적색등 상태여야 함 (소등이 아님)
         if (matchToUse.statusClass === 'sig-status-green') state = 'green';
         else if (matchToUse.statusClass === 'sig-status-yellow') state = 'yellow';
         else if (matchToUse.statusClass === 'sig-status-flash') state = 'flash';
-        else if (matchToUse.statusClass === 'sig-status-red') state = 'red';
         
         const cdown = parseInt(matchToUse.remaining) || 0;
         return { state, countdown: cdown };
@@ -236,7 +238,7 @@ export function calculateCompassSignals({ updatedPhases }) {
     let caOn = l === 'green';
     let cgOn = s === 'green';
 
-    let prOn = p === 'red' || p === 'off';
+    let prOn = p === 'red';
     let pgOn = p === 'green' || p === 'flash';
 
     let carColor = '#fff';
