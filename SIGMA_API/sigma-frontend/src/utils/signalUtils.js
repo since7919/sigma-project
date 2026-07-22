@@ -99,8 +99,9 @@ const getVisualArrowLocal = (m) => {
   return movementMap[m] || { type: '•', ang: 0 };
 };
 
-export function calculateArrowSignals({ updatedPhases }) {
-  const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
+export function calculateArrowSignals({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, sigMapData, updatedPhases }) {
+  if (updatedPhases && updatedPhases.length > 0) {
+    const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
   const peds = Array.from({ length: 16 }, (_, i) => i + 101);
   const allMovs = [...vehicles, ...peds];
 
@@ -163,10 +164,78 @@ export function calculateArrowSignals({ updatedPhases }) {
       colorClass
     };
   });
+
+  } else {
+    const vehicles = Array.from({ length: 16 }, (_, i) => i + 1);
+  const peds = Array.from({ length: 16 }, (_, i) => i + 101);
+  const allMovs = [...vehicles, ...peds];
+
+  return allMovs.map(m => {
+    const isPed = m >= 100;
+    const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrowLocal(m);
+    
+    let ang = 0;
+    let textRot = 0;
+    let radiusMultiplier = 40;
+
+    if (isPed) {
+      const refM = m - 100;
+      const baseAng = defPosAngles[(refM - 1) % 16] || 0;
+      ang = (baseAng - 90 + 360) % 360;
+      radiusMultiplier = 48; 
+      textRot = ang;
+      if (textRot > 90 && textRot < 270) textRot -= 180;
+    } else {
+      ang = defPosAngles[(m - 1) % 16] || 0;
+      if (m % 2 !== 0) ang += 7;
+      else ang -= 7;
+      radiusMultiplier = (m > 8) ? 55 : 40;
+      textRot = arrowData.ang;
+    }
+
+    const rad = ang * Math.PI / 180;
+    const topPx = 90 - Math.cos(rad) * radiusMultiplier;
+    const leftPx = 90 + Math.sin(rad) * radiusMultiplier;
+
+    let signalState = 'off';
+    let countdown = 0;
+
+    if (updatedPhases && updatedPhases.length > 0) {
+      const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+      const mType = isPed ? 'P' : (m % 2 !== 0 ? 'L' : 'S');
+      const match = updatedPhases.find(p => p.angle === degVal && p.type === mType);
+      
+      if (match) {
+        if (match.statusClass === 'sig-status-green') signalState = 'G';
+        else if (match.statusClass === 'sig-status-yellow') signalState = 'Y';
+        else if (match.statusClass === 'sig-status-flash') signalState = 'F';
+        else if (match.statusClass === 'sig-status-red' || match.statusClass === 'sig-status-gray') signalState = 'off';
+        
+        countdown = parseInt(match.remaining) || 0;
+      }
+    }
+
+    const colorClass = (isPed && signalState === 'F') ? 'green' : (signalState === 'Y' || signalState === 'F') ? 'yellow' : 'green';
+
+    return {
+      m,
+      isPed,
+      arrowData,
+      topPx,
+      leftPx,
+      textRot,
+      signalState,
+      countdown,
+      colorClass
+    };
+  });
+
+  }
 }
 
-export function calculateCompassSignals({ updatedPhases }) {
-  const directions = [
+export function calculateCompassSignals({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, sigMapData, updatedPhases }) {
+  if (updatedPhases && updatedPhases.length > 0) {
+    const directions = [
     { key: 'N', deg: 0 },
     { key: 'NE', deg: 45 },
     { key: 'E', deg: 90 },
@@ -270,4 +339,112 @@ export function calculateCompassSignals({ updatedPhases }) {
       dirLabel
     };
   });
+
+  } else {
+    const directions = [
+    { key: 'N', deg: 0 },
+    { key: 'NE', deg: 45 },
+    { key: 'E', deg: 90 },
+    { key: 'SE', deg: 135 },
+    { key: 'S', deg: 180 },
+    { key: 'SW', deg: 225 },
+    { key: 'W', deg: 270 },
+    { key: 'NW', deg: 315 }
+  ];
+
+  const directionLabels = {
+    'N': '북', 'E': '동', 'S': '남', 'W': '서',
+    'NE': '북동', 'SE': '남동', 'SW': '남서', 'NW': '북서'
+  };
+
+  return directions.map(({ key, deg }) => {
+    let s = 'off', l = 'off', p = 'off';
+    let carCountdown = 0;
+    let pedCountdown = 0;
+    let vehHasData = false;
+    let pedHasData = false;
+
+    if (updatedPhases && updatedPhases.length > 0) {
+      const sMatches = updatedPhases.filter(ph => ph.angle === deg && ph.type === 'S');
+      const lMatches = updatedPhases.filter(ph => ph.angle === deg && ph.type === 'L');
+      const pMatches = updatedPhases.filter(ph => ph.angle === deg && ph.type === 'P');
+
+      if (sMatches.length > 0 || lMatches.length > 0) vehHasData = true;
+      if (pMatches.length > 0) pedHasData = true;
+
+      const getStatusAndCountdown = (matches) => {
+        if (matches.length === 0) return { state: 'off', countdown: 0 };
+        // 우선순위: green -> flash -> yellow -> red/gray
+        const activeMatch = matches.find(m => m.statusClass === 'sig-status-green' || m.statusClass === 'sig-status-flash' || m.statusClass === 'sig-status-yellow');
+        const matchToUse = activeMatch || matches[0];
+        
+        let state = 'red'; // 기본적으로 신호등이 존재하면 불이 꺼져있지 않고 적색등 상태여야 함 (소등이 아님)
+        if (matchToUse.statusClass === 'sig-status-green') state = 'green';
+        else if (matchToUse.statusClass === 'sig-status-yellow') state = 'yellow';
+        else if (matchToUse.statusClass === 'sig-status-flash') state = 'flash';
+        
+        const cdown = parseInt(matchToUse.remaining) || 0;
+        return { state, countdown: cdown };
+      };
+
+      const sResult = getStatusAndCountdown(sMatches);
+      s = sResult.state;
+      carCountdown = Math.max(carCountdown, sResult.countdown);
+
+      const lResult = getStatusAndCountdown(lMatches);
+      l = lResult.state;
+      carCountdown = Math.max(carCountdown, lResult.countdown);
+
+      const pResult = getStatusAndCountdown(pMatches);
+      p = pResult.state;
+      pedCountdown = Math.max(pedCountdown, pResult.countdown);
+    } else {
+      if (['N', 'E', 'S', 'W'].includes(key)) {
+        vehHasData = true;
+        pedHasData = true;
+        s = 'red';
+        l = 'red';
+        p = 'red';
+      }
+    }
+
+    let crOn = s === 'red' || l === 'red';
+    let cyOn = s === 'yellow' || l === 'yellow';
+    let caOn = l === 'green';
+    let cgOn = s === 'green';
+
+    let prOn = p === 'red';
+    let pgOn = p === 'green' || p === 'flash';
+
+    let carColor = '#fff';
+    if (cgOn || caOn) carColor = '#10b981';
+    else if (cyOn) carColor = '#f59e0b';
+    else if (crOn) carColor = '#ef4444';
+
+    let pedColor = '#fff';
+    if (pgOn) pedColor = '#10b981';
+    else if (prOn) pedColor = '#ef4444';
+
+    const dirLabel = directionLabels[key] || '';
+
+    return {
+      key,
+      deg,
+      vehHasData,
+      pedHasData,
+      carCountdown,
+      pedCountdown,
+      crOn,
+      cyOn,
+      caOn,
+      cgOn,
+      prOn,
+      pgOn,
+      carColor,
+      pedColor,
+      dirLabel
+    };
+  });
+
+  }
 }
