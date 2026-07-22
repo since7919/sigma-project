@@ -432,24 +432,24 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
       };
 
       const sResult = getStatusAndCountdown(sMatches);
-      s = sResult.state;
+      sigS = sResult.state;
       carCountdown = Math.max(carCountdown, sResult.countdown);
 
       const lResult = getStatusAndCountdown(lMatches);
-      l = lResult.state;
+      sigL = lResult.state;
       carCountdown = Math.max(carCountdown, lResult.countdown);
 
       const pResult = getStatusAndCountdown(pMatches);
-      p = pResult.state;
+      sigP = pResult.state;
       pedCountdown = Math.max(pedCountdown, pResult.countdown);
 
-      let crOn = s === 'red' || l === 'red';
-      let cyOn = s === 'yellow' || l === 'yellow';
-      let caOn = l === 'green';
-      let cgOn = s === 'green';
+      let crOn = sigS === 'red' || sigL === 'red';
+      let cyOn = sigS === 'yellow' || sigL === 'yellow';
+      let caOn = sigL === 'green';
+      let cgOn = sigS === 'green';
 
-      let prOn = p === 'red';
-      let pgOn = p === 'green' || p === 'flash';
+      let prOn = sigP === 'red';
+      let pgOn = sigP === 'green' || sigP === 'flash';
 
       let carColor = '#fff';
       if (cgOn || caOn) carColor = '#10b981';
@@ -626,19 +626,19 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
             const pedState = statObj[pfx + 'PedsgStatNm'];
             const pedRemain = statObj[pfx + 'PedsgRmdrTm'];
 
-            if (stState === '녹색') s = 'green';
-            else if (stState === '황색') s = 'yellow';
-            else s = 'red';
+            if (stState === '녹색') sigS = 'green';
+            else if (stState === '황색') sigS = 'yellow';
+            else sigS = 'red';
             carCountdown = Math.max(carCountdown, stRemain || 0);
 
-            if (ltState === '녹색') l = 'green';
-            else if (ltState === '황색') l = 'yellow';
-            else l = 'red';
+            if (ltState === '녹색') sigL = 'green';
+            else if (ltState === '황색') sigL = 'yellow';
+            else sigL = 'red';
             carCountdown = Math.max(carCountdown, ltRemain || 0);
 
-            if (pedState === '보행녹색') p = 'green';
-            else if (pedState === '보행점멸') p = 'flash';
-            else p = 'red';
+            if (pedState === '보행녹색') sigP = 'green';
+            else if (pedState === '보행점멸') sigP = 'flash';
+            else sigP = 'red';
             pedCountdown = Math.max(pedCountdown, pedRemain || 0);
           }
         }
@@ -647,41 +647,41 @@ export function calculateCompassSignals({ intersection, isSeoul, cropData, phase
           vehHasData = true;
           if (checkActive(sPhaseMap, deg)) {
             const currentPhaseVal = sPhaseMap[deg].ring === 'A' ? remainA : remainB;
-            s = (currentPhaseVal > 0 && currentPhaseVal <= 4) ? 'yellow' : 'green';
+            sigS = (currentPhaseVal > 0 && currentPhaseVal <= 4) ? 'yellow' : 'green';
             carCountdown = Math.max(carCountdown, currentPhaseVal);
           } else {
-            s = 'red';
+            sigS = 'red';
           }
         }
         if (lPhaseMap[deg]) {
           vehHasData = true;
           if (checkActive(lPhaseMap, deg)) {
             const currentPhaseVal = lPhaseMap[deg].ring === 'A' ? remainA : remainB;
-            l = (currentPhaseVal > 0 && currentPhaseVal <= 4) ? 'yellow' : 'green';
+            sigL = (currentPhaseVal > 0 && currentPhaseVal <= 4) ? 'yellow' : 'green';
             carCountdown = Math.max(carCountdown, currentPhaseVal);
           } else {
-            l = 'red';
+            sigL = 'red';
           }
         }
         if (pPhaseMap[deg]) {
           pedHasData = true;
           if (checkPedActive(deg)) {
             const pedRemain = pPhaseMap[deg][0].ring === 'A' ? remainA : remainB;
-            p = (pedRemain > 0 && pedRemain <= 6) ? 'flash' : 'green';
+            sigP = (pedRemain > 0 && pedRemain <= 6) ? 'flash' : 'green';
             pedCountdown = Math.max(pedCountdown, pedRemain);
           } else {
-            p = 'red';
+            sigP = 'red';
           }
         }
       }
 
-      let crOn = s === 'red' || l === 'red';
-      let cyOn = s === 'yellow' || l === 'yellow';
-      let caOn = l === 'green';
-      let cgOn = s === 'green';
+      let crOn = sigS === 'red' || sigL === 'red';
+      let cyOn = sigS === 'yellow' || sigL === 'yellow';
+      let caOn = sigL === 'green';
+      let cgOn = sigS === 'green';
 
-      let prOn = p === 'red';
-      let pgOn = p === 'green' || p === 'flash';
+      let prOn = sigP === 'red';
+      let pgOn = sigP === 'green' || sigP === 'flash';
 
       let carColor = '#fff';
       if (cgOn || caOn) carColor = '#10b981';
