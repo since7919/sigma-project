@@ -21,13 +21,23 @@ app.get('/', (req, res) => {
 });
 app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets')));
 app.use('/sim', express.static(path.join(__dirname, '../../SIGMA_SIM')));
-app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist')));
-app.get('/realtime', (req, res) => {
+app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+const sendIndexHtml = (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
-});
-app.get(/^\/realtime\/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
-});
+};
+app.get('/realtime', sendIndexHtml);
+app.get(/^\/realtime\/.*/, sendIndexHtml);
 
 const PORT = process.env.PORT || 3000;
 const UTIC_API_KEY = process.env.UTIC_API_KEY;
