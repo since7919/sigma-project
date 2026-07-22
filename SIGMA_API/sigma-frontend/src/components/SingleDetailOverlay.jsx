@@ -54,18 +54,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const [displayMode, setDisplayMode] = useState('circle');
   const [selectedSigMapPlan, setSelectedSigMapPlan] = useState('0');
 
-  useEffect(() => {
-    if (sigMapDataList && sigMapDataList.length > 0) {
-      if (cropData && cropData.planTp !== undefined) {
-        const planTp = cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP;
-        const active = sigMapDataList.find(p => String(p.planTp) === String(planTp));
-        setSelectedSigMapPlan(String(active ? active.planTp : sigMapDataList[0].planTp));
-      } else {
-        setSelectedSigMapPlan(String(sigMapDataList[0].planTp));
-      }
-    }
-  }, [sigMapDataList, cropData]);
-  
+
   const mapZoomMode = forceZoom !== undefined ? forceZoom : localZoomMode;
 
   const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -131,6 +120,18 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     allTodPlans,
     isSigMapLoading
   } = useRealtimeSignal({ intersection, mainPhases });
+
+  useEffect(() => {
+    if (sigMapDataList && sigMapDataList.length > 0) {
+      if (cropData && cropData.planTp !== undefined) {
+        const planTp = cropData.planTp ?? cropData.plan_tp ?? cropData.PLAN_TP;
+        const active = sigMapDataList.find(p => String(p.planTp) === String(planTp));
+        setSelectedSigMapPlan(String(active ? active.planTp : sigMapDataList[0].planTp));
+      } else {
+        setSelectedSigMapPlan(String(sigMapDataList[0].planTp));
+      }
+    }
+  }, [sigMapDataList, cropData]);
 
   // CRRS (예약제어) 정보 조회는 여기서만 단독 수행
   useEffect(() => {
