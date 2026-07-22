@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { parsePhaseCode, isCarActive, isPedActive } from '../utils/signalUtils';
 
-export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData }) {
+export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataListLocal }) {
     return useMemo(() => {
+    const sigMapDataListLocal = sigMapDataListLocal && sigMapDataListLocal.length > 0 ? sigMapDataListLocal : (sigMapData ? [sigMapData] : []);
     const conf = isSeoul ? null : (() => {
       const detailData = window.L02_DETAIL_DATA || [];
       return detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) || null;
@@ -92,7 +93,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
             if (!ringData) return;
             for (let lsuIdx = 1; lsuIdx <= 8; lsuIdx++) {
               // 1. 시그널맵을 통째로 뒤져서, 이 링의 이 LSU 인덱스에 '보행 신호'가 존재하는지 확인.
-              const hasPedLSU = sigMapDataList.some(plan => {
+              const hasPedLSU = sigMapDataListLocal.some(plan => {
                 const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                 return planRingData.some(step => {
                   return isPedActive(step[`ped${lsuIdx}`]);
@@ -116,7 +117,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                 let vehiclePhaseNo = -1;
 
                 // 시그널맵을 통째로 뒤져 차량 신호(car)가 녹색(01)이 되는 스텝을 찾고, 해당 스텝의 전역 현시 번호를 계산합니다.
-                for (const plan of sigMapDataList) {
+                for (const plan of sigMapDataListLocal) {
                   const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                   for (let i = 0; i < planRingData.length; i++) {
                     if (toHex(planRingData[i][`car${lsuIdx}`]) === '01') {
@@ -152,7 +153,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
                   // 3. '어느 현시에 켜지는가?': 보행 신호(01, 05)가 등장하는 전역 현시 번호를 추출
                   let pedPhases = new Set();
-                  sigMapDataList.forEach(plan => {
+                  sigMapDataListLocal.forEach(plan => {
                     const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                     for (let i = 0; i < planRingData.length; i++) {
                       if (isPedActive(planRingData[i][`ped${lsuIdx}`])) {
@@ -179,7 +180,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                 }
               }
 
-              const hasLeftSignal = sigMapDataList.some(plan => {
+              const hasLeftSignal = sigMapDataListLocal.some(plan => {
                 const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
                 return planRingData.some(step => {
                   const hex = toHex(step[`car${lsuIdx}`]);
@@ -212,7 +213,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
     const uniqueMovementsMap = new Map();
     // 시그널맵 데이터가 존재한다면, 시그널맵 유추 결과에 없는 보행 신호(SPaT 등에서 임의 생성된 것)는 제거
-    if (sigMapDataList && sigMapDataList.length > 0) {
+    if (sigMapDataListLocal && sigMapDataListLocal.length > 0) {
       const validPedAngles = new Set(phases.filter(p => p.type === 'P' && p.inferred).map(p => p.angle));
       phases = phases.filter(p => {
         if (p.type === 'P' && !p.inferred) {

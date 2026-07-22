@@ -455,7 +455,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
   const conf = !isSeoul ? detailData.find(d => String(d.INT_NO) === String(intersection.int_no)) : null;
 
   // 실시간 신호 테이블 데이터 가공 로직
-  const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData });
+  const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList });
 
   // TOD 운영계획 다운로드
   const downloadPlanData = () => {
