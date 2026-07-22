@@ -121,8 +121,11 @@ export function calculateArrowSignals({ updatedPhases }) {
       leftPx = 90 + r * Math.cos(rad);
       topPx = 90 + r * Math.sin(rad);
     } else {
-      const r = 38;
-      const a = defPosAngles[(m - 1) % 16] || 0;
+      let a = defPosAngles[(m - 1) % 16] || 0;
+      if (m % 2 !== 0) a += 10;
+      else a -= 10;
+      
+      const r = (m > 8) ? 55 : 40;
       const rad = (a - 90) * Math.PI / 180;
       leftPx = 90 + r * Math.cos(rad);
       topPx = 90 + r * Math.sin(rad);
