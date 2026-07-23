@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { parsePhaseCode, isCarActive, isPedActive, toHex } from '../utils/signalUtils';
 
 export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList }) {
-    return useMemo(() => {
+  return useMemo(() => {
     const activeSigMapList = sigMapDataList && sigMapDataList.length > 0 ? sigMapDataList : (sigMapData ? [sigMapData] : []);
     const intersectionConf = isSeoul ? null : (() => {
       const detailData = window.L02_DETAIL_DATA || [];
@@ -10,7 +10,18 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
     })();
     let phases = [];
 
+    const getPhaseNoForStep = (stepIndex, plan) => {
+      let phaseNo = 1;
+      for (let i = 0; i < stepIndex; i++) {
+        const eopA = plan.ringA[i]?.eop || 0;
+        const eopB = plan.ringB[i]?.eop || 0;
+        if (eopA === 1 || eopB === 1) phaseNo++;
+      }
+      return phaseNo;
+    };
+
     if (isSeoul) {
+      // (Keep existing Seoul logic intact)
       let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
       if (spat && spat.status) {
         const statObj = Array.isArray(spat.status) ? (spat.status[0] || {}) : spat.status;
@@ -19,209 +30,108 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
         
         Object.entries(prefixMap).forEach(([pfx, dirKor]) => {
           if (statObj[pfx + 'StsgStatNm'] !== undefined && statObj[pfx + 'StsgStatNm'] !== null) {
-            phases.push({
-              direction: dirKor,
-              outputType: '직진(1)',
-              pedestrian: 0,
-              type: 'S',
-              angle: angleMap[pfx],
-              pfx: pfx
-            });
+            phases.push({ direction: dirKor, outputType: '직진(1)', pedestrian: 0, type: 'S', angle: angleMap[pfx], pfx: pfx });
           }
           if (statObj[pfx + 'LtsgStatNm'] !== undefined && statObj[pfx + 'LtsgStatNm'] !== null) {
-            phases.push({
-              direction: dirKor,
-              outputType: '좌회전(2)',
-              pedestrian: 0,
-              type: 'L',
-              angle: angleMap[pfx],
-              pfx: pfx
-            });
+            phases.push({ direction: dirKor, outputType: '좌회전(2)', pedestrian: 0, type: 'L', angle: angleMap[pfx], pfx: pfx });
           }
           if (statObj[pfx + 'PdsgStatNm'] !== undefined && statObj[pfx + 'PdsgStatNm'] !== null) {
-            phases.push({
-              direction: dirKor,
-              outputType: '보행(3)',
-              pedestrian: 0,
-              type: 'P',
-              angle: angleMap[pfx],
-              pfx: pfx
-            });
+            phases.push({ direction: dirKor, outputType: '보행(3)', pedestrian: 0, type: 'P', angle: angleMap[pfx], pfx: pfx });
           }
         });
       }
     } else if (intersectionConf) {
+      // 1. Parse Vehicle Phases from L02
       phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
         const aPhase = parsePhaseCode(intersectionConf[`A_RING_${idx}_PHASE_CONF_CD`]);
         const bPhase = parsePhaseCode(intersectionConf[`B_RING_${idx}_PHASE_CONF_CD`]);
-        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx, lsuIdx: idx });
-        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx, lsuIdx: idx });
+        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx }); // idx is Phase No
+        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx }); // idx is Phase No
         return acc;
       }, []);
 
-      if (cropData) {
-        const vehiclePhases = phases.filter(p => p.type === 'S' || p.type === 'L');
-        vehiclePhases.forEach(vPhase => {
-          const hasPhase = (cropData[`${vPhase.ring}_RING_${vPhase.idx}_PHASE_VAL`] || 0) > 0;
-          if (hasPhase) {
-            const existingPed = phases.find(p => p.type === 'P' && p.ring === vPhase.ring && p.idx === vPhase.idx);
-            if (!existingPed) {
-              const uPhaseIndex = phases.findIndex(p => p.type === 'U' && p.ring === vPhase.ring && p.idx === vPhase.idx);
-              if (uPhaseIndex !== -1) {
-                phases[uPhaseIndex].type = 'P';
-                phases[uPhaseIndex].outputType = '보행(3)';
-                phases[uPhaseIndex].angle = vPhase.angle;
-                phases[uPhaseIndex].direction = vPhase.direction;
+      // 2. Link Vehicle Phases to LSU Indices by scanning SigMap
+      phases.forEach(vPhase => {
+        if (vPhase.type !== 'S' && vPhase.type !== 'L') return;
+        let foundLsuIdx = -1;
+        activeSigMapList.forEach(plan => {
+          const ringData = vPhase.ring === 'A' ? plan.ringA : plan.ringB;
+          for (let i = 0; i < ringData.length; i++) {
+            if (getPhaseNoForStep(i, plan) === vPhase.idx) {
+              for (let x = 1; x <= 8; x++) {
+                const hex = toHex(ringData[i][`car${x}`]);
+                if (vPhase.type === 'S' && (hex === '01' || hex === '20')) { foundLsuIdx = x; break; }
+                if (vPhase.type === 'L' && (hex === '10' || hex === '11')) { foundLsuIdx = x; break; }
+              }
+            }
+            if (foundLsuIdx !== -1) break;
+          }
+        });
+        vPhase.lsuIdx = foundLsuIdx !== -1 ? foundLsuIdx : vPhase.idx; // Fallback to Phase No
+      });
+
+      // 3. Infer Pedestrian Phases from SigMap
+      if (activeSigMapList.length > 0) {
+        ['A', 'B'].forEach(ring => {
+          for (let lsuIdx = 1; lsuIdx <= 8; lsuIdx++) {
+            let pedActivePhases = new Set();
+            activeSigMapList.forEach(plan => {
+              const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
+              for (let i = 0; i < planRingData.length; i++) {
+                if (isPedActive(planRingData[i][`ped${lsuIdx}`])) {
+                  pedActivePhases.add(getPhaseNoForStep(i, plan));
+                }
+              }
+            });
+
+            if (pedActivePhases.size > 0) {
+              let targetAngle = null;
+              let targetDirection = null;
+
+              // Find angle from vehicle with SAME lsuIdx
+              const findAngleByLsu = (searchRing) => {
+                return phases.find(p => (p.type === 'S' || p.type === 'L') && p.ring === searchRing && p.lsuIdx === lsuIdx);
+              };
+
+              let vMatch = findAngleByLsu(ring); // Same ring
+              if (!vMatch) vMatch = findAngleByLsu(ring === 'A' ? 'B' : 'A'); // Other ring
+
+              if (vMatch) {
+                targetAngle = vMatch.angle;
+                targetDirection = vMatch.direction;
               } else {
+                // Fallback fixed mapping
+                const fbMap = { 1: 0, 2: 90, 3: 180, 4: 270, 5: 45, 6: 135, 7: 225, 8: 315 };
+                const fbDirMap = { 1: '북', 2: '동', 3: '남', 4: '서', 5: '북동', 6: '남동', 7: '남서', 8: '북서' };
+                targetAngle = fbMap[lsuIdx] || 0;
+                targetDirection = fbDirMap[lsuIdx] || '북';
+              }
+
+              pedActivePhases.forEach(phaseNo => {
                 phases.push({
-                  direction: vPhase.direction,
+                  direction: targetDirection,
                   outputType: '보행(3)',
                   pedestrian: 0,
                   type: 'P',
-                  angle: vPhase.angle,
-                  ring: vPhase.ring,
-                  idx: vPhase.idx
+                  angle: targetAngle,
+                  ring: ring,
+                  idx: phaseNo,
+                  lsuIdx: lsuIdx,
+                  inferred: true
                 });
-              }
+              });
             }
           }
         });
-
-        if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-          ['A', 'B'].forEach(ring => {
-            const ringData = ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-            if (!ringData) return;
-            for (let lsuIdx = 1; lsuIdx <= 8; lsuIdx++) {
-              // 1. 시그널맵을 통째로 뒤져서, 이 링의 이 LSU 인덱스에 '보행 신호'가 존재하는지 확인.
-              const hasPedLSU = activeSigMapList.some(plan => {
-                const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
-                return planRingData.some(step => {
-                  return isPedActive(step[`ped${lsuIdx}`]);
-                });
-              });
-
-              if (hasPedLSU) {
-                // 차량 신호가 어느 현시에 켜지는지 전역 현시 번호를 계산합니다.
-                const getPhaseNoForStep = (stepIndex, plan) => {
-                  let phaseNo = 1;
-                  for (let i = 0; i < stepIndex; i++) {
-                    const eopA = plan.ringA[i]?.eop || 0;
-                    const eopB = plan.ringB[i]?.eop || 0;
-                    if (eopA === 1 || eopB === 1) phaseNo++;
-                  }
-                  return phaseNo;
-                };
-
-                let targetDirection = null;
-                let targetAngle = null;
-                let vehiclePhaseNo = -1;
-
-                // 시그널맵을 통째로 뒤져 차량 신호(car)가 녹색(01)이 되는 스텝을 찾고, 해당 스텝의 전역 현시 번호를 계산합니다.
-                for (const plan of activeSigMapList) {
-                  const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
-                  for (let i = 0; i < planRingData.length; i++) {
-                    if (toHex(planRingData[i][`car${lsuIdx}`]) === '01') {
-                      vehiclePhaseNo = getPhaseNoForStep(i, plan);
-                      break;
-                    }
-                  }
-                  if (vehiclePhaseNo !== -1) break;
-                }
-
-                if (vehiclePhaseNo === -1) {
-                  vehiclePhaseNo = lsuIdx; // Fallback
-                }
-
-                // 2. 방향 특정: 이 LSU(lsuIdx)를 담당하는 차량 신호의 방향을 기반정보에서 찾는다.
-                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === lsuIdx);
-                
-                if (vehPhases.length === 0) {
-                  // 단일 방향 링
-                  const ringVehs = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring);
-                  const uniqueDirs = [...new Set(ringVehs.map(p => p.direction))];
-                  if (uniqueDirs.length === 1) {
-                    vehPhases = [ringVehs[0]];
-                  } else {
-                    // 최후 수단: N+1 (LSU 기반 fallback)
-                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (lsuIdx + 1));
-                  }
-                }
-
-                if (vehPhases.length > 0) {
-                  targetDirection = vehPhases[0].direction;
-                  targetAngle = vehPhases[0].angle;
-
-                  // 3. '어느 현시에 켜지는가?': 보행 신호(01, 05)가 등장하는 전역 현시 번호를 추출
-                  let pedPhases = new Set();
-                  activeSigMapList.forEach(plan => {
-                    const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
-                    for (let i = 0; i < planRingData.length; i++) {
-                      if (isPedActive(planRingData[i][`ped${lsuIdx}`])) {
-                        pedPhases.add(getPhaseNoForStep(i, plan));
-                      }
-                    }
-                  });
-
-                  // 추출된 각각의 현시에 보행 신호를 푸시
-                  pedPhases.forEach(phaseNo => {
-                    // 기반정보(L02)에 이미 보행 신호가 있더라도, 시그널맵 유추를 통해 확인된 경우
-                    // 항상 '시그널맵 유추'로 표출하기 위해 조건 없이 추가합니다. (이후 필터에서 기존 기반정보 P코드는 제거됨)
-                    phases.push({
-                      direction: targetDirection,
-                      outputType: '보행(3)',
-                      pedestrian: 0,
-                      type: 'P',
-                      angle: targetAngle,
-                      ring: ring,
-                      idx: phaseNo, // 정확히 계산된 현시 번호(Phase No)를 매핑!
-                      lsuIdx: lsuIdx,
-                      inferred: true
-                    });
-                  });
-                }
-              }
-
-              const hasLeftSignal = activeSigMapList.some(plan => {
-                const planRingData = ring === 'A' ? plan.ringA : plan.ringB;
-                return planRingData.some(step => {
-                  const hex = toHex(step[`car${lsuIdx}`]);
-                  return hex === '10' || hex === '11' || hex === '20';
-                });
-              });
-              if (hasLeftSignal) {
-                const sPhases = phases.filter(p => p.type === 'S' && p.ring === ring && p.lsuIdx === lsuIdx);
-                sPhases.forEach(sPhaseMatch => {
-                  const hasLeftPhase = phases.some(p => p.type === 'L' && p.ring === ring && p.lsuIdx === lsuIdx && p.angle === sPhaseMatch.angle);
-                  if (!hasLeftPhase) {
-                    phases.push({
-                      direction: sPhaseMatch.direction,
-                      outputType: '좌회전(2)',
-                      pedestrian: 0,
-                      type: 'L',
-                      angle: sPhaseMatch.angle,
-                      ring: ring,
-                      lsuIdx: lsuIdx,
-                      inferred: true
-                    });
-                  }
-                });
-              }
-            }
-          });
-        }
       }
     }
 
     const uniqueMovementsMap = new Map();
-    // 시그널맵 데이터가 존재한다면, 시그널맵 유추 결과에 없는 보행 신호(SPaT 등에서 임의 생성된 것)는 제거
-    if (activeSigMapList && activeSigMapList.length > 0) {
+    // (Deduplication Logic)
+    if (activeSigMapList.length > 0 && !isSeoul) {
       const validPedAngles = new Set(phases.filter(p => p.type === 'P' && p.inferred).map(p => p.angle));
       phases = phases.filter(p => {
-        if (p.type === 'P' && !p.inferred) {
-          // 시그널맵을 통해 유추된 보행 신호가 있다면, 기존 기반정보(L02)나 
-          // SPaT의 잘못된 보행 현시 정보를 제거하여 중복 표출 및 현시 꼬임을 방지합니다.
-          return !validPedAngles.has(p.angle);
-        }
+        if (p.type === 'P' && !p.inferred) return !validPedAngles.has(p.angle);
         return true;
       });
     }
@@ -242,6 +152,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
       let displayTime = '-';
 
       if (isSeoul) {
+        // (Seoul rendering logic remains identical)
         let spat = window.SEOUL_SPAT_MAP && window.SEOUL_SPAT_MAP[intersection.int_no];
         let pfx = '';
         if (m.angle === 0) pfx = 'nt';
@@ -264,7 +175,6 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
           
           const val = statObj[field];
           const remVal = timingObj[timeField];
-          
           const parseRemVal = (v) => (v !== undefined && v !== null && v < 36000) ? (Math.floor(v / 10) + 's') : '-';
           
           if (val === 'protected-Movement-Allowed' || val === 'permissive-Movement-Allowed' || val === '녹색' || val === '녹색화살표' || val === '청색') {
@@ -290,42 +200,26 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
             let p = 1;
             let stepsInPhase = [];
             for (let step of ringData) {
-              if (p === currentPhase) {
-                stepsInPhase.push(step);
-              }
-              if (step.eop === 1) {
-                p++;
-              }
+              if (p === currentPhase) stepsInPhase.push(step);
+              if (step.eop === 1) p++;
             }
             return stepsInPhase;
           };
 
+          // Find if this movement is active in the CURRENT phase
           const activeConf = m.confs.find(phaseConf => {
             const currentPhase = phaseConf.ring === 'A' ? phaseA : phaseB;
-            if (phaseConf.idx !== currentPhase) return false;
-
-            if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-              const phaseSteps = getStepsForCurrentPhase(phaseConf.ring, currentPhase);
-              const targetLsuIdx = phaseConf.lsuIdx || phaseConf.idx;
-              if (m.type === 'P') {
-                return phaseSteps.some(step => isPedActive(step[`ped${targetLsuIdx}`]));
-              } else {
-                return phaseSteps.some(step => isCarActive(step[`car${targetLsuIdx}`]));
-              }
-            }
-            return true;
+            return phaseConf.idx === currentPhase;
           });
 
           const cycle = cropData.cycle || 0;
 
           const getPedDuration = (phaseConf) => {
             const currentPhase = phaseConf.ring === 'A' ? phaseA : phaseB;
-            const pVal = cropData[`${phaseConf.ring}_RING_${currentPhase}_PHASE_VAL`] || 0;
-            let pedDur = pVal;
+            let pedDur = cropData[`${phaseConf.ring}_RING_${currentPhase}_PHASE_VAL`] || 0;
             if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-              const ringData = phaseConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
               const phaseSteps = getStepsForCurrentPhase(phaseConf.ring, currentPhase);
-              const activeSteps = phaseSteps.filter(stepObj => isPedActive(stepObj[`ped${phaseConf.idx}`]));
+              const activeSteps = phaseSteps.filter(stepObj => isPedActive(stepObj[`ped${phaseConf.lsuIdx}`]));
               if (activeSteps.length > 0) {
                 pedDur = activeSteps.reduce((acc, stepObj) => acc + (stepObj.maxTm > 0 ? stepObj.maxTm : stepObj.minTm), 0);
               } else {
@@ -339,7 +233,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
           let isRed = true;
 
-          if (cropData.cycle === 0) {
+          if (cycle === 0) {
             isGreen = false;
             statText = '점멸/소등';
             statClass = 'sig-status-flash';
@@ -347,12 +241,23 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
             displayTime = '-';
           } else {
             if (activeConf) {
-              const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
+              const ringPrefix = activeConf.ring === 'A' ? 'A_RING' : 'B_RING';
               const currentPhase = activeConf.ring === 'A' ? phaseA : phaseB;
-              const phaseVal = cropData[`${activeConf.ring}_RING_${currentPhase}_PHASE_VAL`] || 0;
-              const elapsed = phaseVal - remainingTime;
+              const remainingTime = activeConf.ring === 'A' ? remainA : remainB;
+              
+              // Calculate contiguous time for multi-phase movements
+              let totalRemain = remainingTime;
+              let nextPhase = (currentPhase % 8) + 1;
+              let loopCnt = 0;
+              while (m.confs.some(c => c.ring === activeConf.ring && c.idx === nextPhase) && loopCnt < 8) {
+                totalRemain += (cropData[`${ringPrefix}_${nextPhase}_PHASE_VAL`] || 0);
+                nextPhase = (nextPhase % 8) + 1;
+                loopCnt++;
+              }
 
               if (m.type === 'P') {
+                const phaseVal = cropData[`${ringPrefix}_${currentPhase}_PHASE_VAL`] || 0;
+                const elapsed = phaseVal - remainingTime;
                 const pedDuration = getPedDuration(activeConf);
                 const pedRemain = Math.max(0, pedDuration - elapsed);
 
@@ -372,37 +277,18 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                   }
                 }
               } else {
-                let carActive = true;
-                if (sigMapData && (sigMapData.ringA.length > 0 || sigMapData.ringB.length > 0)) {
-                  const ringData = activeConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                  const phaseSteps = getStepsForCurrentPhase(activeConf.ring, currentPhase);
-                  const activeSteps = phaseSteps.filter(stepObj => {
-                    for (let i = 1; i <= 8; i++) {
-                      if (isCarActive(stepObj[`car${i}`])) return true;
-                    }
-                    return false;
-                  });
-                  if (activeSteps.length === 0) {
-                    carActive = false;
-                  }
-                }
-
-                if (carActive) {
-                  isRed = false;
-                  isGreen = true;
-                  if (remainingTime <= 3) {
-                    statText = '황색 점등(2)';
-                    statClass = 'sig-status-yellow';
-                    displayTime = '3s';
-                    remaining = remainingTime + 's';
-                  } else {
-                    statText = '녹색 점등(3)';
-                    statClass = 'sig-status-green';
-                    displayTime = Math.max(0, phaseVal - 3) + 's';
-                    remaining = (remainingTime - 3) + 's';
-                  }
+                isRed = false;
+                isGreen = true;
+                if (totalRemain <= 3) {
+                  statText = '황색 점등(2)';
+                  statClass = 'sig-status-yellow';
+                  displayTime = '3s';
+                  remaining = totalRemain + 's';
                 } else {
-                  isRed = true;
+                  statText = '녹색 점등(3)';
+                  statClass = 'sig-status-green';
+                  displayTime = Math.max(0, totalRemain - 3) + 's';
+                  remaining = (totalRemain - 3) + 's';
                 }
               }
             }
@@ -417,27 +303,8 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                 const ringPrefix = phaseConf.ring === 'A' ? 'A_RING' : 'B_RING';
                 const currentPhaseIdx = phaseConf.ring === 'A' ? phaseA : phaseB;
                 const currentRemain = phaseConf.ring === 'A' ? remainA : remainB;
-                
                 let targetIdx = phaseConf.idx;
-                if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-                  const ringData = phaseConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                  let foundTargetPhase = null;
-                  let p = 1;
-                  for (let step of ringData) {
-                    const isActive = m.type === 'P'
-                      ? isPedActive(step[`ped${phaseConf.idx}`])
-                      : isCarActive(step[`car${phaseConf.idx}`]);
-                    if (isActive) {
-                      foundTargetPhase = p;
-                      break;
-                    }
-                    if (step.eop === 1) p++;
-                  }
-                  if (foundTargetPhase !== null) {
-                    targetIdx = foundTargetPhase;
-                  }
-                }
-
+                
                 let sumTime = 0;
                 if (currentPhaseIdx === targetIdx) {
                   const phaseVal = cropData[`${ringPrefix}_${targetIdx}_PHASE_VAL`] || 0;
@@ -450,8 +317,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                   while (currStep !== targetIdx && loopCount < 8) {
                     currStep = (currStep % 8) + 1;
                     if (currStep === targetIdx) break;
-                    const split = cropData[`${ringPrefix}_${currStep}_PHASE_VAL`] || 0;
-                    sumTime += split;
+                    sumTime += (cropData[`${ringPrefix}_${currStep}_PHASE_VAL`] || 0);
                     loopCount++;
                   }
                 }
@@ -462,22 +328,11 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
               let ringTotals = { A: 0, B: 0 };
               for (const phaseConf of m.confs) {
+                const ringPrefix = phaseConf.ring === 'A' ? 'A_RING' : 'B_RING';
                 if (m.type === 'P') {
                   ringTotals[phaseConf.ring] += getPedDuration(phaseConf);
                 } else {
-                  let activePhaseIdx = phaseConf.idx;
-                  if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
-                    const ringData = phaseConf.ring === 'A' ? sigMapData.ringA : sigMapData.ringB;
-                    let foundTargetPhase = null;
-                    let p = 1;
-                    for (let step of ringData) {
-                      const isActive = isCarActive(step[`car${phaseConf.idx}`]);
-                      if (isActive) { foundTargetPhase = p; break; }
-                      if (step.eop === 1) p++;
-                    }
-                    if (foundTargetPhase !== null) activePhaseIdx = foundTargetPhase;
-                  }
-                  ringTotals[phaseConf.ring] += (cropData[`${phaseConf.ring}_RING_${activePhaseIdx}_PHASE_VAL`] || 0);
+                  ringTotals[phaseConf.ring] += (cropData[`${ringPrefix}_${phaseConf.idx}_PHASE_VAL`] || 0);
                 }
               }
               let totalActive = Math.max(ringTotals.A, ringTotals.B);
