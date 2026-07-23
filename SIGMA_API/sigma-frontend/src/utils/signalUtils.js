@@ -226,7 +226,8 @@ export function calculateCompassSignals({ updatedPhases }) {
     sigP = pResult.state;
     pedCountdown = Math.max(pedCountdown, pResult.countdown);
 
-    let crOn = sigS === 'red' || sigL === 'red';
+    let isAnyVehActive = (sigS === 'green' || sigS === 'yellow' || sigS === 'flash' || sigL === 'green' || sigL === 'yellow' || sigL === 'flash');
+    let crOn = vehHasData && !isAnyVehActive;
     let cyOn = sigS === 'yellow' || sigL === 'yellow';
     let caOn = sigL === 'green';
     let cgOn = sigS === 'green';

@@ -54,8 +54,8 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
       phases = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, idx) => {
         const aPhase = parsePhaseCode(intersectionConf[`A_RING_${idx}_PHASE_CONF_CD`]);
         const bPhase = parsePhaseCode(intersectionConf[`B_RING_${idx}_PHASE_CONF_CD`]);
-        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx });
-        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx });
+        if (aPhase) acc.push({ ...aPhase, ring: 'A', idx, lsuIdx: idx });
+        if (bPhase) acc.push({ ...bPhase, ring: 'B', idx, lsuIdx: idx });
         return acc;
       }, []);
 
@@ -133,7 +133,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                 }
 
                 // 2. 방향 특정: 이 LSU(lsuIdx)를 담당하는 차량 신호의 방향을 기반정보에서 찾는다.
-                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === vehiclePhaseNo);
+                let vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === lsuIdx);
                 
                 if (vehPhases.length === 0) {
                   // 단일 방향 링
@@ -142,8 +142,8 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                   if (uniqueDirs.length === 1) {
                     vehPhases = [ringVehs[0]];
                   } else {
-                    // 최후 수단: N+1
-                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (vehiclePhaseNo + 1));
+                    // 최후 수단: N+1 (LSU 기반 fallback)
+                    vehPhases = phases.filter(p => (p.type === 'S' || p.type === 'L') && p.ring === ring && p.idx === (lsuIdx + 1));
                   }
                 }
 
@@ -174,6 +174,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                       angle: targetAngle,
                       ring: ring,
                       idx: phaseNo, // 정확히 계산된 현시 번호(Phase No)를 매핑!
+                      lsuIdx: lsuIdx,
                       inferred: true
                     });
                   });
@@ -305,15 +306,11 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
             if (sigMapData && (sigMapData.ringA?.length > 0 || sigMapData.ringB?.length > 0)) {
               const phaseSteps = getStepsForCurrentPhase(phaseConf.ring, currentPhase);
+              const targetLsuIdx = phaseConf.lsuIdx || phaseConf.idx;
               if (m.type === 'P') {
-                return phaseSteps.some(step => isPedActive(step[`ped${phaseConf.idx}`]));
+                return phaseSteps.some(step => isPedActive(step[`ped${targetLsuIdx}`]));
               } else {
-                return phaseSteps.some(step => {
-                  for (let i = 1; i <= 8; i++) {
-                    if (isCarActive(step[`car${i}`])) return true;
-                  }
-                  return false;
-                });
+                return phaseSteps.some(step => isCarActive(step[`car${targetLsuIdx}`]));
               }
             }
             return true;
