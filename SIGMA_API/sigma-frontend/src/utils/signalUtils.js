@@ -20,14 +20,14 @@ export function parsePhaseCode(code) {
   let dirName = '미지정';
   if (!isNaN(enterAngle)) {
     const angle = enterAngle % 360;
-    if (angle >= 337 || angle < 22) dirName = '북';
-    else if (angle >= 22 && angle < 67) dirName = '북동';
-    else if (angle >= 67 && angle < 112) dirName = '동';
-    else if (angle >= 112 && angle < 157) dirName = '남동';
-    else if (angle >= 157 && angle < 202) dirName = '남';
-    else if (angle >= 202 && angle < 247) dirName = '남서';
-    else if (angle >= 247 && angle < 292) dirName = '서';
-    else if (angle >= 292 && angle < 337) dirName = '북서';
+    if (angle >= 332.5 || angle < 27.5) dirName = '북';
+    else if (angle >= 27.5 && angle < 62.5) dirName = '북동';
+    else if (angle >= 62.5 && angle < 117.5) dirName = '동';
+    else if (angle >= 117.5 && angle < 152.5) dirName = '남동';
+    else if (angle >= 152.5 && angle < 207.5) dirName = '남';
+    else if (angle >= 207.5 && angle < 242.5) dirName = '남서';
+    else if (angle >= 242.5 && angle < 297.5) dirName = '서';
+    else if (angle >= 297.5 && angle < 332.5) dirName = '북서';
   }
 
   const dirAngleMap = { '북': 0, '북동': 45, '동': 90, '남동': 135, '남': 180, '남서': 225, '서': 270, '북서': 315 };
