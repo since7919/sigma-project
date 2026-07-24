@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
 import axios from 'axios';
 import CompassOverlay from './CompassOverlay';
-import { parsePhaseCode, toHex, getCellClass, isCarActive, isPedActive } from '../utils/signalUtils';
+import { parsePhaseCode, toHex, getCellClass, isCarActive, isPedActive, clampAngleForPfx } from '../utils/signalUtils';
 import { useSignalPhases } from '../hooks/useSignalPhases';
 import { useRealtimeSignal } from '../hooks/useRealtimeSignal';
 
@@ -455,7 +455,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                 min="0" 
                                 max="359" 
                                 value={currentVal} 
-                                onChange={(e) => setLocalCustomAngles({...localCustomAngles, [pfx]: Number(e.target.value)})}
+                                onChange={(e) => {
+                                  const clamped = clampAngleForPfx(pfx, Number(e.target.value));
+                                  setLocalCustomAngles({...localCustomAngles, [pfx]: clamped});
+                                }}
                                 style={{ flex: 1, cursor: 'pointer' }}
                               />
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -463,7 +466,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                   type="number" 
                                   min="0" max="359"
                                   value={currentVal} 
-                                  onChange={(e) => setLocalCustomAngles({...localCustomAngles, [pfx]: Number(e.target.value)})} 
+                                  onChange={(e) => {
+                                    const clamped = clampAngleForPfx(pfx, Number(e.target.value));
+                                    setLocalCustomAngles({...localCustomAngles, [pfx]: clamped});
+                                  }} 
                                   style={{ width: '50px', background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '4px', borderRadius: '4px', textAlign: 'center' }}
                                 />
                                 <span>도</span>

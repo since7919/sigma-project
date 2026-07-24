@@ -1,3 +1,30 @@
+export function clampAngleForPfx(pfx, angle) {
+  let norm = ((angle % 360) + 360) % 360;
+  switch (pfx) {
+    case 'nt': // 332.5 to 27.5
+      if (norm > 27.5 && norm < 332.5) {
+        return (norm - 27.5 < 332.5 - norm) ? 27 : 333;
+      }
+      return norm;
+    case 'ne': // 27.5 to 62.5
+      return Math.max(28, Math.min(62, norm));
+    case 'et': // 62.5 to 117.5
+      return Math.max(63, Math.min(117, norm));
+    case 'se': // 117.5 to 152.5
+      return Math.max(118, Math.min(152, norm));
+    case 'st': // 152.5 to 207.5
+      return Math.max(153, Math.min(207, norm));
+    case 'sw': // 207.5 to 242.5
+      return Math.max(208, Math.min(242, norm));
+    case 'wt': // 242.5 to 297.5
+      return Math.max(243, Math.min(297, norm));
+    case 'nw': // 297.5 to 332.5
+      return Math.max(298, Math.min(332, norm));
+    default:
+      return norm;
+  }
+}
+
 export function parsePhaseCode(code) {
   if (!code) return null;
   const typeChar = code.charAt(0).toUpperCase();
@@ -264,6 +291,7 @@ export function calculateCompassSignals({ updatedPhases }) {
     return {
       key,
       deg,
+      customAngle,
       vehHasData,
       pedHasData,
       carCountdown,
@@ -276,7 +304,9 @@ export function calculateCompassSignals({ updatedPhases }) {
       pgOn,
       carColor,
       pedColor,
-      dirLabel
+      dirLabel,
+      matchesCount: allMatches.length,
+      matchCustomAngle: allMatches[0]?.customAngle
     };
   });
 }

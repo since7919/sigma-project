@@ -1,5 +1,5 @@
 import React from 'react';
-import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
+import { calculateArrowSignals, calculateCompassSignals, clampAngleForPfx } from '../utils/signalUtils';
 
 const keyToPfxMap = {
   'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se',
@@ -65,7 +65,8 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
       const dy = moveEvent.clientY - centerY;
       let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
       if (angle < 0) angle += 360;
-      onAngleChange(pfx, Math.round(angle));
+      const clamped = clampAngleForPfx(pfx, Math.round(angle));
+      onAngleChange(pfx, clamped);
     };
 
     const onPointerUp = () => {
@@ -91,7 +92,7 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
       transformOrigin: 'center'
     }}>
       <div className="compass-center-overlay">
-        {compassStates.map(({ key, deg, customAngle, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
+        {compassStates.map(({ key, deg, customAngle, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel, matchesCount, matchCustomAngle }) => {
           if (!vehHasData && !pedHasData) return null;
           
           const pfx = keyToPfxMap[key];
@@ -106,8 +107,8 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
                   style={{ pointerEvents: onAngleChange ? 'auto' : 'none', cursor: onAngleChange ? 'grab' : 'default' }}
                 >
                   <div className="component-block">
-                    <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
-                      {dirLabel} ({customAngle}°) {carCountdown > 0 ? <span style={{color: carColor}}>{carCountdown}s</span> : null}
+                    <div style={{ fontSize: '9px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
+                      {dirLabel} (c:{customAngle}/d:{deg}/m:{matchesCount}/ma:{matchCustomAngle ?? 'null'})
                     </div>
                     <div className="car-housing-box">
                       <div className={`lens c-red ${crOn ? 'on' : ''}`}></div>
