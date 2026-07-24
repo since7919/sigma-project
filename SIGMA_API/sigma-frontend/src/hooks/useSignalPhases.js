@@ -372,5 +372,5 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
       }),
       all: phases
     };
-  }, [intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData]);
+  }, [intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, customAngles]);
 }
