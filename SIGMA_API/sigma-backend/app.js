@@ -430,7 +430,7 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
     const { error } = await supabase
       .from('utic_intersections')
       .update({ custom_angles: custom_angles })
-      .eq('int_no', int_no);
+      .eq('int_no', Number(int_no));
 
     if (error) throw error;
     res.json({ success: true, message: '각도 설정이 저장되었습니다.' });

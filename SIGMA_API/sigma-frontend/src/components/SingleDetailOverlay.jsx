@@ -409,6 +409,59 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   ) : (
                     <div style={{ padding: '30px', opacity: 0.5, textAlign: 'center' }}>해당 교차로의 기반 정보가 없습니다.</div>
                   )}
+                    <div style={{ marginTop: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                        <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
+                        <button 
+                          style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/intersections/${intersection.int_no}/angles`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ custom_angles: localCustomAngles })
+                              });
+                              if (res.ok) alert('각도 설정이 저장되었습니다.');
+                              else alert('각도 저장에 실패했습니다.');
+                            } catch(e) {
+                              alert('각도 저장 중 오류가 발생했습니다.');
+                            }
+                          }}
+                        >
+                          저장
+                        </button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
+                        {['nt|북행(0도)', 'ne|북동(45도)', 'et|동행(90도)', 'se|남동(135도)', 'st|남행(180도)', 'sw|남서(225도)', 'wt|서행(270도)', 'nw|북서(315도)'].map(item => {
+                          const [pfx, label] = item.split('|');
+                          const baseAngle = { nt: 0, ne: 45, et: 90, se: 135, st: 180, sw: 225, wt: 270, nw: 315 }[pfx];
+                          const currentVal = localCustomAngles[pfx] !== undefined ? localCustomAngles[pfx] : baseAngle;
+                          return (
+                            <div key={pfx} style={{ display: 'flex', alignItems: 'center', gap: '15px', fontSize: '12px', color: '#cbd5e1' }}>
+                              <span style={{ width: '80px', fontWeight: 'bold' }}>{label}</span>
+                              <input 
+                                type="range" 
+                                min="0" 
+                                max="359" 
+                                value={currentVal} 
+                                onChange={(e) => setLocalCustomAngles({...localCustomAngles, [pfx]: Number(e.target.value)})}
+                                style={{ flex: 1, cursor: 'pointer' }}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <input 
+                                  type="number" 
+                                  min="0" max="359"
+                                  value={currentVal} 
+                                  onChange={(e) => setLocalCustomAngles({...localCustomAngles, [pfx]: Number(e.target.value)})} 
+                                  style={{ width: '50px', background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '4px', borderRadius: '4px', textAlign: 'center' }}
+                                />
+                                <span>도</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                 </div>
               )}
               {localTab === 'remainTime' && (
@@ -797,48 +850,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       ))}
                     </>
                   )}
-                    <div style={{ marginTop: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                        <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
-                        <button 
-                          style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/intersections/${intersection.int_no}/angles`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ custom_angles: localCustomAngles })
-                              });
-                              if (res.ok) alert('각도 설정이 저장되었습니다.');
-                              else alert('각도 저장에 실패했습니다.');
-                            } catch(e) {
-                              alert('각도 저장 중 오류가 발생했습니다.');
-                            }
-                          }}
-                        >
-                          저장
-                        </button>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                        {['nt|북행(0도)', 'ne|북동(45도)', 'et|동행(90도)', 'se|남동(135도)', 'st|남행(180도)', 'sw|남서(225도)', 'wt|서행(270도)', 'nw|북서(315도)'].map(item => {
-                          const [pfx, label] = item.split('|');
-                          const baseAngle = { nt: 0, ne: 45, et: 90, se: 135, st: 180, sw: 225, wt: 270, nw: 315 }[pfx];
-                          const currentVal = localCustomAngles[pfx] !== undefined ? localCustomAngles[pfx] : baseAngle;
-                          return (
-                            <div key={pfx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#cbd5e1' }}>
-                              <span style={{ width: '80px' }}>{label}</span>
-                              <input 
-                                type="number" 
-                                value={currentVal} 
-                                onChange={(e) => setLocalCustomAngles({...localCustomAngles, [pfx]: Number(e.target.value)})} 
-                                style={{ width: '60px', background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '4px', borderRadius: '4px', textAlign: 'center' }}
-                              />
-                              <span>도</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+
                   <div style={{marginTop: '20px', padding: '15px', background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '8px', fontSize: '13px', lineHeight: '1.6', color: '#e2e8f0'}}>
                     <h4 style={{color: '#38bdf8', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold'}}>💡 시그널맵 보행신호 유추 로직</h4>
                     <ol style={{paddingLeft: '20px', margin: 0}}>
