@@ -127,9 +127,12 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
     }
 
     // Apply custom angles
-    const dirToPfxMap = { '북': 'nt', '북동': 'ne', '동': 'et', '남동': 'se', '남': 'st', '남서': 'sw', '서': 'wt', '북서': 'nw' };
+    const angleToPfxMap = {
+      0: 'nt', 45: 'ne', 90: 'et', 135: 'se',
+      180: 'st', 225: 'sw', 270: 'wt', 315: 'nw'
+    };
     phases.forEach(p => {
-      const pfx = p.pfx || dirToPfxMap[p.direction];
+      const pfx = p.pfx || angleToPfxMap[p.angle];
       p.customAngle = p.angle;
       if (pfx && customAngles[pfx] !== undefined) {
         p.customAngle = Number(customAngles[pfx]);
