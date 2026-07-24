@@ -308,10 +308,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
               />
             </MapContainer>
           ), [intersection.y_coord, intersection.x_coord, mapZoomMode])}
-            <CompassOverlay 
-              updatedPhases={updatedPhases.unique}
-              displayMode={displayMode}
-            />
+              <CompassOverlay 
+                updatedPhases={updatedPhases.unique}
+                displayMode={displayMode}
+                onAngleChange={(pfx, angle) => setLocalCustomAngles(prev => ({ ...prev, [pfx]: angle }))}
+              />
           </div>
         </div>
 

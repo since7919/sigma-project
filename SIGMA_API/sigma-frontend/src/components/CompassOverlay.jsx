@@ -1,7 +1,12 @@
 import React from 'react';
 import { calculateArrowSignals, calculateCompassSignals } from '../utils/signalUtils';
 
-export default function CompassOverlay({ displayMode, updatedPhases }) {
+const keyToPfxMap = {
+  'N': 'nt', 'NE': 'ne', 'E': 'et', 'SE': 'se',
+  'S': 'st', 'SW': 'sw', 'W': 'wt', 'NW': 'nw'
+};
+
+export default function CompassOverlay({ displayMode, updatedPhases, onAngleChange }) {
   if (displayMode === 'off') return null;
   
   if (displayMode === 'arrow') {
@@ -17,6 +22,11 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
       const len = Math.sqrt(dx*dx + dy*dy) || 1;
       const outX = (dx / len) * 18;
       const outY = (dy / len) * 18;
+      
+      const degVal = isPedOnly ? m - 100 : m; // Just a fallback approximation for arrow pfx if needed
+      // To support drag in arrow mode properly, we'd need exact pfx mapping.
+      // For now, let's keep it simple or map it via defPosAngles in utils.
+      // Arrow mode dragging is omitted for simplicity unless requested, but we can add cursor.
 
       return (
         <div key={`ms-arrow-${m}`} className="signal-slot" style={{ position: 'absolute', top: `${topPx}px`, left: `${leftPx}px`, transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10000, width: '40px', height: '40px' }}>
@@ -41,6 +51,32 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
 
   const compassStates = calculateCompassSignals({ updatedPhases });
 
+  const handlePointerDown = (e, pfx) => {
+    if (!onAngleChange) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = e.currentTarget.closest('.compass-center-overlay').getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const onPointerMove = (moveEvent) => {
+      const dx = moveEvent.clientX - centerX;
+      const dy = moveEvent.clientY - centerY;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+      if (angle < 0) angle += 360;
+      onAngleChange(pfx, Math.round(angle));
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
   return (
     <div className="compass-center-overlay-wrapper" style={{
       position: 'absolute',
@@ -57,11 +93,18 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
       <div className="compass-center-overlay">
         {compassStates.map(({ key, deg, customAngle, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
           if (!vehHasData && !pedHasData) return null;
+          
+          const pfx = keyToPfxMap[key];
 
           return (
             <div key={key} className={`signal-slot slot-${key}`} id={`slot-${key}`} style={{ transform: `rotate(${customAngle}deg)` }}>
               {vehHasData && (
-                <div className="signal-mount-frame" id={`veh-block-${key}`}>
+                <div 
+                  className="signal-mount-frame" 
+                  id={`veh-block-${key}`} 
+                  onPointerDown={(e) => handlePointerDown(e, pfx)}
+                  style={{ pointerEvents: onAngleChange ? 'auto' : 'none', cursor: onAngleChange ? 'grab' : 'default' }}
+                >
                   <div className="component-block">
                     <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
                       {dirLabel} {carCountdown > 0 ? <span style={{color: carColor}}>{carCountdown}s</span> : null}
@@ -77,7 +120,12 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
               )}
               {pedHasData && (
                 <div className="ped-mount-container">
-                  <div className="ped-mount-frame" id={`ped-block-${key}`}>
+                  <div 
+                    className="ped-mount-frame" 
+                    id={`ped-block-${key}`}
+                    onPointerDown={(e) => handlePointerDown(e, pfx)}
+                    style={{ pointerEvents: onAngleChange ? 'auto' : 'none', cursor: onAngleChange ? 'grab' : 'default' }}
+                  >
                     <div className="ped-housing-box">
                       <div className={`ped-lens p-red ${prOn ? 'on' : ''}`}></div>
                       <div className={`ped-lens p-green ${pgOn ? 'on' : ''}`}></div>
