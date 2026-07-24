@@ -110,13 +110,22 @@ export function calculateArrowSignals({ updatedPhases }) {
     const isPed = m >= 100;
     const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrowLocal(m);
     
+    let signalState = 'off';
+    let countdown = 0;
+    
+    const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
+    const mType = isPed ? 'P' : (m % 2 !== 0 ? 'L' : 'S');
+    const match = updatedPhases.find(p => p.angle === degVal && p.type === mType);
+    
     let topPx = 90;
     let leftPx = 90;
     
     let textRot = 0;
     if (isPed) {
       const refM = m - 100;
-      const baseAng = defPosAngles[(refM - 1) % 16] || 0;
+      let baseAng = defPosAngles[(refM - 1) % 16] || 0;
+      if (match && match.customAngle !== undefined) baseAng = match.customAngle;
+      
       const ang = (baseAng - 90 + 360) % 360;
       const r = 48;
       const rad = (ang - 90) * Math.PI / 180;
@@ -126,6 +135,8 @@ export function calculateArrowSignals({ updatedPhases }) {
       if (textRot > 90 && textRot < 270) textRot -= 180;
     } else {
       let a = defPosAngles[(m - 1) % 16] || 0;
+      if (match && match.customAngle !== undefined) a = match.customAngle;
+      
       if (m % 2 !== 0) a += 10;
       else a -= 10;
       
@@ -133,15 +144,13 @@ export function calculateArrowSignals({ updatedPhases }) {
       const rad = (a - 90) * Math.PI / 180;
       leftPx = 90 + r * Math.cos(rad);
       topPx = 90 + r * Math.sin(rad);
-      textRot = arrowData.ang;
+      
+      if (match && match.customAngle !== undefined) {
+          textRot = arrowData.ang + (match.customAngle - degVal);
+      } else {
+          textRot = arrowData.ang;
+      }
     }
-    
-    let signalState = 'off';
-    let countdown = 0;
-    
-    const degVal = defPosAngles[(isPed ? (m - 101) : (m - 1)) % 16] || 0;
-    const mType = isPed ? 'P' : (m % 2 !== 0 ? 'L' : 'S');
-    const match = updatedPhases.find(p => p.angle === degVal && p.type === mType);
     
     if (match) {
       if (match.statusClass === 'sig-status-green') signalState = 'G';
@@ -224,25 +233,27 @@ export function calculateCompassSignals({ updatedPhases }) {
 
     const pResult = getStatusAndCountdown(pMatches);
     sigP = pResult.state;
-    pedCountdown = Math.max(pedCountdown, pResult.countdown);
+    pedCountdown = pResult.countdown;
 
-    let isAnyVehActive = (sigS === 'green' || sigS === 'yellow' || sigS === 'flash' || sigL === 'green' || sigL === 'yellow' || sigL === 'flash');
-    let crOn = vehHasData && !isAnyVehActive;
-    let cyOn = sigS === 'yellow' || sigL === 'yellow';
-    let caOn = sigL === 'green';
-    let cgOn = sigS === 'green';
-
-    let prOn = sigP === 'red';
-    let pgOn = sigP === 'green' || sigP === 'flash';
-
+    const crOn = sigS === 'red' && sigL === 'red' && (sMatches.length > 0 || lMatches.length > 0);
+    const cyOn = sigS === 'yellow' || sigL === 'yellow' || sigS === 'flash' || sigL === 'flash';
+    const caOn = sigL === 'green';
+    const cgOn = sigS === 'green';
+    
+    const prOn = sigP === 'red' && pMatches.length > 0;
+    const pgOn = sigP === 'green' || sigP === 'flash';
+    const pedColor = sigP === 'flash' ? '#00ffa2' : sigP === 'green' ? '#00ffa2' : '#f87171';
+    
+    let customAngle = deg;
+    const allMatches = [...sMatches, ...lMatches, ...pMatches];
+    if (allMatches.length > 0 && allMatches[0].customAngle !== undefined) {
+      customAngle = allMatches[0].customAngle;
+    }
+    
     let carColor = '#fff';
     if (cgOn || caOn) carColor = '#10b981';
     else if (cyOn) carColor = '#f59e0b';
     else if (crOn) carColor = '#ef4444';
-
-    let pedColor = '#fff';
-    if (pgOn) pedColor = '#10b981';
-    else if (prOn) pedColor = '#ef4444';
 
     const dirLabel = directionLabels[key] || '';
 

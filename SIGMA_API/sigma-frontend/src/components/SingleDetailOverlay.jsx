@@ -412,24 +412,34 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     <div style={{ marginTop: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                         <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
-                        <button 
-                          style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/intersections/${intersection.int_no}/angles`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ custom_angles: localCustomAngles })
-                              });
-                              if (res.ok) alert('각도 설정이 저장되었습니다.');
-                              else alert('각도 저장에 실패했습니다.');
-                            } catch(e) {
-                              alert('각도 저장 중 오류가 발생했습니다.');
-                            }
-                          }}
-                        >
-                          저장
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            style={{ padding: '4px 10px', background: '#475569', color: '#f1f5f9', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                            onClick={() => {
+                              setLocalCustomAngles({});
+                            }}
+                          >
+                            초기화
+                          </button>
+                          <button 
+                            style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/intersections/${intersection.int_no}/angles`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ custom_angles: localCustomAngles })
+                                });
+                                if (res.ok) alert('각도 설정이 저장되었습니다.');
+                                else alert('각도 저장에 실패했습니다.');
+                              } catch(e) {
+                                alert('각도 저장 중 오류가 발생했습니다.');
+                              }
+                            }}
+                          >
+                            저장
+                          </button>
+                        </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
                         {['nt|북행(0도)', 'ne|북동(45도)', 'et|동행(90도)', 'se|남동(135도)', 'st|남행(180도)', 'sw|남서(225도)', 'wt|서행(270도)', 'nw|북서(315도)'].map(item => {

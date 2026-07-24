@@ -70,11 +70,11 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     return `
       <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); zoom: var(--compass-scale-11, 1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 180px; height: 180px;">
         <div class="compass-center-overlay">
-          ${compassStates.map(({ key, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
+          ${compassStates.map(({ key, deg, customAngle, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
             if (!vehHasData && !pedHasData) return '';
 
             return `
-              <div class="signal-slot slot-${key}" id="slot-${key}">
+              <div class="signal-slot slot-${key}" id="slot-${key}" style="transform: rotate(${customAngle}deg);">
                 ${vehHasData ? `
                   <div class="signal-mount-frame" id="veh-block-${key}">
                     <div class="component-block">

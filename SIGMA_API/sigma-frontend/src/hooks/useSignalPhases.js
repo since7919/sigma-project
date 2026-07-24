@@ -130,8 +130,9 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
     const dirToPfxMap = { '북': 'nt', '북동': 'ne', '동': 'et', '남동': 'se', '남': 'st', '남서': 'sw', '서': 'wt', '북서': 'nw' };
     phases.forEach(p => {
       const pfx = p.pfx || dirToPfxMap[p.direction];
+      p.customAngle = p.angle;
       if (pfx && customAngles[pfx] !== undefined) {
-        p.angle = Number(customAngles[pfx]);
+        p.customAngle = Number(customAngles[pfx]);
       }
     });
 
