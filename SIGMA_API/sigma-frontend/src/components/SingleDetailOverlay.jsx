@@ -411,7 +411,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                     <div style={{ padding: '30px', opacity: 0.5, textAlign: 'center' }}>해당 교차로의 기반 정보가 없습니다.</div>
                   )}
                     <div style={{ marginTop: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button 
@@ -446,41 +446,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           </button>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '15px' }}>
-                        {['nt|북행(0도)', 'ne|북동(45도)', 'et|동행(90도)', 'se|남동(135도)', 'st|남행(180도)', 'sw|남서(225도)', 'wt|서행(270도)', 'nw|북서(315도)'].map(item => {
-                          const [pfx, label] = item.split('|');
-                          const baseAngle = { nt: 0, ne: 45, et: 90, se: 135, st: 180, sw: 225, wt: 270, nw: 315 }[pfx];
-                          const currentVal = localCustomAngles[pfx] !== undefined ? localCustomAngles[pfx] : baseAngle;
-                          return (
-                            <div key={pfx} style={{ display: 'flex', alignItems: 'center', gap: '15px', fontSize: '12px', color: '#cbd5e1' }}>
-                              <span style={{ width: '80px', fontWeight: 'bold' }}>{label}</span>
-                              <input 
-                                type="range" 
-                                min="0" 
-                                max="359" 
-                                value={currentVal} 
-                                onChange={(e) => {
-                                  const clamped = clampAngleForPfx(pfx, Number(e.target.value));
-                                  setLocalCustomAngles({...localCustomAngles, [pfx]: clamped});
-                                }}
-                                style={{ flex: 1, cursor: 'pointer' }}
-                              />
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <input 
-                                  type="number" 
-                                  min="0" max="359"
-                                  value={currentVal} 
-                                  onChange={(e) => {
-                                    const clamped = clampAngleForPfx(pfx, Number(e.target.value));
-                                    setLocalCustomAngles({...localCustomAngles, [pfx]: clamped});
-                                  }} 
-                                  style={{ width: '50px', background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '4px', borderRadius: '4px', textAlign: 'center' }}
-                                />
-                                <span>도</span>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.5' }}>
+                        위의 지도 화면에서 신호등 그래픽을 마우스나 터치로 직접 클릭하여 원하는 각도로 드래그한 후 <b>[저장]</b> 버튼을 누르면 설정이 반영됩니다.
                       </div>
                     </div>
                 </div>
