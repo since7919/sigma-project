@@ -22,7 +22,18 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
   }, [intersection]);
 
-  const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData });
+  const updatedPhases = useSignalPhases({ 
+    intersection, 
+    isSeoul, 
+    cropData, 
+    phaseA, 
+    phaseB, 
+    remainA, 
+    remainB, 
+    uticUpdateTick, 
+    sigMapData, 
+    customAngles: intersection.custom_angles 
+  });
 
   const markerRef = useRef(null);
 
