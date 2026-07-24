@@ -426,7 +426,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                             style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
                             onClick={async () => {
                               try {
-                                const res = await fetch(`/api/intersections/${intersection.int_no}/angles`, {
+                                const res = await fetch(`${API_BASE}/api/intersections/${intersection.int_no}/angles`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ custom_angles: localCustomAngles })
