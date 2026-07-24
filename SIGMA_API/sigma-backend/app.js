@@ -385,7 +385,7 @@ app.get('/api/intersections', async (req, res) => {
     const promises = [];
     for (let i = 0; i < count; i += step) {
       let q = supabase.from('utic_intersections')
-        .select('id, region_cd, int_no, int_nm, x_coord, y_coord, origin_type, updated_at')
+        .select('id, region_cd, int_no, int_nm, x_coord, y_coord, origin_type, updated_at, custom_angles')
         .range(i, i + step - 1)
         .order('region_cd')
         .order('int_no');
@@ -413,8 +413,29 @@ app.get('/api/intersections', async (req, res) => {
     }
     
     res.json(allData);
-  } catch (error) {
-    sendErrorResponse(res, error, '교차로 정보 조회에 실패했습니다.');
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 데이터 조회 중 오류가 발생했습니다.');
+  }
+});
+
+// 1-3. 교차로 신호등 각도 사용자 맞춤 설정
+app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) => {
+  const { int_no } = req.params;
+  const { custom_angles } = req.body;
+  if (!int_no || custom_angles === undefined) {
+    return res.status(400).json({ error: 'int_no와 custom_angles 데이터가 필요합니다.' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('utic_intersections')
+      .update({ custom_angles: custom_angles })
+      .eq('int_no', int_no);
+
+    if (error) throw error;
+    res.json({ success: true, message: '각도 설정이 저장되었습니다.' });
+  } catch (err) {
+    sendErrorResponse(res, err, '각도 설정 저장 중 오류가 발생했습니다.');
   }
 });
 

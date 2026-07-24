@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { parsePhaseCode, isCarActive, isPedActive, toHex } from '../utils/signalUtils';
 
-export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList }) {
+export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList, customAngles = {} }) {
   return useMemo(() => {
     const activeSigMapList = sigMapDataList && sigMapDataList.length > 0 ? sigMapDataList : (sigMapData ? [sigMapData] : []);
     const intersectionConf = isSeoul ? null : (() => {
@@ -125,6 +125,15 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
         });
       }
     }
+
+    // Apply custom angles
+    const dirToPfxMap = { '북': 'nt', '북동': 'ne', '동': 'et', '남동': 'se', '남': 'st', '남서': 'sw', '서': 'wt', '북서': 'nw' };
+    phases.forEach(p => {
+      const pfx = p.pfx || dirToPfxMap[p.direction];
+      if (pfx && customAngles[pfx] !== undefined) {
+        p.angle = Number(customAngles[pfx]);
+      }
+    });
 
     const uniqueMovementsMap = new Map();
     // (Deduplication Logic)
