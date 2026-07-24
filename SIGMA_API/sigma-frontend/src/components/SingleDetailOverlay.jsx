@@ -260,11 +260,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
         <div className="modal-top-map" style={mapZoomMode ? { flex: 1 } : {}}>
           {!isDual && (
             <div className="overlay-toolbar" style={{ display: 'flex', gap: '15px' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="toolbar-btn" onClick={() => setLocalZoomMode(!localZoomMode)}>
-                  {localZoomMode ? '맵 축소 (전체 정보)' : '맵 확대 모드'}
-                </button>
-                <button className="toolbar-btn" onClick={() => setDisplayMode(displayMode === 'circle' ? 'arrow' : 'circle')}>
+              <div style={{ display: \'flex\', background: \'rgba(15, 23, 42, 0.8)\', border: \'1px solid #38bdf8\', borderRadius: \'20px\', overflow: \'hidden\' }}>\n                <button style={{ background: \'transparent\', color: \'#38bdf8\', border: \'none\', borderRight: \'1px solid #38bdf8\', padding: \'6px 15px\', fontSize: \'0.8rem\', fontWeight: \'600\', cursor: \'pointer\' }} onClick={() => setLocalZoomMode(!localZoomMode)}>\n                  {localZoomMode ? \'맵 축소\' : \'맵 확대\'}\n                </button>\n                <button style={{ background: \'transparent\', color: \'#38bdf8\', border: \'none\', padding: \'6px 15px\', display: \'flex\', alignItems: \'center\', cursor: \'pointer\' }} onClick={() => setDisplayMode(displayMode === \'circle\' ? \'arrow\' : \'circle\')}>
                   {displayMode === 'circle' ? (
                     <svg width="28" height="14" viewBox="0 0 28 14" fill="none" xmlns="http://www.w3.org/2000/svg" title="신호등 모드"><rect x="1" y="1" width="26" height="12" rx="4" fill="#222" stroke="#555" strokeWidth="2"></rect><circle cx="7" cy="7" r="3" fill="#ef4444"></circle><circle cx="14" cy="7" r="3" fill="#eab308"></circle><circle cx="21" cy="7" r="3" fill="#22c55e"></circle></svg>
                   ) : (
@@ -414,7 +410,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
   <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
     <div style={{ width: '50%', height: '100%', overflowY: 'auto', paddingRight: '10px', borderRight: '1px solid #1e293b' }} className="custom-scroll">
-      <h3 style={{ color: '#00ecff', marginBottom: '15px' }}>신호계획정보</h3>
+      <h3 style={{ color: \'#38bdf8\', fontWeight: \'bold\', fontSize: \'13px\', margin: \'0 0 8px 0\' }}>신호계획정보</h3>
       <table className="detail-grid-table">
                   <thead>
                     <tr>
