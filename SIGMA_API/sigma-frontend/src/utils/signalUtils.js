@@ -235,25 +235,29 @@ export function calculateCompassSignals({ updatedPhases }) {
     sigP = pResult.state;
     pedCountdown = pResult.countdown;
 
-    const crOn = sigS === 'red' && sigL === 'red' && (sMatches.length > 0 || lMatches.length > 0);
-    const cyOn = sigS === 'yellow' || sigL === 'yellow' || sigS === 'flash' || sigL === 'flash';
-    const caOn = sigL === 'green';
-    const cgOn = sigS === 'green';
-    
-    const prOn = sigP === 'red' && pMatches.length > 0;
-    const pgOn = sigP === 'green' || sigP === 'flash';
-    const pedColor = sigP === 'flash' ? '#00ffa2' : sigP === 'green' ? '#00ffa2' : '#f87171';
-    
+    let isAnyVehActive = (sigS === 'green' || sigS === 'yellow' || sigS === 'flash' || sigL === 'green' || sigL === 'yellow' || sigL === 'flash');
+    let crOn = vehHasData && !isAnyVehActive;
+    let cyOn = sigS === 'yellow' || sigL === 'yellow' || sigS === 'flash' || sigL === 'flash';
+    let caOn = sigL === 'green';
+    let cgOn = sigS === 'green';
+
+    let prOn = sigP === 'red';
+    let pgOn = sigP === 'green' || sigP === 'flash';
+
     let customAngle = deg;
     const allMatches = [...sMatches, ...lMatches, ...pMatches];
     if (allMatches.length > 0 && allMatches[0].customAngle !== undefined) {
       customAngle = allMatches[0].customAngle;
     }
-    
+
     let carColor = '#fff';
     if (cgOn || caOn) carColor = '#10b981';
     else if (cyOn) carColor = '#f59e0b';
     else if (crOn) carColor = '#ef4444';
+
+    let pedColor = '#fff';
+    if (pgOn) pedColor = '#10b981';
+    else if (prOn) pedColor = '#ef4444';
 
     const dirLabel = directionLabels[key] || '';
 

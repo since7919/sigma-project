@@ -55,11 +55,11 @@ export default function CompassOverlay({ displayMode, updatedPhases }) {
       transformOrigin: 'center'
     }}>
       <div className="compass-center-overlay">
-        {compassStates.map(({ key, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
+        {compassStates.map(({ key, deg, customAngle, vehHasData, pedHasData, carCountdown, pedCountdown, crOn, cyOn, caOn, cgOn, prOn, pgOn, carColor, pedColor, dirLabel }) => {
           if (!vehHasData && !pedHasData) return null;
 
           return (
-            <div key={key} className={`signal-slot slot-${key}`} id={`slot-${key}`}>
+            <div key={key} className={`signal-slot slot-${key}`} id={`slot-${key}`} style={{ transform: `rotate(${customAngle}deg)` }}>
               {vehHasData && (
                 <div className="signal-mount-frame" id={`veh-block-${key}`}>
                   <div className="component-block">
