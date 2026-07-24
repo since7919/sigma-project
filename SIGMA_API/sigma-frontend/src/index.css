@@ -11,7 +11,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 #root { display: flex; width: 100%; height: 100vh; }
 .glass { background: var(--bg-panel); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); }
 
-/* 醫뚯륫 ?ъ씠?쒕컮 */
+/* ?�뚯�??????�컮 */
 .sidebar { width: 320px; height: 100%; display: flex; flex-direction: column; border-right: 1px solid var(--glass-border); z-index: 100; }
 .sidebar-header { padding: 20px; border-bottom: 1px solid var(--glass-border); background: rgba(0,0,0,0.2); }
 .sidebar-header h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--accent-primary); }
@@ -19,7 +19,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .search-box input { flex: 1; padding: 10px 15px; background: transparent; border: none; color: #fff; outline: none; }
 .search-box button { background: transparent; border: none; color: #fff; padding: 0 15px; cursor: pointer; }
 
-/* ?몃━酉?(?꾩퐫?붿뼵) ?곸뿭 */
+/* ?몃━??(?꾩퐫?붿뼵) ?곸뿭 */
 .accordion-wrapper { flex: 1; overflow-y: auto; padding: 0; }
 .acc-group { border-bottom: 1px solid rgba(255,255,255,0.05); }
 .acc-header { display: flex; align-items: center; padding: 12px 15px; background: rgba(56, 189, 248, 0.05); cursor: pointer; font-weight: 700; color: #e2e8f0; font-size: 0.9rem; transition: background 0.2s; }
@@ -31,7 +31,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .acc-sub-header { display: flex; align-items: center; padding: 10px 15px 10px 30px; cursor: pointer; font-weight: 600; color: #cbd5e1; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.02); }
 .acc-sub-header:hover { background: rgba(255,255,255,0.05); }
 
-/* 媛쒕퀎 ?몃━ ?꾩씠??(援먯감濡?由ъ뒪?? */
+/* 媛쒕???몃━ ?꾩씠??(?�먯감濡??�ъ뒪?? */
 .acc-sub-body .tree-item { padding-left: 50px; }
 .acc-body > .tree-item { padding-left: 30px; }
 .tree-item { display: flex; align-items: center; padding: 8px 15px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid rgba(255,255,255,0.02); border-left: 3px solid transparent; }
@@ -43,7 +43,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .tree-item .name-label { font-size: 0.8rem; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 
-/* ?곗륫 硫붿씤 ?곸뿭 */
+/* ?곗�? 硫붿???곸뿭 */
 .main-content { flex: 1; display: flex; flex-direction: column; position: relative; }
 .top-map-wrapper { flex: 1; position: relative; }
 .map-label { 
@@ -59,7 +59,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 }
 .map-label::before { display: none !important; }
 
-/* 留덉빱 ?앹뾽 而ㅼ뒪? */
+/* 留덉�???�뾽 ?�ㅼ??? */
 .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent-primary); border-radius: 8px; color: #fff; }
 .custom-popup .leaflet-popup-tip { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent-primary); }
 .popup-content { text-align: center; padding: 5px; }
@@ -67,7 +67,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .btn-detail { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
 .btn-detail:hover { background: #2563eb; }
 
-/* ?섎떒 ?뚯씠釉?*/
+/* ??�떒 ???��??*/
 .bottom-table-wrapper { height: 250px; border-top: 1px solid var(--glass-border); display: flex; flex-direction: column; background: #0f172a; }
 .table-header-title { padding: 10px 15px; background: rgba(0,0,0,0.3); font-size: 0.9rem; font-weight: 600; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
 .table-scroll { flex: 1; overflow-y: auto; }
@@ -75,9 +75,9 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .status-table th { background: rgba(255,255,255,0.05); color: var(--text-muted); padding: 10px 8px; font-weight: 500; position: sticky; top: 0; z-index: 10; }
 .status-table td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #e2e8f0; }
 
-/* ?⑥씪 援먯감濡??곸꽭 紐⑤떖 (Single Detail Overlay) */
+/* ??�씪 ?�먯감濡??곸꽭 紐⑤??(Single Detail Overlay) */
 .detail-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-.detail-modal-content { width: 960px; max-width: 90vw; height: 650px; max-height: 85vh; background: #0f172a; border-radius: 12px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+.detail-modal-content { width: 960px; max-width: 90vw; height: 975px; max-height: 95vh; background: #0f172a; border-radius: 12px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid #1e293b; }
 .modal-header h2 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
 .btn-close { background: transparent; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
@@ -88,7 +88,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .toolbar-btn.active { background: #38bdf8; color: #000; }
 .modal-bottom-data { flex: 0.6; display: flex; flex-direction: column; background: #111827; min-height: 0; }
 
-/* ??諛??곸꽭 ?뚯씠釉?*/
+/* ??�??곸꽭 ???��??*/
 .tabs-header { display: flex; border-bottom: 1px solid #1e293b; }
 .tab-btn { flex: 1; padding: 15px; background: transparent; border: none; color: #94a3b8; font-size: 1rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; }
 .tab-btn.active { color: #38bdf8; border-bottom: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.05); }
@@ -99,7 +99,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
 .action-type { color: #818cf8; font-weight: 600; }
 
-/* ?섎떒 ?댁쁺?뺣낫 */
+/* ??�떒 ??�쁺?뺣낫 */
 .operation-footer { flex: 1; overflow-y: auto; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #0f172a; border-top: 1px solid #1e293b; }
 .op-items { display: flex; gap: 20px; }
 .op-item { display: flex; flex-direction: column; gap: 2px; }
@@ -107,12 +107,12 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .op-val { font-size: 0.9rem; font-weight: bold; color: #fff; }
 .btn-download { background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; }
 
-/* 以묒븰 8諛⑺뼢 ?뚯쫰 UI (TSI ?먮낯 SVG ?붿옄???댁떇) */
+/* 以묒�?8諛⑺�????�� UI (TSI ?�?�� SVG ?붿옄????�떇) */
 .signal-board { position: relative; width: 250px; height: 250px; margin: 20px auto; background: radial-gradient(circle, rgba(15, 23, 42, 0.8) 0%, rgba(0, 0, 0, 0.4) 100%); border-radius: 50%; border: 2px solid var(--glass-border); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
 .center-label { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0f172a; width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent-primary); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); z-index: 2; pointer-events: auto; }
 .direction-signal { position: absolute; width: 50px; height: 60px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
-/* Positioning for 8 directions (諛섏?由?125px 而⑦뀒?대꼫 湲곗?, ?먮낯 ?꾩튂 ?뺥솗??諛섏쁺) */
+/* Positioning for 8 directions (諛섏???125px ?�⑦???��?湲곗?, ?�?�� ?꾩튂 ?뺥솗??諛섏?? */
 .dir-0   { top: 5px; left: 50%; transform: translateX(-50%); } 
 .dir-45  { top: 35px; right: 35px; } 
 .dir-90  { top: 50%; right: 5px; transform: translateY(-50%); } 
@@ -227,7 +227,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color:
 .slot-W  { transform: rotate(-90deg); }   
 .slot-NW { transform: rotate(-45deg); }
 
-/* 吏?꾩긽 ?붿궡??紐⑤뱶 ?좏샇 ?ㅽ???*/
+/* 吏?꾩긽 ?붿궡??紐⑤�??좏샇 ?????*/
 .map-signal-arrow {
   width: 24px;
   height: 24px;
@@ -319,7 +319,7 @@ details.footer-section summary::marker { content: ''; }
   .modal-header h2 { font-size: 1.1rem; }
 }
 
-/* ???紐⑤땲?곕쭅 ?덉씠?꾩썐 */
+/* ????紐⑤??곕쭅 ??�씠?꾩썐 */
 .dual-overlay-wrapper {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100dvh;
@@ -391,13 +391,13 @@ details.footer-section summary::marker { content: ''; }
   .dual-panel:last-child { border-bottom: none; }
   .dual-panel .overlay { position: relative !important; flex: 1; }
   
-  /* zoom-mode: ?곹븯 遺꾪븷 (留??뺣? 紐⑤뱶) ???ㅽ겕濡??놁씠 50%??李⑥? */
+  /* zoom-mode: ?곹븯 ?�꾪�?(�??�? 紐⑤�? ????�겕�???�씠 50%??李⑥? */
   .dual-overlay-wrapper.zoom-mode .dual-overlay-content { overflow-y: hidden; }
   .dual-overlay-wrapper.zoom-mode .dual-panel { height: auto; flex: 1; border-bottom: 2px solid rgba(255,255,255,0.1); }
   .dual-overlay-wrapper.zoom-mode .dual-panel .overlay { position: absolute !important; }
 }
 
-/* ?곗륫 硫?곗뒪?щ┛ ?⑤꼸 */
+/* ?곗�? 硫?곗뒪??????�꼸 */
 .multi-screen-panel {
   width: 750px;
   height: 100%;
@@ -454,7 +454,7 @@ details.footer-section summary::marker { content: ''; }
   background: rgba(239, 68, 68, 0.2);
 }
 
-/* 洹몃━??*/
+/* 洹몃???*/
 .multi-grid {
   flex: 1;
   display: grid;
@@ -464,7 +464,7 @@ details.footer-section summary::marker { content: ''; }
   box-sizing: border-box;
 }
 
-/* 媛쒕퀎 移대뱶 */
+/* 媛쒕??移�?�?*/
 .multi-card {
   width: 100%;
   height: 100%;
@@ -516,7 +516,7 @@ details.footer-section summary::marker { content: ''; }
   color: #ef4444;
 }
 
-/* 誘몃땲 蹂대뱶 ?곸뿭 */
+/* 誘몃??蹂�?�??곸뿭 */
 .multi-card-body {
   flex: 1;
   display: flex;
@@ -554,7 +554,7 @@ details.footer-section summary::marker { content: ''; }
   color: var(--text-muted);
 }
 
-/* 鍮??щ’ ?쒕∼議?*/
+/* ????????�∼�?*/
 .empty-slot {
   border: 2px dashed rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -586,7 +586,7 @@ details.footer-section summary::marker { content: ''; }
   opacity: 1;
 }
 
-/* ?ъ씠?쒕컮 ?좉? 踰꾪듉 (吏???곷떒 諛??곕룞 ??묒쓣 ?꾪빐 湲곕낯 position 蹂寃? */
+/* ?????�컮 ?�? 踰꾪??(吏???곷떒 �??곕룞 ???묒쓣 ?꾪빐 湲곕??position 蹂�? */
 .btn-toggle-multi {
   position: static;
   background: transparent;
