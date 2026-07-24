@@ -431,8 +431,12 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({ custom_angles: localCustomAngles })
                                 });
-                                if (res.ok) alert('각도 설정이 저장되었습니다.');
-                                else alert('각도 저장에 실패했습니다.');
+                                if (res.ok) {
+                                  alert('각도 설정이 저장되었습니다.');
+                                  intersection.custom_angles = { ...localCustomAngles };
+                                } else {
+                                  alert('각도 저장에 실패했습니다.');
+                                }
                               } catch(e) {
                                 alert('각도 저장 중 오류가 발생했습니다.');
                               }
