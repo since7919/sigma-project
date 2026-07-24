@@ -107,7 +107,7 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
                 >
                   <div className="component-block">
                     <div style={{ fontSize: '10px', color: '#38bdf8', fontWeight: 'bold', marginBottom: '2px', textAlign: 'center', textShadow: '0 0 3px #000', whiteSpace: 'nowrap' }}>
-                      {dirLabel} {carCountdown > 0 ? <span style={{color: carColor}}>{carCountdown}s</span> : null}
+                      {dirLabel} ({customAngle}°) {carCountdown > 0 ? <span style={{color: carColor}}>{carCountdown}s</span> : null}
                     </div>
                     <div className="car-housing-box">
                       <div className={`lens c-red ${crOn ? 'on' : ''}`}></div>
