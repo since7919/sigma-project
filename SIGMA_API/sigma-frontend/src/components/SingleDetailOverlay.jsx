@@ -326,7 +326,50 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
             <div className="detail-tab-content custom-scroll">
               {localTab === 'baseinfo' && (
                 <div style={{ padding: '20px', color: '#fff', fontSize: '13px', height: '100%', overflowY: 'auto' }}>
-                  <h3 style={{ color: '#00ecff', marginBottom: '15px' }}>L02 교차로 기반 정보 (JSON)</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                    <h3 style={{ color: '#00ecff', margin: 0 }}>L02 교차로 기반 정보 (JSON)</h3>
+                  </div>
+
+                  <div style={{ marginBottom: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          style={{ padding: '4px 10px', background: '#475569', color: '#f1f5f9', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                          onClick={() => {
+                            setLocalCustomAngles({});
+                          }}
+                        >
+                          초기화
+                        </button>
+                        <button 
+                          style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${API_BASE}/api/intersections/${intersection.int_no}/angles`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ custom_angles: localCustomAngles })
+                              });
+                              if (res.ok) {
+                                alert('각도 설정이 저장되었습니다.');
+                                intersection.custom_angles = { ...localCustomAngles };
+                              } else {
+                                alert('각도 저장에 실패했습니다.');
+                              }
+                            } catch(e) {
+                              alert('각도 저장 중 오류가 발생했습니다.');
+                            }
+                          }}
+                        >
+                          저장
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.5' }}>
+                      위의 지도 화면에서 신호등 그래픽을 마우스나 터치로 직접 클릭하여 원하는 각도로 드래그한 후 <b>[저장]</b> 버튼을 누르면 설정이 반영됩니다.
+                    </div>
+                  </div>
                   {conf ? (
                     (() => {
                       const baseRows = [];
@@ -345,8 +388,11 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                             else if (typeChar === 'U') typeName = '유턴(U)';
                             const inAngle = parseInt(code.substring(1, 4), 10);
                             const outAngle = parseInt(code.substring(4, 7), 10);
+                            const parsed = parsePhaseCode(code);
+                            const dirName = parsed ? parsed.direction : '미지정';
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
+                              direction: dirName,
                               type: typeName,
                               inAngle: !isNaN(inAngle) ? inAngle + '°' : '-',
                               outAngle: !isNaN(outAngle) ? outAngle + '°' : '-',
@@ -358,6 +404,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                           inferredPhases.forEach(p => {
                             baseRows.push({
                               ringStep: `${ring}링 ${i}현시`,
+                              direction: p.direction,
                               type: p.type === 'L' ? '좌회전(L)' : '보행(P)',
                               inAngle: '-',
                               outAngle: '-',
@@ -375,6 +422,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                               <thead>
                                 <tr>
                                   <th>현시</th>
+                                  <th>방향</th>
                                   <th>신호종류</th>
                                   <th>진입방위각</th>
                                   <th>진출방위각</th>
@@ -386,6 +434,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                                 {baseRows.map((row, idx) => (
                                   <tr key={idx}>
                                     <td>{row.ringStep}</td>
+                                    <td style={{ fontWeight: 'bold' }}>{row.direction}</td>
                                     <td>{row.type}</td>
                                     <td>{row.inAngle}</td>
                                     <td>{row.outAngle}</td>
@@ -410,46 +459,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   ) : (
                     <div style={{ padding: '30px', opacity: 0.5, textAlign: 'center' }}>해당 교차로의 기반 정보가 없습니다.</div>
                   )}
-                    <div style={{ marginTop: '20px', background: 'rgba(15, 23, 42, 0.6)', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '13px' }}>신호등 각도 미세 조정</h4>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            style={{ padding: '4px 10px', background: '#475569', color: '#f1f5f9', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                            onClick={() => {
-                              setLocalCustomAngles({});
-                            }}
-                          >
-                            초기화
-                          </button>
-                          <button 
-                            style={{ padding: '4px 10px', background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                            onClick={async () => {
-                              try {
-                                const res = await fetch(`${API_BASE}/api/intersections/${intersection.int_no}/angles`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ custom_angles: localCustomAngles })
-                                });
-                                if (res.ok) {
-                                  alert('각도 설정이 저장되었습니다.');
-                                  intersection.custom_angles = { ...localCustomAngles };
-                                } else {
-                                  alert('각도 저장에 실패했습니다.');
-                                }
-                              } catch(e) {
-                                alert('각도 저장 중 오류가 발생했습니다.');
-                              }
-                            }}
-                          >
-                            저장
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.5' }}>
-                        위의 지도 화면에서 신호등 그래픽을 마우스나 터치로 직접 클릭하여 원하는 각도로 드래그한 후 <b>[저장]</b> 버튼을 누르면 설정이 반영됩니다.
-                      </div>
-                    </div>
+
                 </div>
               )}
               {localTab === 'remainTime' && (
