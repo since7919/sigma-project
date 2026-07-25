@@ -50,7 +50,7 @@ export default function MultiSignalCard({ intersection, uticUpdateTick, onRemove
     return intersection.origin_type?.toLowerCase().includes('tdata') || false;
   }, [intersection]);
 
-  const phasesInfo = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData });
+  const phasesInfo = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, customAngles: intersection.custom_angles });
 
   // 실시간 타이머 및 시간 업데이트 연동
   useEffect(() => {
