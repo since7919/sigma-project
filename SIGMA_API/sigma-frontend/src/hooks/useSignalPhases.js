@@ -86,6 +86,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
             if (pedActivePhases.size > 0) {
               let targetAngle = null;
+              let targetExactAngle = null;
               let targetDirection = null;
 
               // Find angle from vehicle with SAME lsuIdx
@@ -98,12 +99,14 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
 
               if (vMatch) {
                 targetAngle = vMatch.angle;
+                targetExactAngle = vMatch.exactAngle;
                 targetDirection = vMatch.direction;
               } else {
                 // Fallback fixed mapping
                 const fbMap = { 1: 0, 2: 90, 3: 180, 4: 270, 5: 45, 6: 135, 7: 225, 8: 315 };
                 const fbDirMap = { 1: '북', 2: '동', 3: '남', 4: '서', 5: '북동', 6: '남동', 7: '남서', 8: '북서' };
                 targetAngle = fbMap[lsuIdx] || 0;
+                targetExactAngle = fbMap[lsuIdx] || 0;
                 targetDirection = fbDirMap[lsuIdx] || '북';
               }
 
@@ -114,6 +117,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
                   pedestrian: 0,
                   type: 'P',
                   angle: targetAngle,
+                  exactAngle: targetExactAngle,
                   ring: ring,
                   idx: phaseNo,
                   lsuIdx: lsuIdx,
@@ -133,7 +137,7 @@ export function useSignalPhases({ intersection, isSeoul, cropData, phaseA, phase
     };
     phases.forEach(p => {
       const pfx = p.pfx || angleToPfxMap[p.angle];
-      p.customAngle = p.angle;
+      p.customAngle = p.exactAngle !== undefined ? p.exactAngle : p.angle;
       if (pfx && customAngles[pfx] !== undefined) {
         p.customAngle = Number(customAngles[pfx]);
       }

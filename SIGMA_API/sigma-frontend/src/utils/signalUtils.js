@@ -68,7 +68,8 @@ export function parsePhaseCode(code) {
     timeSignal: 0, 
     original: code,
     type: typeChar,
-    angle: parsedAngle
+    angle: parsedAngle,
+    exactAngle: !isNaN(enterAngle) ? enterAngle % 360 : parsedAngle
   };
 }
 
