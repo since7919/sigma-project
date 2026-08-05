@@ -132,6 +132,32 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
         for (let key in plansMap) {
           plansMap[key].sort((a, b) => a.startMins - b.startMins);
         }
+
+        // 현시계획(Split Plan) 데이터가 동일한 경우 동일한 글로벌 인덱스를 부여
+        let globalPhaseDict = [];
+        let nextGlobalIdx = 1;
+        const isSameSplit = (p1, p2) => {
+          for (let i = 1; i <= 8; i++) {
+            if (p1[`A_RING_${i}_PHASE_VAL`] !== p2[`A_RING_${i}_PHASE_VAL`]) return false;
+            if (p1[`B_RING_${i}_PHASE_VAL`] !== p2[`B_RING_${i}_PHASE_VAL`]) return false;
+          }
+          return true;
+        };
+
+        const sortedPlanKeys = Object.keys(plansMap).sort((a, b) => Number(a) - Number(b));
+        for (let key of sortedPlanKeys) {
+          for (let matched of plansMap[key]) {
+             let existing = globalPhaseDict.find(gp => isSameSplit(gp, matched));
+             if (existing) {
+                matched.planIdxNo = String(existing.globalIdx);
+             } else {
+                matched.planIdxNo = String(nextGlobalIdx);
+                globalPhaseDict.push({ ...matched, globalIdx: nextGlobalIdx });
+                nextGlobalIdx++;
+             }
+          }
+        }
+
         setAllTodPlans(plansMap);
         
         // 초기 1회 현재 시간에 맞는 계획 설정
