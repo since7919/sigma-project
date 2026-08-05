@@ -14,6 +14,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
   const [sigMapDataList, setSigMapDataList] = useState([]);
   const [weeklyPlans, setWeeklyPlans] = useState({});
   const [allTodPlans, setAllTodPlans] = useState({});
+  const [globalPhasePlans, setGlobalPhasePlans] = useState([]);
   const [isSigMapLoading, setIsSigMapLoading] = useState(false);
 
   const isSeoul = useMemo(() => {
@@ -173,6 +174,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
           }
         }
 
+        setGlobalPhasePlans(uniqueSplits);
         setAllTodPlans(plansMap);
         
         // 초기 1회 현재 시간에 맞는 계획 설정
@@ -377,6 +379,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
     sigMapDataList,
     weeklyPlans,
     allTodPlans,
+    globalPhasePlans,
     isSigMapLoading
   };
 }

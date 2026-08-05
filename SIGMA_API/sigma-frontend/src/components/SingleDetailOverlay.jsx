@@ -761,10 +761,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                 </div>
               )}
 
-              {Object.keys(allTodPlans).length > 0 && cropData?.planNo && (
+              {globalPhasePlans && globalPhasePlans.length > 0 && (
                 <div style={{ marginTop: '20px' }}>
                   <h4 style={{ color: '#38bdf8', fontSize: '13px', marginBottom: '8px' }}>
-                    플랜 인덱스별 현시계획표 (일계획 {cropData.planNo})
+                    플랜 인덱스별 현시계획표 (전체 통합)
                   </h4>
                   <div style={{ overflowX: 'auto', background: '#0f172a', padding: '1px', borderRadius: '6px', border: '1px solid #1e293b' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '11px' }}>
@@ -780,9 +780,8 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                       <tbody>
                         {Array.from({ length: 16 }).map((_, idx) => {
                           const idxNo = idx + 1;
-                          const planArr = allTodPlans[cropData.planNo] || [];
-                          const matchedData = planArr.find(p => String(p.planIdxNo) === String(idxNo));
-                          const isActive = String(cropData.planIdxNo) === String(idxNo);
+                          const matchedData = globalPhasePlans.find(p => String(p.globalIdx) === String(idxNo));
+                          const isActive = String(cropData?.planIdxNo) === String(idxNo);
                           const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
                           const fontColor = isActive ? '#10b981' : '#cbd5e1';
                           
