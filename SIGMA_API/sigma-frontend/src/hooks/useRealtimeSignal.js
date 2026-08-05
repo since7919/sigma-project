@@ -135,9 +135,10 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
         }
 
         // 현시계획(Split Plan) 데이터가 동일한 경우 동일한 글로벌 인덱스를 부여
-        let globalPhaseDict = [];
-        let nextGlobalIdx = 1;
+        // 물리적 제어기와의 유사성을 높이기 위해 주기(Cycle) 오름차순으로 정렬 후 ID 부여
+        let uniqueSplits = [];
         const isSameSplit = (p1, p2) => {
+          if (p1.cycle !== p2.cycle) return false;
           for (let i = 1; i <= 8; i++) {
             if (p1[`A_RING_${i}_PHASE_VAL`] !== p2[`A_RING_${i}_PHASE_VAL`]) return false;
             if (p1[`B_RING_${i}_PHASE_VAL`] !== p2[`B_RING_${i}_PHASE_VAL`]) return false;
@@ -145,16 +146,29 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
           return true;
         };
 
-        const sortedPlanKeys = Object.keys(plansMap).sort((a, b) => Number(a) - Number(b));
-        for (let key of sortedPlanKeys) {
+        for (let key in plansMap) {
           for (let matched of plansMap[key]) {
-             let existing = globalPhaseDict.find(gp => isSameSplit(gp, matched));
+             if (!uniqueSplits.find(gp => isSameSplit(gp, matched))) {
+                uniqueSplits.push({ ...matched });
+             }
+          }
+        }
+
+        uniqueSplits.sort((a, b) => {
+           if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+           if (a.offset !== b.offset) return a.offset - b.offset;
+           return 0;
+        });
+
+        uniqueSplits.forEach((split, index) => {
+           split.globalIdx = index + 1;
+        });
+
+        for (let key in plansMap) {
+          for (let matched of plansMap[key]) {
+             const existing = uniqueSplits.find(gp => isSameSplit(gp, matched));
              if (existing) {
                 matched.planIdxNo = String(existing.globalIdx);
-             } else {
-                matched.planIdxNo = String(nextGlobalIdx);
-                globalPhaseDict.push({ ...matched, globalIdx: nextGlobalIdx });
-                nextGlobalIdx++;
              }
           }
         }
