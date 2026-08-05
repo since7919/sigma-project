@@ -118,6 +118,7 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
     sigMapDataList,
     weeklyPlans,
     allTodPlans,
+    globalPhasePlans,
     isSigMapLoading
   } = useRealtimeSignal({ intersection, mainPhases });
 
