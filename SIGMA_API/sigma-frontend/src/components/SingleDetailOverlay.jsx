@@ -760,6 +760,56 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                   </div>
                 </div>
               )}
+
+              {Object.keys(allTodPlans).length > 0 && cropData?.planNo && (
+                <div style={{ marginTop: '20px' }}>
+                  <h4 style={{ color: '#38bdf8', fontSize: '13px', marginBottom: '8px' }}>
+                    플랜 인덱스별 현시계획표 (일계획 {cropData.planNo})
+                  </h4>
+                  <div style={{ overflowX: 'auto', background: '#0f172a', padding: '1px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '11px' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <th style={{ padding: '6px 4px', borderBottom: '1px solid #334155', color: '#94a3b8' }}>인덱스</th>
+                          <th style={{ padding: '6px 4px', borderBottom: '1px solid #334155', color: '#94a3b8' }}>주기(C)</th>
+                          <th style={{ padding: '6px 4px', borderBottom: '1px solid #334155', color: '#94a3b8' }}>연동(O)</th>
+                          {[1,2,3,4,5,6,7,8].map(i => <th key={`a-${i}`} style={{ padding: '6px 4px', borderBottom: '1px solid #334155', color: '#10b981' }}>A{i}</th>)}
+                          {[1,2,3,4,5,6,7,8].map(i => <th key={`b-${i}`} style={{ padding: '6px 4px', borderBottom: '1px solid #334155', color: '#38bdf8' }}>B{i}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: 16 }).map((_, idx) => {
+                          const idxNo = idx + 1;
+                          const planArr = allTodPlans[cropData.planNo] || [];
+                          const matchedData = planArr.find(p => String(p.planIdxNo) === String(idxNo));
+                          const isActive = String(cropData.planIdxNo) === String(idxNo);
+                          const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                          const fontColor = isActive ? '#10b981' : '#cbd5e1';
+                          
+                          if (!matchedData) {
+                            return (
+                              <tr key={`idx-${idxNo}`} style={{ borderBottom: '1px solid #1e293b' }}>
+                                <td style={{ padding: '4px', fontWeight: 'bold', color: '#64748b' }}>{idxNo}</td>
+                                <td colSpan="18" style={{ padding: '4px', color: '#475569' }}>데이터 없음</td>
+                              </tr>
+                            );
+                          }
+
+                          return (
+                            <tr key={`idx-${idxNo}`} style={{ borderBottom: '1px solid #1e293b', background: bg, color: fontColor }}>
+                              <td style={{ padding: '4px', fontWeight: 'bold' }}>{idxNo}</td>
+                              <td style={{ padding: '4px' }}>{matchedData.cycle}</td>
+                              <td style={{ padding: '4px' }}>{matchedData.offset}</td>
+                              {[1,2,3,4,5,6,7,8].map(i => <td key={`a-val-${i}`} style={{ padding: '4px' }}>{matchedData[`A_RING_${i}_PHASE_VAL`] || 0}</td>)}
+                              {[1,2,3,4,5,6,7,8].map(i => <td key={`b-val-${i}`} style={{ padding: '4px' }}>{matchedData[`B_RING_${i}_PHASE_VAL`] || 0}</td>)}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
               
 
             </div>
