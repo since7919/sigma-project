@@ -731,9 +731,9 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
                             {[1, 2, 3, 4, 5].map((i) => {
                               const pNo = String(todTab === 'general' ? i : i + 5);
                               const planArr = allTodPlans[pNo] || [];
-                              const matchedData = planArr.find(p => String(p.planIdxNo) === String(rIdx + 1)) || planArr[rIdx];
+                              const matchedData = planArr[rIdx];
                               
-                              const isActive = cropData?.planNo === pNo && String(cropData?.planIdxNo) === String(matchedData?.planIdxNo);
+                              const isActive = cropData?.planNo === pNo && matchedData && String(cropData.operPlanTm) === String(matchedData.operPlanTm);
                               const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
                               const fontColor = isActive ? '#10b981' : '#cbd5e1';
 
