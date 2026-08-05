@@ -130,6 +130,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
         }
         
         for (let key in plansMap) {
+          plansMap[key] = plansMap[key].filter(p => p.cycle > 0);
           plansMap[key].sort((a, b) => a.startMins - b.startMins);
         }
 
