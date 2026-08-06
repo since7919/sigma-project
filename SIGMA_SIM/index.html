@@ -266,7 +266,6 @@
             <div class="tab" onclick="openTab(event, 'tab-db')">📂 DB Center</div>
             <div class="tab active" onclick="openTab(event, 'tab-info')">Node/Link</div>
             <div class="tab" onclick="openTab(event, 'tab-phase')">Phase/Split</div>
-            <div class="tab" onclick="openTab(event, 'tab-sigmap')">Signal Map</div>
             <div class="tab" onclick="openTab(event, 'tab-group')">Group TOD</div>
             <div class="tab" onclick="openTab(event, 'tab-stats1')">Stats Input</div>
             <div class="tab" onclick="openTab(event, 'tab-stats')">Stats View</div>
@@ -789,10 +788,8 @@
                     </div>
                 </div>
             </div>
-        </div> <!-- end tab-phase -->
 
-        <div id="tab-sigmap" class="tab-content">
-            <div class="sigma-panel" style="background: rgba(20, 20, 25, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);">
+            <div class="sigma-panel" style="background: rgba(20, 20, 25, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); margin-top: 15px;">
                 <div class="card-title" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                     <h3 style="margin: 0; color: var(--accent); font-family: 'Outfit'; font-weight: 800; font-size: 16px;">📊 시그널맵 (Signal Map)</h3>
                 </div>
@@ -825,7 +822,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> <!-- end tab-phase -->
 
         <!-- [New Tab] DB Center (Integrated Database Operations) -->
         <div id="tab-db" class="tab-content">
