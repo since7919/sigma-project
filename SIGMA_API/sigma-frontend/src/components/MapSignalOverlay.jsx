@@ -65,6 +65,8 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
         `;
       }).join('');
 
+      if (!htmlContent.trim()) return null;
+
       return `
         <div class="directions-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); zoom: var(--compass-scale, 1); width: 180px; height: 180px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5);">
           <div class="center-box" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; background: #333; border: 2px solid #555; border-radius: 4px;"></div>
@@ -77,6 +79,9 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     const compassStates = calculateCompassSignals({
         updatedPhases: updatedPhases.unique
     });
+
+    const hasAnyData = compassStates.some(s => s.vehHasData || s.pedHasData);
+    if (!hasAnyData) return null;
 
     return `
       <div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); zoom: var(--compass-scale-11, 1.1); transform-origin: center; pointer-events: none; z-index: 9999; width: 180px; height: 180px;">
@@ -133,7 +138,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     const marker = L.marker([intersection.y_coord, intersection.x_coord], {
       icon: L.divIcon({
         className: 'map-realtime-signal-icon',
-        html: htmlString || '<div></div>',
+        html: htmlString || '',
         iconSize: [160, 160],
         iconAnchor: [80, 80]
       }),
@@ -154,7 +159,7 @@ export default function MapSignalOverlay({ intersection, uticUpdateTick, onMapSi
     if (markerRef.current) {
       const el = markerRef.current.getElement();
       if (el) {
-        el.innerHTML = htmlString;
+        el.innerHTML = htmlString || '';
       }
     }
   }, [htmlString]);
