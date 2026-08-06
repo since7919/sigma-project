@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, ZoomControl, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
@@ -21,6 +21,26 @@ const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_S
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SIGMA_DB_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const DEFAULT_CENTER = [37.5665, 126.9780];
+
+function MapBoundsTracker({ setBounds, setZoom }) {
+  const map = useMapEvents({
+    moveend: () => {
+      setBounds(map.getBounds());
+      setZoom(map.getZoom());
+    },
+    zoomend: () => {
+      setBounds(map.getBounds());
+      setZoom(map.getZoom());
+    }
+  });
+
+  useEffect(() => {
+    setBounds(map.getBounds());
+    setZoom(map.getZoom());
+  }, [map, setBounds, setZoom]);
+
+  return null;
+}
 
 const REGION_MAP = {
   'L01': '서울시', 'L02': '인천시', 'L03': '부천시', 'L04': '광명시',
@@ -77,6 +97,8 @@ function App() {
   const [mapSignalType, setMapSignalType] = useState('compass'); // 'compass' | 'arrow'
   const [multiSignalDisplayMode, setMultiSignalDisplayMode] = useState('compass'); // 멀티스크린 신호 표출 모드: 'compass' | 'arrow'
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
+  const [mapBounds, setMapBounds] = useState(null);
+  const [mapZoom, setMapZoom] = useState(12);
   const [compassSizeVal, setCompassSizeVal] = useState(180);
   const [filterSeoulActive, setFilterSeoulActive] = useState(false);
 
@@ -663,6 +685,7 @@ function App() {
           </div>
 
           <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true} zoomControl={false}>
+            <MapBoundsTracker setBounds={setMapBounds} setZoom={setMapZoom} />
             <ZoomControl position="bottomright" />
             <MapAutoResizer />
             <MapPanner intersections={filteredIntersections} targetId={activeNodeId} />
@@ -683,7 +706,18 @@ function App() {
             />
             {/* 지도상 신호 표출 레이어 */}
             {isMapSignalOn && filteredIntersections
-              .filter(item => activeMapSignalIds.includes(item.id))
+              .filter(item => {
+                // 사용자가 다중 화면 등에서 명시적으로 추가한 교차로
+                if (activeMapSignalIds.includes(item.id)) return true;
+                
+                // 줌 레벨이 14 이상일 때 현재 뷰포트 내 교차로 모두 표출
+                if (mapZoom >= 14 && mapBounds) {
+                  const latLng = L.latLng(item.y_coord, item.x_coord);
+                  return mapBounds.contains(latLng);
+                }
+                
+                return false;
+              })
               .map(item => (
                 <MapSignalOverlay 
                   key={`map-signal-${item.id}`} 
