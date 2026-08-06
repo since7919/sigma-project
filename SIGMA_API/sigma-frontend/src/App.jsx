@@ -722,9 +722,9 @@ function App() {
                 }
               });
               
-              const remainingSlots = Math.max(0, 30 - activeOnes.length);
+              const remainingSlots = Math.max(0, 20 - activeOnes.length);
               
-              // 30개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
+              // 20개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
               if (viewportOnes.length > remainingSlots && mapBounds) {
                 const center = mapBounds.getCenter();
                 viewportOnes.sort((a, b) => {

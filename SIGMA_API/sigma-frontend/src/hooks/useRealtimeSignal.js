@@ -4,6 +4,15 @@ import axios from 'axios';
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:4000' : 'https://sigma-project-245n.onrender.com';
 
+const requestCache = {};
+
+async function cachedGet(url) {
+  if (requestCache[url]) return requestCache[url];
+  const promise = axios.get(url);
+  requestCache[url] = promise;
+  return promise;
+}
+
 export function useRealtimeSignal({ intersection, mainPhases }) {
   const [cropData, setCropData] = useState(null);
   const [phaseA, setPhaseA] = useState(1);
@@ -35,7 +44,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
         const crNm = encodeURIComponent(intersection.int_nm);
         
         const wdUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRWDInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${crNm}&pageNo=1&numOfRows=10`;
-        const wdRes = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(wdUrl)}`);
+        const wdRes = await cachedGet(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(wdUrl)}`);
         
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(wdRes.data, "text/xml");
@@ -71,7 +80,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
 
         const regionCode = intersection.region_cd || 'L02';
         const cropUrl = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCROPInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=1&numOfRows=200`;
-        const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
+        const res = await cachedGet(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(cropUrl)}`);
         
         if (res.headers && res.headers.date) {
           const serverTime = new Date(res.headers.date).getTime();
@@ -211,7 +220,7 @@ export function useRealtimeSignal({ intersection, mainPhases }) {
         const parser = new DOMParser();
         const getPage = async (page) => {
           const url = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intersection.int_nm)}&pageNo=${page}&numOfRows=100`;
-          const res = await axios.get(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(url)}`);
+          const res = await cachedGet(`${API_BASE}/api/proxy/utic?url=${encodeURIComponent(url)}`);
           return parser.parseFromString(res.data, "text/xml");
         };
 
