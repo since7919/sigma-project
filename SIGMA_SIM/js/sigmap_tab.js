@@ -259,27 +259,29 @@ async function fetchAndCopyUTICSignalMap() {
             }
         }
 
-        const planKeys = Object.keys(plansData);
+        let planKeys = Object.keys(plansData).map(Number).sort((a, b) => a - b);
         if (planKeys.length === 0) {
             alert("해당 교차로 이름으로 조회된 UTIC 시그널맵 데이터가 없습니다.");
             return;
         }
 
+        // UTIC 데이터의 계획 번호가 0부터 시작할 경우, 시그마 맵번호(1~6)에 맞추기 위해 1을 더해줍니다.
+        const offset = planKeys[0] === 0 ? 1 : 0;
+
         let appliedPlans = [];
-        planKeys.forEach(planNoStr => {
-            const pNo = parseInt(planNoStr, 10);
+        planKeys.forEach(pNo => {
             const pData = plansData[pNo];
             pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
             pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
 
             // 맵번호(1~6)에 매칭하여 signalMaps[0~5]에 저장. 
-            let mIdx = pNo - 1;
+            let mIdx = (pNo + offset) - 1;
             if (mIdx >= 0 && mIdx < 6) {
                 const sm = j.signalMaps[mIdx];
                 sm.stepsA = pData.ringA;
                 sm.stepsB = pData.ringB;
                 parseStepsToSignalMap(sm, pData.ringA, pData.ringB);
-                appliedPlans.push(pNo);
+                appliedPlans.push(pNo + offset); // 저장된 시그마 맵번호 기준
             }
         });
 
