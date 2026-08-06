@@ -705,20 +705,38 @@ function App() {
               uticOpenRegions={uticOpenRegions}
             />
             {/* 지도상 신호 표출 레이어 */}
-            {isMapSignalOn && filteredIntersections
-              .filter(item => {
-                // 사용자가 다중 화면 등에서 명시적으로 추가한 교차로
-                if (activeMapSignalIds.includes(item.id)) return true;
-                
-                // 줌 레벨이 14 이상일 때 현재 뷰포트 내 교차로 모두 표출
-                if (mapZoom >= 14 && mapBounds) {
+            {(() => {
+              if (!isMapSignalOn) return null;
+              
+              const activeOnes = [];
+              const viewportOnes = [];
+              
+              filteredIntersections.forEach(item => {
+                if (activeMapSignalIds.includes(item.id)) {
+                  activeOnes.push(item);
+                } else if (mapZoom >= 14 && mapBounds) {
                   const latLng = L.latLng(item.y_coord, item.x_coord);
-                  return mapBounds.contains(latLng);
+                  if (mapBounds.contains(latLng)) {
+                    viewportOnes.push(item);
+                  }
                 }
-                
-                return false;
-              })
-              .map(item => (
+              });
+              
+              const remainingSlots = Math.max(0, 30 - activeOnes.length);
+              
+              // 30개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
+              if (viewportOnes.length > remainingSlots && mapBounds) {
+                const center = mapBounds.getCenter();
+                viewportOnes.sort((a, b) => {
+                  const distA = Math.pow(a.y_coord - center.lat, 2) + Math.pow(a.x_coord - center.lng, 2);
+                  const distB = Math.pow(b.y_coord - center.lat, 2) + Math.pow(b.x_coord - center.lng, 2);
+                  return distA - distB;
+                });
+              }
+              
+              const finalRenderList = [...activeOnes, ...viewportOnes.slice(0, remainingSlots)];
+              
+              return finalRenderList.map(item => (
                 <MapSignalOverlay 
                   key={`map-signal-${item.id}`} 
                   intersection={item} 
@@ -727,7 +745,8 @@ function App() {
                   displayMode={mapSignalType}
                   mainPhases={mainPhases}
                 />
-              ))}
+              ));
+            })()}
           </MapContainer>
 
         </div>
