@@ -1197,7 +1197,11 @@ app.post('/api/sim/update-junction', async (req, res) => {
           const { error: mErr } = await supabase
             .from('signal_maps')
             .upsert(mapsPayload, { onConflict: 'id,map_idx' });
-          if (mErr) throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message}`);
+          if (mErr) {
+            let debugStr = "";
+            try { debugStr = JSON.stringify(mapsPayload).substring(0, 150); } catch(e){}
+            throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message} | Payload snippet: ${debugStr}`);
+          }
         }
       }
 
