@@ -99,7 +99,7 @@ function App() {
   const [showMapNames, setShowMapNames] = useState(true); // 지도상 교차로명 보이기/감추기 토글 state
   const [mapBounds, setMapBounds] = useState(null);
   const [mapZoom, setMapZoom] = useState(12);
-  const [compassSizeVal, setCompassSizeVal] = useState(180);
+  const [compassSizeVal, setCompassSizeVal] = useState(200);
   const [filterSeoulActive, setFilterSeoulActive] = useState(false);
 
   useEffect(() => {
