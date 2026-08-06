@@ -722,9 +722,9 @@ function App() {
                 }
               });
               
-              const remainingSlots = Math.max(0, 20 - activeOnes.length);
+              const remainingSlots = Math.max(0, 10 - activeOnes.length);
               
-              // 20개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
+              // 10개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
               if (viewportOnes.length > remainingSlots && mapBounds) {
                 const center = mapBounds.getCenter();
                 viewportOnes.sort((a, b) => {
@@ -736,16 +736,36 @@ function App() {
               
               const finalRenderList = [...activeOnes, ...viewportOnes.slice(0, remainingSlots)];
               
-              return finalRenderList.map(item => (
-                <MapSignalOverlay 
-                  key={`map-signal-${item.id}`} 
-                  intersection={item} 
-                  uticUpdateTick={uticUpdateTick}
-                  onMapSignalToggle={handleMapSignalToggle}
-                  displayMode={mapSignalType}
-                  mainPhases={mainPhases}
-                />
-              ));
+              return (
+                <>
+                  <div style={{
+                    position: 'absolute',
+                    top: '60px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0,0,0,0.7)',
+                    color: '#fff',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    zIndex: 1000,
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    border: '1px solid #38bdf8'
+                  }}>
+                    현재 지도 표출 신호등: {finalRenderList.length}개 (최대 10개)
+                  </div>
+                  {finalRenderList.map(item => (
+                    <MapSignalOverlay 
+                      key={`map-signal-${item.id}`} 
+                      intersection={item} 
+                      uticUpdateTick={uticUpdateTick}
+                      onMapSignalToggle={handleMapSignalToggle}
+                      displayMode={mapSignalType}
+                      mainPhases={mainPhases}
+                    />
+                  ))}
+                </>
+              );
             })()}
           </MapContainer>
 
