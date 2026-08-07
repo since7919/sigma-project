@@ -150,6 +150,7 @@ function renderSignalMapTab() {
     };
 
     let html = `
+      <h4 style="color: #60a5fa; font-size: 14px; margin-bottom: 10px; font-weight: bold;">플랜 ${mIdx} 시그널맵 (A-RING & B-RING 병렬 표출)</h4>
       <table class="sigmap-ring-table">
         <thead>
           <tr>

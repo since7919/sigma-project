@@ -797,18 +797,18 @@
                     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
                         <span style="font-weight: bold; color: #fff; font-size: 13px;">시그널맵 번호:</span>
                         <select id="sigmap-index-select" class="input-premium" style="width: 100px; height: 32px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white;" onchange="renderSignalMapTab()">
-                            <option value="0">1번 맵 (Plan 1)</option>
-                            <option value="1">2번 맵 (Plan 2)</option>
-                            <option value="2">3번 맵 (Plan 3)</option>
-                            <option value="3">4번 맵 (Plan 4)</option>
-                            <option value="4">5번 맵 (Plan 5)</option>
-                            <option value="5">6번 맵 (Plan 6)</option>
+                            <option value="0">플랜 0</option>
+                            <option value="1">플랜 1</option>
+                            <option value="2">플랜 2</option>
+                            <option value="3">플랜 3</option>
+                            <option value="4">플랜 4</option>
+                            <option value="5">플랜 5</option>
                         </select>
                         
-                        <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">🌐 유틱 데이터 가져와 복사</button>
+                        <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">🌐 UTIC에서 복사</button>
                         
                         <label class="btn-neon magenta" style="display: inline-block; cursor: pointer; padding: 0 12px; height: 30px; line-height: 30px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 4px; margin: 0;">
-                            📁 엑셀 시그널맵 가져오기
+                            📁 엑셀에서 복사
                             <input type="file" id="sigmap-excel-loader" style="display:none;" onchange="loadSignalMapFromExcel(this)">
                         </label>
                     </div>

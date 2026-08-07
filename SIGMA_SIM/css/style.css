@@ -2897,7 +2897,7 @@ h4 {
 
 .sigmap-ring-table th, .sigmap-ring-table td {
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 4px 6px;
+    padding: 2px 3px;
     text-align: center;
     font-family: 'Courier New', Courier, monospace;
 }
