@@ -499,7 +499,7 @@ app.get('/api/sim/data', async (req, res) => {
           // id 컬럼은 L01-1007 형태이므로, regionCode로 시작하는지 필터링
           const rows = await fetchAllSupabase(() => supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id'));
           
-          const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime"];
+          const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime", "rawSteps"];
           let csvContent = "\ufeff" + headers.join(",") + "\n";
           
           (rows || []).forEach(r => {
@@ -524,9 +524,10 @@ app.get('/api/sim/data', async (req, res) => {
               Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
               Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
               r.start_time || "",
-              r.end_time || ""
+              r.end_time || "",
+              r.raw_steps ? JSON.stringify(r.raw_steps) : ""
             ];
-            csvContent += line.map(v => String(v)).join(",") + "\n";
+            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
           });
           
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -936,14 +937,21 @@ const enqueueDBWrite = (taskFn) => {
 function parseCsvRow(line) {
   const cols = [];
   let start = 0, inQ = false;
+  const parseVal = (str) => {
+    let v = str.trim();
+    if (v.startsWith('"') && v.endsWith('"')) {
+      return v.substring(1, v.length - 1).replace(/""/g, '"');
+    }
+    return v;
+  };
   for (let c = 0; c < line.length; c++) {
     if (line[c] === '"') inQ = !inQ;
     else if (line[c] === ',' && !inQ) {
-      cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim());
+      cols.push(parseVal(line.substring(start, c)));
       start = c + 1;
     }
   }
-  cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+  cols.push(parseVal(line.substring(start)));
   return cols;
 }
 
@@ -1189,6 +1197,10 @@ app.post('/api/sim/update-junction', async (req, res) => {
             ped_green_b: cols[18] || "",
             start_time: cols[19] || "",
             end_time: cols[20] || "",
+            raw_steps: (() => {
+              try { return cols[21] ? JSON.parse(cols[21]) : null; }
+              catch(e) { return null; }
+            })(),
             updated_at: new Date().toISOString()
           });
         }

@@ -499,15 +499,24 @@ function processSignalMapCSV(csv) {
     const startIdx = headers.findIndex(h => h === "startTime");
     const endIdx = headers.findIndex(h => h === "endTime");
 
+    const rawStepsIdx = headers.findIndex(h => h === "rawSteps");
+
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         const cols = [];
         let start = 0, inQ = false;
+        const parseVal = (str) => {
+            let v = str.trim();
+            if (v.startsWith('"') && v.endsWith('"')) {
+                return v.substring(1, v.length - 1).replace(/""/g, '"');
+            }
+            return v;
+        };
         for (let c = 0; c < line.length; c++) {
             if (line[c] === '"') inQ = !inQ;
-            else if (line[c] === ',' && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
+            else if (line[c] === ',' && !inQ) { cols.push(parseVal(line.substring(start, c))); start = c + 1; }
         }
-        cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+        cols.push(parseVal(line.substring(start)));
 
         let jid = cols[idIdx]; if (!jid || !STATE.junctions[jid]) continue;
         const midx = parseInt(cols[mapIdxIdx]); if (isNaN(midx) || midx >= 10) continue;
@@ -524,6 +533,15 @@ function processSignalMapCSV(csv) {
         if (mainMovIdx !== -1 && cols[mainMovIdx]) sm.mainMovements = String(cols[mainMovIdx]).split(';');
         if (startIdx !== -1) sm.startTime = cols[startIdx] || ""; 
         if (endIdx !== -1) sm.endTime = cols[endIdx] || "";
+        if (rawStepsIdx !== -1 && cols[rawStepsIdx]) {
+            try {
+                const rs = JSON.parse(cols[rawStepsIdx]);
+                if (rs && rs.stepsA) sm.stepsA = rs.stepsA;
+                if (rs && rs.stepsB) sm.stepsB = rs.stepsB;
+            } catch(e) {
+                console.error("Failed to parse rawSteps for", jid, midx, e);
+            }
+        }
     }
 }
 
@@ -1004,8 +1022,10 @@ function exportSingleJunctionCSV(jid) {
     // 2. 신호맵 (6줄, 헤더 제외)
     let mapCsvLines = "";
     (j.signalMaps || []).forEach((sm, idx) => {
-        const row = [j.id, idx, (sm.movA||[]).join(';'), (sm.movB||[]).join(';'), (sm.pedMovA||[]).join(';'), (sm.pedMovB||[]).join(';'), (sm.mainMovements||[]).join(';'), (sm.yellowA||[]).join(';'), (sm.yellowB||[]).join(';'), (sm.allredA||[]).join(';'), (sm.allredB||[]).join(';'), (sm.pedA||[]).join(';'), (sm.pedB||[]).join(';'), (sm.pedDelayA||[]).join(';'), (sm.pedDelayB||[]).join(';'), (sm.pedFlashA||[]).join(';'), (sm.pedFlashB||[]).join(';'), (sm.pedGreenA||[]).join(';'), (sm.pedGreenB||[]).join(';'), sm.startTime||"", sm.endTime||""];
-        mapCsvLines += row.map(v => String(v)).join(",") + "\n";
+        const rawSteps = { stepsA: sm.stepsA || [], stepsB: sm.stepsB || [] };
+        const rawStepsJson = JSON.stringify(rawSteps);
+        const row = [j.id, idx, (sm.movA||[]).join(';'), (sm.movB||[]).join(';'), (sm.pedMovA||[]).join(';'), (sm.pedMovB||[]).join(';'), (sm.mainMovements||[]).join(';'), (sm.yellowA||[]).join(';'), (sm.yellowB||[]).join(';'), (sm.allredA||[]).join(';'), (sm.allredB||[]).join(';'), (sm.pedA||[]).join(';'), (sm.pedB||[]).join(';'), (sm.pedDelayA||[]).join(';'), (sm.pedDelayB||[]).join(';'), (sm.pedFlashA||[]).join(';'), (sm.pedFlashB||[]).join(';'), (sm.pedGreenA||[]).join(';'), (sm.pedGreenB||[]).join(';'), sm.startTime||"", sm.endTime||"", rawStepsJson];
+        mapCsvLines += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
     });
 
     // 3. TOD 계획 (10줄, 헤더 제외)
@@ -1060,6 +1080,7 @@ async function updateActiveJunctionToDB() {
         if (!payload) {
             throw new Error("CSV 데이터 추출에 실패했습니다.");
         }
+        console.log("DEBUG mapCsvLines:", payload.mapCsvLines);
 
         const response = await fetch('/api/sim/update-junction', {
             method: 'POST',
