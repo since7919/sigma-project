@@ -614,9 +614,14 @@ function parseCSV(csv) {
 }
 
 /** 📊 신호운영 엑셀(XLSX) 정밀 분석 로더 (Full UI & Logic) */
-async function handleExcelSignalLoad(input) {
+async function handleExcelSignalLoad(input, isSingle = false) {
     const files = Array.from(input.files).slice(0, 50);
     if (files.length === 0) return;
+
+    if (isSingle && files.length > 1) {
+        alert("하나의 파일만 선택해 주세요.");
+        return;
+    }
 
     const infoEl = document.getElementById('xlsx-info-text');
     const progEl = document.getElementById('xlsx-progress-bar');
@@ -696,20 +701,24 @@ async function handleExcelSignalLoad(input) {
             if (isNaN(jNo)) throw new Error(`[C37] 교차로 번호 누락`);
             
             const expectedSeq = jNo * 10;
+            let junction = null;
             
-            // Phase/Split 탭 등에서 현재 활성화된 교차로가 있을 경우 번호 비교
-            if (STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+            if (isSingle) {
+                if (!STATE.activeJid || !STATE.junctions[STATE.activeJid]) {
+                    throw new Error("먼저 교차로를 선택해주세요.");
+                }
                 const activeSeq = parseInt(STATE.junctions[STATE.activeJid].seq);
                 if (!isNaN(activeSeq) && activeSeq !== expectedSeq) {
-                    if (!confirm(`현재 선택된 교차로(No. ${activeSeq})와 업로드하신 엑셀 파일의 교차로(No. ${expectedSeq})가 일치하지 않습니다.\n그래도 업데이트를 진행하시겠습니까?`)) {
+                    if (!confirm(`현재 선택된 교차로(No. ${activeSeq})와 업로드하신 엑셀 파일의 교차로(No. ${expectedSeq})가 일치하지 않습니다.\n선택된 교차로(No. ${activeSeq})에 이 데이터를 업데이트하시겠습니까?`)) {
                         throw new Error(`사용자 취소 (교차로번호 불일치)`);
                     }
                 }
+                junction = STATE.junctions[STATE.activeJid];
+            } else {
+                // L01 또는 L02 접두사를 포함해 매칭
+                junction = STATE.junctions[`L01-${expectedSeq}`] || STATE.junctions[`L02-${expectedSeq}`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(expectedSeq));
+                if (!junction) throw new Error(`시스템에 교차로(No. ${expectedSeq})가 없습니다.`);
             }
-
-            // L01 또는 L02 접두사를 포함해 매칭
-            let junction = STATE.junctions[`L01-${expectedSeq}`] || STATE.junctions[`L02-${expectedSeq}`] || Object.values(STATE.junctions).find(j => String(j.seq) === String(expectedSeq));
-            if (!junction) throw new Error(`시스템에 교차로(No. ${expectedSeq})가 없습니다.`);
 
             // [1] 이동류(Movement) ID 추출 (Row 5 & 12)
             const baseMovA = [], baseMovB = [];

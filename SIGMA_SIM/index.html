@@ -443,7 +443,7 @@
                         <div class="xlsx-icon-box">📗</div>
                         <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
                     </div>
-                    <button onclick="document.getElementById('xlsx-file-input').click()" class="btn-neon green"
+                    <button onclick="document.getElementById('xlsx-file-input-phase').click()" class="btn-neon green"
                         style="height:38px; padding:0 18px;">📁 파일 선택</button>
                 </div>
                 <div id="xlsx-progress-container-phase" class="p-10"
@@ -1095,6 +1095,8 @@
                     <input type="file" id="file-load-db-links" onchange="handleDBFileLoad(this, 'links')">
                     <input type="file" id="file-load-db-yearbook" onchange="handleDBFileLoad(this, 'yearbook')">
                     <input type="file" id="file-load-db-poly" onchange="handleDBFileLoad(this, 'poly')">
+                    <input type="file" id="xlsx-file-input-phase" style="display:none;" accept=".xlsx, .xls"
+                        onchange="handleExcelSignalLoad(this, true)">
                     <input type="file" id="xlsx-file-input" accept=".xlsx, .xls" multiple
                         onchange="handleExcelSignalLoad(this)">
                 </div>
