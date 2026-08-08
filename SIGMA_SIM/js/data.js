@@ -904,12 +904,13 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             addToList(file.name, 'fail', err.message);
         }
     }
-
     updateProgress(100, "분석 완료!");
     setTimeout(() => {
         alert(`분석 완료: 총 ${files.length}개 중 ${successCount}개 성공`);
         if (typeof renderRingTables === 'function') renderRingTables();
         if (typeof renderSummaryTable === 'function') renderSummaryTable();
+        if (typeof refreshDBStats === 'function') refreshDBStats();
+        if (typeof renderGroupList === 'function') renderGroupList();
         input.value = '';
     }, 500);
 }
