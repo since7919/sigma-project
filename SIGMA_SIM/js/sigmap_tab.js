@@ -122,14 +122,6 @@ function renderSignalMapTab() {
         return;
     }
 
-    // Helpers
-    const toHex = (v) => {
-        if (v === 0 || v === '0' || !v) return '00';
-        if (v === 16 || v === '16' || v === 22 || v === '22') return '10';
-        if (v === 32 || v === '32' || v === 50 || v === '50') return '20';
-        return typeof v === 'number' ? v.toString(16).padStart(2, '0').toUpperCase() : String(v);
-    };
-
     const formatDisplayVal = (v) => {
         if (v === 0 || v === '0' || !v) return '00';
         if (v === 16 || v === '16' || v === 22 || v === '22') return '10';
@@ -138,22 +130,24 @@ function renderSignalMapTab() {
     };
 
     const getCellClass = (val, type) => {
-        const hex = toHex(val);
-        if (hex === '00') return 'cell-gray';
+        const v = parseInt(val, 10);
+        if (isNaN(v) || v === 0) return 'cell-gray';
+        
+        let checkVal = v;
+        if (v === 16 || v === 22) checkVal = 10;
+        if (v === 32 || v === 50) checkVal = 20;
+
         if (type === 'car') {
-            if (hex === '01' || hex === '10' || hex === '11') return 'cell-green';
-            if (hex === '02' || hex === '20') return 'cell-yellow';
-            if (hex === '08') return 'cell-red';
-            if (hex === '04') return 'cell-green';
+            if (checkVal === 1 || checkVal === 10 || checkVal === 11 || checkVal === 4) return 'cell-green';
+            if (checkVal === 2 || checkVal === 20) return 'cell-yellow';
+            if (checkVal === 8) return 'cell-red';
         } else {
-            if (hex === '01') return 'cell-green';
-            if (hex === '08' || hex === '02') return 'cell-red';
-            if (hex === '05') return 'cell-flash';
+            if (checkVal === 1 || checkVal === 10 || checkVal === 11 || checkVal === 4) return 'cell-green';
+            if (checkVal === 2 || checkVal === 8 || checkVal === 20) return 'cell-red';
+            if (checkVal === 5) return 'cell-flash';
         }
-        const num = parseInt(hex, 16);
-        if (num & 0x55) return 'cell-green';
-        if (num & 0xAA) return 'cell-yellow';
-        return 'cell-red';
+        
+        return 'cell-gray';
     };
 
     let html = `

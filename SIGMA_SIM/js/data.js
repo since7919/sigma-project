@@ -941,7 +941,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
             for (let m = 0; m < 6; m++) {
                 const sm = junction.signalMaps[m];
-                const startRowA = baseRowMapStart + (m * 67);
+                const startRowA = baseRowMapStart + (m * 67) + 3;
                 const startRowB = startRowA + 32;
 
                 const { phaseData: dataA, rawSteps: stepsA } = processRingData(startRowA, baseMovA);
