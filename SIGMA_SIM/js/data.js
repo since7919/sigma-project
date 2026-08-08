@@ -951,7 +951,11 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                     if (stepsInPhase.length > 0) {
                         const eopStep = stepsInPhase[stepsInPhase.length - 1];
-                        if (eopStep.eop) phaseData[pIdx].yellow = eopStep.min;
+                        if (eopStep.eop) {
+                            // V열에 값이 있는지 확인 (차량신호 존재 여부)
+                            const hasVehicleSignal = eopStep.sigsV.some(v => v > 0);
+                            phaseData[pIdx].yellow = hasVehicleSignal ? eopStep.min : 0;
+                        }
                     }
 
                     const currentVId = baseMovs[pIdx] || 0;
