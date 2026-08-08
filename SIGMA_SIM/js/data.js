@@ -862,27 +862,73 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 const phaseData = Array.from({ length: 8 }, () => ({ vId: 0, pId: 0, g: 0, f: 0, yellow: 0 }));
                 const rawSteps = [];
                 
+                // 동적 컬럼 탐지 (Auto-detection)
+                // startRow-2 (행 인덱스 기준 startRow-3)는 "MIN", "EOP", "LSU 1" 등이 있는 헤더 줄
+                // startRow-1 (행 인덱스 기준 startRow-2)는 "V", "P" 가 있는 서브헤더 줄
+                let minCol = 53, maxCol = 55, eopCol = 57; // 기본값 (기존 넓은 양식)
+                let lsuCols = Array(8).fill(null).map((_, i) => ({ v: 5 + i * 6, p: 8 + i * 6 }));
+
+                // 엑셀 시트 데이터는 0-indexed 배열이며, getVal은 1-indexed 파라미터를 받음
+                const headerRow1 = sheetData[startRow - 3] || [];
+                const headerRow2 = sheetData[startRow - 2] || [];
+
+                // 문자열을 찾아 1-indexed 컬럼 반환
+                const findCol = (row, text) => {
+                    for (let c = 0; c < row.length; c++) {
+                        if (String(row[c]).toUpperCase().replace(/\s/g, '').includes(text)) return c + 1;
+                    }
+                    return -1;
+                };
+
+                const detectedMin = findCol(headerRow1, "MIN");
+                if (detectedMin !== -1) minCol = detectedMin;
+
+                const detectedMax = findCol(headerRow1, "MAX");
+                if (detectedMax !== -1) maxCol = detectedMax;
+
+                const detectedEop = findCol(headerRow1, "EOP");
+                if (detectedEop !== -1) eopCol = detectedEop;
+
+                for (let lsu = 1; lsu <= 8; lsu++) {
+                    const lsuStartCol = findCol(headerRow1, `LSU${lsu}`) - 1; // 0-indexed로 변환
+                    if (lsuStartCol !== -1) {
+                        // LSU 주변 열(최대 5칸 이내)에서 V와 P 서브헤더 탐색
+                        let vFound = -1, pFound = -1;
+                        for (let c = lsuStartCol; c < lsuStartCol + 5 && c < headerRow2.length; c++) {
+                            const h2 = String(headerRow2[c] || "").toUpperCase().trim();
+                            if (h2 === "V") vFound = c + 1;
+                            if (h2 === "P") pFound = c + 1;
+                        }
+                        if (vFound !== -1) lsuCols[lsu - 1].v = vFound;
+                        if (pFound !== -1) lsuCols[lsu - 1].p = pFound;
+                    }
+                }
+
                 // 1. 전체 32스텝 로드
                 const allSteps = [];
                 for (let s = 0; s < 32; s++) {
                     const r = startRow + s;
                     // B링은 EOP('Y') 정보가 없을 수 있으므로 eopSourceRow(A링 행)를 참조
                     const eopRow = eopSourceRow ? eopSourceRow + s : r;
+                    
+                    // 빈 행 검사 (MIN, V1, V2 등이 모두 비어있으면 루프 종료 또는 빈값 처리)
+                    const minStr = String(getVal(r, minCol) || "").trim();
+                    const eopStr = String(getVal(eopRow, eopCol) || "").toUpperCase().trim();
+                    
                     const info = {
-                        min: parseInt(getVal(r, 53)) || 0,
-                        eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y',
+                        min: parseInt(minStr) || 0,
+                        eop: eopStr === 'Y',
                         sigsV: [], sigsP: []
                     };
                     const uticStep = {
                         stepNo: s + 1,
-                        minTm: parseInt(getVal(r, 53)) || 0,
-                        maxTm: 0,
-                        eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y' ? 1 : 0
+                        minTm: parseInt(minStr) || 0,
+                        maxTm: parseInt(String(getVal(r, maxCol) || "0").trim()) || 0,
+                        eop: eopStr === 'Y' ? 1 : 0
                     };
                     for (let l = 0; l < 8; l++) {
-                        // 차량신호(V)는 E열(5)부터 6칸씩, 보행신호(P)는 H열(8)부터 6칸씩
-                        const vVal = parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0;
-                        const pVal = parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0;
+                        const vVal = parseInt(String(getVal(r, lsuCols[l].v) || "0").trim()) || 0;
+                        const pVal = parseInt(String(getVal(r, lsuCols[l].p) || "0").trim()) || 0;
                         info.sigsV.push(vVal);
                         info.sigsP.push(pVal);
                         uticStep[`car${l+1}`] = vVal;

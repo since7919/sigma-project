@@ -2,71 +2,6 @@
 // ─────────────────────────────────────────────
 // 시뮬레이터 내 시그널맵 (Signal Map) 표출 및 외부 데이터(UTIC, Excel) 복사 기능
 
-function reconstructStepsFromSignalMap(sm, isRingB = false) {
-    const steps = [];
-    const mov = isRingB ? (sm.movB || []) : (sm.movA || []);
-    const pMov = isRingB ? (sm.pedMovB || []) : (sm.pedMovA || []);
-    const yellow = isRingB ? (sm.yellowB || []) : (sm.yellowA || []);
-    const pedGreen = isRingB ? (sm.pedGreenB || []) : (sm.pedGreenA || []);
-    const pedFlash = isRingB ? (sm.pedFlashB || []) : (sm.pedFlashA || []);
-    const refMovs = isRingB ? [5, 6, 7, 8, 0, 0, 0, 0] : [1, 2, 3, 4, 0, 0, 0, 0];
-
-    if (!mov.some(m => m > 0)) return [];
-
-    let currentStepNo = 1;
-
-    for (let pIdx = 0; pIdx < 8; pIdx++) {
-        if (!mov[pIdx] || mov[pIdx] === 0) continue;
-        
-        const vId = mov[pIdx];
-        const pId = pMov[pIdx] || 0;
-        
-        const vCol = (vId >= 1 && vId <= 8) ? vId : refMovs[pIdx];
-        const pCol = (pId > 100) ? (pId - 100) : 0;
-        
-        const hasPed = (pCol >= 1 && pCol <= 8);
-        const gTime = pedGreen[pIdx] || 0;
-        const fTime = pedFlash[pIdx] || 0;
-        const yTime = yellow[pIdx] || 3;
-        
-        const createStep = () => {
-            const s = { stepNo: currentStepNo++, minTm: 0, maxTm: 0, eop: 0 };
-            for(let i=1; i<=8; i++) { s[`car${i}`] = 0; s[`ped${i}`] = 0; }
-            return s;
-        };
-
-        // Step 1: Green
-        let s1 = createStep();
-        if (vCol >= 1 && vCol <= 8) s1[`car${vCol}`] = 16;
-        if (hasPed && gTime > 0) s1[`ped${pCol}`] = 1; // 1 converts to '01'
-        steps.push(s1);
-
-        // Step 2: Ped Flash
-        if (hasPed && fTime > 0) {
-            let s2 = createStep();
-            s2.minTm = fTime;
-            if (vCol >= 1 && vCol <= 8) s2[`car${vCol}`] = 16;
-            s2[`ped${pCol}`] = 5;
-            steps.push(s2);
-        }
-
-        // Step 3: Yellow (EOP)
-        let s3 = createStep();
-        s3.minTm = yTime;
-        s3.eop = 1;
-        if (vCol >= 1 && vCol <= 8) s3[`car${vCol}`] = 32;
-        if (hasPed) s3[`ped${pCol}`] = 0;
-        steps.push(s3);
-    }
-
-    while(steps.length < 32) {
-        const s = { stepNo: currentStepNo++, minTm: 0, maxTm: 0, eop: 0 };
-        for(let i=1; i<=8; i++) { s[`car${i}`] = 0; s[`ped${i}`] = 0; }
-        steps.push(s);
-    }
-
-    return steps;
-}
 
 function renderSignalMapTab() {
     const jid = STATE.activeJid;
@@ -108,14 +43,7 @@ function renderSignalMapTab() {
     const sm = j.signalMaps[mIdx];
     let ringA = sm.stepsA || [];
     let ringB = sm.stepsB || [];
-    
-    // DB에서 불러온 상태 등 원본 steps 배열이 없는 경우, 동적으로 복원
-    if (ringA.length === 0 && ringB.length === 0) {
-        ringA = reconstructStepsFromSignalMap(sm, false);
-        ringB = reconstructStepsFromSignalMap(sm, true);
-        sm.stepsA = ringA;
-        sm.stepsB = ringB;
-    }
+
 
     if (ringA.length === 0 && ringB.length === 0) {
         container.innerHTML = `<div style="padding:30px; text-align:center; color:#f59e0b;">현재 이 시차맵에 등록된 시그널맵 데이터가 없습니다. 상단의 버튼들을 이용해 로드해주세요.</div>`;
