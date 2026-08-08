@@ -153,11 +153,11 @@ function renderRingTables() {
     const phaseRows = [
         { lab: 'Split A', key: 'splitA', cls: '', isDetail: false, isSplit: true },
         { lab: 'Split B', key: 'splitB', cls: '', isDetail: false, ring: 'B', isSplit: true },
-        { lab: 'MG A (최소녹색)', key: 'minGreenA', cls: 'c-red', isDetail: true, isSplit: false, calc: (i) => {
+        { lab: 'MG A (최소녹색)', key: 'minGreenA', cls: 'c-green', isDetail: true, isSplit: false, calc: (i) => {
             const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0;
             return pA > 0 ? pA + arA + dlyA : 7 + arA;
         }},
-        { lab: 'MG B (최소녹색)', key: 'minGreenB', cls: 'c-red', isDetail: true, ring: 'B', isSplit: false, calc: (i) => {
+        { lab: 'MG B (최소녹색)', key: 'minGreenB', cls: 'c-green', isDetail: true, ring: 'B', isSplit: false, calc: (i) => {
             const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0;
             return pB > 0 ? pB + arB + dlyB : 7 + arB;
         }},
@@ -197,10 +197,10 @@ function renderRingTables() {
                         const mgWithYellow = mg + (yel || 0);
                         
                         if (val > 0 && val < mg) {
-                            extraStyle = 'border: 2px solid #ff4d4d; box-shadow: 0 0 10px rgba(255,77,77,0.5); background: rgba(255,77,77,0.15); color: #ff4d4d !important; font-weight: bold;';
+                            extraStyle = 'border: 2px solid #ff4d4d; box-shadow: 0 0 10px rgba(255,77,77,0.5); background: rgba(255,77,77,0.15); color: #ffffff !important; font-weight: bold;';
                             tooltip = `안전감사 위기! 최소녹색시간(${mg}초) 미달`;
                         } else if (val > 0 && val < mgWithYellow) {
-                            extraStyle = 'border: 2px solid #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.5); background: rgba(255,204,0,0.1); color: #ffcc00 !important; font-weight: bold;';
+                            extraStyle = 'border: 2px solid #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.5); background: rgba(255,204,0,0.1); color: #ffffff !important; font-weight: bold;';
                             tooltip = `안전감사 주의! 최소녹색+황색(${mgWithYellow}초) 미달`;
                         }
                     }
@@ -208,7 +208,7 @@ function renderRingTables() {
                     return {
                         content: r.calc
                             ? `<input type="text" class="sigma-input" value="${r.calc(i)}" readonly 
-                                style="color:#ff4d4d !important; font-weight:bold; cursor:default; border-color:rgba(255,77,77,0.15) !important;" 
+                                style="color:#10b981 !important; font-weight:bold; cursor:default; border-color:rgba(16,185,129,0.15) !important;" 
                                 title="최소녹색시간 = 보행합계+전적색+보행지연 (또는 최소 7초+전적색)">`
                             : `<input type="number" class="sigma-input ${r.cls} inp-${r.key}" data-key="${r.key}" data-index="${i}" value="${val}" style="${extraStyle}" title="${tooltip}" ${isDisabled}>`,
                         className: r.cls
