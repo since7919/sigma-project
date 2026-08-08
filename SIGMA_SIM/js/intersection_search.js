@@ -16,6 +16,24 @@ function toggleLeftSidebar() {
     }
 }
 
+/**
+ * 지역 필터 함수 (공통)
+ */
+function isMatchingRegion(j) {
+    const regionSelect = document.getElementById('api-region-select');
+    // 기본 지역을 L01(서울)로 설정
+    const regionCode = regionSelect ? regionSelect.value : 'L01';
+    if (j.region) return j.region === regionCode;
+    const jid = String(j.id);
+    if (regionCode === 'L01' || regionCode === '110') {
+        return jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-');
+    } else if (regionCode === 'L02') {
+        return jid.startsWith('L02-') || jid === '1001';
+    } else {
+        return jid.startsWith(`${regionCode}-`);
+    }
+}
+
 let _junctionListItems = null;
 
 /**
@@ -43,19 +61,6 @@ function renderJunctionList() {
 
     const regionSelect = document.getElementById('api-region-select');
     const regionCode = regionSelect ? regionSelect.value : 'L01';
- 
-    // 지역 필터 함수
-    const isMatchingRegion = (j) => {
-        if (j.region) return j.region === regionCode;
-        const jid = String(j.id);
-        if (regionCode === 'L01' || regionCode === '110') {
-            return jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-');
-        } else if (regionCode === 'L02') {
-            return jid.startsWith('L02-') || jid === '1001';
-        } else {
-            return jid.startsWith(`${regionCode}-`);
-        }
-    };
 
     const filteredJunctions = Object.values(junctions).filter(isMatchingRegion);
     
