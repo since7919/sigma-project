@@ -207,22 +207,26 @@ function flyToIntersection(jid) {
     // Use global map object
     const targetMap = (typeof map !== 'undefined') ? map : window.map;
     
+    // [사용자 요청] 화면 흔들림 애니메이션 삭제 (빠른 이동)
     if (targetMap) {
-        // [사용자 요청] 화면 흔들림 애니메이션 삭제 (빠른 이동)
-        targetMap.setView([j.lat, j.lng], 17, { animate: false });
-        
-        // Use existing selection logic
-        const selFunc = (typeof selectJunction === 'function') ? selectJunction : window.selectJunction;
-        if (typeof selFunc === 'function') {
-            selFunc(jid);
-        }
-
-        // On mobile/small screens, close sidebar after selection
-        if (window.innerWidth < 768) {
-            toggleLeftSidebar();
+        try {
+            targetMap.setView([j.lat, j.lng], 17, { animate: false });
+        } catch (e) {
+            console.warn('SIGMA - Map setView failed (possibly hidden):', e);
         }
     } else {
-        console.error('SIGMA - Map object not found.');
+        console.warn('SIGMA - Map object not found. Skipping map view update.');
+    }
+
+    // 지도 존재/오류 여부와 무관하게 선택 로직은 무조건 실행 (Phase/Split 등 타 탭 지원)
+    const selFunc = (typeof selectJunction === 'function') ? selectJunction : window.selectJunction;
+    if (typeof selFunc === 'function') {
+        selFunc(jid);
+    }
+
+    // On mobile/small screens, close sidebar after selection
+    if (window.innerWidth < 768) {
+        if (typeof toggleLeftSidebar === 'function') toggleLeftSidebar();
     }
 }
 
