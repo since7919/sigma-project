@@ -839,7 +839,7 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button onclick="saveNormalizedDBFiles()" class="btn-neon magenta"
+                        <button onclick="openDBUpdateModal()" class="btn-neon magenta"
                             style="height:40px; padding: 0 22px; font-size:13.5px; font-weight:900;">💾 DB 업데이트</button>
                         <button onclick="exportNormalizedDBFiles()"
                             style="height:40px; padding:0 20px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:8px; cursor:pointer;">📤
@@ -1979,6 +1979,50 @@
     <script>
         console.log("SIGMA - Debugging Mode (F12 Allowed)");
     </script>
+    <!-- DB 업데이트 모달 (팝업) -->
+    <div id="db-update-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
+        <div style="background:#1e2430; border:1px solid #38bdf8; border-radius:12px; width:450px; box-shadow:0 10px 40px rgba(0,0,0,0.8); overflow:hidden;">
+            <div style="background:#262d3d; padding:15px 20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:16px; color:#fff;">💾 데이터베이스 반영 선택</h3>
+                <button onclick="document.getElementById('db-update-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <div style="font-size:12px; color:#aaa; margin-bottom:15px;">업데이트할 대상을 선택하세요. 트래픽 보호를 위해 변경된 내용만 전송합니다.</div>
+                
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
+                    <input type="checkbox" id="chk-db-junctions" checked>
+                    <div>
+                        <div style="color:#fff; font-size:14px; font-weight:bold;">교차로 데이터 (마스터, 맵, TOD)</div>
+                        <div id="lbl-db-junctions-count" style="color:#38bdf8; font-size:11px; margin-top:3px;">대기중인 교차로: 0건 (50개씩 분할 전송)</div>
+                    </div>
+                </label>
+                
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
+                    <input type="checkbox" id="chk-db-groups" checked>
+                    <div style="color:#ccc; font-size:13px;">그룹 정보 마스터</div>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
+                    <input type="checkbox" id="chk-db-stats">
+                    <div style="color:#ccc; font-size:13px;">접근로 통계</div>
+                </label>
+
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
+                    <input type="checkbox" id="chk-db-yearbook">
+                    <div style="color:#ccc; font-size:13px;">신호운영 연보</div>
+                </label>
+
+                <!-- 상태 표시 -->
+                <div id="db-update-progress-info" style="display:none; font-size:12px; color:#2ecc71; text-align:center; padding-top:10px; font-weight:bold;">
+                    업데이트를 준비 중입니다...
+                </div>
+            </div>
+            <div style="padding:15px 20px; background:#262d3d; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:flex-end; gap:10px;">
+                <button onclick="document.getElementById('db-update-modal').style.display='none'" style="padding:8px 15px; border-radius:6px; background:#444; color:#fff; border:none; cursor:pointer;">취소</button>
+                <button onclick="executeDBUpdate()" style="padding:8px 15px; border-radius:6px; background:#38bdf8; color:#000; font-weight:bold; border:none; cursor:pointer;">업데이트 실행</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
