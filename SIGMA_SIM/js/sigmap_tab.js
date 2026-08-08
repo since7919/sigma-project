@@ -130,6 +130,13 @@ function renderSignalMapTab() {
         return typeof v === 'number' ? v.toString(16).padStart(2, '0').toUpperCase() : String(v);
     };
 
+    const formatDisplayVal = (v) => {
+        if (v === 0 || v === '0' || !v) return '00';
+        if (v === 16 || v === '16' || v === 22 || v === '22') return '10';
+        if (v === 32 || v === '32' || v === 50 || v === '50') return '20';
+        return String(v).padStart(2, '0');
+    };
+
     const getCellClass = (val, type) => {
         const hex = toHex(val);
         if (hex === '00') return 'cell-gray';
@@ -190,8 +197,8 @@ function renderSignalMapTab() {
             const carVal = stepA[`car${i}`];
             const pedVal = stepA[`ped${i}`];
             html += `
-                <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? toHex(carVal) : '-'}</td>
-                <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? toHex(pedVal) : '-'}</td>
+                <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? formatDisplayVal(carVal) : '-'}</td>
+                <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? formatDisplayVal(pedVal) : '-'}</td>
             `;
         }
         html += `
@@ -205,8 +212,8 @@ function renderSignalMapTab() {
             const carVal = stepB[`car${i}`];
             const pedVal = stepB[`ped${i}`];
             html += `
-                <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? toHex(carVal) : '-'}</td>
-                <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? toHex(pedVal) : '-'}</td>
+                <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? formatDisplayVal(carVal) : '-'}</td>
+                <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? formatDisplayVal(pedVal) : '-'}</td>
             `;
         }
         html += `
