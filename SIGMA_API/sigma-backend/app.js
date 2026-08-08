@@ -1276,6 +1276,354 @@ app.post('/api/sim/update-junction', async (req, res) => {
   }
 });
 
+// 1-5-1. batch-update-junctions (대량 교차로 업데이트)
+app.post('/api/sim/batch-update-junctions', async (req, res) => {
+  const { chunks } = req.body;
+  if (!chunks || !Array.isArray(chunks)) return res.status(400).json({ error: 'chunks 배열이 필요합니다.' });
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const junctionsPayload = [];
+      const mapsPayload = [];
+      const todPayload = [];
+      const now = new Date().toISOString();
+
+      for (const chunk of chunks) {
+        const { jid, interCsvLine, mapCsvLines, todCsvLines } = chunk;
+        if (!jid) continue;
+
+        const region = String(jid).split('-')[0];
+        const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
+
+        // 1) junctions
+        if (interCsvLine && interCsvLine.trim()) {
+          const cols = parseCsvRow(interCsvLine);
+          if (cols.length >= 8) {
+            let arrowConfigs = {};
+            const arrowStr = cols[11];
+            if (arrowStr) {
+              arrowStr.split(';').forEach(conf => {
+                const parts = conf.split(':');
+                if (parts.length >= 4) {
+                  const mov = parts[0];
+                  if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
+                  arrowConfigs[mov].push({
+                    dLat: parseFloat(parts[1]) || 0,
+                    dLng: parseFloat(parts[2]) || 0,
+                    rot: parseInt(parts[3]) || 0
+                  });
+                }
+              });
+            }
+
+            junctionsPayload.push({
+              id: jid,
+              region_cd: cols[1] || targetRegion,
+              name: cols[2],
+              lat: parseFloat(cols[3]) || 37.5,
+              lng: parseFloat(cols[4]) || 127.0,
+              seq: cols[5] || "",
+              police: cols[6] || "",
+              office: cols[7] || "",
+              group_id: parseInt(cols[8]) || 0,
+              arrow_configs: arrowConfigs,
+              controller: cols[12] || "",
+              diagram_order: parseInt(cols[13]) || -1,
+              weekly_plan: cols[14] || '1;1;1;1;1;2;3',
+              api_int_no: cols[15] !== undefined ? (cols[15] !== "" ? parseInt(cols[15]) || null : null) : null,
+              updated_at: now
+            });
+          }
+        }
+
+        // 2) signal_maps
+        if (mapCsvLines) {
+          const lines = mapCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+          for (const line of lines) {
+            const cols = parseCsvRow(line);
+            if (cols.length < 3) continue;
+            const mapIdx = parseInt(cols[1]);
+            if (isNaN(mapIdx)) continue;
+
+            mapsPayload.push({
+              id: jid,
+              map_idx: mapIdx,
+              mov_a: cols[2] || "",
+              mov_b: cols[3] || "",
+              ped_mov_a: cols[4] || "",
+              ped_mov_b: cols[5] || "",
+              main_movements: cols[6] || "A0;B0",
+              yellow_a: cols[7] || "",
+              yellow_b: cols[8] || "",
+              allred_a: cols[9] || "",
+              allred_b: cols[10] || "",
+              ped_a: cols[11] || "",
+              ped_b: cols[12] || "",
+              ped_delay_a: cols[13] || "",
+              ped_delay_b: cols[14] || "",
+              ped_flash_a: cols[15] || "",
+              ped_flash_b: cols[16] || "",
+              ped_green_a: cols[17] || "",
+              ped_green_b: cols[18] || "",
+              start_time: cols[19] || "",
+              end_time: cols[20] || "",
+              raw_steps: (() => {
+                try { return cols[21] ? JSON.parse(cols[21]) : null; }
+                catch(e) { return null; }
+              })(),
+              updated_at: now
+            });
+          }
+        }
+
+        // 3) tod_plans
+        if (todCsvLines) {
+          const lines = todCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+          for (const line of lines) {
+            const cols = parseCsvRow(line);
+            if (cols.length < 5) continue;
+            const dayPlan = parseInt(cols[4]);
+            if (isNaN(dayPlan)) continue;
+
+            const timePlans = [];
+            for (let tp = 1; tp <= 16; tp++) {
+              const val = cols[4 + tp];
+              if (val && val !== "-1") {
+                const parts = val.split('|');
+                const timeStr = parts[0] || "-1";
+                if (timeStr !== "-1") {
+                  const [h, m] = timeStr.split(':').map(Number);
+                  timePlans.push({
+                    slot_idx: tp,
+                    h: h,
+                    m: m,
+                    cycle: parseInt(parts[1]) || 100,
+                    offset: parseInt(parts[2]) || 0,
+                    splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
+                    splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
+                    idx: parseInt(parts[5]) || 1
+                  });
+                }
+              }
+            }
+
+            todPayload.push({
+              id: jid,
+              day_plan: dayPlan,
+              signal_map: parseInt(cols[2]) || 0,
+              group_id: parseInt(cols[3]) || 0,
+              time_plans: timePlans,
+              updated_at: now
+            });
+          }
+        }
+      }
+
+      if (junctionsPayload.length > 0) {
+        const chunkSize = 500;
+        for (let i = 0; i < junctionsPayload.length; i += chunkSize) {
+          const { error: jErr } = await supabase.from('junctions').upsert(junctionsPayload.slice(i, i + chunkSize), { onConflict: 'id' });
+          if (jErr) throw new Error(`junctions RDB 업서트 오류: ${jErr.message}`);
+        }
+      }
+
+      if (mapsPayload.length > 0) {
+        const chunkSize = 1000;
+        for (let i = 0; i < mapsPayload.length; i += chunkSize) {
+          const { error: mErr } = await supabase.from('signal_maps').upsert(mapsPayload.slice(i, i + chunkSize), { onConflict: 'id,map_idx' });
+          if (mErr) throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message}`);
+        }
+      }
+
+      if (todPayload.length > 0) {
+        const chunkSize = 1000;
+        for (let i = 0; i < todPayload.length; i += chunkSize) {
+          const { error: tErr } = await supabase.from('tod_plans').upsert(todPayload.slice(i, i + chunkSize), { onConflict: 'id,day_plan' });
+          if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${tErr.message}`);
+        }
+      }
+
+      return { success: true, counts: { junctions: junctionsPayload.length, maps: mapsPayload.length, tods: todPayload.length } };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 일괄 업데이트에 실패했습니다.');
+  }
+});
+
+// 1-5-2. batch-update-groups (대량 그룹 업데이트)
+app.post('/api/sim/batch-update-groups', async (req, res) => {
+  const { groupCsvLines } = req.body;
+  if (!groupCsvLines) return res.status(400).json({ error: 'groupCsvLines가 필요합니다.' });
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const groupsPayload = [];
+      const lines = groupCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+      const now = new Date().toISOString();
+      
+      let startIndex = 0;
+      if (lines.length > 0 && lines[0].toLowerCase().includes('groupid')) {
+        startIndex = 1;
+      }
+
+      for (let i = startIndex; i < lines.length; i++) {
+        const cols = parseCsvRow(lines[i]);
+        if (cols.length < 3) continue;
+        const groupId = parseInt(cols[0]);
+        if (isNaN(groupId)) continue;
+        
+        const schedules = [];
+        for (let d = 1; d <= 10; d++) {
+          const val = cols[2 + d];
+          if (val && val !== "-1") {
+            const slots = val.split(';').map(slot => {
+              const parts = slot.split('|');
+              return {
+                time: parts[0],
+                cycle: parseInt(parts[1]) || 100,
+                idx: parseInt(parts[2]) || 1
+              };
+            }).filter(s => s.time);
+            
+            if (slots.length > 0) {
+              schedules.push({
+                day_plan_idx: d,
+                slots: slots
+              });
+            }
+          }
+        }
+        
+        groupsPayload.push({
+          group_id: groupId,
+          region_cd: cols[1] || 'L01',
+          name: cols[2] || '',
+          schedules: schedules,
+          updated_at: now
+        });
+      }
+
+      if (groupsPayload.length > 0) {
+        const chunkSize = 500;
+        for (let i = 0; i < groupsPayload.length; i += chunkSize) {
+          const { error } = await supabase.from('groups').upsert(groupsPayload.slice(i, i + chunkSize), { onConflict: 'group_id' });
+          if (error) throw new Error(`groups 업서트 오류: ${error.message}`);
+        }
+      }
+
+      return { success: true, count: groupsPayload.length };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '그룹마스터 일괄 업데이트에 실패했습니다.');
+  }
+});
+
+// 1-5-3. batch-update-stats (대량 통계 업데이트)
+app.post('/api/sim/batch-update-stats', async (req, res) => {
+  const { statsCsvLines } = req.body;
+  if (!statsCsvLines) return res.status(400).json({ error: 'statsCsvLines가 필요합니다.' });
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const payload = [];
+      const lines = statsCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length === 0) return { success: true, count: 0 };
+      
+      const headers = parseCsvRow(lines[0]).map(h => {
+        if (h.toUpperCase() === 'ID') return 'id';
+        return h.replace(/^([A-Z])/, m => m.toLowerCase()).replace(/([A-Z])/g, m => '_' + m.toLowerCase());
+      });
+      
+      const now = new Date().toISOString();
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvRow(lines[i]);
+        if (cols.length === 0 || !cols[0]) continue;
+        
+        const row = { updated_at: now };
+        for (let j = 0; j < headers.length; j++) {
+          let val = cols[j];
+          if (val === '') val = null;
+          else if (!isNaN(Number(val)) && val.trim() !== '') val = Number(val);
+          row[headers[j]] = val;
+        }
+        if (!row.id && row.int_no) row.id = String(row.int_no); 
+        payload.push(row);
+      }
+
+      if (payload.length > 0) {
+        const conflictKey = headers.includes('id') ? 'id' : (headers.includes('int_no') ? 'int_no' : null);
+        const upsertOpts = conflictKey ? { onConflict: conflictKey } : {};
+        
+        const chunkSize = 500;
+        for (let i = 0; i < payload.length; i += chunkSize) {
+          const { error } = await supabase.from('intersection_stats').upsert(payload.slice(i, i + chunkSize), upsertOpts);
+          if (error) throw new Error(`intersection_stats 업서트 오류: ${error.message}`);
+        }
+      }
+      return { success: true, count: payload.length };
+    });
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '통계 데이터 일괄 업데이트에 실패했습니다.');
+  }
+});
+
+// 1-5-4. batch-update-yearbook (대량 민원 업데이트)
+app.post('/api/sim/batch-update-yearbook', async (req, res) => {
+  const { yearbookCsvLines } = req.body;
+  if (!yearbookCsvLines) return res.status(400).json({ error: 'yearbookCsvLines가 필요합니다.' });
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const payload = [];
+      const lines = yearbookCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length === 0) return { success: true, count: 0 };
+      
+      const headers = parseCsvRow(lines[0]).map(h => {
+        if (h.toUpperCase() === 'ID') return 'id';
+        return h.replace(/^([A-Z])/, m => m.toLowerCase()).replace(/([A-Z])/g, m => '_' + m.toLowerCase());
+      });
+      
+      const now = new Date().toISOString();
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvRow(lines[i]);
+        if (cols.length === 0 || !cols[0]) continue;
+        
+        const row = { updated_at: now };
+        for (let j = 0; j < headers.length; j++) {
+          let val = cols[j];
+          if (val === '') val = null;
+          else if (!isNaN(Number(val)) && val.trim() !== '') val = Number(val);
+          row[headers[j]] = val;
+        }
+        if (!row.id && row.int_no) row.id = String(row.int_no);
+        payload.push(row);
+      }
+
+      if (payload.length > 0) {
+        const conflictKey = headers.includes('id') ? 'id' : (headers.includes('int_no') ? 'int_no' : null);
+        const upsertOpts = conflictKey ? { onConflict: conflictKey } : {};
+
+        const chunkSize = 500;
+        for (let i = 0; i < payload.length; i += chunkSize) {
+          const { error } = await supabase.from('civil_complaints').upsert(payload.slice(i, i + chunkSize), upsertOpts);
+          if (error) throw new Error(`civil_complaints 업서트 오류: ${error.message}`);
+        }
+      }
+      return { success: true, count: payload.length };
+    });
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '민원 데이터 일괄 업데이트에 실패했습니다.');
+  }
+});
+
 // 1-6. 특정 교차로(JID)의 UTIC 신호 계획 동기화 API 구현
 app.post('/api/sim/sync-utic-plan', async (req, res) => {
   const { jid, itstNm } = req.body;
