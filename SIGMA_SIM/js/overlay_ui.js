@@ -151,8 +151,9 @@ function renderOverlayPlanInfo(jid) {
 
     const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 25200);
     const context = (typeof getSimContext === 'function') ? getSimContext(j, t) : null;
+    const weekPlanArr = j.weeklyPlan ? j.weeklyPlan.split(';') : [1, 1, 1, 1, 1, 2, 3];
     const pIdx = context ? context.pIdx : 0;
-    const dayIdx = context ? context.dayIdx : (j.weekPlan ? j.weekPlan[0] : 1);
+    const dayIdx = context ? context.dayIdx : (parseInt(weekPlanArr[0]) - 1 || 0);
     const plan = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
 
     let leftHTML = `<h3 style="color: #38bdf8; font-weight: bold; font-size: 13px; margin: 0 0 8px 0;">신호계획정보</h3>`;
@@ -227,7 +228,7 @@ function renderOverlayPlanInfo(jid) {
                         <tr>
                             <td style="padding: 5px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${plan ? plan.cycle : '-'}초</td>
                             <td style="padding: 5px; border: 1px solid #334155; color: #f472b6;">${plan ? plan.offset : '-'}</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #f472b6;">${dayIdx}</td>
+                            <td style="padding: 5px; border: 1px solid #334155; color: #f472b6;">${dayIdx + 1}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -243,14 +244,14 @@ function renderOverlayPlanInfo(jid) {
                     </thead>
                     <tbody>
                         <tr>
-                            ${(j.weekPlan || [1,1,1,1,1,1,1]).map(dp => `<td style="padding: 5px; border: 1px solid #334155; color: #fff; font-weight: bold;">${dp}</td>`).join('')}
+                            ${weekPlanArr.map(dp => `<td style="padding: 5px; border: 1px solid #334155; color: #fff; font-weight: bold;">${dp}</td>`).join('')}
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div>
-                <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획정보 (현재 실행: 일계획 ${dayIdx})</span>
+                <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획정보 (현재 실행: 일계획 ${dayIdx + 1})</span>
                 <table style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
