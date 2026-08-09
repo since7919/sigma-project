@@ -367,7 +367,33 @@ async function loadSignalMapFromExcel(input) {
             const startRowA = baseRowMapStart + (mIdx * 67);
             const startRowB = startRowA + 32;
 
-            const step1Min = parseInt(getVal(startRowA, 53));
+            // Dynamically find V, P, MIN, EOP columns from header rows
+            let vCols = [];
+            let pCols = [];
+            let minCol = 53;
+            let eopCol = 57;
+            
+            for (let hr of [startRowA - 1, startRowA - 2, startRowA - 3]) {
+                const tempV = [];
+                const tempP = [];
+                for (let c = 1; c <= 70; c++) {
+                    const val = String(getVal(hr, c) || "").trim().toUpperCase();
+                    if (val === 'V') tempV.push(c);
+                    if (val === 'P') tempP.push(c);
+                    if (val === 'MIN' || val === 'MIN.') minCol = c;
+                    if (val === 'EOP') eopCol = c;
+                }
+                if (tempV.length >= 8 && tempP.length >= 8) {
+                    vCols = tempV;
+                    pCols = tempP;
+                    break;
+                } else if (tempV.length > vCols.length) {
+                    vCols = tempV;
+                    pCols = tempP;
+                }
+            }
+
+            const step1Min = parseInt(getVal(startRowA, minCol));
             if (isNaN(step1Min) || step1Min === 0 && mIdx > 0) {
                 // If there's no first step data, skip this plan
                 continue;
@@ -386,13 +412,15 @@ async function loadSignalMapFromExcel(input) {
                     const eopRow = eopSourceRow ? eopSourceRow + s : r;
                     const step = {
                         stepNo: s + 1,
-                        minTm: parseInt(getVal(r, 53)) || 0,
+                        minTm: parseInt(getVal(r, minCol)) || 0,
                         maxTm: 0,
-                        eop: String(getVal(eopRow, 57) || "").toUpperCase() === 'Y' ? 1 : 0
+                        eop: String(getVal(eopRow, eopCol) || "").toUpperCase() === 'Y' ? 1 : 0
                     };
                     for (let l = 0; l < 8; l++) {
-                        step[`car${l+1}`] = parseInt(String(getVal(r, 5 + l * 6) || "0").trim()) || 0;
-                        step[`ped${l+1}`] = parseInt(String(getVal(r, 8 + l * 6) || "0").trim()) || 0;
+                        const carCol = vCols.length > l ? vCols[l] : (5 + l * 6);
+                        const pedCol = pCols.length > l ? pCols[l] : (8 + l * 6);
+                        step[`car${l+1}`] = parseInt(String(getVal(r, carCol) || "0").trim()) || 0;
+                        step[`ped${l+1}`] = parseInt(String(getVal(r, pedCol) || "0").trim()) || 0;
                     }
                     steps.push(step);
                 }
