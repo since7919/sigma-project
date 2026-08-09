@@ -2973,3 +2973,19 @@ h4 {
 .btn-detail:hover { background: #2563eb; }
 /* Fix popup z-index */
 .leaflet-popup-pane { z-index: 3000 !important; }
+/* Custom Scrollbar for Overlay */
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.7);
+}
