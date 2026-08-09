@@ -168,38 +168,28 @@
 
     <div id="map"></div>
 
-    <!-- [NEW] Left Search Sidebar (Region Browser) -->
-    <div id="left-search-sidebar" class="left-sidebar glass-panel-premium">
-        <!-- Sidebar Toggle Handle -->
-        <button id="btn-open-search-side" class="btn-left-sidebar-handle" onclick="toggleLeftSidebar()" title="사이드바 토글">
-            <span class="handle-icon">🔍</span>
-            <span class="handle-text">BROWSER</span>
-        </button>
-
-        <div class="search-sidebar-header">
-            <h3 class="neon-text">🔍 지역/교차로 검색</h3>
-            <button class="btn-close-sidebar" onclick="toggleLeftSidebar()" title="사이드바 닫기">×</button>
+    <div id="left-search-sidebar" class="left-sidebar">
+        <div class="sidebar-header">
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">🏠 홈 (포털 메인)</div>
+            <h1>🚦 SIGMA SIM</h1>
         </div>
         
-        <div class="search-sidebar-body">
-            <!-- 지역 선택 셀렉트 박스 -->
-            <div class="region-filter-v4">
-                <select id="api-region-select" class="input-premium" onchange="onRegionChange()">
-                    <option value="L01" selected>서울특별시</option>
-                    <option value="L02">인천광역시</option>
-                    <option value="155">대구광역시</option>
-                    <option value="131">대전광역시</option>
-                    <option value="142">울산광역시</option>
-                    <option value="161">부산광역시</option>
-                </select>
+        <div class="search-box">
+            <input type="text" id="j-sidebar-search" placeholder="교차로명 검색..." onkeyup="filterJunctionList(event)">
+            <button>🔍</button>
+        </div>
+        
+        <div id="accordion-container" class="accordion-wrapper custom-scroll">
+            <!-- Dynamic Accordion List Items will be rendered here by intersection_search.js -->
+        </div>
+        
+        <!-- API style Footer -->
+        <div style="padding: 10px 15px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between;">
+            <div>
+                <div style="margin-bottom: 4px;">통합 DB <span style="color: #3b82f6; font-weight: bold;">● Connected</span></div>
             </div>
-            
-            <div class="search-box-v4">
-                <input type="text" id="j-sidebar-search" placeholder="교차로 명칭 검색.." onkeyup="filterJunctionList(event)">
-            </div>
-            
-            <div id="j-sidebar-list" class="junction-list-v4 scroll-custom">
-                <!-- Dynamic: List Items -->
+            <div>
+                <div>UTIC <span style="color: #10b981; font-weight: bold;">● On</span></div>
             </div>
         </div>
     </div>

@@ -19,28 +19,41 @@ function toggleLeftSidebar() {
 /**
  * 지역 필터 함수 (공통)
  */
-function isMatchingRegion(j) {
-    const regionSelect = document.getElementById('api-region-select');
-    // 기본 지역을 L01(서울)로 설정
-    const regionCode = regionSelect ? regionSelect.value : 'L01';
-    if (j.region) return j.region === regionCode;
-    const jid = String(j.id);
-    if (regionCode === 'L01' || regionCode === '110') {
-        return jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-');
-    } else if (regionCode === 'L02') {
-        return jid.startsWith('L02-') || jid === '1001';
-    } else {
-        return jid.startsWith(`${regionCode}-`);
-    }
-}
+const REGION_MAP = {
+    'L01': '서울특별시',
+    'L02': '인천광역시',
+    '155': '대구광역시',
+    '131': '대전광역시',
+    '142': '울산광역시',
+    '161': '부산광역시'
+};
 
-let _junctionListItems = null;
+let _openAccordions = { 'L01': true };
+
+window.toggleAccordion = function(regionCode) {
+    _openAccordions[regionCode] = !_openAccordions[regionCode];
+    renderJunctionList();
+};
 
 /**
- * Renders the full list of junctions from STATE.junctions
+ * Helper to determine region of a junction based on ID if region is missing
+ */
+function getJunctionRegion(j) {
+    if (j.region) return j.region;
+    const jid = String(j.id);
+    if (jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-')) return 'L01';
+    if (jid.startsWith('L02-') || jid === '1001') return 'L02';
+    for (const code of Object.keys(REGION_MAP)) {
+        if (jid.startsWith(`${code}-`)) return code;
+    }
+    return 'UNKNOWN';
+}
+
+/**
+ * Renders the full list of junctions from STATE.junctions grouped by region (Accordion)
  */
 function renderJunctionList() {
-    const listEl = document.getElementById('j-sidebar-list');
+    const listEl = document.getElementById('accordion-container');
     if (!listEl) return;
 
     // 전역 STATE 객체 확인
@@ -51,40 +64,64 @@ function renderJunctionList() {
     if (junctionsCount === 0) {
         listEl.innerHTML = `
             <div style="padding:40px 20px; color:#666; font-size:12.5px; text-align:center;">
-                <div style="margin-bottom:10px; font-size:24px; opacity:0.5;">📭</div>
+                <div style="margin-bottom:10px; font-size:24px; opacity:0.5;">🚫</div>
                 표시할 교차로 데이터가 없습니다.<br>
-                <div style="font-size:11px; color:#888; margin-top:8px;">(CSV 파일 로드 여부를 확인하세요)</div>
+                <div style="font-size:11px; color:#888; margin-top:8px;">(CSV 파일 로드 후 확인하세요)</div>
             </div>`;
         _junctionListItems = null;
         return;
     }
 
-    const regionSelect = document.getElementById('api-region-select');
-    const regionCode = regionSelect ? regionSelect.value : 'L01';
-
-    const filteredJunctions = Object.values(junctions).filter(isMatchingRegion);
-    
-    const sortedJunctions = filteredJunctions.sort((a, b) => 
-        (a.name || '').localeCompare(b.name || '', 'ko')
-    );
+    // 그룹화
+    const grouped = {};
+    Object.values(junctions).forEach(j => {
+        const rCode = getJunctionRegion(j);
+        if (!grouped[rCode]) grouped[rCode] = [];
+        grouped[rCode].push(j);
+    });
 
     const activeJid = String(s.activeJid || "");
 
-    listEl.innerHTML = sortedJunctions.map(j => {
-        const isActive = activeJid === String(j.id);
-        return `
-            <div class="j-list-item ${isActive ? 'active' : ''}" onclick="flyToIntersection('${j.id}')" data-id="${j.id}">
-                <div class="j-item-id">ID: ${j.id}</div>
-                <div class="j-item-name">${j.name || '-'}</div>
-                <div class="j-item-info">${j.office || ''} | ${j.seq || ''}</div>
+    let html = '';
+    
+    // Sort region codes by name
+    const regionCodes = Object.keys(grouped).sort((a,b) => (REGION_MAP[a]||a).localeCompare(REGION_MAP[b]||b, 'ko'));
+    
+    regionCodes.forEach(rCode => {
+        const isOpen = _openAccordions[rCode];
+        const rName = REGION_MAP[rCode] || rCode;
+        const items = grouped[rCode].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+        
+        html += `
+        <div class="acc-group" data-region="${rCode}">
+            <div class="acc-header" onclick="toggleAccordion('${rCode}')">
+                <span class="acc-icon">${isOpen ? '▼' : '▶'}</span>
+                ${rName} <span class="acc-count">(${items.length})</span>
             </div>
+            ${isOpen ? `
+            <div class="acc-body">
+                ${items.map(j => {
+                    const isActive = activeJid === String(j.id);
+                    return `
+                    <div class="tree-item j-list-item ${isActive ? 'selected' : ''}" onclick="flyToIntersection('${j.id}')" data-id="${j.id}">
+                        <div class="status-dot" style="background: ${isActive ? '#38bdf8' : '#64748b'}; width:8px; height:8px; border-radius:50%; margin-right:8px;"></div>
+                        <span style="color:#94a3b8; font-size:10px; margin-right:4px;">[${j.id}]</span> 
+                        <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${j.name || '-'}</span>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+            ` : ''}
+        </div>
         `;
-    }).join('');
+    });
+
+    listEl.innerHTML = html;
 
     // [Optimize] Cache items for filtering
     _junctionListItems = listEl.querySelectorAll('.j-list-item');
 
-    // 지역 변경 후 검색어가 남아있으면 다시 필터링
+    // 검색어가 남아있으면 다시 필터링
     const searchInput = document.getElementById('j-sidebar-search');
     if (searchInput && searchInput.value) {
         filterJunctionList();
@@ -101,16 +138,12 @@ function filterJunctionList(event) {
     const query = searchInput.value.toLowerCase().trim();
     
     // Use cached items if available
-    const items = _junctionListItems || document.querySelectorAll('.j-list-item');
-    
-    let visibleCount = 0;
+    const items = document.querySelectorAll('.j-list-item');
     
     items.forEach(item => {
-        // Optimization: search only in relevant text content
         const text = item.textContent.toLowerCase();
         if (text.includes(query)) {
-            item.style.display = 'block';
-            visibleCount++;
+            item.style.display = 'flex';
         } else {
             item.style.display = 'none';
         }
