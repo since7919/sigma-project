@@ -848,19 +848,25 @@ function _loadStatsCsv(csvText) {
 
 function _parseCsvLine(line) {
     const result = [];
-    let cur = '', inQ = false;
+    let start = 0;
+    let inQ = false;
     for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-            if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
-            else inQ = !inQ;
-        } else if (ch === ',' && !inQ) {
-            result.push(cur); cur = '';
-        } else {
-            cur += ch;
+        if (line[i] === '"') {
+            inQ = !inQ;
+        } else if (line[i] === ',' && !inQ) {
+            let val = line.substring(start, i).trim();
+            if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
+                val = val.substring(1, val.length - 1).replace(/""/g, '"');
+            }
+            result.push(val);
+            start = i + 1;
         }
     }
-    result.push(cur);
+    let val = line.substring(start).trim();
+    if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
+        val = val.substring(1, val.length - 1).replace(/""/g, '"');
+    }
+    result.push(val);
     return result;
 }
 

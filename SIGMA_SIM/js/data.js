@@ -726,16 +726,39 @@ function processTodPlanCSV(csv) {
 }
 
 function parseCSV(csv) {
-    const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return [];
-    const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    const lines = csv.trim().split(/\r?\n/); 
+    if (lines.length < 2) return [];
+
+    const parseLine = (line) => {
+        const result = [];
+        let start = 0;
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"') {
+                inQ = !inQ;
+            } else if (line[i] === ',' && !inQ) {
+                let val = line.substring(start, i).trim();
+                if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
+                    val = val.substring(1, val.length - 1).replace(/""/g, '"');
+                }
+                result.push(val);
+                start = i + 1;
+            }
+        }
+        let val = line.substring(start).trim();
+        if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
+            val = val.substring(1, val.length - 1).replace(/""/g, '"');
+        }
+        result.push(val);
+        return result;
+    };
+
+    const headers = parseLine(lines[0].replace(/^\ufeff/, ''));
     const res = [];
     for (let i = 1; i < lines.length; i++) {
-        const row = {}, cols = [], line = lines[i]; let start = 0, inQ = false;
-        for (let c = 0; c < line.length; c++) {
-            if (line[c] === '"') inQ = !inQ;
-            else if (line[c] === ',' && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
-        }
-        cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+        if (!lines[i].trim()) continue;
+        const cols = parseLine(lines[i]);
+        const row = {};
         headers.forEach((h, idx) => { if (cols[idx] !== undefined) row[h] = cols[idx]; });
         res.push(row);
     }
