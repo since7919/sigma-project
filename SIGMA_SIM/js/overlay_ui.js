@@ -262,7 +262,7 @@ function renderOverlayPlanInfo(jid) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${(j.dayPlans[dayIdx] || []).map((dp, i) => `
+                        ${(j.dayPlans && j.dayPlans[dayIdx] ? j.dayPlans[dayIdx] : []).map((dp, i) => `
                             <tr style="${i === pIdx ? 'background: rgba(14, 165, 233, 0.2);' : ''}">
                                 <td style="padding: 2px; border: 1px solid #334155; color: #94a3b8;">${i+1}</td>
                                 <td style="padding: 2px; border: 1px solid #334155; color: #e2e8f0; font-family: monospace;">${Math.floor(dp.time/3600).toString().padStart(2,'0')}:${Math.floor((dp.time%3600)/60).toString().padStart(2,'0')}</td>
