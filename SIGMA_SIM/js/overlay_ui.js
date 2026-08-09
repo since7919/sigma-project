@@ -22,6 +22,24 @@ function openDetailOverlay(jid) {
         title.innerText = `교차로 상세 (${jid})`;
     }
 
+    // SIM 데이터 컨테이너를 모달 내부로 이동시켜 기존 렌더링 로직 유지 (Data Binding)
+    const phaseTab = document.getElementById('overlay-tab-phase');
+    const sigmapTab = document.getElementById('overlay-tab-sigmap');
+
+    const phaseContainer = document.getElementById('mov-combined-container');
+    const todContainer = document.getElementById('tod-summary-container');
+    const sigmapContainer = document.getElementById('sigmap-table-container');
+
+    if (phaseContainer && !phaseTab.contains(phaseContainer)) {
+        phaseTab.appendChild(phaseContainer);
+    }
+    if (todContainer && !phaseTab.contains(todContainer)) {
+        phaseTab.appendChild(todContainer);
+    }
+    if (sigmapContainer && !sigmapTab.contains(sigmapContainer)) {
+        sigmapTab.appendChild(sigmapContainer);
+    }
+
     modal.style.display = 'flex';
     
     // 모달 열 때 기본 탭(신호계획정보) 활성화

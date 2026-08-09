@@ -124,7 +124,12 @@ function syncJunctionsToDashMap() {
             color: '#fff',
             weight: 0.5,
             fillOpacity: 1
-        }).addTo(dashMap).bindPopup(j.name + " (" + j.id + ")");
+        }).addTo(dashMap).bindPopup(`
+            <div style="text-align:center;">
+                <div style="margin-bottom:8px; font-weight:bold; font-size:12px;">${j.name} (${j.id})</div>
+                <button class="btn-sm" style="background:#38bdf8; color:#000; padding:5px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;" onclick="STATE.activeJid='${j.id}'; openDetailOverlay('${j.id}');">상세보기</button>
+            </div>
+        `);
     });
 }
 
