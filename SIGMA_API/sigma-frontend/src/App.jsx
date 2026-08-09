@@ -286,38 +286,7 @@ function App() {
     };
   }, [supabaseConfig]);
 
-  // 현재 관심 대상인 활성 교차로를 백엔드에 주기적으로 Ping 등록 (데이터 필터링 및 Sleep 방지용)
-  useEffect(() => {
-    const activeIds = [];
-    if (detailIntersection && detailIntersection.origin_type?.toLowerCase().includes('tdata')) {
-      activeIds.push(String(detailIntersection.int_no));
-    }
-    dualSelection.forEach(item => {
-      if (item.origin_type?.toLowerCase().includes('tdata')) {
-        activeIds.push(String(item.int_no));
-      }
-    });
-    multiScreenItems.forEach(item => {
-      if (item && item.origin_type?.toLowerCase().includes('tdata')) {
-        activeIds.push(String(item.int_no));
-      }
-    });
 
-    if (activeIds.length === 0) return;
-
-    const sendPing = async () => {
-      try {
-        await axios.post(`${API_BASE}/api/ping`, { ids: activeIds });
-      } catch (e) {
-        // ignore network failures
-      }
-    };
-
-    sendPing();
-    const intervalId = setInterval(sendPing, 10000); // 10초 주기 핑
-
-    return () => clearInterval(intervalId);
-  }, [detailIntersection, dualSelection, multiScreenItems]);
 
   const handleMapSignalToggle = (id) => {
     // 만약 신호가 꺼진 상태에서 신호등 표출을 켰다면 자동으로 ON 모드로 활성화
@@ -479,6 +448,76 @@ function App() {
       return true; // Keep UTIC intersections
     });
   }, [intersections, filterSeoulActive, seoulActiveIds, uticUpdateTick]);
+
+  const mapRenderIntersections = useMemo(() => {
+    if (!isMapSignalOn) return [];
+    
+    const activeOnes = [];
+    const viewportOnes = [];
+    
+    filteredIntersections.forEach(item => {
+      if (activeMapSignalIds.includes(item.id)) {
+        activeOnes.push(item);
+      } else if (mapZoom >= 14 && mapBounds) {
+        const latLng = L.latLng(item.y_coord, item.x_coord);
+        if (mapBounds.contains(latLng)) {
+          viewportOnes.push(item);
+        }
+      }
+    });
+    
+    const remainingSlots = Math.max(0, 20 - activeOnes.length);
+    
+    if (viewportOnes.length > remainingSlots && mapBounds) {
+      const center = mapBounds.getCenter();
+      viewportOnes.sort((a, b) => {
+        const distA = Math.pow(a.y_coord - center.lat, 2) + Math.pow(a.x_coord - center.lng, 2);
+        const distB = Math.pow(b.y_coord - center.lat, 2) + Math.pow(b.x_coord - center.lng, 2);
+        return distA - distB;
+      });
+    }
+    
+    return [...activeOnes, ...viewportOnes.slice(0, remainingSlots)];
+  }, [isMapSignalOn, filteredIntersections, activeMapSignalIds, mapZoom, mapBounds]);
+
+  // 현재 관심 대상인 활성 교차로를 백엔드에 주기적으로 Ping 등록 (데이터 필터링 및 Sleep 방지용)
+  useEffect(() => {
+    const activeIds = [];
+    if (detailIntersection && detailIntersection.origin_type?.toLowerCase().includes('tdata')) {
+      activeIds.push(String(detailIntersection.int_no));
+    }
+    dualSelection.forEach(item => {
+      if (item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
+    });
+    multiScreenItems.forEach(item => {
+      if (item && item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
+    });
+    // 지도상 표출되는 교차로도 Ping 대상에 포함
+    mapRenderIntersections.forEach(item => {
+      if (item && item.origin_type?.toLowerCase().includes('tdata')) {
+        activeIds.push(String(item.int_no));
+      }
+    });
+
+    if (activeIds.length === 0) return;
+
+    const sendPing = async () => {
+      try {
+        await axios.post(`${API_BASE}/api/ping`, { ids: activeIds });
+      } catch (e) {
+        // ignore network failures
+      }
+    };
+
+    sendPing();
+    const intervalId = setInterval(sendPing, 10000); // 10초 주기 핑
+
+    return () => clearInterval(intervalId);
+  }, [detailIntersection, dualSelection, multiScreenItems, mapRenderIntersections]);
 
   return (
     <>
@@ -705,48 +744,16 @@ function App() {
               uticOpenRegions={uticOpenRegions}
             />
             {/* 지도상 신호 표출 레이어 */}
-            {(() => {
-              if (!isMapSignalOn) return null;
-              
-              const activeOnes = [];
-              const viewportOnes = [];
-              
-              filteredIntersections.forEach(item => {
-                if (activeMapSignalIds.includes(item.id)) {
-                  activeOnes.push(item);
-                } else if (mapZoom >= 14 && mapBounds) {
-                  const latLng = L.latLng(item.y_coord, item.x_coord);
-                  if (mapBounds.contains(latLng)) {
-                    viewportOnes.push(item);
-                  }
-                }
-              });
-              
-              const remainingSlots = Math.max(0, 20 - activeOnes.length);
-              
-              // 20개를 초과하는 경우 뷰포트 중심에서 가까운 순으로 정렬하여 표시
-              if (viewportOnes.length > remainingSlots && mapBounds) {
-                const center = mapBounds.getCenter();
-                viewportOnes.sort((a, b) => {
-                  const distA = Math.pow(a.y_coord - center.lat, 2) + Math.pow(a.x_coord - center.lng, 2);
-                  const distB = Math.pow(b.y_coord - center.lat, 2) + Math.pow(b.x_coord - center.lng, 2);
-                  return distA - distB;
-                });
-              }
-              
-              const finalRenderList = [...activeOnes, ...viewportOnes.slice(0, remainingSlots)];
-              
-              return finalRenderList.map(item => (
-                <MapSignalOverlay 
-                  key={`map-signal-${item.id}`} 
-                  intersection={item} 
-                  uticUpdateTick={uticUpdateTick}
-                  onMapSignalToggle={handleMapSignalToggle}
-                  displayMode={mapSignalType}
-                  mainPhases={mainPhases}
-                />
-              ));
-            })()}
+            {isMapSignalOn && mapRenderIntersections.map(item => (
+              <MapSignalOverlay 
+                key={`map-signal-${item.id}`} 
+                intersection={item} 
+                uticUpdateTick={uticUpdateTick}
+                onMapSignalToggle={handleMapSignalToggle}
+                displayMode={mapSignalType}
+                mainPhases={mainPhases}
+              />
+            ))}
           </MapContainer>
 
         </div>
