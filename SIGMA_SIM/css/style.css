@@ -2950,3 +2950,26 @@ h4 {
     background: rgba(245, 158, 11, 0.02);
 }
 
+/* API Style Tooltip & Popup */
+.map-label { 
+    background: rgba(15, 23, 42, 0.85) !important; 
+    border: 1px solid #38bdf8 !important; 
+    border-radius: 4px !important;
+    color: #fff !important; 
+    font-weight: 700 !important; 
+    font-size: 0.75rem !important; 
+    padding: 3px 6px !important;
+    text-shadow: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6) !important;
+    white-space: nowrap;
+}
+.map-label::before { display: none !important; }
+
+.custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 23, 42, 0.9); border: 1px solid #38bdf8; border-radius: 8px; color: #fff; }
+.custom-popup .leaflet-popup-tip { background: rgba(15, 23, 42, 0.9); border: 1px solid #38bdf8; }
+.popup-content { text-align: center; padding: 5px; }
+.popup-content h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+.btn-detail { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; }
+.btn-detail:hover { background: #2563eb; }
+/* Fix popup z-index */
+.leaflet-popup-pane { z-index: 3000 !important; }

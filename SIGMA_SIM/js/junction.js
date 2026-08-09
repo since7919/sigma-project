@@ -60,6 +60,16 @@ function drawJunction(jid, onlyStyle) {
         });
         j.marker = L.marker([j.lat, j.lng], { icon: jIcon, draggable: STATE.isMapEditMode, zIndexOffset: 2000 }).addTo(map);
 
+        // SIGMA_API style popup
+        j.marker.bindPopup(`
+          <div class="popup-content">
+            <h3>${j.name}</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+            </div>
+          </div>
+        `, { className: 'custom-popup', closeButton: true });
+
         j.marker.on('drag', (e) => {
             const pos = e.target.getLatLng();
             j.lat = pos.lat; j.lng = pos.lng;
@@ -72,13 +82,26 @@ function drawJunction(jid, onlyStyle) {
         j.marker = L.circleMarker([j.lat, j.lng], {
             radius: radius,
             fillColor: color,
-            color: 'rgba(255,255,255,0.3)',
+            color: '#fff',
             weight: 1,
-            fillOpacity: 0.6,
-            pane: 'markerPane' // [추가] 연동구간 링크(overlayPane)보다 상위에 배치하여 클릭 차단 방지
+            opacity: 1,
+            fillOpacity: 0.9,
+            className: 'junction-marker',
+            pane: 'markerPane'
         }).addTo(map);
+        
+        // SIGMA_API style popup
+        j.marker.bindPopup(`
+          <div class="popup-content">
+            <h3>${j.name}</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+            </div>
+          </div>
+        `, { className: 'custom-popup', closeButton: true });
     }
 
+    // 툴팁(이름 등) 표시
     refreshJunctionTooltip(jid);
 
     j.marker.on('click', (e) => {
@@ -707,6 +730,22 @@ function selectJunction(jid, isMulti = false) {
     renderCivilStats(jid);
 
     updateNameStyles();
+    
+    if (j.marker) {
+        console.log(`[Popup] Opening popup for ${jid}`);
+        j.marker.bindPopup(`
+          <div class="popup-content">
+            <h3>${j.name}</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+            </div>
+          </div>
+        `, { className: 'custom-popup', closeButton: true });
+        
+        setTimeout(() => {
+            j.marker.openPopup();
+        }, 50);
+    }
     
     // [Fix] UI 갱신을 100ms 지연 실행하여 데이터 로드 및 DOM 안정성 확보
     setTimeout(() => {

@@ -554,7 +554,7 @@ function bindNewTooltip(j, jid, content) {
     j.marker.bindTooltip(content, {
         permanent: isPermanent,
         direction: 'top',
-        className: 'leaflet-tooltip-own',
+        className: 'map-label',
         offset: [0, -10],
         opacity: isPermanent ? 1 : 0.8
     });

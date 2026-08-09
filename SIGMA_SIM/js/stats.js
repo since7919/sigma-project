@@ -471,7 +471,7 @@ function renderStats() {
         const plan = (j.dayPlans && j.dayPlans[primaryDayIdx]) ? j.dayPlans[primaryDayIdx][pIdx] : null;
         if (!plan) return;
         const activePhases = (plan.splitA || []).filter(s => s > 0).length;
-        const activeMovs = [...new Set([...j.movA, ...j.movB])].filter(m => m > 0).length;
+        const activeMovs = [...new Set([...(j.movA || []), ...(j.movB || [])])].filter(m => m > 0).length;
         totalPhases += activePhases;
         totalMovs += activeMovs;
         const sumA = plan.splitA.reduce((a, b) => a + b, 0);
@@ -558,7 +558,7 @@ function renderStats() {
         }
 
         // 단일로 판정 (접근로 2개 활성화)
-        const activeApproachCount = [...j.movA, ...j.movB].filter(m => m > 0).length;
+        const activeApproachCount = [...(j.movA || []), ...(j.movB || [])].filter(m => m > 0).length;
         const isSingleRoad = (activeApproachCount === 2);
 
         [...summaryData.facilities, ...summaryData.operations].forEach(item => {
