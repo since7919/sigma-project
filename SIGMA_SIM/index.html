@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
+    <link rel="stylesheet" href="css/overlay.css">
 </head>
 
 <body>
@@ -2023,6 +2024,50 @@
             </div>
         </div>
     </div>
+    <!-- 교차로 상세정보 오버레이 (Glassmorphism) -->
+    <div id="detail-overlay-modal" class="detail-modal-overlay" style="display: none;">
+        <div class="detail-modal-content glass">
+            <div class="modal-header">
+                <h2 id="overlay-title">교차로명 (ID)</h2>
+                <button class="btn-close" onclick="closeDetailOverlay()">×</button>
+            </div>
+            <div class="modal-top-map" id="overlay-map-area">
+                <!-- 나침반 렌더링 컨테이너 -->
+                <div id="overlay-compass" class="compass-center-overlay-wrapper">
+                    <div class="compass-center-overlay">
+                        <div class="signal-slot slot-N"><div class="signal-mount-frame" id="compass-N"></div></div>
+                        <div class="signal-slot slot-NE"><div class="signal-mount-frame" id="compass-NE"></div></div>
+                        <div class="signal-slot slot-E"><div class="signal-mount-frame" id="compass-E"></div></div>
+                        <div class="signal-slot slot-SE"><div class="signal-mount-frame" id="compass-SE"></div></div>
+                        <div class="signal-slot slot-S"><div class="signal-mount-frame" id="compass-S"></div></div>
+                        <div class="signal-slot slot-SW"><div class="signal-mount-frame" id="compass-SW"></div></div>
+                        <div class="signal-slot slot-W"><div class="signal-mount-frame" id="compass-W"></div></div>
+                        <div class="signal-slot slot-NW"><div class="signal-mount-frame" id="compass-NW"></div></div>
+                        <div class="ped-mount-container">
+                            <div class="signal-slot slot-N"><div class="ped-mount-frame" id="ped-N"></div></div>
+                            <div class="signal-slot slot-E"><div class="ped-mount-frame" id="ped-E"></div></div>
+                            <div class="signal-slot slot-S"><div class="ped-mount-frame" id="ped-S"></div></div>
+                            <div class="signal-slot slot-W"><div class="ped-mount-frame" id="ped-W"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-bottom-data">
+                <div class="tabs-header">
+                    <button class="tab-btn active" id="tab-btn-phase" onclick="switchOverlayTab('phase')">신호계획정보</button>
+                    <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">시그널맵</button>
+                </div>
+                <div id="overlay-tab-phase" class="detail-tab-content">
+                    <!-- 기존 SIM의 데이터가 바인딩 될 영역 -->
+                </div>
+                <div id="overlay-tab-sigmap" class="detail-tab-content" style="display: none;">
+                    <!-- 시그널맵 데이터 바인딩 영역 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/overlay_ui.js"></script>
 </body>
 
 </html>
