@@ -2048,6 +2048,7 @@
                 <div class="tabs-header">
                     <button class="tab-btn active" id="tab-btn-phase" onclick="switchOverlayTab('phase')">신호계획정보</button>
                     <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">시그널맵</button>
+                    <button class="tab-btn" id="tab-btn-baseinfo" onclick="switchOverlayTab('baseinfo')">교차로정보</button>
                 </div>
                 <div id="overlay-tab-phase" class="detail-tab-content active" style="display: flex;">
                     <!-- Left column -->
@@ -2059,6 +2060,9 @@
                 </div>
                 <div id="overlay-tab-sigmap" class="detail-tab-content" style="display: none;">
                     <!-- 시그널맵 데이터 바인딩 영역 -->
+                </div>
+                <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; padding: 20px;">
+                    <!-- 교차로정보 데이터 바인딩 영역 -->
                 </div>
             </div>
         </div>
