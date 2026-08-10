@@ -61,6 +61,10 @@ function openDetailOverlay(jid) {
         renderOverlayPlanInfo(jid);
     }
     
+    // 교차로정보 탭 렌더링
+    if (typeof renderOverlayBaseInfo === 'function') {
+        renderOverlayBaseInfo(jid);
+    }
     
     // 모달 열 때 기본 탭(신호계획정보) 활성화
     switchOverlayTab('phase');
@@ -152,6 +156,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+function renderOverlayBaseInfo(jid) {
+    const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
+    if (!j) return;
+    
+    const container = document.getElementById('overlay-tab-baseinfo');
+    if (!container) return;
+
+    const cycle = j.cycle ? j.cycle : (j.schedules && j.schedules[0] && j.schedules[0][0] ? j.schedules[0][0].cycle : '-');
+    const offset = j.offset ? j.offset : (j.dayPlans && j.dayPlans[0] && j.dayPlans[0][0] ? j.dayPlans[0][0].offset : '-');
+
+    let html = `
+        <h3 style="color: #38bdf8; font-weight: bold; font-size: 14px; margin: 0 0 15px 0;">교차로 정보</h3>
+        <div style="background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #1e293b;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <tbody>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600; width: 30%;">ID</td>
+                        <td style="padding: 10px; color: #fff;">${j.id || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">교차로명</td>
+                        <td style="padding: 10px; color: #fff; font-weight: bold;">${j.name || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">연등번호</td>
+                        <td style="padding: 10px; color: #fff;">${j.seq || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">경찰서</td>
+                        <td style="padding: 10px; color: #fff;">${j.police || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">구청</td>
+                        <td style="padding: 10px; color: #fff;">${j.office || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">그룹 ID</td>
+                        <td style="padding: 10px; color: #fff;">${j.groupId || '-'}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">신호주기 (기본)</td>
+                        <td style="padding: 10px; color: #10b981; font-weight: bold;">${cycle}초</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">연동값 (기본)</td>
+                        <td style="padding: 10px; color: #f59e0b; font-weight: bold;">${offset}초</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #1e293b;">
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">제어기</td>
+                        <td style="padding: 10px; color: #fff;">${j.controller || '-'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; color: #94a3b8; font-weight: 600;">API 매칭번호</td>
+                        <td style="padding: 10px; color: #fff;">${j.apiIntNo || '-'}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
 
 function renderOverlayPlanInfo(jid) {
     const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
