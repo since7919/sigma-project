@@ -229,10 +229,9 @@ function renderOverlayPlanInfo(jid) {
     leftCol.innerHTML = leftHTML;
 
     let rightHTML = `
-        <div style="display: flex; flex-direction: column; gap: 15px;">
             <div>
                 <span style="color: #38bdf8; font-weight: bold; font-size: 13px; border-bottom: 2px solid #38bdf8; padding-bottom: 2px;">운영정보</span>
-                <table style="width: 100%; margin-top: 10px; border-collapse: collapse; text-align: center; font-size: 10px;">
+                <table style="width: 100%; margin-top: 10px; border-collapse: collapse; text-align: center; font-size: 12px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
                             <th style="padding: 3px; border: 1px solid #334155;">주기(Cycle)</th>
@@ -246,13 +245,13 @@ function renderOverlayPlanInfo(jid) {
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${sched ? sched.cycle : '-'}초</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #e2e8f0;">${mainPhase}</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #e2e8f0; font-weight: bold;">${plan ? plan.offset : '-'}초</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${dayIdx + 1}</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${pIdx + 1}</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${sched && sched.h !== -1 ? String(sched.h).padStart(2,'0')+':'+String(sched.m).padStart(2,'0') : '-'}</td>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #2dd4bf; font-weight: bold;">${sched ? sched.idx : '-'}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${sched ? sched.cycle : '-'}초</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #fff;">${mainPhase}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #fff; font-weight: bold;">${plan ? plan.offset : '-'}초</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${dayIdx + 1}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${pIdx + 1}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${sched && sched.h !== -1 ? String(sched.h).padStart(2,'0')+':'+String(sched.m).padStart(2,'0') : '-'}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #10b981; font-weight: bold;">${sched ? sched.idx : '-'}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -263,50 +262,56 @@ function renderOverlayPlanInfo(jid) {
                 <table style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 12px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.1);">
-                            ${['월', '화', '수', '목', '금', '토', '일'].map(d => `<th style="padding: 3px; border: 1px solid #334155; color: #94a3b8;">${d}</th>`).join('')}
+                            ${['월', '화', '수', '목', '금', '토', '일'].map((d, i) => `<th style="padding: 3px; color: ${i === currentDayIndex ? '#10b981' : '#94a3b8'}; border: 1px solid #334155;">${d}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            ${weekPlanArr.map((dp, i) => `<td style="padding: 5px; border: 1px solid #334155; color: ${i === currentDayIndex ? '#000' : '#fff'}; background: ${i === currentDayIndex ? '#10b981' : 'transparent'}; font-weight: bold;">${dp}</td>`).join('')}
+                            ${weekPlanArr.map((dp, i) => {
+                                const isToday = i === currentDayIndex;
+                                return `<td style="padding: 3px; font-weight: bold; color: ${isToday ? '#10b981' : '#fff'}; border: 1px solid #334155; background: ${isToday ? 'rgba(16, 185, 129, 0.1)' : 'transparent'};">${dp}</td>`
+                            }).join('')}
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획정보 (현재 실행: 일계획 ${dayIdx + 1})</span>
-                    <div>
-                        <button id="btn-tod-group-1" style="background: #0ea5e9; color: white; border: none; padding: 2px 8px; font-size: 11px; cursor: pointer; border-radius: 3px; margin-right: 4px;">일반맵(1~5)</button>
-                        <button id="btn-tod-group-2" style="background: transparent; color: #94a3b8; border: 1px solid #334155; padding: 2px 8px; font-size: 11px; cursor: pointer; border-radius: 3px;">시차맵(6~10)</button>
+                    <div style="display: flex; gap: 5px;">
+                        <button id="btn-tod-group-1" style="background: #0ea5e9; color: #fff; border: none; padding: 2px 4px; border-radius: 4px; font-size: 11px; cursor: pointer;">일반맵 (1~5)</button>
+                        <button id="btn-tod-group-2" style="background: #334155; color: #fff; border: none; padding: 2px 4px; border-radius: 4px; font-size: 11px; cursor: pointer;">시차맵 (6~10)</button>
                     </div>
                 </div>
                 
-                <table id="tod-table-group-1" style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 10px; table-layout: fixed;">
+                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 6px; border: 1px solid #1e293b;">
+                <table id="tod-table-group-1" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
-                        <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                            <th rowspan="2" style="border: 1px solid #334155; width: 15px; padding: 2px;">#</th>
-                            ${[0,1,2,3,4].map(idx => `<th colspan="3" style="border: 1px solid #334155; padding: 2px; color: ${dayIdx === idx ? '#38bdf8' : '#94a3b8'}; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">일계획 ${idx+1}</th>`).join('')}
+                        <tr style="background: rgba(255,255,255,0.05);">
+                            <th style="padding: 6px 4px; border-bottom: 1px solid #334155; width: 30px; color: #94a3b8;">#</th>
+                            ${[0,1,2,3,4].map(idx => `<th colspan="3" style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: ${dayIdx === idx ? '#10b981' : '#94a3b8'};">일계획 ${idx+1}</th>`).join('')}
                         </tr>
-                        <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                            ${[0,1,2,3,4].map(idx => `<th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">TIME</th><th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">CYC</th><th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">IDX</th>`).join('')}
+                        <tr style="background: rgba(255,255,255,0.05);">
+                            <th style="padding: 4px; border-bottom: 1px solid #334155;"></th>
+                            ${[0,1,2,3,4].map(idx => `<th style="padding: 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; font-weight: normal; color: #cbd5e1;">TIME</th><th style="padding: 4px; border-bottom: 1px solid #334155; font-weight: normal; color: #cbd5e1;">CYC</th><th style="padding: 4px; border-bottom: 1px solid #334155; font-weight: normal; color: #cbd5e1;">IDX</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${Array.from({length: 16}).map((_, rIdx) => `
-                            <tr>
-                                <td style="border: 1px solid #334155; color: #94a3b8; padding: 1px;">${rIdx + 1}</td>
+                            <tr style="border-bottom: 1px solid #1e293b;">
+                                <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                                 ${[0,1,2,3,4].map(idx => {
                                     const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
-                                    if (!sc || sc.h === -1) return `<td style="border: 1px solid #334155; padding: 1px;">-</td><td style="border: 1px solid #334155; padding: 1px;">-</td><td style="border: 1px solid #334155; padding: 1px;">-</td>`;
-                                    const isCurrent = (dayIdx === idx && pIdx === rIdx);
-                                    const bg = isCurrent ? 'background: rgba(16, 185, 129, 0.2);' : (dayIdx === idx ? 'background: rgba(14, 165, 233, 0.05);' : '');
-                                    const hl = isCurrent ? 'color: #10b981;' : '';
+                                    const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
+                                    const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                                    const fontColor = isActive ? '#10b981' : '#cbd5e1';
+                                    
+                                    if (!sc || sc.h === -1) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
                                     return `
-                                        <td style="border: 1px solid #334155; color: #e2e8f0; font-family: monospace; padding: 1px; ${bg} ${hl}">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
-                                        <td style="border: 1px solid #334155; color: #38bdf8; padding: 1px; ${bg}">${sc.cycle}</td>
-                                        <td style="border: 1px solid #334155; color: #fff; font-weight: bold; padding: 1px; ${bg}">${sc.idx}</td>
+                                        <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx}</td>
                                     `;
                                 }).join('')}
                             </tr>
@@ -314,36 +319,39 @@ function renderOverlayPlanInfo(jid) {
                     </tbody>
                 </table>
                 
-                <table id="tod-table-group-2" style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 10px; table-layout: fixed; display: none;">
+                <table id="tod-table-group-2" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; display: none;">
                     <thead>
-                        <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                            <th rowspan="2" style="border: 1px solid #334155; width: 15px; padding: 2px;">#</th>
-                            ${[5,6,7,8,9].map(idx => `<th colspan="3" style="border: 1px solid #334155; padding: 2px; color: ${dayIdx === idx ? '#38bdf8' : '#94a3b8'}; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">시차맵 ${idx+1}</th>`).join('')}
+                        <tr style="background: rgba(255,255,255,0.05);">
+                            <th style="padding: 6px 4px; border-bottom: 1px solid #334155; width: 30px; color: #94a3b8;">#</th>
+                            ${[5,6,7,8,9].map(idx => `<th colspan="3" style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: ${dayIdx === idx ? '#10b981' : '#94a3b8'};">시차맵 ${idx+1}</th>`).join('')}
                         </tr>
-                        <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                            ${[5,6,7,8,9].map(idx => `<th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">TIME</th><th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">CYC</th><th style="border: 1px solid #334155; padding: 1px; ${dayIdx === idx ? 'background: rgba(14, 165, 233, 0.1);' : ''}">IDX</th>`).join('')}
+                        <tr style="background: rgba(255,255,255,0.05);">
+                            <th style="padding: 4px; border-bottom: 1px solid #334155;"></th>
+                            ${[5,6,7,8,9].map(idx => `<th style="padding: 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; font-weight: normal; color: #cbd5e1;">TIME</th><th style="padding: 4px; border-bottom: 1px solid #334155; font-weight: normal; color: #cbd5e1;">CYC</th><th style="padding: 4px; border-bottom: 1px solid #334155; font-weight: normal; color: #cbd5e1;">IDX</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
                         ${Array.from({length: 16}).map((_, rIdx) => `
-                            <tr>
-                                <td style="border: 1px solid #334155; color: #94a3b8; padding: 1px;">${rIdx + 1}</td>
+                            <tr style="border-bottom: 1px solid #1e293b;">
+                                <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                                 ${[5,6,7,8,9].map(idx => {
                                     const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
-                                    if (!sc || sc.h === -1) return `<td style="border: 1px solid #334155; padding: 1px;">-</td><td style="border: 1px solid #334155; padding: 1px;">-</td><td style="border: 1px solid #334155; padding: 1px;">-</td>`;
-                                    const isCurrent = (dayIdx === idx && pIdx === rIdx);
-                                    const bg = isCurrent ? 'background: rgba(16, 185, 129, 0.2);' : (dayIdx === idx ? 'background: rgba(14, 165, 233, 0.05);' : '');
-                                    const hl = isCurrent ? 'color: #10b981;' : '';
+                                    const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
+                                    const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                                    const fontColor = isActive ? '#10b981' : '#cbd5e1';
+                                    
+                                    if (!sc || sc.h === -1) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
                                     return `
-                                        <td style="border: 1px solid #334155; color: #e2e8f0; font-family: monospace; padding: 1px; ${bg} ${hl}">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
-                                        <td style="border: 1px solid #334155; color: #38bdf8; padding: 1px; ${bg}">${sc.cycle}</td>
-                                        <td style="border: 1px solid #334155; color: #fff; font-weight: bold; padding: 1px; ${bg}">${sc.idx}</td>
+                                        <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx}</td>
                                     `;
                                 }).join('')}
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
+                </div>
             </div>
             
             <div>
@@ -381,14 +389,14 @@ function renderOverlayPlanInfo(jid) {
         btnGroup1.onclick = () => {
             tableGroup1.style.display = 'table';
             tableGroup2.style.display = 'none';
-            btnGroup1.style.background = '#0ea5e9'; btnGroup1.style.color = 'white'; btnGroup1.style.border = 'none';
-            btnGroup2.style.background = 'transparent'; btnGroup2.style.color = '#94a3b8'; btnGroup2.style.border = '1px solid #334155';
+            btnGroup1.style.background = '#0ea5e9';
+            btnGroup2.style.background = '#334155';
         };
         btnGroup2.onclick = () => {
             tableGroup2.style.display = 'table';
             tableGroup1.style.display = 'none';
-            btnGroup2.style.background = '#0ea5e9'; btnGroup2.style.color = 'white'; btnGroup2.style.border = 'none';
-            btnGroup1.style.background = 'transparent'; btnGroup1.style.color = '#94a3b8'; btnGroup1.style.border = '1px solid #334155';
+            btnGroup2.style.background = '#0ea5e9';
+            btnGroup1.style.background = '#334155';
         };
         if (dayIdx >= 5) btnGroup2.onclick();
     }
