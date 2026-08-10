@@ -72,7 +72,13 @@ function switchOverlayTab(tabName) {
     
     // 선택된 탭 보이기 및 활성화
     const targetContent = document.getElementById(`overlay-tab-${tabName}`);
-    if (targetContent) targetContent.style.display = 'block';
+    if (targetContent) {
+        if (tabName === 'phase') {
+            targetContent.style.display = 'flex';
+        } else {
+            targetContent.style.display = 'block';
+        }
+    }
     
     const targetBtn = document.getElementById(`tab-btn-${tabName}`);
     if (targetBtn) targetBtn.classList.add('active');
