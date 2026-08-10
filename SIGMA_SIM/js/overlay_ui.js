@@ -175,30 +175,31 @@ function renderOverlayPlanInfo(jid) {
     let leftHTML = `<h3 style="color: #38bdf8; font-weight: bold; font-size: 13px; margin: 0 0 8px 0;">신호계획정보</h3>`;
     
     leftHTML += `
-        <table class="detail-grid-table" style="width: 100%; text-align: center; font-size: 12px; border-collapse: collapse;">
-            <thead>
-                <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                    <th style="padding: 5px; border: 1px solid #334155;">방향정보</th>
-                    <th style="padding: 5px; border: 1px solid #334155;">출력형태</th>
-                    <th style="padding: 5px; border: 1px solid #334155;">현시</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div style="background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 15px;">
+            <table class="detail-grid-table" style="width: 100%; text-align: center; font-size: 12px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.02); color: #94a3b8;">
+                        <th style="padding: 6px 12px; border-bottom: 1px solid #1e293b; font-weight: 600;">방향정보</th>
+                        <th style="padding: 6px 12px; border-bottom: 1px solid #1e293b; font-weight: 600;">출력형태</th>
+                        <th style="padding: 6px 12px; border-bottom: 1px solid #1e293b; font-weight: 600;">현시</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
     const dirs = ['북', '동', '남', '서'];
     dirs.forEach(dir => {
         leftHTML += `
-            <tr style="border-top: 1px solid #334155;">
-                <td style="padding: 5px; border-right: 1px solid #334155; font-weight: bold;">${dir}측</td>
-                <td style="padding: 5px;">차량, 보행</td>
-                <td style="padding: 5px; color: #10b981; font-family: monospace;">-</td>
+            <tr>
+                <td style="padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); font-weight: bold; color: #fff;">${dir}측</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #e2e8f0;">차량, 보행</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); color: #10b981; font-family: monospace;">-</td>
             </tr>
         `;
     });
-    leftHTML += `</tbody></table>`;
+    leftHTML += `</tbody></table></div>`;
 
     leftHTML += `
-        <div style="margin-top: 15px; padding-top: 10px; border-top: 2px solid #1e293b;">
+        <div style="margin-top: 15px; padding-top: 10px;">
             <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">현시표 (Phase Diagram)</div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
     `;
@@ -354,26 +355,28 @@ function renderOverlayPlanInfo(jid) {
                 </div>
             </div>
             
-            <div>
-                <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">플랜 인덱스별 현시계획표 (Plan ${sched ? sched.idx : '-'})</span>
-                <table style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 11px;">
-                    <thead>
-                        <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
-                            <th style="padding: 2px; border: 1px solid #334155;">링</th>
-                            ${[1,2,3,4,5,6,7,8].map(i => `<th style="padding: 2px; border: 1px solid #334155;">${i}현시</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 2px; border: 1px solid #334155; color: #10b981; font-weight: bold;">A링</td>
-                            ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 2px; border: 1px solid #334155; color: #fff;">${plan && plan.splitA ? plan.splitA[i-1] : '-'}</td>`).join('')}
-                        </tr>
-                        <tr>
-                            <td style="padding: 2px; border: 1px solid #334155; color: #3b82f6; font-weight: bold;">B링</td>
-                            ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 2px; border: 1px solid #334155; color: #fff;">${plan && plan.splitB ? plan.splitB[i-1] : '-'}</td>`).join('')}
-                        </tr>
-                    </tbody>
-                </table>
+            <div style="margin-top: 15px;">
+                <span style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px; display: inline-block;">플랜 인덱스별 현시계획표 (Plan ${sched ? sched.idx : '-'})</span>
+                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 6px; border: 1px solid #1e293b;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
+                        <thead>
+                            <tr style="background: rgba(255,255,255,0.05);">
+                                <th style="padding: 6px 4px; border-bottom: 1px solid #334155; color: #94a3b8;">링</th>
+                                ${[1,2,3,4,5,6,7,8].map(i => `<th style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: #94a3b8;">${i}현시</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #1e293b;">
+                                <td style="padding: 4px; font-weight: bold; color: #10b981;">A링</td>
+                                ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 4px; border-left: 1px solid #334155; color: #fff;">${plan && plan.splitA ? plan.splitA[i-1] : '-'}</td>`).join('')}
+                            </tr>
+                            <tr style="border-bottom: 1px solid #1e293b;">
+                                <td style="padding: 4px; font-weight: bold; color: #3b82f6;">B링</td>
+                                ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 4px; border-left: 1px solid #334155; color: #fff;">${plan && plan.splitB ? plan.splitB[i-1] : '-'}</td>`).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     `;
