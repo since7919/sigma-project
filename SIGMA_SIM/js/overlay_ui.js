@@ -325,7 +325,7 @@ function renderOverlayPlanInfo(jid) {
                             <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${dayIdx + 1}</td>
                             <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${pIdx + 1}</td>
                             <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${sched && sched.h !== -1 ? String(sched.h).padStart(2,'0')+':'+String(sched.m).padStart(2,'0') : '-'}</td>
-                            <td style="padding: 3px; border: 1px solid #334155; color: #10b981; font-weight: bold;">${sched ? sched.idx : '-'}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #10b981; font-weight: bold;">${sched && sched.idx !== undefined ? sched.idx : '-'}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -385,7 +385,7 @@ function renderOverlayPlanInfo(jid) {
                                     return `
                                         <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
                                         <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>
-                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx !== undefined ? sc.idx : '-'}</td>
                                     `;
                                 }).join('')}
                             </tr>
@@ -418,7 +418,7 @@ function renderOverlayPlanInfo(jid) {
                                     return `
                                         <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
                                         <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>
-                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx}</td>
+                                        <td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">${sc.idx !== undefined ? sc.idx : '-'}</td>
                                     `;
                                 }).join('')}
                             </tr>
