@@ -151,10 +151,11 @@ function renderOverlayPlanInfo(jid) {
 
     const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 25200);
     const context = (typeof getSimContext === 'function') ? getSimContext(j, t) : null;
-    const weekPlanArr = j.weeklyPlan ? j.weeklyPlan.split(';') : [1, 1, 1, 1, 1, 2, 3];
+    const weekPlanArr = j.weeklyPlan ? String(j.weeklyPlan).split(';') : [1, 1, 1, 1, 1, 2, 3];
     const pIdx = context ? context.pIdx : 0;
     const dayIdx = context ? context.dayIdx : (parseInt(weekPlanArr[0]) - 1 || 0);
     const plan = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+    const sched = (j.schedules && j.schedules[dayIdx]) ? j.schedules[dayIdx][pIdx] : null;
 
     let leftHTML = `<h3 style="color: #38bdf8; font-weight: bold; font-size: 13px; margin: 0 0 8px 0;">신호계획정보</h3>`;
     
@@ -226,7 +227,7 @@ function renderOverlayPlanInfo(jid) {
                     </thead>
                     <tbody>
                         <tr>
-                            <td style="padding: 5px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${plan ? plan.cycle : '-'}초</td>
+                            <td style="padding: 5px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${sched ? sched.cycle : '-'}초</td>
                             <td style="padding: 5px; border: 1px solid #334155; color: #f472b6;">${plan ? plan.offset : '-'}</td>
                             <td style="padding: 5px; border: 1px solid #334155; color: #f472b6;">${dayIdx + 1}</td>
                         </tr>
@@ -262,20 +263,23 @@ function renderOverlayPlanInfo(jid) {
                         </tr>
                     </thead>
                     <tbody>
-                        ${(j.dayPlans && j.dayPlans[dayIdx] ? j.dayPlans[dayIdx] : []).map((dp, i) => `
+                        ${(j.schedules && j.schedules[dayIdx] ? j.schedules[dayIdx] : []).map((sc, i) => {
+                            if (!sc || sc.h === -1) return '';
+                            return `
                             <tr style="${i === pIdx ? 'background: rgba(14, 165, 233, 0.2);' : ''}">
                                 <td style="padding: 2px; border: 1px solid #334155; color: #94a3b8;">${i+1}</td>
-                                <td style="padding: 2px; border: 1px solid #334155; color: #e2e8f0; font-family: monospace;">${Math.floor(dp.time/3600).toString().padStart(2,'0')}:${Math.floor((dp.time%3600)/60).toString().padStart(2,'0')}</td>
-                                <td style="padding: 2px; border: 1px solid #334155; color: #38bdf8;">${dp.cycle}</td>
-                                <td style="padding: 2px; border: 1px solid #334155; color: #fff; font-weight: bold;">${dp.planIdx}</td>
+                                <td style="padding: 2px; border: 1px solid #334155; color: #e2e8f0; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
+                                <td style="padding: 2px; border: 1px solid #334155; color: #38bdf8;">${sc.cycle}</td>
+                                <td style="padding: 2px; border: 1px solid #334155; color: #fff; font-weight: bold;">${sc.idx}</td>
                             </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
             
             <div>
-                <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">플랜 인덱스별 현시계획표 (Plan ${plan ? plan.planIdx : '-'})</span>
+                <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">플랜 인덱스별 현시계획표 (Plan ${sched ? sched.idx : '-'})</span>
                 <table style="width: 100%; margin-top: 8px; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
