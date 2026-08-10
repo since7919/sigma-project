@@ -535,7 +535,26 @@ function getSimContext(j, t) {
         useDayIdx = timedMapIdx + 4; 
     }
 
-    return { dayIdx: useDayIdx, mapIdx: activeSignalMapIdx };
+    // 5. 현재 시뮬레이션 시간(t)에 맞는 TOD 플랜(pIdx) 찾기
+    let activePIdx = 0;
+    if (j.schedules && j.schedules[useDayIdx]) {
+        const scheds = j.schedules[useDayIdx];
+        const tMins = Math.floor(t / 60);
+        let lastValidPIdx = 0;
+        for (let i = 0; i < 16; i++) {
+            const sc = scheds[i];
+            if (!sc || sc.h === -1) break;
+            const scMins = sc.h * 60 + sc.m;
+            if (tMins >= scMins) {
+                lastValidPIdx = i;
+            } else {
+                break;
+            }
+        }
+        activePIdx = lastValidPIdx;
+    }
+
+    return { dayIdx: useDayIdx, mapIdx: activeSignalMapIdx, pIdx: activePIdx };
 }
 
 /** 하위 호환성을 위한 단일 인덱스 반환 함수 */
