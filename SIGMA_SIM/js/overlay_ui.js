@@ -38,7 +38,13 @@ function openDetailOverlay(jid) {
     if (!overlayMap) {
         overlayMap = L.map('overlay-leaflet-map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            boxZoom: false,
+            keyboard: false
         }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
         L.tileLayer('http://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             maxZoom: 22
