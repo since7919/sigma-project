@@ -157,8 +157,8 @@
         <button id="btn-civil-map" class="btn-neon" onclick="toggleCivilMapLayer()">📋 민원</button>
         
         <div class="dropdown-wrapper" style="position: relative; display: inline-block;">
-            <button id="btn-tooltip-all" class="btn-neon" onclick="document.getElementById('info-dropdown').classList.toggle('hidden')">🏷️ 정보 ▼</button>
-            <div id="info-dropdown" class="hidden" style="position: absolute; top: 100%; left: 0; background: #0f172a; border: 1px solid #1e293b; padding: 10px; z-index: 1000; border-radius: 5px; min-width: 120px; display: flex; flex-direction: column; gap: 8px; margin-top: 5px; text-align: left;">
+            <button id="btn-tooltip-all" class="btn-neon" onclick="const el=document.getElementById('info-dropdown'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">🏷️ 정보 ▼</button>
+            <div id="info-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: #0f172a; border: 1px solid #1e293b; padding: 10px; z-index: 1000; border-radius: 5px; min-width: 120px; flex-direction: column; gap: 8px; margin-top: 5px; text-align: left;">
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
                     <input type="checkbox" id="chk-show-id" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ID
                 </label>
