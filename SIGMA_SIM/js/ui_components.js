@@ -11,8 +11,6 @@ const INFO_FIELDS = [
     { id: 'inp-police', label: '경찰서', type: 'text', placeholder: 'Police', showId: 'chk-show-police' },
     { id: 'inp-office', label: '구청', type: 'text', placeholder: 'District', showId: 'chk-show-office' },
     { id: 'inp-group-id', label: '그룹 ID', type: 'number', readonly: true, style: 'background:rgba(255,255,255,0.05); color:#888;', showId: 'chk-show-group' },
-    { id: 'inp-cycle', label: '신호주기', type: 'number', readonly: true, style: 'background:rgba(0,255,136,0.05); color:#00ff88;', showId: 'chk-show-cycle' },
-    { id: 'inp-offset', label: '연동값', type: 'number', readonly: true, style: 'background:rgba(255,204,0,0.05); color:#ffcc00;', showId: 'chk-show-offset' },
     { id: 'inp-controller', label: '제어기', type: 'text', placeholder: 'Controller', showId: 'chk-show-controller' }
 ];
 
