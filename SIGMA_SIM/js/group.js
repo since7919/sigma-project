@@ -111,67 +111,9 @@ function initGroupTabResizer() {
 /* ══════════════════════════════════════════
  *  그룹 멤버 하이라이트 (지도)
  * ══════════════════════════════════════════ */
-function highlightGroupMembers(members) {
-    groupHighlightMarkers.forEach(m => map.removeLayer(m));
-    groupHighlightMarkers = [];
-    if (!members || members.length === 0) return;
 
-    const latlngs = [];
-    members.forEach(j => {
-        // [수정] 시공도 포함 여부(체크박스) 확인. 제외된 경우 하이라이트와 순서 번호 생략
-        const isExcluded = (j.extra && j.extra.excludeFromTsd === true);
-        
-        if (!isExcluded) {
-            // 1. 하이라이트 원형 마커
-            const hMarker = L.circleMarker([j.lat, j.lng], {
-                radius: 15,
-                color: '#00d4ff',
-                weight: 3,
-                fillColor: '#00d4ff',
-                fillOpacity: 0.15,
-                interactive: false,
-                className: 'neon-pulse'
-            }).addTo(map);
-            groupHighlightMarkers.push(hMarker);
 
-            // 2. 도면 순서 번호 표시 (있을 경우만)
-            const diagOrder = (j.extra && j.extra.diagramOrder !== undefined) ? j.extra.diagramOrder : -1;
-            if (diagOrder !== -1) {
-                const seqIcon = L.divIcon({
-                    className: 'group-seq-marker',
-                    html: `<div style="background:var(--accent); color:#000; font-weight:bold; font-size:11px; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:1px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.5);">${diagOrder}</div>`,
-                    iconSize: [18, 18],
-                    iconAnchor: [9, 9]
-                });
-                const sMarker = L.marker([j.lat, j.lng], { icon: seqIcon, interactive: false, zIndexOffset: 1500 }).addTo(map);
-                groupHighlightMarkers.push(sMarker);
-            }
-            // 3. 교차로 명칭 표시 (사용자 요청: 선택된 그룹은 이름 상시 노출)
-            const nameIcon = L.divIcon({
-                className: 'group-name-marker',
-                html: `<div style="color:var(--accent); font-weight:700; font-size:12px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(0,0,0,0.8); white-space:nowrap; margin-top:22px; text-align:center; transform:translateX(-50%);">${j.name || j.id}</div>`,
-                iconSize: [0, 0],
-                iconAnchor: [0, 0]
-            });
-            const nMarker = L.marker([j.lat, j.lng], { icon: nameIcon, interactive: false, zIndexOffset: 1500 }).addTo(map);
-            groupHighlightMarkers.push(nMarker);
-        }
-        
-        // 지도의 자동 줌(Bounds) 범위에는 포함
-        latlngs.push([j.lat, j.lng]);
-    });
 
-    if (latlngs.length > 0) {
-        const bounds = L.latLngBounds(latlngs);
-        // [사용자 요청] 이동 속도 단축 (duration: 0.8)
-        map.flyToBounds(bounds, { padding: [100, 100], maxZoom: 16, duration: 0.8 });
-    }
-}
-
-function clearHighlightGroupMembers() {
-    groupHighlightMarkers.forEach(m => map.removeLayer(m));
-    groupHighlightMarkers = [];
-}
 
 /**
  * 그룹 정보 로드
@@ -849,119 +791,15 @@ function applyGroupToMembers() {
 /* ══════════════════════════════════════════
  *  그룹 CSV 저장/불러오기 (통합 핸들러)
  * ══════════════════════════════════════════ */
-function generateGroupCSV() {
-    if (Object.keys(STATE.groups).length === 0) return "";
 
-    let csv = "GroupID,Region,GroupName,Weekday,Friday,Saturday,Sunday,Special,Flextime1,Flextime2,Flextime3,Flextime4,Flextime5,TSD_SET1,TSD_SET2,TSD_SET3,PlanAliases\n";
-
-    Object.keys(STATE.groups).forEach(gid => {
-        const group = STATE.groups[gid];
-        const gName = (group.name || `그룹 ${gid}`).replace(/,/g, ' ');
-        
-        let region = group.region;
-        if (!region) {
-            const member = Object.values(STATE.junctions).find(j => String(j.group) === String(gid));
-            region = member ? (member.region || (member.id.startsWith("L02-") ? "L02" : "L01")) : "L01";
-        }
-
-        const schedStrs = Array.from({ length: 10 }, (_, d) => {
-            const sched = (group.schedules && group.schedules[d]) ? group.schedules[d] : [];
-            return sched.map(s => {
-                const timePart = s.h === -1 ? "-1" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
-                return `${timePart}|${s.cycle || 100}|${s.idx || 1}`;
-            }).join(';');
-        });
-
-        // [신규] TSD 설정 세트 직렬화 (3개)
-        const tsdSets = Array.from({ length: 3 }, (_, i) => {
-            const config = (group.tsdConfigs && group.tsdConfigs[i]) ? group.tsdConfigs[i] : { enabled: 0, order: [], distances: [] };
-            return `${config.enabled}|${(config.order || []).join(';')}|${(config.distances || []).join(';')}`;
-        });
-
-        const aliases = (group.planAliases || Array(10).fill("")).join(';');
-
-        csv += `${gid},${region},${gName},${schedStrs.join(',')},${tsdSets.join(',')},${aliases}\n`;
-    });
-    return csv;
-}
 
 
 
 /** 그룹 TOD CSV 데이터 처리 핵심 로직 (db_tod_plans.csv 규격 호환 추가) */
-function processGroupCSV(csvString, isAutoLoad = false) {
-    showLoading("그룹 데이터 분석 중...");
-    setTimeout(() => {
-        const lines = csvString.trim().split(/\r?\n/);
-        if (lines.length < 2) { 
-            alert("불러오기 실패: 파일이 비어있습니다."); 
-            hideLoading(); 
-            return; 
-        }
 
-        const header = lines[0].toLowerCase();
-        const isTodPlansFile = header.includes('day_plan') && header.includes('time_plan1');
-
-        if (isTodPlansFile) {
-            // [A] 새 규격: db_tod_plans.csv (교차로당 10행)
-            handleTodPlansAsGroup(csvString);
-        } else {
-            // [B] 기존 규격: sigma_group.csv (그룹당 1행)
-            handleLegacyGroupCSV(lines, isAutoLoad);
-        }
-        hideLoading();
-    }, 10);
-}
 
 /** [신규] db_tod_plans.csv 파일을 읽어 현재 그룹의 스케줄로 매핑 */
-function handleTodPlansAsGroup(csvString) {
-    const gid = currentEditingGroup;
-    if (!gid) {
-        alert("먼저 편집할 그룹을 목록에서 선택하세요.");
-        return;
-    }
 
-    const targetMembers = Object.values(STATE.junctions).filter(j => String(j.group) === String(gid));
-    
-    if (targetMembers.length === 0) {
-        alert(`그룹 ${gid}에 속한 교차로가 없습니다. 교차로 정보에서 그룹 ID를 먼저 설정하세요.`);
-        return;
-    }
-
-    // [개선] 그룹 템플릿만 업데이트하는 것이 아니라, 전체 교차로의 개별 데이터를 모두 업데이트합니다.
-    if (typeof processTodPlanCSV === 'function') {
-        processTodPlanCSV(csvString);
-    }
-
-    // 그룹에 속한 첫 번째 교차로의 최신 데이터를 기준(Template)으로 가져옴
-    const refJid = targetMembers[0].id;
-    const refJunction = STATE.junctions[refJid];
-
-    if (!refJunction || !refJunction.dayPlans) {
-        alert(`파일 내에 그룹 멤버인 교차로(${refJid})의 데이터가 없습니다.`);
-        return;
-    }
-
-    // 그룹 스케줄 초기화 및 데이터 주입 (그룹 기준 템플릿은 UI 렌더링용으로 유지)
-    if (!STATE.groups[gid]) STATE.groups[gid] = { name: `그룹 ${gid}`, schedules: Array.from({length:10}, () => createEmptySched()) };
-    const groupScheds = STATE.groups[gid].schedules;
-
-    // refJunction의 dayPlans를 순회하며 그룹 스케줄을 재구성 (파싱 속도 극대화)
-    for (let d = 0; d < 10; d++) {
-        const plans = refJunction.dayPlans[d];
-        if (plans && plans.length > 0) {
-            plans.forEach((pl, idx) => {
-                if (idx < 16) {
-                    const h = pl.time === -1 ? -1 : Math.floor(pl.time / 3600);
-                    const m = pl.time === -1 ? 0 : Math.floor((pl.time % 3600) / 60);
-                    groupScheds[d][idx] = { h, m, cycle: pl.cycle, idx: pl.planIdx };
-                }
-            });
-        }
-    }
-
-    alert(`해당 파일의 교차로 개별 데이터가 모두 적용되었으며, 그룹 ${gid}의 기준 스케줄은 교차로(${refJid}) 데이터를 기반으로 업데이트되었습니다.`);
-    loadGroupInfo();
-}
 
 /** 기존 레거시 그룹 CSV 처리 로직 분리 */
 function handleLegacyGroupCSV(lines, isAutoLoad) {
