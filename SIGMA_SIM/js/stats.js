@@ -791,26 +791,73 @@ function _rowsToCsvString(rows) {
 function _loadStatsCsv(csvText) {
     const text = csvText.replace(/^\uFEFF/, '');
     const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) throw new Error('데이터 행이 없습니다.');
+    if (lines.length < 2) throw new Error('데이터가 부족합니다.');
     const headers = _parseCsvLine(lines[0]);
+    
+    // [최적화] 인덱스를 미리 계산하여 매 반복마다 row 객체를 생성하지 않도록 함
+    const idIdx = headers.indexOf('ID');
+    const globalIndices = STATS_GLOBAL_MAP.map(m => ({ mapping: m, idx: headers.indexOf(m.csv) }));
+    const laneIndices = STATS_DIRS.map(dir => ({ dir: dir, idx: headers.indexOf('lane_' + dir) }));
+    const boolIndices = STATS_BOOL_MAP.map(m => ({ mapping: m, idx: headers.indexOf(m.csv) }));
+
     for (let i = 1; i < lines.length; i++) {
         const vals = _parseCsvLine(lines[i]);
         if (vals.length < 3) continue;
-        const row = {};
-        headers.forEach((h, idx) => { row[h] = vals[idx] ?? ''; });
-        const jid = row['ID'];
+        
+        const jid = vals[idIdx];
         const j = (typeof STATE !== 'undefined') ? STATE.junctions[jid] : null;
         if (!j) continue;
         if (!j.optimizerState) j.optimizerState = {};
         if (!j.optimizerState.summary) j.optimizerState.summary = {};
 
-        // [전역 Boolean 필드] 역직렬화
         const flashList = [];
-        STATS_GLOBAL_MAP.forEach(mapping => {
-            const isOn = row[mapping.csv] === '1';
+        for (let g = 0; g < globalIndices.length; g++) {
+            const { mapping, idx } = globalIndices[g];
+            const isOn = vals[idx] === '1';
             if (mapping.val !== null) {
                 if (isOn) flashList.push(mapping.val);
             } else {
+                j.optimizerState.summary[mapping.key] = isOn;
+            }
+        }
+        j.optimizerState.summary.flash = flashList;
+
+        for (let l = 0; l < laneIndices.length; l++) {
+            const { dir, idx } = laneIndices[l];
+            const cellVal = vals[idx];
+            if (!cellVal) continue;
+            
+            const parsed = _deserializeLaneCell(cellVal);
+            if (parsed) {
+                if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
+                j.optimizerState[dir].active = parsed.active;
+                j.optimizerState[dir].A = { ...(j.optimizerState[dir].A || {}), ...parsed.A };
+                j.optimizerState[dir].B = { ...(j.optimizerState[dir].B || {}), ...parsed.B };
+            }
+        }
+
+        for (let b = 0; b < boolIndices.length; b++) {
+            const { mapping, idx } = boolIndices[b];
+            const cellVal = vals[idx];
+            if (!cellVal) continue; // 데이터가 없으면 무거운 문자열 분리 연산 건너뜀
+            
+            const activeDirs = cellVal.split(';').map(s => s.trim()).filter(Boolean);
+            for (let d = 0; d < STATS_DIRS.length; d++) {
+                const dir = STATS_DIRS[d];
+                if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
+                if (mapping.path === 'top') {
+                    j.optimizerState[dir][mapping.key] = activeDirs.includes(dir);
+                } else {
+                    if (!j.optimizerState[dir].op) j.optimizerState[dir].op = {};
+                    j.optimizerState[dir].op[mapping.key] = activeDirs.includes(dir);
+                }
+            }
+        }
+    }
+    if (typeof loadOptStateFromJunction === 'function' && typeof STATE !== 'undefined' && STATE.activeJid) {
+        loadOptStateFromJunction(STATE.junctions[STATE.activeJid]);
+    }
+} else {
                 j.optimizerState.summary[mapping.key] = isOn;
             }
         });
