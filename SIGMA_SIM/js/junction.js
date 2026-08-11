@@ -632,21 +632,22 @@ function selectJunction(jid, isMulti = false) {
     }
 
     // 정보 채우기
-    document.getElementById('inp-id').value = j.id;
-    document.getElementById('inp-name').value = j.name;
-    document.getElementById('inp-seq').value = j.seq;
-    document.getElementById('inp-police').value = j.police;
-    document.getElementById('inp-office').value = j.office;
-    if (document.getElementById('inp-controller')) document.getElementById('inp-controller').value = j.controller || "";
-    if (document.getElementById('inp-api-int-no')) {
-        document.getElementById('inp-api-int-no').value = (j.apiIntNo !== undefined && j.apiIntNo !== null) ? j.apiIntNo : "";
-    }
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    const setChk = (id, checked) => { const el = document.getElementById(id); if (el) el.checked = !!checked; };
+
+    setVal('inp-id', j.id);
+    setVal('inp-name', j.name);
+    setVal('inp-seq', j.seq);
+    setVal('inp-police', j.police);
+    setVal('inp-office', j.office);
+    setVal('inp-controller', j.controller || "");
+    setVal('inp-api-int-no', (j.apiIntNo !== undefined && j.apiIntNo !== null) ? j.apiIntNo : "");
 
     const dayIdx = STATE.currentJunctionDayTypeIdx;
-    const pIdx = parseInt(UI.planIdx.value) || 0;
-    const p = j.dayPlans[dayIdx][pIdx];
+    const pIdx = parseInt(UI.planIdx ? UI.planIdx.value : 0) || 0;
+    const p = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] || {} : {};
 
-    let s = j.schedules[dayIdx][pIdx];
+    let s = (j.schedules && j.schedules[dayIdx]) ? j.schedules[dayIdx][pIdx] : null;
     if (j.group && STATE.groups[j.group] && STATE.groups[j.group].schedules) {
         s = STATE.groups[j.group].schedules[dayIdx][pIdx];
     }
@@ -655,17 +656,17 @@ function selectJunction(jid, isMulti = false) {
     const currentOpCycle = getCurrentOperatingCycle(j, t, dayIdx);
     const selectedPlanCycle = (p.splitA || []).reduce((a, b) => a + b, 0);
 
-    document.getElementById('tod-inp-cycle').value = selectedPlanCycle;
-    document.getElementById('inp-cycle').value = currentOpCycle;
-    document.getElementById('inp-offset').value = getCurrentOperatingOffset(j, t, dayIdx);
-    document.getElementById('tod-inp-offset').value = p.offset;
-    document.getElementById('inp-lat').value = j.lat.toFixed(9);
-    document.getElementById('inp-lng').value = j.lng.toFixed(9);
-    document.getElementById('inp-group-id').value = j.group || 0;
-    document.getElementById('inp-group-assign').value = j.group || 0;
+    setVal('tod-inp-cycle', selectedPlanCycle);
+    setVal('inp-cycle', currentOpCycle);
+    setVal('inp-offset', getCurrentOperatingOffset(j, t, dayIdx));
+    setVal('tod-inp-offset', p.offset ?? 0);
+    setVal('inp-lat', j.lat ? j.lat.toFixed(9) : '');
+    setVal('inp-lng', j.lng ? j.lng.toFixed(9) : '');
+    setVal('inp-group-id', j.group || 0);
+    setVal('inp-group-assign', j.group || 0);
 
-    // 점멸 설정 로드
-    document.getElementById('flash-enable').checked = j.flashEnable || false;
+    // 플래시 설정 로드
+    setChk('flash-enable', j.flashEnable);
 
     // 3개 시간 로드
     const fTimes = j.flashTimes || [];
@@ -685,7 +686,7 @@ function selectJunction(jid, isMulti = false) {
 
     // 운영자 개입 제어 로드
     const opTop = j.opIntervention || { enable: false, rows: [] };
-    document.getElementById('op-enable').checked = opTop.enable;
+    if (document.getElementById('op-enable')) document.getElementById('op-enable').checked = !!opTop.enable;
 
     const opRows = opTop.rows || [];
     for (let k = 1; k <= 3; k++) {

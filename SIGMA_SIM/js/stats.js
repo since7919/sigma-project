@@ -839,7 +839,7 @@ function _loadStatsCsv(csvText) {
         for (let b = 0; b < boolIndices.length; b++) {
             const { mapping, idx } = boolIndices[b];
             const cellVal = vals[idx];
-            if (!cellVal) continue; // 데이터가 없으면 무거운 문자열 분리 연산 건너뜀
+            if (!cellVal) continue;
             
             const activeDirs = cellVal.split(';').map(s => s.trim()).filter(Boolean);
             for (let d = 0; d < STATS_DIRS.length; d++) {
@@ -853,40 +853,6 @@ function _loadStatsCsv(csvText) {
                 }
             }
         }
-    }
-    if (typeof loadOptStateFromJunction === 'function' && typeof STATE !== 'undefined' && STATE.activeJid) {
-        loadOptStateFromJunction(STATE.junctions[STATE.activeJid]);
-    }
-} else {
-                j.optimizerState.summary[mapping.key] = isOn;
-            }
-        });
-        j.optimizerState.summary.flash = flashList;
-
-        // [방향별 차로 필드] 역직렬화
-        STATS_DIRS.forEach(dir => {
-            const parsed = _deserializeLaneCell(row[`lane_${dir}`] || '');
-            if (parsed) {
-                if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
-                j.optimizerState[dir].active = parsed.active;
-                j.optimizerState[dir].A = { ...(j.optimizerState[dir].A || {}), ...parsed.A };
-                j.optimizerState[dir].B = { ...(j.optimizerState[dir].B || {}), ...parsed.B };
-            }
-        });
-
-        // [방향별 Boolean 통계 필드] 역직렬화
-        STATS_BOOL_MAP.forEach(mapping => {
-            const activeDirs = (row[mapping.csv] || '').split(';').map(s => s.trim()).filter(Boolean);
-            STATS_DIRS.forEach(dir => {
-                if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
-                if (mapping.path === 'top') {
-                    j.optimizerState[dir][mapping.key] = activeDirs.includes(dir);
-                } else {
-                    if (!j.optimizerState[dir].op) j.optimizerState[dir].op = {};
-                    j.optimizerState[dir].op[mapping.key] = activeDirs.includes(dir);
-                }
-            });
-        });
     }
     if (typeof loadOptStateFromJunction === 'function' && typeof STATE !== 'undefined' && STATE.activeJid) {
         loadOptStateFromJunction(STATE.junctions[STATE.activeJid]);
