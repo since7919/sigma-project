@@ -1,0 +1,698 @@
+/* SIGMA_SIM Tables, Charts & Optimizer CSS */
+
+/* Yearbook Civil Table Styles */
+.yearbook-table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: collapse;
+    font-size: 11.5px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.yearbook-table th,
+.yearbook-table td {
+    padding: 8px 10px;
+    border: 1px solid var(--glass-border);
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+
+.yearbook-table th {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(5px);
+}
+
+.yearbook-table tr:hover {
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.yearbook-table .date-cell {
+    white-space: nowrap;
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.yearbook-table .cat-cell {
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.yearbook-table .memo-cell {
+    min-width: 200px;
+    color: #bbb;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.yearbook-table .action-cell {
+    white-space: nowrap;
+    text-align: center;
+}
+
+
+
+/* Junction Optimizer Styles */
+.viz-container-opt {
+    width: 100%;
+    background: var(--glass-bg);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--glass-border);
+}
+
+.viz-sector-opt {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sector-header-opt {
+    font-size: 12.5px;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.inspector-opt {
+    width: 100%;
+    background: var(--glass-bg);
+    padding: 10px 15px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.input-row-opt {
+    display: grid;
+    grid-template-columns: 1fr 45px 45px;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: center;
+}
+
+.node {
+    cursor: pointer;
+    fill: #555;
+    transition: 0.2s;
+}
+
+.node:hover {
+    r: 7;
+    fill: #888;
+}
+
+.node.selected {
+    fill: var(--accent);
+    r: 7;
+    stroke: white;
+    stroke-width: 2;
+}
+
+.lane-rect {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.5);
+    /* Opacity increased for clarity */
+    stroke-width: 1.0;
+    /* Width increased for better visibility */
+    stroke-dasharray: 2, 2.5;
+    /* Better gap for dotted look */
+}
+
+.b-opacity {
+    opacity: 0.35;
+}
+
+.center-line {
+    stroke: #f1c40f;
+    stroke-width: 2.5;
+}
+
+.center-line.blue {
+    stroke: #3498db;
+}
+
+.center-label {
+    fill: #f1c40f;
+    font-size: 14px;
+    font-weight: bold;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    paint-order: stroke;
+    stroke: #1a1a1a;
+    stroke-width: 4px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lane-divider {
+    stroke: rgba(255, 255, 255, 0.6);
+    /* High contrast for dividers */
+    stroke-width: 1.1;
+    /* Slightly thicker than border for distinction */
+    stroke-dasharray: 6, 4;
+    /* Simple dashed pattern */
+}
+
+.symbol {
+    fill: white;
+    font-size: 7px;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+.symbol.safety {
+    fill: #f1c40f;
+}
+
+.cw-pipe {
+    fill: #ffffff;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    pointer-events: none;
+    filter: drop-shadow(0 0 1.5px black);
+}
+
+.cw-pipe.safety {
+    fill: #f1c40f;
+}
+
+.island-symbol {
+    fill: #ffffff;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+.op-check-row-opt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px;
+    border-radius: 6px;
+}
+
+.op-check-row-opt label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    font-size: 10.5px;
+    white-space: nowrap;
+}
+
+.act-group-opt {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 8px;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid #333;
+}
+
+.act-row-opt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #222;
+    padding-bottom: 8px;
+}
+
+.act-title-row-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    color: #bdc3c7;
+}
+
+.act-options-opt {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.act-options-opt label {
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.act-time-grid-opt {
+    display: grid;
+    grid-template-columns: 35px 1fr;
+    gap: 5px;
+    align-items: center;
+    font-size: 11.5px;
+    color: #888;
+}
+
+.time-range-opt {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.time-box-opt {
+    width: 38px;
+    background: #000;
+    border: 1px solid #444;
+    color: #fff;
+    text-align: center;
+    font-size: 10px;
+    border-radius: 2px;
+    padding: 1px;
+}
+
+.act-memo-inp-opt {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    color: #fff;
+    font-size: 10px;
+    padding: 4px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.ped-seq-row-opt {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9.5px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+.ped-seq-inp-opt {
+    width: 25px !important;
+    height: 16px;
+    font-size: 9px !important;
+}
+
+.diag-cw {
+    stroke: white;
+    stroke-width: 3;
+    stroke-dasharray: 2, 1.5;
+    opacity: 0.7;
+}
+
+.col-box-opt {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.col-header-opt {
+    background: #333;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.j-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.j-table th,
+.j-table td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px;
+    text-align: left;
+}
+
+.j-table th {
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+    width: 100px;
+    font-weight: normal;
+}
+
+.j-table td {
+    background: rgba(0, 0, 0, 0.2);
+    color: #fff;
+}
+
+.j-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.j-input-group label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 12.5px;
+}
+
+.inp-phase {
+    width: 20px !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+}
+
+
+
+
+/* Compact Layout for Phase/Split Tables */
+#mov-combined-table td,
+#mov-combined-table th,
+#tod-table td,
+#tod-table th {
+    padding: 2px 1px;
+    width: 32px;
+}
+
+#mov-combined-table .row-label,
+#tod-table .row-label {
+    width: 75px;
+    padding-left: 8px !important;
+    text-align: left !important;
+}
+
+.editor-input {
+    width: 34px !important;
+    padding: 4px 0 !important;
+    font-size: 15px !important;
+    font-weight: bold;
+}
+
+th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.tod-info-bar {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    border: 1px solid var(--glass-border);
+}
+
+.tod-info-input,
+.input-dark,
+.editor-input,
+.input-mini {
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: #fff !important;
+    border-radius: 6px;
+    padding: 5px;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+}
+
+.row-label {
+    background: rgba(255, 255, 255, 0.02);
+    font-weight: 600;
+    color: var(--text-dim);
+    width: 105px;
+    font-size: 13.5px;
+    text-align: left !important;
+    padding-left: 15px !important;
+}
+
+.c-green,
+.c-green input {
+    color: #00ffbb !important;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.c-yellow,
+.c-yellow input {
+    color: #ffcc00 !important;
+    text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+}
+
+.c-red,
+.c-red input {
+    color: #ff4444 !important;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+}
+
+.active-row {
+    background: rgba(0, 212, 255, 0.1) !important;
+}
+
+
+
+/* 1. Operator Intervention Control (Phase/Split) */
+.op-row-container { display: flex; flex-direction: column; gap: 10px; }
+.op-row { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; }
+.op-row-header { display: flex; align-items: center; gap: 4px; margin-bottom: 5px; }
+.op-row-num { font-size:10px; color:#ffcc00; min-width:15px; font-weight:bold; }
+.op-time { width:50px; font-size:11px; padding:2px; text-align:center; }
+.op-tilde { color:#666; font-size:10px; }
+.op-cyc { width:40px; font-size:11px; padding:2px; text-align:center; color:var(--accent); }
+.op-off { width:40px; font-size:11px; padding:2px; text-align:center; }
+.op-rings { display: flex; flex-direction: column; gap: 3px; padding-left: 19px; }
+.op-ring { display: flex; align-items: center; gap: 5px; }
+.op-ring-lbl { font-size:9.5px; color:#888; min-width:35px; }
+.op-split { flex:1; font-size:10px; padding:2px; }
+
+/* 2. DB Center Explorer List */
+.db-row-slim {
+    display: grid;
+    grid-template-columns: 180px 1fr 60px 100px 140px;
+    padding: 8px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    align-items: center;
+}
+.db-row-slim:last-child { border-bottom: none; }
+.db-row-slim:hover { background: rgba(52, 152, 219, 0.03); }
+.db-row-slim .category-info { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.db-filename { color:#999;font-size:12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-type-badge { font-size:10px; color:#555; text-align:center; }
+.status-txt { font-size: 11.5px; font-weight: 700; text-align: center; color: #555; }
+.db-actions { display:flex; gap:6px; align-items:center; justify-content: flex-end; }
+.btn-db-action { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; cursor:pointer; font-size:14px; width:26px; height:26px; display: flex; justify-content: center; align-items: center;}
+.btn-db-del { background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.3); border-radius:4px; cursor:pointer; color:#e74c3c; font-size:12px; width:26px; height:26px; display:none; justify-content: center; align-items: center;}
+
+/* 3. Group TOD Table Headers */
+.gtod-thead { position: sticky; top: 0; background: #222; z-index: 10; box-shadow: 0 1px 0 #333; }
+.gtod-tr-top { background: rgba(255,255,255,0.05); }
+.gtod-th-sa { width: 30px; text-align: center; border-right: 1px solid #333; padding: 1px 0; color: #888; font-size: 10px; }
+.gtod-th-day { padding:1px 2px; color:var(--accent); border-right:1px solid #444; font-weight:bold; font-size:10px; }
+.gtod-th-day-last { padding:1px 2px; color:var(--accent); font-weight:bold; font-size:10px; border-right:none; }
+.gtod-tr-sub { background: rgba(255,255,255,0.02); font-size: 9.5px; color: #666; height: 16px; }
+.gtod-th-empty { border-right:1px solid #333; }
+.gtod-th-sub { border-right:1px solid #333; font-weight:normal; }
+.gtod-th-sub-r { border-right:1px solid #444; font-weight:normal; }
+.gtod-th-sub-last { font-weight:normal; border-right:none; }
+
+/* ══════════════════════════════════════════
+ *  Group TOD Plan Alias Header
+ * ══════════════════════════════════════════ */
+.plan-header-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 0;
+}
+
+.inp-plan-alias {
+    width: 90%;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    color: #00f3ff;
+    font-size: 9.5px;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.inp-plan-alias:focus {
+    background: rgba(0, 243, 255, 0.1);
+    border-color: #00f3ff;
+    color: white;
+}
+
+.inp-plan-alias::placeholder {
+    color: #444;
+    font-size: 9px;
+}
+
+/* ══════════════════════════════════════════
+ *  Group TOD Highlight Styles
+ * ══════════════════════════════════════════ */
+.gtod-th-active {
+    background: rgba(0, 212, 255, 0.15) !important;
+    border-bottom: 2px solid var(--accent) !important;
+}
+
+.gtod-th-active span {
+    color: var(--accent) !important;
+    font-weight: 800;
+}
+
+.gtod-td-active {
+    background: rgba(241, 196, 15, 0.08) !important;
+    box-shadow: inset 0 0 10px rgba(241, 196, 15, 0.05);
+}
+
+
+/* ══════════════════════════════════════════
+ *  Koroad Inspired UI Upgrade (Region Browser & Detail Panel)
+ * ══════════════════════════════════════════ */
+
+
+
+.table-premium {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.table-premium th {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dim);
+    padding: 6px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table-premium td {
+    padding: 6px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.stats-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+.stat-row b {
+    color: #fff;
+}
+
+.text-cyan { color: var(--neon-cyan); }
+
+
+
+
+/* Signal Map Ring Table Styles */
+.sigmap-ring-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    color: #e2e8f0;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sigmap-ring-table th, .sigmap-ring-table td {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2px 3px;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.sigmap-ring-table th {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.sigmap-ring-table td.cell-gray {
+    background-color: #374151; 
+    color: #9ca3af;
+}
+
+.sigmap-ring-table td.cell-green {
+    background-color: #10b981 !important; 
+    color: #fff !important; 
+    font-weight: bold;
+}
+
+.sigmap-ring-table td.cell-yellow {
+    background-color: #f59e0b !important; 
+    color: #fff !important; 
+    font-weight: bold;
+}
+
+.sigmap-ring-table td.cell-red {
+    background-color: #ef4444 !important; 
+    color: #fff !important; 
+    font-weight: bold;
+}
+
+.sigmap-ring-table td.cell-flash {
+    background-color: #10b981 !important; 
+    color: #fff !important; 
+    font-weight: bold;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.eop-row {
+    background: rgba(245, 158, 11, 0.02);
+}
+
