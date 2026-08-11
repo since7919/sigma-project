@@ -155,7 +155,39 @@
         <button id="btn-cycle-mode" class="btn-neon" onclick="toggleCycleMode()">🎨 주기</button>
         <button id="btn-road-network-toggle" class="btn-neon" onclick="toggleRoadNetworkVisibility()">🔗 연동</button>
         <button id="btn-civil-map" class="btn-neon" onclick="toggleCivilMapLayer()">📋 민원</button>
-        <button id="btn-tooltip-all" class="btn-neon" onclick="toggleAllTooltips()">🏷️ 정보</button>
+        
+        <div class="dropdown-wrapper" style="position: relative; display: inline-block;">
+            <button id="btn-tooltip-all" class="btn-neon" onclick="document.getElementById('info-dropdown').classList.toggle('hidden')">🏷️ 정보 ▼</button>
+            <div id="info-dropdown" class="hidden" style="position: absolute; top: 100%; left: 0; background: #0f172a; border: 1px solid #1e293b; padding: 10px; z-index: 1000; border-radius: 5px; min-width: 120px; display: flex; flex-direction: column; gap: 8px; margin-top: 5px; text-align: left;">
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-id" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ID
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-name" checked onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 교차로명
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-seq" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 연등번호
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-police" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 경찰서
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-office" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 구청
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-group" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 그룹 ID
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-cycle" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 신호주기
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-offset" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 연동값
+                </label>
+                <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                    <input type="checkbox" id="chk-show-controller" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 제어기
+                </label>
+            </div>
+        </div>
 
         <button id="btn-layer-utic" class="btn-neon" onclick="toggleApiLayer('utic')">🌐 UTIC</button>
         <button id="btn-data-viewer" class="btn-neon" onclick="location.href='data_viewer.html'">📂 데이터</button>

@@ -5,13 +5,13 @@
  */
 
 const INFO_FIELDS = [
-    { id: 'inp-id', label: 'ID', type: 'text', placeholder: 'ID', showId: 'chk-show-id' },
-    { id: 'inp-name', label: '교차로명', type: 'text', placeholder: 'Name', showId: 'chk-show-name', checked: true },
-    { id: 'inp-seq', label: '연등번호', type: 'text', placeholder: 'Seq', showId: 'chk-show-seq' },
-    { id: 'inp-police', label: '경찰서', type: 'text', placeholder: 'Police', showId: 'chk-show-police' },
-    { id: 'inp-office', label: '구청', type: 'text', placeholder: 'District', showId: 'chk-show-office' },
-    { id: 'inp-group-id', label: '그룹 ID', type: 'number', readonly: true, style: 'background:rgba(255,255,255,0.05); color:#888;', showId: 'chk-show-group' },
-    { id: 'inp-controller', label: '제어기', type: 'text', placeholder: 'Controller', showId: 'chk-show-controller' }
+    { id: 'inp-id', label: 'ID', type: 'text', placeholder: 'ID' },
+    { id: 'inp-name', label: '교차로명', type: 'text', placeholder: 'Name' },
+    { id: 'inp-seq', label: '연등번호', type: 'text', placeholder: 'Seq' },
+    { id: 'inp-police', label: '경찰서', type: 'text', placeholder: 'Police' },
+    { id: 'inp-office', label: '구청', type: 'text', placeholder: 'District' },
+    { id: 'inp-group-id', label: '그룹 ID', type: 'number', readonly: true, style: 'background:rgba(255,255,255,0.05); color:#888;' },
+    { id: 'inp-controller', label: '제어기', type: 'text', placeholder: 'Controller' }
 ];
 
 const ACTUATION_GROUPS = [
@@ -198,7 +198,6 @@ function renderInfoFields() {
                         자동매칭
                     </button>
                 </div>
-                <input type="checkbox" id="chk-show-api-int-no" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()">
             </div>`
         },
         {
@@ -213,7 +212,6 @@ function renderInfoFields() {
                            style="font-size: 9.5px; padding: 4px; width: 48%; text-align: center; background: rgba(0,0,0,0.2);" 
                            oninput="syncActiveJunctionData()">
                 </div>
-                <input type="checkbox" id="chk-show-latlng" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()">
             </div>`
         }
     ]);
