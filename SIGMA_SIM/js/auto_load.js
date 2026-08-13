@@ -12,145 +12,77 @@ async function autoLoadFiles() {
     const regionSelect = document.getElementById('api-region-select');
     const regionCode = regionSelect ? regionSelect.value : 'L01';
 
-    // [Step 1] Core CSV 리스트 (지역별 동적 분할 파일 URL 맵핑)
-    const coreFiles = [
-        { url: `/api/sim/data?file=db_${regionCode}_intersections.csv`, type: 'inter', func: typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, label: '교차로' },
-        { url: `/api/sim/data?file=db_${regionCode}_signal_maps.csv`, type: 'maps', func: typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, label: '현시계획' },
-        { url: `/api/sim/data?file=db_${regionCode}_tod_plans.csv`, type: 'plans', func: typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, label: '운영계획' },
-        { url: `/api/sim/data?file=db_${regionCode}_groups.csv`, type: 'groups', func: typeof processGroupCSV === 'function' ? processGroupCSV : null, label: '그룹정보' },
-        { url: `/api/sim/data?file=db_${regionCode}_stats.csv`, type: 'stats', func: typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, label: '접근로통계' }
-    ];
-
-    // Start fetching all core files in parallel
-    const fetchPromises = coreFiles.map(async (f) => {
+    // Helper function to load a single file
+    async function fetchAndProcess(url, type, processFunc, label, isGroup = false) {
         try {
-            if (!f.func) return null;
-            const res = await fetch(f.url);
+            if (!processFunc) return null;
+            const res = await fetch(url);
             if (!res.ok) {
-                console.warn(`[Auto-load] ${f.label} file not found (${f.url}).`);
+                console.warn(`[Auto-load] ${label} file not found (${url}).`);
                 return null;
             }
             const buf = await res.arrayBuffer();
             const content = decodeBuffer(buf);
-            return { f, content };
+            
+            if (content && content.length > 5) {
+                if (isGroup) {
+                    processFunc(content, true);
+                } else {
+                    processFunc(content);
+                }
+                STATE.loadedFiles[type] = url;
+                console.log(`[Auto-load] ✅ ${label} Processed.`);
+            }
         } catch (e) {
-            console.error(`[Auto-load] Error loading ${f.label} (${f.url}):`, e);
-            return null;
-        }
-    });
-
-    const results = await Promise.all(fetchPromises);
-
-    // Process critical files in sequential order to preserve dependencies
-    const criticalTypes = ['inter', 'maps', 'plans', 'groups'];
-    for (const type of criticalTypes) {
-        const res = results.find(r => r && r.f.type === type);
-        if (res && res.content && res.content.length > 5) {
-            const { f, content } = res;
-            if (f.type === 'groups') {
-                if (typeof f.func === 'function') f.func(content, true); 
-            } else {
-                if (typeof f.func === 'function') f.func(content);
-            }
-            STATE.loadedFiles[f.type] = f.url;
-            console.log(`[Auto-load] ✅ ${f.label} Processed.`);
+            console.error(`[Auto-load] Error loading ${label} (${url}):`, e);
         }
     }
 
-    // Process stats (non-critical, defer parsing to avoid blocking rendering thread)
-    const statsRes = results.find(r => r && r.f.type === 'stats');
-    if (statsRes && statsRes.content && statsRes.content.length > 5) {
-        setTimeout(() => {
-            try {
-                const { f, content } = statsRes;
-                f.func(content);
-                STATE.loadedFiles[f.type] = f.url;
-                console.log(`[Auto-load] ✅ ${f.label} Processed (Deferred).`);
-            } catch (e) {
-                console.error(`[Auto-load] Error processing stats:`, e);
-            }
-        }, 100);
-    }
+    // [Step 1] 최우선 순위: 교차로마스터, 신호맵데이터, 운영계획 (병렬 로딩)
+    const priority1 = [
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
+    ];
+    await Promise.all(priority1);
 
-    // [Step 2] 시각적 보조 파일들 로드
-    await loadSupplementalFiles();
-}
-
-/** 지오메트리 및 연보 자동 로드 */
-async function loadSupplementalFiles() {
-    console.log("SIGMA - Loading Visual/Supplemental files...");
+    // [Step 2] 그 다음: 그룹정보 마스터 (완료 후 교차로 목록 렌더링)
+    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
     
-    // 지도가 로드될 때까지 최대 5초 대기
+    // 그룹정보까지 로딩 완료 시 교차로 목록 렌더링 및 UI 갱신
+    if (typeof refreshDBStats === 'function') refreshDBStats();
+    if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
+    
+    if (typeof renderJunctionList === 'function') {
+        renderJunctionList();
+        const sidebar = document.getElementById('left-search-sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('hidden');
+            console.log("[Auto-load] Search Sidebar Revealed (Priority 1 & Group finished).");
+        }
+    }
+
+    // [Step 3] 나머지 백그라운드 우선순위: 연동구간, 행정경계, 접근로 통계, 신호운영연보
+    // 지도가 로드될 때까지 최대 5초 대기 (행정경계나 연동구간은 지도 객체가 필요할 수 있음)
     let mapWaitCount = 0;
     while (!window.map && mapWaitCount < 10) {
         await new Promise(r => setTimeout(r, 500));
         mapWaitCount++;
     }
 
-    const regionSelect = document.getElementById('api-region-select');
-    const regionCode = regionSelect ? regionSelect.value : 'L01';
-
-    const geoFiles = [
-        { url: `/api/sim/data?file=db_${regionCode}_poly.geojson`, type: 'poly', label: '행정경계' },
-        { url: `/api/sim/data?file=db_${regionCode}_coordlink.geojson`, type: 'links', label: '연동구간' }, 
-        { url: `/api/sim/data?file=db_${regionCode}_yearbook.csv`, type: 'yearbook', label: '신호운영연보' }
+    // 백그라운드 병렬 로딩
+    const priority3 = [
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
     ];
-
-    // Start fetching all supplemental files in parallel
-    const fetchPromises = geoFiles.map(async (f) => {
-        try {
-            const res = await fetch(f.url);
-            if (!res.ok) return null;
-            const buf = await res.arrayBuffer();
-            const content = decodeBuffer(buf);
-            return { f, content };
-        } catch (e) {
-            console.error(`[Auto-load] Supplemental fetch error (${f.url}):`, e);
-            return null;
-        }
-    });
-
-    const results = await Promise.all(fetchPromises);
-
-    for (const result of results) {
-        if (!result) continue;
-        const { f, content } = result;
-        try {
-            if (f.type === 'poly') {
-                if (typeof processBoundaryGeoJSON === 'function') {
-                    processBoundaryGeoJSON(content);
-                    STATE.loadedFiles.poly = f.url;
-                }
-            } else if (f.type === 'links') {
-                if (typeof processGeoJSON === 'function') {
-                    processGeoJSON(content);
-                    STATE.loadedFiles.links = f.url;
-                }
-            } else if (f.type === 'yearbook') {
-                if (typeof processCivilCSV === 'function') {
-                    processCivilCSV(content);
-                    STATE.loadedFiles.yearbook = f.url;
-                }
-            }
-            console.log(`[Auto-load] ✅ ${f.label} Supplemental Loaded.`);
-        } catch (e) { 
-            console.error(`[Auto-load] Supplemental error processing (${f.url}):`, e); 
-        }
-    }
     
-    // [최종] 모든 로딩이 끝난 후 UI 일괄 업데이트 (정직한 상태 표시)
+    await Promise.all(priority3);
+    
+    // 전체 로딩 후 다시 한 번 UI 갱신
     if (typeof refreshDBStats === 'function') refreshDBStats();
-    if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
-
-    // [신규] 데이터 로드 완료 후 교차로 목록 렌더링 및 사이드바 표시
-    if (typeof renderJunctionList === 'function') {
-        renderJunctionList();
-        const sidebar = document.getElementById('left-search-sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('hidden');
-            console.log("[Auto-load] Search Sidebar Revealed with loaded data.");
-        }
-    }
+    console.log("SIGMA - All Auto-load sequence completed.");
 }
 
 /** 버퍼 디코딩 헬퍼 */

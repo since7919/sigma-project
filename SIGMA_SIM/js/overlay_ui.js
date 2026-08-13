@@ -383,26 +383,26 @@ function renderOverlayPlanInfo(jid) {
                                 const fontColor = isActive ? '#10b981' : '#cbd5e1';
                                 
                                 if (!hasData) {
-                                    return \`
-                                        <tr style="border-bottom: 1px solid #1e293b; background: \${bg}; color: \${fontColor};">
-                                            <td style="padding: 4px; font-weight: bold; color: \${isActive ? '#10b981' : '#64748b'};">\${rIdx + 1}</td>
+                                    return `
+                                        <tr style="border-bottom: 1px solid #1e293b; background: ${bg}; color: ${fontColor};">
+                                            <td style="padding: 4px; font-weight: bold; color: ${isActive ? '#10b981' : '#64748b'};">${rIdx + 1}</td>
                                             <td colspan="18" style="padding: 4px; color: #475569;">데이터 없음</td>
                                         </tr>
-                                    \`;
+                                    `;
                                 }
                                 
                                 const cycle = (s && s.cycle) ? s.cycle : (p.splitA ? p.splitA.reduce((a,b)=>a+b,0) : '-');
                                 const offset = p.offset !== undefined ? p.offset : '-';
                                 
-                                return \`
-                                    <tr style="border-bottom: 1px solid #1e293b; background: \${bg}; color: \${fontColor};">
-                                        <td style="padding: 4px; font-weight: bold;">\${rIdx + 1}</td>
-                                        <td style="padding: 4px;">\${cycle}</td>
-                                        <td style="padding: 4px;">\${offset}</td>
-                                        \${[0,1,2,3,4,5,6,7].map(i => \`<td style="padding: 4px; border-left: 1px solid #334155;">\${p.splitA ? p.splitA[i] : 0}</td>\`).join('')}
-                                        \${[0,1,2,3,4,5,6,7].map(i => \`<td style="padding: 4px; border-left: 1px solid #334155;">\${p.splitB ? p.splitB[i] : 0}</td>\`).join('')}
+                                return `
+                                    <tr style="border-bottom: 1px solid #1e293b; background: ${bg}; color: ${fontColor};">
+                                        <td style="padding: 4px; font-weight: bold;">${rIdx + 1}</td>
+                                        <td style="padding: 4px;">${cycle}</td>
+                                        <td style="padding: 4px;">${offset}</td>
+                                        ${[0,1,2,3,4,5,6,7].map(i => `<td style="padding: 4px; border-left: 1px solid #334155;">${p.splitA ? p.splitA[i] : 0}</td>`).join('')}
+                                        ${[0,1,2,3,4,5,6,7].map(i => `<td style="padding: 4px; border-left: 1px solid #334155;">${p.splitB ? p.splitB[i] : 0}</td>`).join('')}
                                     </tr>
-                                \`;
+                                `;
                             }).join('')}
                         </tbody>
                     </table>
