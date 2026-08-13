@@ -21,28 +21,55 @@ async function autoLoadFiles() {
         { url: `/api/sim/data?file=db_${regionCode}_stats.csv`, type: 'stats', func: typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, label: '접근로통계' }
     ];
 
-    for (const f of coreFiles) {
+    // Start fetching all core files in parallel
+    const fetchPromises = coreFiles.map(async (f) => {
         try {
-            if (!f.func) { console.warn(`[Auto-load] Handler for ${f.label} not found. Skipped.`); continue; }
-            
+            if (!f.func) return null;
             const res = await fetch(f.url);
-            if (!res.ok) { console.warn(`[Auto-load] ${f.label} file not found (${f.url}).`); continue; }
-            
+            if (!res.ok) {
+                console.warn(`[Auto-load] ${f.label} file not found (${f.url}).`);
+                return null;
+            }
             const buf = await res.arrayBuffer();
             const content = decodeBuffer(buf);
-            if (content && content.length > 5) {
-                // [정교화] 데이터 성격에 따른 인자 처리
-                if (f.type === 'groups') {
-                    if (typeof f.func === 'function') f.func(content, true); 
-                } else {
-                    if (typeof f.func === 'function') f.func(content);
-                }
-                STATE.loadedFiles[f.type] = f.url;
-                console.log(`[Auto-load] ✅ ${f.label} Processed.`);
-            }
+            return { f, content };
         } catch (e) {
-            console.error(`[Auto-load] Error loading ${f.url}:`, e);
+            console.error(`[Auto-load] Error loading ${f.label} (${f.url}):`, e);
+            return null;
         }
+    });
+
+    const results = await Promise.all(fetchPromises);
+
+    // Process critical files in sequential order to preserve dependencies
+    const criticalTypes = ['inter', 'maps', 'plans', 'groups'];
+    for (const type of criticalTypes) {
+        const res = results.find(r => r && r.f.type === type);
+        if (res && res.content && res.content.length > 5) {
+            const { f, content } = res;
+            if (f.type === 'groups') {
+                if (typeof f.func === 'function') f.func(content, true); 
+            } else {
+                if (typeof f.func === 'function') f.func(content);
+            }
+            STATE.loadedFiles[f.type] = f.url;
+            console.log(`[Auto-load] ✅ ${f.label} Processed.`);
+        }
+    }
+
+    // Process stats (non-critical, defer parsing to avoid blocking rendering thread)
+    const statsRes = results.find(r => r && r.f.type === 'stats');
+    if (statsRes && statsRes.content && statsRes.content.length > 5) {
+        setTimeout(() => {
+            try {
+                const { f, content } = statsRes;
+                f.func(content);
+                STATE.loadedFiles[f.type] = f.url;
+                console.log(`[Auto-load] ✅ ${f.label} Processed (Deferred).`);
+            } catch (e) {
+                console.error(`[Auto-load] Error processing stats:`, e);
+            }
+        }, 100);
     }
 
     // [Step 2] 시각적 보조 파일들 로드
@@ -69,14 +96,26 @@ async function loadSupplementalFiles() {
         { url: `/api/sim/data?file=db_${regionCode}_yearbook.csv`, type: 'yearbook', label: '신호운영연보' }
     ];
 
-    for (const f of geoFiles) {
+    // Start fetching all supplemental files in parallel
+    const fetchPromises = geoFiles.map(async (f) => {
         try {
             const res = await fetch(f.url);
-            if (!res.ok) continue;
-            
+            if (!res.ok) return null;
             const buf = await res.arrayBuffer();
             const content = decodeBuffer(buf);
-            
+            return { f, content };
+        } catch (e) {
+            console.error(`[Auto-load] Supplemental fetch error (${f.url}):`, e);
+            return null;
+        }
+    });
+
+    const results = await Promise.all(fetchPromises);
+
+    for (const result of results) {
+        if (!result) continue;
+        const { f, content } = result;
+        try {
             if (f.type === 'poly') {
                 if (typeof processBoundaryGeoJSON === 'function') {
                     processBoundaryGeoJSON(content);
@@ -95,7 +134,7 @@ async function loadSupplementalFiles() {
             }
             console.log(`[Auto-load] ✅ ${f.label} Supplemental Loaded.`);
         } catch (e) { 
-            console.error(`[Auto-load] Supplemental error (${f.url}):`, e); 
+            console.error(`[Auto-load] Supplemental error processing (${f.url}):`, e); 
         }
     }
     

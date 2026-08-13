@@ -361,24 +361,49 @@ function renderOverlayPlanInfo(jid) {
             </div>
             
             <div style="margin-top: 15px;">
-                <span style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px; display: inline-block;">플랜 인덱스별 현시계획표 (Plan ${sched ? sched.idx : '-'})</span>
+                <span style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px; display: inline-block;">플랜 인덱스별 현시계획표 (전체 통합)</span>
                 <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 6px; border: 1px solid #1e293b;">
                     <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                         <thead>
                             <tr style="background: rgba(255,255,255,0.05);">
-                                <th style="padding: 6px 4px; border-bottom: 1px solid #334155; color: #94a3b8;">링</th>
-                                ${[1,2,3,4,5,6,7,8].map(i => `<th style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: #94a3b8;">${i}현시</th>`).join('')}
+                                <th style="padding: 6px 4px; border-bottom: 1px solid #334155; color: #94a3b8;">인덱스</th>
+                                <th style="padding: 6px 4px; border-bottom: 1px solid #334155; color: #94a3b8;">주기(C)</th>
+                                <th style="padding: 6px 4px; border-bottom: 1px solid #334155; color: #94a3b8;">연동(O)</th>
+                                ${[1,2,3,4,5,6,7,8].map(i => `<th style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: #10b981;">A${i}</th>`).join('')}
+                                ${[1,2,3,4,5,6,7,8].map(i => `<th style="padding: 6px 4px; border-bottom: 1px solid #334155; border-left: 1px solid #334155; color: #38bdf8;">B${i}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
-                            <tr style="border-bottom: 1px solid #1e293b;">
-                                <td style="padding: 4px; font-weight: bold; color: #10b981;">A링</td>
-                                ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 4px; border-left: 1px solid #334155; color: #fff;">${plan && plan.splitA ? plan.splitA[i-1] : '-'}</td>`).join('')}
-                            </tr>
-                            <tr style="border-bottom: 1px solid #1e293b;">
-                                <td style="padding: 4px; font-weight: bold; color: #3b82f6;">B링</td>
-                                ${[1,2,3,4,5,6,7,8].map(i => `<td style="padding: 4px; border-left: 1px solid #334155; color: #fff;">${plan && plan.splitB ? plan.splitB[i-1] : '-'}</td>`).join('')}
-                            </tr>
+                            ${Array.from({length: 16}).map((_, rIdx) => {
+                                const p = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][rIdx] : null;
+                                const s = (j.schedules && j.schedules[dayIdx]) ? j.schedules[dayIdx][rIdx] : null;
+                                const hasData = p && p.splitA && (p.splitA.reduce((a,b)=>a+b,0) > 0 || (p.splitB && p.splitB.reduce((a,b)=>a+b,0) > 0));
+                                const isActive = (sched && sched.idx === rIdx + 1);
+                                const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
+                                const fontColor = isActive ? '#10b981' : '#cbd5e1';
+                                
+                                if (!hasData) {
+                                    return \`
+                                        <tr style="border-bottom: 1px solid #1e293b; background: \${bg}; color: \${fontColor};">
+                                            <td style="padding: 4px; font-weight: bold; color: \${isActive ? '#10b981' : '#64748b'};">\${rIdx + 1}</td>
+                                            <td colspan="18" style="padding: 4px; color: #475569;">데이터 없음</td>
+                                        </tr>
+                                    \`;
+                                }
+                                
+                                const cycle = (s && s.cycle) ? s.cycle : (p.splitA ? p.splitA.reduce((a,b)=>a+b,0) : '-');
+                                const offset = p.offset !== undefined ? p.offset : '-';
+                                
+                                return \`
+                                    <tr style="border-bottom: 1px solid #1e293b; background: \${bg}; color: \${fontColor};">
+                                        <td style="padding: 4px; font-weight: bold;">\${rIdx + 1}</td>
+                                        <td style="padding: 4px;">\${cycle}</td>
+                                        <td style="padding: 4px;">\${offset}</td>
+                                        \${[0,1,2,3,4,5,6,7].map(i => \`<td style="padding: 4px; border-left: 1px solid #334155;">\${p.splitA ? p.splitA[i] : 0}</td>\`).join('')}
+                                        \${[0,1,2,3,4,5,6,7].map(i => \`<td style="padding: 4px; border-left: 1px solid #334155;">\${p.splitB ? p.splitB[i] : 0}</td>\`).join('')}
+                                    </tr>
+                                \`;
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
