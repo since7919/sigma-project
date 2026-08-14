@@ -530,7 +530,7 @@ function updateSim() {
                 const walk = m >= 100 ? 'walk-mode' : '';
                 
                 if (cache.lastState !== st) {
-                    cache.arrow.className = `signal-arrow ${st} ${walk}`;
+                    cache.arrow.className = `signal-arrow overlay-arrow ${st} ${walk}`;
                     // 오버레이에서는 적색(R)이더라도 숨기지 않고 계속 표시합니다. (구조 파악 용이)
                     cache.arrow.style.display = '';
                     cache.lastState = st;

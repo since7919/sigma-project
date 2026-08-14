@@ -57,6 +57,7 @@ function openDetailOverlay(jid) {
             overlayMap.invalidateSize();
             if (typeof createOverlayArrows === 'function') {
                 createOverlayArrows(jid, overlayMap);
+                if (typeof updateSim === 'function') updateSim();
             }
         }
     }, 100);

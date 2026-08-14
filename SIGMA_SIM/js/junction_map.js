@@ -596,7 +596,7 @@ function createOverlayArrows(jid, targetMap) {
             const icon = L.divIcon({
                 className: 'signal-arrow-container',
                 html: `
-                    <div id="icon-overlay-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
+                    <div id="icon-overlay-${jid}-${m}-${idx}" class="signal-arrow overlay-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
                             ${isPed ? 'WALK' : arrowData.type}
                             <div id="timer-overlay-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>
                     </div>

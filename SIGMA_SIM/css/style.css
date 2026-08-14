@@ -793,8 +793,15 @@ td {
     opacity: 1 !important;
 }
 
-.signal-arrow.R:not(.editing) {
+.signal-arrow.R:not(.editing):not(.overlay-arrow) {
     display: none !important;
+}
+
+.signal-arrow.overlay-arrow.R {
+    display: flex !important;
+    opacity: 0.65;
+    color: #ff5722;
+    filter: drop-shadow(0 0 8px rgba(255, 87, 34, 0.4));
 }
 
 .signal-arrow.editing {
