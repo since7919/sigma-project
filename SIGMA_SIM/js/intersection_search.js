@@ -8,6 +8,8 @@ function toggleLeftSidebar() {
     if (!sidebar) return;
 
     const isHidden = sidebar.classList.toggle('hidden');
+    document.body.classList.toggle('left-sidebar-open', !isHidden);
+    
     if (!isHidden) {
         renderJunctionList();
         // Focus search input when opening

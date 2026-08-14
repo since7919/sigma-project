@@ -58,6 +58,7 @@ async function autoLoadFiles() {
         const sidebar = document.getElementById('left-search-sidebar');
         if (sidebar) {
             sidebar.classList.remove('hidden');
+            document.body.classList.add('left-sidebar-open');
             console.log("[Auto-load] Search Sidebar Revealed (Priority 1 & Group finished).");
         }
     }

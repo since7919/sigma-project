@@ -1158,7 +1158,7 @@ input:focus {
 
 
 /* Dynamic width for sim-controls when left sidebar is open */
-.left-sidebar:not(.hidden) ~ #sim-controls {
+body.left-sidebar-open #sim-controls {
     left: 340px !important;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s, opacity 0.5s, left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
