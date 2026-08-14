@@ -503,36 +503,6 @@ function rotateAllArrows(jid, angleDeg) {
                 cfg.dLng = oldDLat * Math.sin(rad) + oldDLng * Math.cos(rad);
                 if (cfg.rot !== undefined) cfg.rot = (cfg.rot + angleDeg) % 360;
             });
-function updateArrowsPosition(jid) {
-    const j = STATE.junctions[jid];
-    if (!j || !j.arrows || !j.arrowConfigs) return;
-    Object.keys(j.arrows).forEach(m => {
-        const configs = j.arrowConfigs[m];
-        if (configs && Array.isArray(configs)) {
-            configs.forEach((config, idx) => {
-                if (j.arrows[m][idx]) {
-                    j.arrows[m][idx].setLatLng([j.lat + config.dLat, j.lng + config.dLng]);
-                }
-            });
-        }
-    });
-}
-
-function rotateAllArrows(jid, angleDeg) {
-    const j = STATE.junctions[jid];
-    if (!j || !j.arrowConfigs) return;
-    const rad = angleDeg * Math.PI / 180;
-
-    Object.keys(j.arrowConfigs).forEach(m => {
-        const configs = j.arrowConfigs[m];
-        if (configs && Array.isArray(configs)) {
-            configs.forEach(cfg => {
-                const oldDLat = cfg.dLat;
-                const oldDLng = cfg.dLng;
-                cfg.dLat = oldDLat * Math.cos(rad) - oldDLng * Math.sin(rad);
-                cfg.dLng = oldDLat * Math.sin(rad) + oldDLng * Math.cos(rad);
-                if (cfg.rot !== undefined) cfg.rot = (cfg.rot + angleDeg) % 360;
-            });
         }
     });
     createArrows(jid);
@@ -547,6 +517,7 @@ function resetArrowPositions() {
     selectJunction(STATE.activeJid);
     alert("화살표 위치 및 수량이 초기화되었습니다.");
 }
+
 
 function createOverlayArrows(jid, targetMap) {
     const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
@@ -661,16 +632,3 @@ function createOverlayArrows(jid, targetMap) {
     });
 }
 
-function updateOverlayArrowsColor(jid, m, idx, color, timerText) {
-    const j = STATE.junctions[jid];
-    if (!j || !j.overlayElemCache) return;
-    const cacheKey = `${m}-${idx}`;
-    const cache = j.overlayElemCache[cacheKey];
-    if (cache && cache.arrow) {
-        cache.arrow.style.color = color;
-        if (timerText !== undefined && cache.timer) {
-            cache.timer.textContent = timerText;
-            cache.timer.style.display = timerText ? 'block' : 'none';
-        }
-    }
-}
