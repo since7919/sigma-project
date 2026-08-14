@@ -503,6 +503,36 @@ function rotateAllArrows(jid, angleDeg) {
                 cfg.dLng = oldDLat * Math.sin(rad) + oldDLng * Math.cos(rad);
                 if (cfg.rot !== undefined) cfg.rot = (cfg.rot + angleDeg) % 360;
             });
+function updateArrowsPosition(jid) {
+    const j = STATE.junctions[jid];
+    if (!j || !j.arrows || !j.arrowConfigs) return;
+    Object.keys(j.arrows).forEach(m => {
+        const configs = j.arrowConfigs[m];
+        if (configs && Array.isArray(configs)) {
+            configs.forEach((config, idx) => {
+                if (j.arrows[m][idx]) {
+                    j.arrows[m][idx].setLatLng([j.lat + config.dLat, j.lng + config.dLng]);
+                }
+            });
+        }
+    });
+}
+
+function rotateAllArrows(jid, angleDeg) {
+    const j = STATE.junctions[jid];
+    if (!j || !j.arrowConfigs) return;
+    const rad = angleDeg * Math.PI / 180;
+
+    Object.keys(j.arrowConfigs).forEach(m => {
+        const configs = j.arrowConfigs[m];
+        if (configs && Array.isArray(configs)) {
+            configs.forEach(cfg => {
+                const oldDLat = cfg.dLat;
+                const oldDLng = cfg.dLng;
+                cfg.dLat = oldDLat * Math.cos(rad) - oldDLng * Math.sin(rad);
+                cfg.dLng = oldDLat * Math.sin(rad) + oldDLng * Math.cos(rad);
+                if (cfg.rot !== undefined) cfg.rot = (cfg.rot + angleDeg) % 360;
+            });
         }
     });
     createArrows(jid);
@@ -518,3 +548,129 @@ function resetArrowPositions() {
     alert("화살표 위치 및 수량이 초기화되었습니다.");
 }
 
+function createOverlayArrows(jid, targetMap) {
+    const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
+    if (!j || !targetMap) return;
+
+    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
+    const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
+    const smIdx = (typeof getActiveSignalMapIdx === 'function') ? getActiveSignalMapIdx(j, t) : 0;
+    const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
+        movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
+        pedMovA: j.pedMovA || [0,0,0,0,0,0,0,0], pedMovB: j.pedMovB || [0,0,0,0,0,0,0,0]
+    };
+
+    const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
+    const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
+    const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+
+    const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
+    const allMovs = [...new Set(mapMovs)].filter(m => m > 0);
+
+    // Remove existing overlay arrows from the previous junction
+    if (window._currentOverlayJid && window._currentOverlayJid !== jid) {
+        const oldJ = STATE.junctions[window._currentOverlayJid];
+        if (oldJ && oldJ.overlayArrows) {
+            Object.keys(oldJ.overlayArrows).forEach(m => {
+                oldJ.overlayArrows[m].forEach(marker => targetMap.removeLayer(marker));
+            });
+            oldJ.overlayArrows = {};
+        }
+    }
+    window._currentOverlayJid = jid;
+
+    // Remove existing overlay arrows for current junction
+    if (j.overlayArrows) {
+        Object.keys(j.overlayArrows).forEach(m => {
+            j.overlayArrows[m].forEach(marker => targetMap.removeLayer(marker));
+        });
+    }
+    j.overlayArrows = {};
+    if (!j.overlayElemCache) j.overlayElemCache = {};
+
+    allMovs.forEach(m => {
+        const isPed = (m >= 101 && m <= 116) || pedSet.has(m);
+        const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrow(m);
+
+        const configs = j.arrowConfigs && j.arrowConfigs[m] ? (Array.isArray(j.arrowConfigs[m]) ? j.arrowConfigs[m] : [j.arrowConfigs[m]]) : [];
+        let renderConfigs = configs;
+
+        // If no config, generate default positions
+        if (renderConfigs.length === 0) {
+            let ang = 0;
+            if (isPed && m > 100 && m <= 116) {
+                const refM = m - 100;
+                ang = defPosAngles[(refM - 1) % 16] || 0;
+                if (refM % 2 !== 0) ang += 22;
+                else ang -= 22;
+            } else {
+                ang = defPosAngles[(m - 1) % 16] || 0;
+                if (!isPed && m <= 16) {
+                    if (m % 2 !== 0) ang += 7;
+                    else ang -= 7;
+                }
+            }
+            const offset = isPed ? 0.00022 : ((m > 8) ? 0.00018 : 0.00014);
+            const pos = [j.lat + Math.cos(ang * Math.PI / 180) * offset, j.lng + Math.sin(ang * Math.PI / 180) * offset];
+            renderConfigs = [{ dLat: pos[0] - j.lat, dLng: pos[1] - j.lng, rot: arrowData.ang }];
+        }
+
+        j.overlayArrows[m] = [];
+
+        renderConfigs.forEach((config, idx) => {
+            const pos = [j.lat + config.dLat, j.lng + config.dLng];
+            const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
+            const walkCls = isPed ? 'walk-mode' : '';
+
+            const icon = L.divIcon({
+                className: 'signal-arrow-container',
+                html: `
+                    <div id="icon-overlay-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
+                            ${isPed ? 'WALK' : arrowData.type}
+                            <div id="timer-overlay-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>
+                    </div>
+                `,
+                iconSize: [0, 0],
+                iconAnchor: [0, 0]
+            });
+
+            const arrowMarker = L.marker(pos, {
+                icon: icon,
+                interactive: false
+            }).addTo(targetMap);
+
+            const cacheKey = `${m}-${idx}`;
+            j.overlayElemCache[cacheKey] = {
+                arrow: null,
+                timer: null,
+                lastState: null,
+                lastTimer: null
+            };
+
+            arrowMarker.on('add', () => {
+                const el = document.getElementById(`icon-overlay-${jid}-${m}-${idx}`);
+                const tm = document.getElementById(`timer-overlay-${jid}-${m}-${idx}`);
+                if (j.overlayElemCache[cacheKey]) {
+                    j.overlayElemCache[cacheKey].arrow = el;
+                    j.overlayElemCache[cacheKey].timer = tm;
+                }
+            });
+
+            j.overlayArrows[m].push(arrowMarker);
+        });
+    });
+}
+
+function updateOverlayArrowsColor(jid, m, idx, color, timerText) {
+    const j = STATE.junctions[jid];
+    if (!j || !j.overlayElemCache) return;
+    const cacheKey = `${m}-${idx}`;
+    const cache = j.overlayElemCache[cacheKey];
+    if (cache && cache.arrow) {
+        cache.arrow.style.color = color;
+        if (timerText !== undefined && cache.timer) {
+            cache.timer.textContent = timerText;
+            cache.timer.style.display = timerText ? 'block' : 'none';
+        }
+    }
+}

@@ -53,7 +53,12 @@ function openDetailOverlay(jid) {
         overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
     }
     setTimeout(() => {
-        if (overlayMap) overlayMap.invalidateSize();
+        if (overlayMap) {
+            overlayMap.invalidateSize();
+            if (typeof createOverlayArrows === 'function') {
+                createOverlayArrows(jid, overlayMap);
+            }
+        }
     }, 100);
 
     // 신호계획정보 탭(API UI) 렌더링
@@ -117,40 +122,6 @@ window.closeDetailOverlay = closeDetailOverlay;
 window.switchOverlayTab = switchOverlayTab;
 window.setCompassSignal = setCompassSignal;
 
-// DOM 로드 시 렌즈 요소 자동 생성
-document.addEventListener('DOMContentLoaded', () => {
-    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-    directions.forEach(dir => {
-        const mount = document.getElementById(`compass-${dir}`);
-        if (mount) {
-            mount.innerHTML = `
-                <div class="component-block">
-                    <div class="car-housing-box">
-                        <div class="lens c-green"></div>
-                        <div class="lens c-arrow"></div>
-                        <div class="lens c-yellow"></div>
-                        <div class="lens c-red"></div>
-                    </div>
-                </div>
-            `;
-        }
-    });
-
-    const pedDirs = ['N', 'E', 'S', 'W'];
-    pedDirs.forEach(dir => {
-        const mount = document.getElementById(`ped-${dir}`);
-        if (mount) {
-            mount.innerHTML = `
-                <div class="component-block">
-                    <div class="ped-housing-box">
-                        <div class="ped-lens p-green"></div>
-                        <div class="ped-lens p-red on"></div>
-                    </div>
-                </div>
-            `;
-        }
-    });
-});
 
 function renderOverlayPlanInfo(jid) {
     const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;

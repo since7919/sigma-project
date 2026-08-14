@@ -512,6 +512,40 @@ function updateSim() {
             }
         });
 
+        // 4. 오버레이(상세보기) 캐시 업데이트 로직
+        if (j.overlayElemCache) {
+            Object.entries(j.overlayElemCache).forEach(([key, cache]) => {
+                const m = parseInt(key.split('-')[0]);
+                const idx = parseInt(key.split('-')[1]);
+                
+                if (!cache.arrow) {
+                    cache.arrow = document.getElementById(`icon-overlay-${j.id}-${m}-${idx}`);
+                    cache.timer = document.getElementById(`timer-overlay-${j.id}-${m}-${idx}`);
+                }
+                if (!cache || !cache.arrow) return;
+
+                const stateObj = activeStates[m] || { st: 'R', rem: 0 };
+                const st = stateObj.st;
+                const rem = stateObj.rem;
+                const walk = m >= 100 ? 'walk-mode' : '';
+                
+                if (cache.lastState !== st) {
+                    cache.arrow.className = `signal-arrow ${st} ${walk}`;
+                    // 오버레이에서는 적색(R)이더라도 숨기지 않고 계속 표시합니다. (구조 파악 용이)
+                    cache.arrow.style.display = '';
+                    cache.lastState = st;
+                }
+
+                if (cache.timer) {
+                    const showTimer = (st === 'G' || st === 'Y' || st === 'F');
+                    cache.timer.style.display = showTimer ? 'block' : 'none';
+                    if (showTimer) {
+                        cache.timer.innerText = rem > 0 ? rem : '';
+                    }
+                }
+            });
+        }
+
         // 4. 메인 마커 색상 동기화 (신호주기 모드 시에만 주기 색상 적용)
         if (j.marker) {
             const isSelected = (j.id === STATE.activeJid);
