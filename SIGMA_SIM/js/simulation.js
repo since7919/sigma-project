@@ -515,33 +515,61 @@ function updateSim() {
         // 4. 오버레이(상세보기) 캐시 업데이트 로직
         if (j.overlayElemCache) {
             Object.entries(j.overlayElemCache).forEach(([key, cache]) => {
-                const m = parseInt(key.split('-')[0]);
-                const idx = parseInt(key.split('-')[1]);
-                
-                if (!cache.arrow) {
-                    cache.arrow = document.getElementById(`icon-overlay-${j.id}-${m}-${idx}`);
-                    cache.timer = document.getElementById(`timer-overlay-${j.id}-${m}-${idx}`);
+                if (!cache.lensR) {
+                    cache.lensR = document.getElementById(`lens-r-${j.id}-${key}`);
+                    cache.lensY = document.getElementById(`lens-y-${j.id}-${key}`);
+                    cache.lensA = document.getElementById(`lens-a-${j.id}-${key}`);
+                    cache.lensG = document.getElementById(`lens-g-${j.id}-${key}`);
+                    cache.timerC = document.getElementById(`car-timer-overlay-${j.id}-${key}`);
+                    cache.lensPR = document.getElementById(`ped-lens-r-${j.id}-${key}`);
+                    cache.lensPG = document.getElementById(`ped-lens-g-${j.id}-${key}`);
+                    cache.timerP = document.getElementById(`ped-timer-overlay-${j.id}-${key}`);
                 }
-                if (!cache || !cache.arrow) return;
-
-                const stateObj = activeStates[m] || { st: 'R', rem: 0 };
-                const st = stateObj.st;
-                const rem = stateObj.rem;
-                const walk = m >= 100 ? 'walk-mode' : '';
                 
-                if (cache.lastState !== st) {
-                    cache.arrow.className = `signal-arrow overlay-arrow ${st} ${walk}`;
-                    // 오버레이에서는 적색(R)이더라도 숨기지 않고 계속 표시합니다. (구조 파악 용이)
-                    cache.arrow.style.display = '';
-                    cache.lastState = st;
-                }
+                const sObj = activeStates[cache.mS] || { st: 'R', rem: 0 };
+                const lObj = activeStates[cache.mL] || { st: 'R', rem: 0 };
+                const pObj = activeStates[cache.mP] || { st: 'R', rem: 0 };
 
-                if (cache.timer) {
-                    const showTimer = (st === 'G' || st === 'Y' || st === 'F');
-                    cache.timer.style.display = showTimer ? 'block' : 'none';
-                    if (showTimer) {
-                        cache.timer.innerText = rem > 0 ? rem : '';
-                    }
+                let sigS = sObj.st === 'G' ? 'green' : (sObj.st === 'Y' || sObj.st === 'F' ? (sObj.st === 'Y' ? 'yellow' : 'flash') : 'red');
+                let sigL = lObj.st === 'G' ? 'green' : (lObj.st === 'Y' || lObj.st === 'F' ? (lObj.st === 'Y' ? 'yellow' : 'flash') : 'red');
+                let sigP = pObj.st === 'G' ? 'green' : (pObj.st === 'Y' || pObj.st === 'F' ? 'flash' : 'red');
+
+                let carCountdown = Math.max(sObj.st !== 'R' ? sObj.rem : 0, lObj.st !== 'R' ? lObj.rem : 0);
+                if (carCountdown === 0) carCountdown = Math.max(sObj.rem, lObj.rem);
+                let pedCountdown = pObj.rem;
+
+                let isAnyVehActive = (sigS === 'green' || sigS === 'yellow' || sigS === 'flash' || sigL === 'green' || sigL === 'yellow' || sigL === 'flash');
+                let crOn = !isAnyVehActive;
+                let cyOn = sigS === 'yellow' || sigL === 'yellow' || sigS === 'flash' || sigL === 'flash';
+                let caOn = sigL === 'green';
+                let cgOn = sigS === 'green';
+
+                let prOn = sigP === 'red';
+                let pgOn = sigP === 'green' || sigP === 'flash';
+
+                if (cache.lensR) cache.lensR.classList.toggle('on', crOn);
+                if (cache.lensY) cache.lensY.classList.toggle('on', cyOn);
+                if (cache.lensA) cache.lensA.classList.toggle('on', caOn);
+                if (cache.lensG) cache.lensG.classList.toggle('on', cgOn);
+
+                if (cache.lensPR) cache.lensPR.classList.toggle('on', prOn);
+                if (cache.lensPG) cache.lensPG.classList.toggle('on', pgOn);
+
+                if (cache.timerC) {
+                    cache.timerC.innerText = carCountdown > 0 ? carCountdown + 's' : '';
+                    let carColor = '#fff';
+                    if (cgOn || caOn) carColor = '#10b981';
+                    else if (cyOn) carColor = '#f59e0b';
+                    else if (crOn) carColor = '#ef4444';
+                    cache.timerC.style.color = carColor;
+                }
+                
+                if (cache.timerP) {
+                    cache.timerP.innerText = pedCountdown > 0 ? pedCountdown + 's' : '-';
+                    let pedColor = '#fff';
+                    if (pgOn) pedColor = '#10b981';
+                    else if (prOn) pedColor = '#ef4444';
+                    cache.timerP.style.color = pedColor;
                 }
             });
         }

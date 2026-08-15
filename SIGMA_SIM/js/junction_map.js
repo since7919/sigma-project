@@ -523,7 +523,6 @@ function createOverlayArrows(jid, targetMap) {
     const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
     if (!j || !targetMap) return;
 
-    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
     const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
     const smIdx = (typeof getActiveSignalMapIdx === 'function') ? getActiveSignalMapIdx(j, t) : 0;
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
@@ -538,43 +537,125 @@ function createOverlayArrows(jid, targetMap) {
     const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
     const allMovs = [...new Set(mapMovs)].filter(m => m > 0);
 
-    // Remove existing overlay arrows from the previous junction
     if (window._currentOverlayJid && window._currentOverlayJid !== jid) {
         const oldJ = STATE.junctions[window._currentOverlayJid];
         if (oldJ && oldJ.overlayArrows) {
-            Object.keys(oldJ.overlayArrows).forEach(m => {
-                oldJ.overlayArrows[m].forEach(marker => targetMap.removeLayer(marker));
+            Object.values(oldJ.overlayArrows).forEach(a => {
+                if (Array.isArray(a)) a.forEach(marker => targetMap.removeLayer(marker));
+                else targetMap.removeLayer(a);
             });
             oldJ.overlayArrows = {};
+            oldJ.overlayElemCache = {};
         }
     }
     window._currentOverlayJid = jid;
 
-    // Remove existing overlay arrows for current junction
     if (j.overlayArrows) {
-        Object.keys(j.overlayArrows).forEach(m => {
-            j.overlayArrows[m].forEach(marker => targetMap.removeLayer(marker));
+        Object.values(j.overlayArrows).forEach(a => {
+            if (Array.isArray(a)) a.forEach(marker => targetMap.removeLayer(marker));
+            else targetMap.removeLayer(a);
         });
     }
     j.overlayArrows = {};
-    if (!j.overlayElemCache) j.overlayElemCache = {};
+    j.overlayElemCache = {};
 
-    allMovs.forEach(m => {
-        const isPed = (m >= 101 && m <= 116) || pedSet.has(m);
-        const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrow(m);
+    const directions = [
+        { key: 'N', deg: 0, mS: 14, mL: 13, mP: 104 },
+        { key: 'NE', deg: 45, mS: 16, mL: 15, mP: 108 },
+        { key: 'E', deg: 90, mS: 2, mL: 1, mP: 101 },
+        { key: 'SE', deg: 135, mS: 4, mL: 3, mP: 105 },
+        { key: 'S', deg: 180, mS: 6, mL: 5, mP: 102 },
+        { key: 'SW', deg: 225, mS: 8, mL: 7, mP: 106 },
+        { key: 'W', deg: 270, mS: 10, mL: 9, mP: 103 },
+        { key: 'NW', deg: 315, mS: 12, mL: 11, mP: 107 }
+    ];
 
-        const configs = j.arrowConfigs && j.arrowConfigs[m] ? (Array.isArray(j.arrowConfigs[m]) ? j.arrowConfigs[m] : [j.arrowConfigs[m]]) : [];
-        let renderConfigs = configs;
+    const directionLabels = {
+        'N': '북', 'E': '동', 'S': '남', 'W': '서',
+        'NE': '북동', 'SE': '남동', 'SW': '남서', 'NW': '북서'
+    };
 
-        // If no config, generate default positions
-        if (renderConfigs.length === 0) {
-            let ang = 0;
-            if (isPed && m > 100 && m <= 116) {
-                const refM = m - 100;
-                ang = defPosAngles[(refM - 1) % 16] || 0;
-                if (refM % 2 !== 0) ang += 22;
-                else ang -= 22;
-            } else {
+    const movSet = new Set(allMovs);
+    let hasAnyData = false;
+
+    const slotsHtml = directions.map(dir => {
+        const { key, deg, mS, mL, mP } = dir;
+        const vehHasData = movSet.has(mS) || movSet.has(mL);
+        const pedHasData = movSet.has(mP) || pedSet.has(mP);
+        if (!vehHasData && !pedHasData) return '';
+        hasAnyData = true;
+        
+        let html = '<div class="signal-slot slot-' + key + '" id="slot-' + key + '" style="transform: rotate(' + deg + 'deg);">';
+        if (vehHasData) {
+            html += '<div class="signal-mount-frame" id="veh-block-' + key + '">';
+            html += '<div class="component-block">';
+            html += '<div style="font-size: 10px; color: #38bdf8; font-weight: bold; margin-bottom: 2px; text-align: center; text-shadow: 0 0 3px #000; white-space: nowrap;">';
+            html += directionLabels[key] + ' <span id="car-timer-overlay-' + jid + '-' + key + '" style="color:#fff"></span>';
+            html += '</div>';
+            html += '<div class="car-housing-box">';
+            html += '<div id="lens-r-' + jid + '-' + key + '" class="lens c-red"></div>';
+            html += '<div id="lens-y-' + jid + '-' + key + '" class="lens c-yellow"></div>';
+            html += '<div id="lens-a-' + jid + '-' + key + '" class="lens c-arrow"></div>';
+            html += '<div id="lens-g-' + jid + '-' + key + '" class="lens c-green"></div>';
+            html += '</div></div></div>';
+        }
+        if (pedHasData) {
+            html += '<div class="ped-mount-container">';
+            html += '<div class="ped-mount-frame" id="ped-block-' + key + '">';
+            html += '<div class="ped-housing-box">';
+            html += '<div id="ped-lens-r-' + jid + '-' + key + '" class="ped-lens p-red"></div>';
+            html += '<div id="ped-lens-g-' + jid + '-' + key + '" class="ped-lens p-green"></div>';
+            html += '</div>';
+            html += '<div id="ped-timer-overlay-' + jid + '-' + key + '" class="micro-timer ped-timer" style="color: #fff; font-size: 10px; text-align: center; font-weight: bold; margin-top:2px;">-</div>';
+            html += '</div></div>';
+        }
+        html += '</div>';
+        return html;
+    }).join('');
+
+    if (!hasAnyData) return;
+
+    const compassHtml = '<div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); pointer-events: none; z-index: 9999; width: 180px; height: 180px;"><div class="compass-center-overlay">' + slotsHtml + '</div></div>';
+
+    const marker = L.marker([j.lat, j.lng], {
+        icon: L.divIcon({
+            className: 'compass-overlay-container',
+            html: compassHtml,
+            iconSize: [180, 180],
+            iconAnchor: [90, 90]
+        }),
+        zIndexOffset: 500,
+        interactive: false
+    });
+
+    marker.addTo(targetMap);
+    j.overlayArrows['compass'] = marker;
+
+    directions.forEach(dir => {
+        const key = dir.key;
+        if (!movSet.has(dir.mS) && !movSet.has(dir.mL) && !movSet.has(dir.mP) && !pedSet.has(dir.mP)) return;
+
+        j.overlayElemCache[key] = {
+            mS: dir.mS,
+            mL: dir.mL,
+            mP: dir.mP
+        };
+
+        marker.on('add', () => {
+            if (j.overlayElemCache[key]) {
+                j.overlayElemCache[key].lensR = document.getElementById('lens-r-' + jid + '-' + key);
+                j.overlayElemCache[key].lensY = document.getElementById('lens-y-' + jid + '-' + key);
+                j.overlayElemCache[key].lensA = document.getElementById('lens-a-' + jid + '-' + key);
+                j.overlayElemCache[key].lensG = document.getElementById('lens-g-' + jid + '-' + key);
+                j.overlayElemCache[key].timerC = document.getElementById('car-timer-overlay-' + jid + '-' + key);
+                j.overlayElemCache[key].lensPR = document.getElementById('ped-lens-r-' + jid + '-' + key);
+                j.overlayElemCache[key].lensPG = document.getElementById('ped-lens-g-' + jid + '-' + key);
+                j.overlayElemCache[key].timerP = document.getElementById('ped-timer-overlay-' + jid + '-' + key);
+            }
+        });
+    });
+}
+ else {
                 ang = defPosAngles[(m - 1) % 16] || 0;
                 if (!isPed && m <= 16) {
                     if (m % 2 !== 0) ang += 7;
