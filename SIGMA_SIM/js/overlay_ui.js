@@ -80,6 +80,7 @@ function openDetailOverlay(jid) {
     // 신호계획정보 탭(API UI) 렌더링
     if (typeof renderOverlayPlanInfo === 'function') {
         renderOverlayPlanInfo(jid);
+    if (typeof renderBaseInfo === 'function') renderBaseInfo(jid);
     }
     
     // 모달 열 때 기본 탭(신호계획정보) 활성화

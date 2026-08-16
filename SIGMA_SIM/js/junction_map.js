@@ -164,11 +164,20 @@ function createArrows(jid) {
             let ang = 0;
             if (isPed && m > 100 && m <= 116) {
                 // 보행신호(101~108...)는 대응하는 차량신호(1~8...)의 각도를 기준으로 배치
-                const refM = m - 100;
-                ang = defPosAngles[(refM - 1) % 16] || 0;
-                // 홀수(101,103...)는 왼쪽(+22), 짝수(102,104...)는 오른쪽(-22)으로 배치
-                if (refM % 2 !== 0) ang += 22;
-                else ang -= 22;
+                const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
+                if (pedAngMap[m] !== undefined) {
+                    ang = pedAngMap[m];
+                } else {
+                    const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
+                    if (pedAngMap[m] !== undefined) {
+                        ang = pedAngMap[m];
+                    } else {
+                        const refM = m - 100;
+                        ang = defPosAngles[(refM - 1) % 16] || 0;
+                        if (refM % 2 !== 0) ang += 22;
+                        else ang -= 22;
+                    }
+                }
             } else {
                 ang = defPosAngles[(m - 1) % 16] || 0;
                 // 차량신호: 좌회전(홀수 1,3,7...)은 왼쪽(+7), 직진(짝수 2,4,8...)은 오른쪽(-7)
@@ -572,10 +581,15 @@ function createOverlayArrows(jid, targetMap) {
             if (renderConfigs.length === 0) {
                 let ang = 0;
                 if (isPed && m > 100 && m <= 116) {
-                    const refM = m - 100;
-                    ang = defPosAngles[(refM - 1) % 16] || 0;
-                    if (refM % 2 !== 0) ang += 22;
-                    else ang -= 22;
+                    const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
+                    if (pedAngMap[m] !== undefined) {
+                        ang = pedAngMap[m];
+                    } else {
+                        const refM = m - 100;
+                        ang = defPosAngles[(refM - 1) % 16] || 0;
+                        if (refM % 2 !== 0) ang += 22;
+                        else ang -= 22;
+                    }
                 } else {
                     ang = defPosAngles[(m - 1) % 16] || 0;
                     if (!isPed && m <= 16) {
