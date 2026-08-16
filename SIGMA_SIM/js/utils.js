@@ -579,3 +579,18 @@ function getHaversineDistance(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
 }
+
+window.clampAngleForPfx = function(pfx, angle) {
+    let norm = ((angle % 360) + 360) % 360;
+    switch (pfx) {
+        case 'N': if (norm > 27.5 && norm < 332.5) return (norm - 27.5 < 332.5 - norm) ? 27 : 333; return norm;
+        case 'NE': return Math.max(28, Math.min(62, norm));
+        case 'E': return Math.max(63, Math.min(117, norm));
+        case 'SE': return Math.max(118, Math.min(152, norm));
+        case 'S': return Math.max(153, Math.min(207, norm));
+        case 'SW': return Math.max(208, Math.min(242, norm));
+        case 'W': return Math.max(243, Math.min(297, norm));
+        case 'NW': return Math.max(298, Math.min(332, norm));
+        default: return norm;
+    }
+};
