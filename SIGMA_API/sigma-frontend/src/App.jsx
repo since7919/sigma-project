@@ -652,28 +652,6 @@ function App() {
               )}
             </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
-            <button 
-              className={`btn-clear ${showMapNames ? 'active' : ''}`}
-              style={{
-                background: showMapNames ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                color: showMapNames ? '#38bdf8' : '#94a3b8',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '15px',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              onClick={() => setShowMapNames(p => !p)}
-              title="교차로명 표시 토글"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            </button>
-            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '0 8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '50px', height: '12px' }} title="신호등 영역 크기 조절">
                 <div style={{ position: 'absolute', left: '4px', right: '4px', height: '4px', background: '#475569', top: '4px', zIndex: 1, borderRadius: '2px' }} />
@@ -698,6 +676,28 @@ function App() {
                 ))}
               </div>
             </div>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+            <button 
+              className={`btn-clear ${showMapNames ? 'active' : ''}`}
+              style={{
+                background: showMapNames ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                color: showMapNames ? '#38bdf8' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setShowMapNames(p => !p)}
+              title="교차로명 표시 토글"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="10" rx="2" ry="2"></rect><path d="M8 12h8"></path></svg>
+            </button>
             <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
 
             <button 
