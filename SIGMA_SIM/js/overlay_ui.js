@@ -163,10 +163,20 @@ function renderOverlayPlanInfo(jid) {
     const jsToWeeklyMap = [6, 0, 1, 2, 3, 4, 5];
     const currentDayIndex = jsToWeeklyMap[dayOfWeek];
     
-    let mainPhase = '2현시';
-    if (j.signalMaps && j.signalMaps[0] && j.signalMaps[0].mainMovements && j.signalMaps[0].mainMovements.length > 0) {
-        const pNum = String(j.signalMaps[0].mainMovements[0]).replace(/[^0-9]/g, '');
-        mainPhase = pNum ? `${pNum}현시` : '2현시';
+    let mainPhase = '1현시';
+    const smMap = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
+    if (smMap && smMap.mainMovements && smMap.mainMovements.length > 0) {
+        const mainA = smMap.mainMovements.find(m => String(m).startsWith('A'));
+        if (mainA) {
+            const idx = parseInt(String(mainA).replace('A', ''));
+            mainPhase = `${idx + 1}현시`;
+        } else {
+            const mainB = smMap.mainMovements.find(m => String(m).startsWith('B'));
+            if (mainB) {
+                const idx = parseInt(String(mainB).replace('B', ''));
+                mainPhase = `${idx + 1}현시`;
+            }
+        }
     }
 
     let leftHTML = `<h3 style="color: #38bdf8; font-weight: bold; font-size: 13px; margin: 0 0 8px 0;">신호계획정보</h3>`;
