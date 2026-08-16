@@ -55,6 +55,18 @@ function openDetailOverlay(jid) {
     } else {
         overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
     }
+
+    // 중앙 원형 마커 그리기 (API와의 완벽한 화면 싱크를 위해)
+    if (window._overlayCenterMarker) {
+        overlayMap.removeLayer(window._overlayCenterMarker);
+    }
+    window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
+        radius: 8,
+        fillColor: '#00ecff',
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.8
+    }).addTo(overlayMap);
     setTimeout(() => {
         if (overlayMap) {
             overlayMap.invalidateSize();
@@ -72,6 +84,11 @@ function openDetailOverlay(jid) {
     
     // 모달 열 때 기본 탭(신호계획정보) 활성화
     switchOverlayTab('phase');
+    
+    // 신호등 모드 버튼 초기화
+    if (typeof updateOverlaySignalModeButton === 'function') {
+        updateOverlaySignalModeButton();
+    }
 }
 
 function closeDetailOverlay() {
@@ -413,16 +430,32 @@ function renderOverlayPlanInfo(jid) {
 function toggleOverlayMapExpand() {
     const content = document.querySelector('.detail-modal-content');
     if (content) {
-        content.classList.toggle('expanded-map');
+        const isExpanded = content.classList.toggle('expanded-map');
+        const btn = document.getElementById('btn-overlay-map-expand');
+        if (btn) {
+            btn.innerText = isExpanded ? '맵 축소' : '맵 확대';
+        }
         setTimeout(() => {
             if (overlayMap) overlayMap.invalidateSize();
         }, 300);
     }
 }
 
+function updateOverlaySignalModeButton() {
+    const btn = document.getElementById('btn-overlay-mode-toggle');
+    if (!btn) return;
+    const mode = (typeof STATE !== 'undefined' && STATE.overlayDisplayMode) ? STATE.overlayDisplayMode : 'compass';
+    if (mode === 'compass') {
+        btn.innerHTML = `<svg width="28" height="14" viewBox="0 0 28 14" fill="none" xmlns="http://www.w3.org/2000/svg" title="신호등 모드"><rect x="1" y="1" width="26" height="12" rx="4" fill="#222" stroke="#555" strokeWidth="2"></rect><circle cx="7" cy="7" r="3" fill="#ef4444"></circle><circle cx="14" cy="7" r="3" fill="#eab308"></circle><circle cx="21" cy="7" r="3" fill="#22c55e"></circle></svg>`;
+    } else {
+        btn.innerHTML = `<svg width="24" height="18" viewBox="0 0 24 18" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" title="화살표 모드"><path d="M11 16V9a3 3 0 0 0-3-3H3" /><path d="M6 3L2 6l4 3" /><path d="M18 16V2" /><path d="M14 6l4-4 4 4" /></svg>`;
+    }
+}
+
 function toggleOverlaySignalMode() {
     if (typeof STATE === 'undefined') return;
     STATE.overlayDisplayMode = STATE.overlayDisplayMode === 'arrow' ? 'compass' : 'arrow';
+    updateOverlaySignalModeButton();
     if (window._currentOverlayJid) {
         if (typeof createOverlayArrows === 'function') {
             createOverlayArrows(window._currentOverlayJid, overlayMap);

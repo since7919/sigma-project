@@ -692,7 +692,7 @@ function createOverlayArrows(jid, targetMap) {
 
     if (!hasAnyData) return;
 
-    const compassHtml = '<div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); pointer-events: none; z-index: 9999; width: 180px; height: 180px;"><div class="compass-center-overlay">' + slotsHtml + '</div></div>';
+    const compassHtml = '<div class="compass-center-overlay-wrapper" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); zoom: 1.15; transform-origin: center; pointer-events: none; z-index: 9999; width: 180px; height: 180px;"><div class="compass-center-overlay">' + slotsHtml + '</div></div>';
 
     const marker = L.marker([j.lat, j.lng], {
         icon: L.divIcon({
