@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>SIGMA - Koroad Signal Management (by ?�태??</title>
+    <title>SIGMA - Koroad Signal Management (by 이태원)</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
@@ -22,37 +22,37 @@
 </head>
 
 <body>
-    <!-- ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═??
+    <!-- ═══════════════════════════════════════════════════
          (NEW) SIGMA Intro Video Overlay
-         ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═??-->
+         ═══════════════════════════════════════════════════ -->
     <div id="intro-overlay" class="overlay-fixed-full">
-        <!-- 17?�치 ?�?�드 최적??(16:9 비율 ?��? �?중앙 배치) -->
+        <!-- 17인치 와이드 최적화 (16:9 비율 유지 및 중앙 배치) -->
         <video id="intro-video" autoplay muted playsinline>
             <source src="intro/SIGMA_intro.mp4" type="video/mp4">
         </video>
-        <!-- ?�버?�이 ?�과 강화 -->
+        <!-- 오버레이 효과 강화 -->
         <div class="intro-mask"></div>
 
         <div class="intro-controls">
             <div class="intro-sub">SIGMA System Initializing...</div>
             <button onclick="skipIntro()" class="btn-neon" style="padding: 12px 28px; font-size: 13px;">
-                SKIP INTRO ??
+                SKIP INTRO ❯
             </button>
         </div>
     </div>
 
     <script>
         /**
-         * ?�트�??�상 관�?로직
+         * 인트로 영상 관리 로직
          */
         function skipIntro() {
             const intro = document.getElementById('intro-overlay');
             if (intro) {
-                // 부?�러???�이???�웃 ?�과
+                // 부드러운 페이드 아웃 효과
                 intro.style.opacity = '0';
                 setTimeout(() => {
                     intro.style.display = 'none';
-                    // 비디??리소???��?
+                    // 비디오 리소스 정지
                     const video = document.getElementById('intro-video');
                     if (video) {
                         video.pause();
@@ -64,16 +64,16 @@
             }
         }
 
-        // DOM 로드 ??비디???�벤???�결
+        // DOM 로드 후 비디오 이벤트 연결
         window.addEventListener('load', () => {
             const video = document.getElementById('intro-video');
             if (video) {
-                // ?�상 ?�날 ???�동?�로 로그???�면 ?�환
+                // 영상 끝날 시 자동으로 로그인 화면 전환
                 video.onended = skipIntro;
-                // 로딩 ?�류 ?�에??중단?��? ?�도�??�외 처리
+                // 로딩 오류 시에도 중단되지 않도록 예외 처리
                 video.onerror = skipIntro;
 
-                // ?��? 브라?��? ?�동?�생 ?�한 ?�??
+                // 일부 브라우저 자동재생 제한 대응
                 video.play().catch(e => {
                     console.log("Autoplay prevented, waiting for interaction or auto-skipping if needed.");
                 });
@@ -81,7 +81,7 @@
         });
     </script>
     <!-- [Loading Overlay] -->
-    <!-- [로딩 ?�?�상?? -->
+    <!-- [로딩 대화상자] -->
     <div id="loading-overlay" class="overlay-fixed-full flex-column">
         <div class="loader"></div>
         <div id="loading-text">Loading Data...</div>
@@ -148,18 +148,18 @@
         <span class="menu-sep"></span>
 
         <!-- [Group 2: GIS & Map] -->
-        <button id="btn-map-theme" class="btn-neon" onclick="toggleMapTheme()">?���?OSM</button>
+        <button id="btn-map-theme" class="btn-neon" onclick="toggleMapTheme()">🗺️ OSM</button>
 
         <span class="menu-sep"></span>
 
         <!-- [Group 3: Visualization] -->
-        <button id="btn-signal-mode" class="btn-neon" onclick="toggleSignalMode()">?�� ?�호??/button>
+        <button id="btn-signal-mode" class="btn-neon" onclick="toggleSignalMode()">🚦 신호등</button>
         
-        <button id="btn-road-network-toggle" class="btn-neon" onclick="toggleRoadNetworkVisibility()">?�� ?�동</button>
-        <button id="btn-civil-map" class="btn-neon" onclick="toggleCivilMapLayer()">?�� 민원</button>
+        <button id="btn-road-network-toggle" class="btn-neon" onclick="toggleRoadNetworkVisibility()">🔗 연동</button>
+        <button id="btn-civil-map" class="btn-neon" onclick="toggleCivilMapLayer()">📋 민원</button>
         
         <div class="dropdown-wrapper" style="position: relative; display: inline-block;">
-            <button id="btn-tooltip-all" class="btn-neon" onclick="const el=document.getElementById('info-dropdown'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">?���??�보 ??/button>
+            <button id="btn-tooltip-all" class="btn-neon" onclick="const el=document.getElementById('info-dropdown'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">🏷️ 정보 ▼</button>
             <div id="info-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: #0f172a; border: 1px solid #1e293b; padding: 10px; z-index: 1000; border-radius: 5px; min-width: 120px; flex-direction: column; gap: 8px; margin-top: 5px; text-align: left;">
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
                     <input type="checkbox" id="chk-show-id" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ID
@@ -168,10 +168,10 @@
                     <input type="checkbox" id="chk-show-name" checked onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 교차로명
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" id="chk-show-seq" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ?�등번호
+                    <input type="checkbox" id="chk-show-seq" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 연등번호
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" id="chk-show-police" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 경찰??
+                    <input type="checkbox" id="chk-show-police" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 경찰서
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
                     <input type="checkbox" id="chk-show-office" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 구청
@@ -180,22 +180,22 @@
                     <input type="checkbox" id="chk-show-group" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 그룹 ID
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" id="chk-show-cycle" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ?�호주기
+                    <input type="checkbox" id="chk-show-cycle" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 신호주기
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" id="chk-show-offset" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ?�동�?
+                    <input type="checkbox" id="chk-show-offset" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 연동값
                 </label>
                 <label style="color: #fff; font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
-                    <input type="checkbox" id="chk-show-controller" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> ?�어�?
+                    <input type="checkbox" id="chk-show-controller" onchange="if(typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips()"> 제어기
                 </label>
             </div>
         </div>
 
-        <button id="btn-layer-utic" class="btn-neon" onclick="toggleApiLayer('utic')">?�� UTIC</button>
-        <button id="btn-data-viewer" class="btn-neon" onclick="location.href='data_viewer.html'">?�� ?�이??/button>
-        <button id="btn-dashboard" class="btn-neon" onclick="openDashboard()">?�� HOME</button>
-        <button id="btn-export-network" class="btn-neon magenta" style="display:none" onclick="exportRoadNetwork()">?��
-            ?�보?�기</button>
+        <button id="btn-layer-utic" class="btn-neon" onclick="toggleApiLayer('utic')">🌐 UTIC</button>
+        <button id="btn-data-viewer" class="btn-neon" onclick="location.href='data_viewer.html'">📂 데이터</button>
+        <button id="btn-dashboard" class="btn-neon" onclick="openDashboard()">📊 HOME</button>
+        <button id="btn-export-network" class="btn-neon magenta" style="display:none" onclick="exportRoadNetwork()">📥
+            내보내기</button>
 
         <input type="file" id="fileInput" style="display:none" accept=".csv" onchange="loadFromCSV(event)">
     </div>
@@ -204,13 +204,13 @@
 
     <div id="left-search-sidebar" class="left-sidebar">
         <div class="sidebar-header">
-            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">?�� ??(?�털 메인)</div>
-            <h1>?�� SIGMA SIM</h1>
+            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 5px;">🏠 홈 (포털 메인)</div>
+            <h1>🚦 SIGMA SIM</h1>
         </div>
         
         <div class="search-box">
-            <input type="text" id="j-sidebar-search" placeholder="교차로명 검??.." onkeyup="filterJunctionList(event)">
-            <button>?��</button>
+            <input type="text" id="j-sidebar-search" placeholder="교차로명 검색..." onkeyup="filterJunctionList(event)">
+            <button>🔍</button>
         </div>
         
         <div id="accordion-container" class="accordion-wrapper custom-scroll">
@@ -220,10 +220,10 @@
         <!-- API style Footer -->
         <div style="padding: 10px 15px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between;">
             <div>
-                <div style="margin-bottom: 4px;">?�합 DB <span style="color: #3b82f6; font-weight: bold;">??Connected</span></div>
+                <div style="margin-bottom: 4px;">통합 DB <span style="color: #3b82f6; font-weight: bold;">● Connected</span></div>
             </div>
             <div>
-                <div>UTIC <span style="color: #10b981; font-weight: bold;">??On</span></div>
+                <div>UTIC <span style="color: #10b981; font-weight: bold;">● On</span></div>
             </div>
         </div>
     </div>
@@ -233,10 +233,10 @@
         <div class="panel-header">
             <div class="panel-title">
                 <span class="status-dot-mini cyan"></span>
-                <span id="panel-title-text">[?�천광역?? ?�광4거리</span>
+                <span id="panel-title-text">[인천광역시] 신광4거리</span>
             </div>
             <div class="panel-controls" style="display: flex; gap: 8px; align-items: center;">
-                <button id="btn-sync-utic-plan" class="btn-neon" style="padding: 4px 12px; font-size: 11px; margin: 0;" onclick="triggerUticPlanSync()">?�� UTIC 계획 ?�기??/button>
+                <button id="btn-sync-utic-plan" class="btn-neon" style="padding: 4px 12px; font-size: 11px; margin: 0;" onclick="triggerUticPlanSync()">🔄 UTIC 계획 동기화</button>
                 <button class="btn-icon-sm" onclick="toggleBottomPanel()">×</button>
             </div>
         </div>
@@ -247,48 +247,48 @@
                     <thead>
                         <tr>
                             <th>방향</th>
-                            <th>출력?�태</th>
-                            <th>?�호?�태</th>
-                            <th>?�여</th>
-                            <th>?�출</th>
+                            <th>출력형태</th>
+                            <th>신호상태</th>
+                            <th>잔여</th>
+                            <th>표출</th>
                         </tr>
                     </thead>
                     <tbody id="api-table-body">
-                        <!-- API ?�이?��? ?�적?�로 ?�입??-->
+                        <!-- API 데이터가 동적으로 삽입됨 -->
                     </tbody>
                 </table>
             </div>
             <!-- Right: System Info -->
             <div class="panel-section stats-section">
                 <div class="stat-group">
-                    <div class="stat-row"><span>?�어번호</span><b id="stat-int-no">1001</b></div>
-                    <div class="stat-row"><span>?�호주기</span><b id="stat-cycle">128</b></div>
-                    <div class="stat-row"><span>?�신?�태</span><b class="text-cyan">?�상</b></div>
+                    <div class="stat-row"><span>제어번호</span><b id="stat-int-no">1001</b></div>
+                    <div class="stat-row"><span>신호주기</span><b id="stat-cycle">128</b></div>
+                    <div class="stat-row"><span>통신상태</span><b class="text-cyan">정상</b></div>
                 </div>
                 <div class="stat-group">
-                    <div class="stat-row"><span>?�이/감응</span><b>OFF / OFF</b></div>
-                    <div class="stat-row"><span>교차로시�?/span><span id="stat-time">2026-05-10 08:02:57</span></div>
+                    <div class="stat-row"><span>전이/감응</span><b>OFF / OFF</b></div>
+                    <div class="stat-row"><span>교차로시각</span><span id="stat-time">2026-05-10 08:02:57</span></div>
                 </div>
             </div>
         </div>
     </div>
     <div id="legend-cycle-colors">
-        <div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid #555; padding-bottom:3px;">?�호주기 (�?
+        <div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid #555; padding-bottom:3px;">신호주기 (초)
         </div>
         <!-- JS init -->
     </div>
     <div id="resizer" class="resizer"></div>
     <div class="sidebar">
 
-        <!-- [추�?] ?�이?�바 ?�장 ?�들 (좌측 교차로�??�과 ?��??�이) -->
+        <!-- [추가] 사이드바 확장 핸들 (좌측 교차로검색과 대칭 높이) -->
         <button id="btn-sidebar-expand" onclick="toggleSidebarExpand()" class="sidebar-expand-handle"
-            title="?�이?�바 ?�게 보기">
-            <span class="handle-icon">??/span>
-            <span class="handle-text" id="sidebar-expand-text">?�장 / 축소</span>
+            title="사이드바 넓게 보기">
+            <span class="handle-icon">≪</span>
+            <span class="handle-text" id="sidebar-expand-text">확장 / 축소</span>
         </button>
 
         <div class="tabs">
-            <div class="tab" onclick="openTab(event, 'tab-db')">?�� DB Center</div>
+            <div class="tab" onclick="openTab(event, 'tab-db')">📂 DB Center</div>
             <div class="tab active" onclick="openTab(event, 'tab-info')">Node/Link</div>
             <div class="tab" onclick="openTab(event, 'tab-phase')">Phase/Split</div>
             <div class="tab" onclick="openTab(event, 'tab-group')">Group TOD</div>
@@ -300,101 +300,101 @@
 
 
         <div id="tab-info" class="tab-content active">
-            <!-- 1. [교차�??�호???�집] -->
+            <!-- 1. [교차로&신호등 편집] -->
             <div class="sigma-panel">
                 <div class="card-title">
-                    <span>?���?교차�?& ?�호???�집</span>
+                    <span>🛠️ 교차로 & 신호등 편집</span>
                 </div>
                 <div class="foldable-content">
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
                         <button id="btn-add-junction" class="btn-neon" onclick="toggleAddMode()"
-                            style="font-size: 10px; padding: 5px;">??교차�?추�?</button>
+                            style="font-size: 10px; padding: 5px;">➕ 교차로 추가</button>
                         <button class="btn-neon" onclick="deleteJunction()"
-                            style="font-size: 10px; padding: 5px; background: rgba(255, 71, 87, 0.1); border-color: rgba(255, 71, 87, 0.3);">?���?
-                            교차�???��</button>
+                            style="font-size: 10px; padding: 5px; background: rgba(255, 71, 87, 0.1); border-color: rgba(255, 71, 87, 0.3);">🗑️
+                            교차로 삭제</button>
 
                         <button id="btn-map-edit" class="btn-neon magenta" onclick="toggleMapEdit()"
-                            style="font-size: 10px; padding: 5px;">?�� ?�호???�집</button>
+                            style="font-size: 10px; padding: 5px;">🔧 신호등 편집</button>
                         <button id="btn-reset-arrows" class="btn-neon" onclick="resetArrowPositions()"
-                            style="font-size: 10px; padding: 5px;">?�� ?�호??초기??/button>
+                            style="font-size: 10px; padding: 5px;">🔄 신호등 초기화</button>
                         <button class="btn-neon" onclick="applyInfo()"
-                            style="font-size: 10px; padding: 5px; background: var(--neon-cyan); color: #000;">??
-                            ?�용</button>
+                            style="font-size: 10px; padding: 5px; background: var(--neon-cyan); color: #000;">✅
+                            적용</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. [교차�??�이?? -->
-            <!-- 3. [?�동구간 ?�집] -->
+            <!-- 2. [교차로 데이터] -->
+            <!-- 3. [연동구간 편집] -->
             <div class="sigma-panel" style="margin-top: 15px;">
                 <div class="card-title">
-                    <span>?�� ?�동구간 ?�보</span>
+                    <span>🔗 연동구간 정보</span>
                 </div>
                 <div class="foldable-content">
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px;">
                         <button class="btn-sm" onclick="analyzeRoadNetwork()"
-                            style="background: rgba(0, 212, 255, 0.1); border: 1px solid #00d4ff; color: #00d4ff; padding: 10px 0; font-size: 10.5px;">?��
-                            분석 (?�체)</button>
+                            style="background: rgba(0, 212, 255, 0.1); border: 1px solid #00d4ff; color: #00d4ff; padding: 10px 0; font-size: 10.5px;">🔍
+                            분석 (전체)</button>
                         <button class="btn-sm" onclick="analyzeSelectedGroupNetwork()"
-                            style="background: rgba(155, 89, 182, 0.1); border: 1px solid #9b59b6; color: #9b59b6; padding: 10px 0; font-size: 10.5px;">?��
+                            style="background: rgba(155, 89, 182, 0.1); border: 1px solid #9b59b6; color: #9b59b6; padding: 10px 0; font-size: 10.5px;">🎯
                             분석 (그룹)</button>
                         <button id="btn-edit-network" class="btn-sm" onclick="toggleNetworkEditMode()"
-                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid #666; color: #fff; padding: 10px 0; font-size: 10.5px;">?�️
-                            ?�집 모드</button>
+                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid #666; color: #fff; padding: 10px 0; font-size: 10.5px;">✏️
+                            편집 모드</button>
                         <button class="btn-sm" onclick="clearDBFile('links')"
-                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); color: #bbb; padding: 10px 0; font-size: 10.5px;">?��
-                            ?�동 초기??/button>
+                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); color: #bbb; padding: 10px 0; font-size: 10.5px;">🔄
+                            연동 초기화</button>
                         <button class="btn-sm" onclick="exportRoadNetwork()"
-                            style="background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 0; font-size: 10.5px;">?��
-                            ?�보?�기</button>
+                            style="background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 0; font-size: 10.5px;">📥
+                            내보내기</button>
                             
                         <div style="grid-column: span 3; display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                            <span style="font-size: 11px; color: #bbb;">?�� 주기기�? 분석:</span>
+                            <span style="font-size: 11px; color: #bbb;">🕒 주기기준 분석:</span>
                             <select id="cycle-analyze-hour" style="background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 5px; height: 26px; font-size: 11px;">
-                                <option value="0">00??/option><option value="1">01??/option><option value="2">02??/option>
-                                <option value="3">03??/option><option value="4">04??/option><option value="5">05??/option>
-                                <option value="6">06??/option><option value="7">07??/option><option value="8">08??/option>
-                                <option value="9">09??/option><option value="10">10??/option><option value="11">11??/option>
-                                <option value="12">12??/option><option value="13">13??/option><option value="14">14??/option>
-                                <option value="15">15??/option><option value="16">16??/option><option value="17">17??/option>
-                                <option value="18">18??/option><option value="19">19??/option><option value="20">20??/option>
-                                <option value="21">21??/option><option value="22">22??/option><option value="23">23??/option>
+                                <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
+                                <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
+                                <option value="6">06시</option><option value="7">07시</option><option value="8">08시</option>
+                                <option value="9">09시</option><option value="10">10시</option><option value="11">11시</option>
+                                <option value="12">12시</option><option value="13">13시</option><option value="14">14시</option>
+                                <option value="15">15시</option><option value="16">16시</option><option value="17">17시</option>
+                                <option value="18">18시</option><option value="19">19시</option><option value="20">20시</option>
+                                <option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
                             </select>
                             <button class="btn-sm" onclick="analyzeCycleNetwork()" style="background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; color: #2ecc71; padding: 5px 10px; font-size: 10.5px; flex: 1;">
-                                ?�️ ?�일주기 �?구성
+                                ⏱️ 동일주기 망 구성
                             </button>
                         </div>
                     </div>
                     <div style="font-size: 11px; color: #888; padding: 5px 10px 10px 10px; line-height: 1.5;">
-                        * <b>분석</b>: 그룹 ID 기�??�로 ARN 최적?�망 ?�동 ?�성<br>
-                        * <b>?�집</b>: Alt+?�릭(??��), ?�드�??�릭(추�?) ?�성??br>
-                        * <b>?�보?�기</b>: GeoJSON ?�식?�로 ?�트?�크 ?�상 ?�??
+                        * <b>분석</b>: 그룹 ID 기준으로 ARN 최적화망 자동 생성<br>
+                        * <b>편집</b>: Alt+클릭(삭제), 노드간 클릭(추가) 활성화<br>
+                        * <b>내보내기</b>: GeoJSON 형식으로 네트워크 위상 저장
                     </div>
                 </div>
             </div>
 
-            <!-- 4. [?�각???��????�정] -->
+            <!-- 4. [시각화 스타일 설정] -->
             <div class="sigma-panel" style="margin-top: 15px;">
                 <div class="card-title">
-                    <span>?�� ?�각???��????�정</span>
+                    <span>🎨 시각화 스타일 설정</span>
                 </div>
                 <div class="foldable-content">
-                    <!-- Row 1: 교차�??�기, ?�호???�기, ?�로 굵기 -->
+                    <!-- Row 1: 교차로 크기, 신호등 크기, 도로 굵기 -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 10px 8px;">
                         <div class="group-neon">
-                            <label style="font-size: 11px;">교차�??�기 <span id="val-node-size-bottom"
+                            <label style="font-size: 11px;">교차로 크기 <span id="val-node-size-bottom"
                                     style="color:var(--neon-cyan);">0.5</span></label>
                             <input type="range" id="scale-node-bottom" min="0.1" max="3" step="0.1" value="0.5"
                                 oninput="syncScaleNode(this.value)">
                         </div>
                         <div class="group-neon">
-                            <label style="font-size: 11px;">?�호???�기 <span id="val-arrow-size-bottom"
+                            <label style="font-size: 11px;">신호등 크기 <span id="val-arrow-size-bottom"
                                     style="color:var(--neon-cyan);">1.5</span></label>
                             <input type="range" id="scale-arrow-bottom" min="0.5" max="3" step="0.1" value="1.5"
                                 oninput="syncScaleArrow(this.value)">
                         </div>
                         <div class="group-neon">
-                            <label style="font-size: 11px;">?�로 굵기 <span id="txt-network-weight"
+                            <label style="font-size: 11px;">도로 굵기 <span id="txt-network-weight"
                                     style="color:#00d4ff;">2.0px</span></label>
                             <input type="range" id="rng-network-weight" min="1" max="10" step="0.5" value="2"
                                 style="width: 100%; accent-color: #00d4ff; cursor: pointer;"
@@ -402,16 +402,16 @@
                         </div>
                     </div>
 
-                    <!-- Row 2: 글???�기, 글?�색 -->
+                    <!-- Row 2: 글자 크기, 글자색 -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 8px 10px 8px;">
                         <div class="group-neon">
-                            <label style="font-size: 11px;">글???�기 <span id="val-name-size-bottom"
+                            <label style="font-size: 11px;">글자 크기 <span id="val-name-size-bottom"
                                     style="color:var(--neon-cyan);">11</span>px</label>
                             <input type="range" id="scale-name-bottom" min="8" max="24" step="1" value="11"
                                 oninput="syncScaleName(this.value)">
                         </div>
                         <div class="group-neon">
-                            <label style="font-size: 11px;">글?�색</label>
+                            <label style="font-size: 11px;">글자색</label>
                             <input type="color" id="color-name-bottom" value="#ffffff"
                                 oninput="syncColorName(this.value)"
                                 style="width:100%; height:20px; border:none; background:none; cursor:pointer; padding:0;">
@@ -431,16 +431,16 @@
                         id="editor-active-dot"></div>
                     <h3 id="phase-editor-title"
                         style="margin:0 !important; font-size:15px; color:var(--accent); font-family:'Outfit'; font-weight: 800; letter-spacing: -0.5px;">
-                        ?�� ?�집??교차로�? ?�택?�세??/h3>
-                    <button class="btn-premium" style="background:#38bdf8; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:12px; border:none; cursor:pointer; box-shadow: 0 0 10px rgba(56,189,248,0.5); margin-left: 10px;" onclick="if(STATE.activeJid) openDetailOverlay(STATE.activeJid); else alert('교차로�? 먼�? ?�택?�주?�요.');">?�� ?�세보기</button>
+                        📉 편집할 교차로를 선택하세요</h3>
+                    <button class="btn-premium" style="background:#38bdf8; color:#000; padding:4px 10px; border-radius:6px; font-weight:bold; font-size:12px; border:none; cursor:pointer; box-shadow: 0 0 10px rgba(56,189,248,0.5); margin-left: 10px;" onclick="if(STATE.activeJid) openDetailOverlay(STATE.activeJid); else alert('교차로를 먼저 선택해주세요.');">🔍 상세보기</button>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <!-- [고도?? 교차�??�합 검??기능 (ID, 명칭, ?�등번호) -->
+                    <!-- [고도화] 교차로 통합 검색 기능 (ID, 명칭, 연등번호) -->
                     <div style="position: relative;">
                         <input type="text" id="inp-search-phase-jid" 
                             style="width:130px; height:28px; background: rgba(0,0,0,0.5); border: 1px solid var(--accent); border-radius:4px; color:white; font-size: 11px; padding: 0 10px; font-weight:bold; outline:none; transition: all 0.3s;"
-                            placeholder="ID, 명칭, ?�등번호.." onkeyup="handlePhaseSearch(this.value)">
-                        <!-- 검??결과 ?�롭?�운 리스??-->
+                            placeholder="ID, 명칭, 연등번호.." onkeyup="handlePhaseSearch(this.value)">
+                        <!-- 검색 결과 드롭다운 리스트 -->
                         <div id="phase-search-results" class="search-results-dropdown hidden"></div>
                     </div>
                     <button class="btn-neon" style="height:28px; font-size:11px; padding:0 10px;"
@@ -448,18 +448,18 @@
                     <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
                         onclick="updateActiveJunctionToDB()" disabled>DB 반영</button>
                     <button id="btn-junction-db-revert" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.15); opacity:0.5; cursor:not-allowed;"
-                        onclick="revertActiveJunctionFromDB()" disabled>DB값으�?복원</button>
+                        onclick="revertActiveJunctionFromDB()" disabled>DB값으로 복원</button>
                 </div>
             </div>
 
             <div class="box-green" style="margin-bottom: 10px;">
                 <div class="xlsx-loader-header">
                     <div class="flex-row gap-12">
-                        <div class="xlsx-icon-box">?��</div>
-                        <div class="fs-15 fw-900" style="color:#2ecc71;">SISO ?�출???�일(XLSX) 로더</div>
+                        <div class="xlsx-icon-box">📗</div>
+                        <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
                     </div>
                     <button onclick="document.getElementById('xlsx-file-input-phase').click()" class="btn-neon green"
-                        style="height:38px; padding:0 18px;">?�� ?�일 ?�택</button>
+                        style="height:38px; padding:0 18px;">📁 파일 선택</button>
                 </div>
                 <div id="xlsx-progress-container-phase" class="p-10"
                     style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
@@ -476,53 +476,53 @@
                 </div>
             </div>
 
-            <!-- [?�반 ?�어 ?�역] -->
+            <!-- [일반 제어 영역] -->
             <div class="sigma-panel">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3>?�� ?�시 ?�보 (Phase)</h3>
-                    <span class="fold-icon">??/span>
+                    <h3>🚦 현시 정보 (Phase)</h3>
+                    <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
                     <div id="signal-map-selector"></div>
                     <div id="mov-combined-container"></div>
                     <div class="template-panel">
-                        <div class="template-header">?�� ?�시 ?�플�?(Template)</div>
+                        <div class="template-header">📋 현시 템플릿 (Template)</div>
                         <div class="template-grid">
-                            <button class="btn-template" onclick="applyPhaseTemplate('cross')" title="4지_?�서"><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('cross')" title="4지_동서"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="20" opacity="0.4" />
                                     <line x1="4" y1="12" x2="20" y2="12" stroke-width="3.5" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('cross_v')" title="4지_?�북"><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('cross_v')" title="4지_남북"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="20" stroke-width="3.5" />
                                     <line x1="4" y1="12" x2="20" y2="12" opacity="0.4" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('t_bottom')" title="3지_�?><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('t_bottom')" title="3지_북"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="12" />
                                     <line x1="4" y1="12" x2="20" y2="12" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('t_left')" title="3지_??><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('t_left')" title="3지_동"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="20" />
                                     <line x1="12" y1="12" x2="20" y2="12" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('t_top')" title="3지_??><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('t_top')" title="3지_남"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="12" x2="12" y2="20" />
                                     <line x1="4" y1="12" x2="20" y2="12" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('t_right')" title="3지_??><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('t_right')" title="3지_서"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="20" />
                                     <line x1="4" y1="12" x2="12" y2="12" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('h_line')" title="?�일_?�서"><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('h_line')" title="단일_동서"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="4" y1="12" x2="20" y2="12" />
                                 </svg></button>
-                            <button class="btn-template" onclick="applyPhaseTemplate('v_line')" title="?�일_?�북"><svg
+                            <button class="btn-template" onclick="applyPhaseTemplate('v_line')" title="단일_남북"><svg
                                     viewBox="0 0 24 24">
                                     <line x1="12" y1="4" x2="12" y2="20" />
                                 </svg></button>
@@ -533,30 +533,30 @@
 
             <div class="sigma-panel" style="margin-top: 0;">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3 style="color:var(--accent);">?�� TOD �??�호?�간(Split) ?�정</h3>
-                    <span class="fold-icon">??/span>
+                    <h3 style="color:var(--accent);">📅 TOD 및 신호시간(Split) 설정</h3>
+                    <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
-                    <!-- ?�단 �? ?�랜/?�간/주기/?�동 -->
+                    <!-- 상단 바: 플랜/시간/주기/연동 -->
                     <div class="tod-integrated-bar-v2">
                         <div class="tod-grid-main">
                             <div class="tod-info-item">
-                                <span class="tod-label-tag">?�랜 ?�택</span>
+                                <span class="tod-label-tag">플랜 선택</span>
                                 <select id="current-plan-idx" class="input-dark" style="width: 100%; height:28px;"
                                     onchange="renderRingTables()"></select>
                             </div>
                             <div class="tod-info-item">
-                                <span class="tod-label-tag">?�작?�간</span>
+                                <span class="tod-label-tag">시작시간</span>
                                 <div id="tod-display-time" class="tod-value-box">--:--</div>
                             </div>
                             <div class="tod-info-item">
-                                <span class="tod-label-tag">?�호주기(Cycle)</span>
+                                <span class="tod-label-tag">신호주기(Cycle)</span>
                                 <input type="number" id="tod-inp-cycle" class="input-dark fw-800"
                                     style="width:100%; height:20px; color:var(--accent) !important;"
                                     onchange="updateTargetCycle(this.value)" disabled>
                             </div>
                             <div class="tod-info-item">
-                                <span class="tod-label-tag">?�동�?Offset)</span>
+                                <span class="tod-label-tag">연동값(Offset)</span>
                                 <input type="number" id="tod-inp-offset" class="input-dark"
                                     style="width:100%; height:20px;" disabled>
                             </div>
@@ -570,33 +570,33 @@
                                     style="width:45px; padding:3px;" placeholder="0" disabled>
                                 <button class="btn-sm" onclick="applyGroupTOD()"
                                     style="background: var(--accent); color: #000; font-size: 10.5px; border:none; border-radius:4px;"
-                                    disabled>그룹 지???�용</button>
+                                    disabled>그룹 지정/적용</button>
                             </div>
                             <div class="flex-row gap-12">
                                 <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
                                     <input type="checkbox" id="chk-dual-ring" onchange="renderRingTables()"
-                                        style="width:14px; height:14px; accent-color:var(--accent);"> Dual(각각?�력)
+                                        style="width:14px; height:14px; accent-color:var(--accent);"> Dual(각각입력)
                                 </label>
                                 <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
                                     <input type="checkbox" id="chk-show-split-details" onchange="renderRingTables()"
-                                        style="width:14px; height:14px; accent-color:var(--accent);"> Split�?보기
+                                        style="width:14px; height:14px; accent-color:var(--accent);"> Split만 보기
                                 </label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ?�호?�간 ?�이�?-->
+                    <!-- 신호시간 테이블 -->
                     <div id="tod-container"></div>
                 </div>
             </div>
 
             <div class="sigma-panel" style="margin-top: 0;">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3>?�� TOD ?�세 ?�보 ?�람</h3>
-                    <span class="fold-icon">??/span>
+                    <h3>📅 TOD 상세 정보 일람</h3>
+                    <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
-                    <!-- [?�규] 교차�??�일�?TOD ???�택 �?복사 기능 -->
+                    <!-- [신규] 교차로 요일별 TOD 탭 선택 및 복사 기능 -->
                     <div class="box-blue">
                         <div style="margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px;">
                             <div id="j-day-type-buttons">
@@ -604,28 +604,28 @@
                             </div>
                             <div
                                 style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05);">
-                                <span style="color:#aaa;">?�이??복사(가?�오�?:</span>
+                                <span style="color:#aaa;">데이터 복사(가져오기):</span>
                                 <select id="j-copy-from-day" class="input-dark"
                                     style="width: 70px; height: 22px; font-size: 10px;">
-                                    <option value="0">?�계??1</option>
-                                    <option value="1">?�계??2</option>
-                                    <option value="2">?�계??3</option>
-                                    <option value="3">?�계??4</option>
-                                    <option value="4">?�계??5</option>
-                                    <option value="5">?�계??6</option>
-                                    <option value="6">?�계??7</option>
-                                    <option value="7">?�계??8</option>
-                                    <option value="8">?�계??9</option>
-                                    <option value="9">?�계??10</option>
+                                    <option value="0">일계획 1</option>
+                                    <option value="1">일계획 2</option>
+                                    <option value="2">일계획 3</option>
+                                    <option value="3">일계획 4</option>
+                                    <option value="4">일계획 5</option>
+                                    <option value="5">일계획 6</option>
+                                    <option value="6">일계획 7</option>
+                                    <option value="7">일계획 8</option>
+                                    <option value="8">일계획 9</option>
+                                    <option value="9">일계획 10</option>
                                 </select>
                                 <button class="btn-sm" onclick="copyJunctionTODDay()"
-                                    style="background:#8e44ad; padding: 3px 10px; font-size: 10px;">가?�오�?/button>
+                                    style="background:#8e44ad; padding: 3px 10px; font-size: 10px;">가져오기</button>
                             </div>
                         </div>
                         <div id="j-current-day-label"
                             style="font-size: 11px; color: var(--accent); font-weight: bold; margin-bottom: 4px;">
-                            ?��
-                            ?�재 조회: ?�계??1 TOD (TOD SLOT 1~16)</div>
+                            📅
+                            현재 조회: 일계획 1 TOD (TOD SLOT 1~16)</div>
                         <div style="height: 1px; background: rgba(52, 152, 219, 0.2); margin: 5px 0;"></div>
 
                         <div
@@ -636,20 +636,20 @@
                 </div>
             </div>
 
-            <!-- [?�수 ?�어 ?�역] -->
+            <!-- [특수 제어 영역] -->
             <div class="sigma-panel" style="margin-top: 0; display: none;">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3>?���??�수 ?�어 (?�멸/?�영?�개??</h3>
-                    <span class="fold-icon">??/span>
+                    <h3>🛠️ 특수 제어 (점멸/운영자개입)</h3>
+                    <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
-                    <!-- 1. ?�멸?�호 ?�정 -->
+                    <!-- 1. 점멸신호 설정 -->
                     <div style="margin-bottom: 6px;">
                         <div class="op-row-between" style="margin-bottom: 6px;">
-                            <h4 style="color:#ffcc00; font-size:13.5px; margin:0;">???�멸?�호 ?�정</h4>
+                            <h4 style="color:#ffcc00; font-size:13.5px; margin:0;">⚡ 점멸신호 설정</h4>
                             <label
                                 style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #eee; cursor: pointer; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px;">
-                                (?�성 <input type="checkbox" id="flash-enable"
+                                (활성 <input type="checkbox" id="flash-enable"
                                     style="width:14px; height:14px; margin:0; cursor:pointer;" disabled>)
                             </label>
                         </div>
@@ -657,7 +657,7 @@
 
                             <div class="op-col"
                                 style="gap: 4px; margin-bottom: 6px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px;">
-                                <div style="font-size:11px; color:#aaa; margin-bottom:2px;">?�정 ?�간 (최�? 3�? ?? 23:30)
+                                <div style="font-size:11px; color:#aaa; margin-bottom:2px;">설정 시간 (최대 3개, 예: 23:30)
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size:11px; color:#888; width:20px;">1:</span>
@@ -693,15 +693,15 @@
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                                 <div style="background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px;">
-                                    <div style="font-size:11.5px; color:#ffcc00; margin-bottom:5px;">?�색 ?�멸 ?�동�?/div>
+                                    <div style="font-size:11.5px; color:#ffcc00; margin-bottom:5px;">황색 점멸 이동류</div>
                                     <input type="text" id="inp-flash-yellows" class="input-dark"
-                                        style="width:100%; font-size:12px; padding:4px;" placeholder="?? 2,4,6,8"
+                                        style="width:100%; font-size:12px; padding:4px;" placeholder="예: 2,4,6,8"
                                         disabled>
                                 </div>
                                 <div style="background: rgba(0,0,0,0.2); padding: 6px; border-radius: 6px;">
-                                    <div style="font-size:11.5px; color:#ff4d4d; margin-bottom:5px;">?�색 ?�멸 ?�동�?/div>
+                                    <div style="font-size:11.5px; color:#ff4d4d; margin-bottom:5px;">적색 점멸 이동류</div>
                                     <input type="text" id="inp-flash-reds" class="input-dark"
-                                        style="width:100%; font-size:12px; padding:4px;" placeholder="?? 1,3,5,7"
+                                        style="width:100%; font-size:12px; padding:4px;" placeholder="예: 1,3,5,7"
                                         disabled>
                                 </div>
                             </div>
@@ -710,10 +710,10 @@
 
                     <div style="margin-bottom: 6px;">
                         <div class="op-row-between" style="margin-bottom: 6px;">
-                            <h4 style="color:var(--accent); font-size:13.5px; margin:0;">?��?�✈�??�영??개입 ?�어</h4>
+                            <h4 style="color:var(--accent); font-size:13.5px; margin:0;">👨‍✈️ 운영자 개입 제어</h4>
                             <label
                                 style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #eee; cursor: pointer; background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px;">
-                                (?�성 <input type="checkbox" id="op-enable"
+                                (활성 <input type="checkbox" id="op-enable"
                                     style="width:14px; height:14px; margin:0; cursor:pointer;" disabled>)
                             </label>
                         </div>
@@ -722,10 +722,10 @@
                                 <!-- Header Labels -->
                                 <div
                                     style="display: flex; align-items: center; gap: 5px; font-size: 10px; color: #888; padding-left: 2px;">
-                                    <span style="flex: 0 0 130px;">?�영 ?�간 (HH:mm)</span>
+                                    <span style="flex: 0 0 130px;">운영 시간 (HH:mm)</span>
                                     <span style="flex: 0 0 45px; text-align: center;">주기</span>
-                                    <span style="flex: 0 0 45px; text-align: center;">?�동</span>
-                                    <span style="flex: 1; text-align: center;">?�호?�간(A/B)</span>
+                                    <span style="flex: 0 0 45px; text-align: center;">연동</span>
+                                    <span style="flex: 1; text-align: center;">신호시간(A/B)</span>
                                 </div>
 
                                 <div class="op-row-container">
@@ -745,10 +745,10 @@
                                         <div class="op-rings">
                                             <div class="op-ring"><span class="op-ring-lbl">Ring A:</span><input
                                                     type="text" id="op-splits-a-1" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                             <div class="op-ring"><span class="op-ring-lbl">Ring B:</span><input
                                                     type="text" id="op-splits-b-1" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                         </div>
                                     </div>
                                     <div class="op-row">
@@ -767,10 +767,10 @@
                                         <div class="op-rings">
                                             <div class="op-ring"><span class="op-ring-lbl">Ring A:</span><input
                                                     type="text" id="op-splits-a-2" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                             <div class="op-ring"><span class="op-ring-lbl">Ring B:</span><input
                                                     type="text" id="op-splits-b-2" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                         </div>
                                     </div>
                                     <div class="op-row">
@@ -789,16 +789,16 @@
                                         <div class="op-rings">
                                             <div class="op-ring"><span class="op-ring-lbl">Ring A:</span><input
                                                     type="text" id="op-splits-a-3" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                             <div class="op-ring"><span class="op-ring-lbl">Ring B:</span><input
                                                     type="text" id="op-splits-b-3" class="input-dark op-split"
-                                                    placeholder="?�시 1~8.." disabled></div>
+                                                    placeholder="현시 1~8.." disabled></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div style="font-size:9px; color:#666; margin-top:8px; line-height:1.2;">* ?�호?�간 ?�식: 8�??�자�?
-                                콤마(,)�?구분 (A, B 분리 ?�력)</div>
+                            <div style="font-size:9px; color:#666; margin-top:8px; line-height:1.2;">* 신호시간 형식: 8개 숫자를
+                                콤마(,)로 구분 (A, B 분리 입력)</div>
                         </div> <!-- operator intervention background -->
                     </div>
                 </div>
@@ -806,30 +806,30 @@
 
             <div class="sigma-panel" style="background: rgba(20, 20, 25, 0.7); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); margin-top: 15px;">
                 <div class="card-title" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                    <h3 style="margin: 0; color: var(--accent); font-family: 'Outfit'; font-weight: 800; font-size: 16px;">?�� ?�그?�맵 (Signal Map)</h3>
+                    <h3 style="margin: 0; color: var(--accent); font-family: 'Outfit'; font-weight: 800; font-size: 16px;">📊 시그널맵 (Signal Map)</h3>
                 </div>
                 <div class="foldable-content">
                     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-                        <span style="font-weight: bold; color: #fff; font-size: 13px;">?�그?�맵 번호:</span>
+                        <span style="font-weight: bold; color: #fff; font-size: 13px;">시그널맵 번호:</span>
                         <select id="sigmap-index-select" class="input-premium" style="width: 100px; height: 32px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white;" onchange="renderSignalMapTab()">
-                            <option value="0">?�랜 0</option>
-                            <option value="1">?�랜 1</option>
-                            <option value="2">?�랜 2</option>
-                            <option value="3">?�랜 3</option>
-                            <option value="4">?�랜 4</option>
-                            <option value="5">?�랜 5</option>
+                            <option value="0">플랜 0</option>
+                            <option value="1">플랜 1</option>
+                            <option value="2">플랜 2</option>
+                            <option value="3">플랜 3</option>
+                            <option value="4">플랜 4</option>
+                            <option value="5">플랜 5</option>
                         </select>
                         
-                        <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">?�� UTIC?�서 복사</button>
+                        <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">🌐 UTIC에서 복사</button>
                         
                         <label class="btn-neon magenta" style="display: inline-block; cursor: pointer; padding: 0 12px; height: 30px; line-height: 30px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 4px; margin: 0;">
-                            ?�� ?��??�서 복사
+                            📁 엑셀에서 복사
                             <input type="file" id="sigmap-excel-loader" style="display:none;" onchange="loadSignalMapFromExcel(this)">
                         </label>
                     </div>
                     
                     <div id="sigmap-loading-indicator" style="display:none; padding: 30px; text-align: center; color: #38bdf8; font-weight: bold;">
-                        <span style="display: inline-block; animation: blink 1.5s infinite;">???�그?�맵 ?�이?��? 불러?�는 �?..</span>
+                        <span style="display: inline-block; animation: blink 1.5s infinite;">⏳ 시그널맵 데이터를 불러오는 중...</span>
                     </div>
                     
                     <div id="sigmap-table-container" class="sigmap-container" style="overflow-x: auto; max-height: 700px; scrollbar-width: thin;">
@@ -848,17 +848,17 @@
                 <div
                     style="padding: 18px 25px; background: rgba(52, 152, 219, 0.05); border-bottom: 2px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h2 style="margin:0; font-size:18px; font-weight:900; color:var(--accent);">?�� ?�합 ?�이?�베?�스
+                        <h2 style="margin:0; font-size:18px; font-weight:900; color:var(--accent);">📂 통합 데이터베이스
                         </h2>
-                        <div style="margin-top:4px; font-size:11px; color:#777;">SIGMA ?�합 DB 규격??중앙?�서 ?�합 관리하�?로컬??캐싱?�니??
+                        <div style="margin-top:4px; font-size:11px; color:#777;">SIGMA 통합 DB 규격을 중앙에서 통합 관리하고 로컬에 캐싱합니다.
                         </div>
                     </div>
                     <div style="display:flex; gap:12px;">
                         <button onclick="openDBUpdateModal()" class="btn-neon magenta"
-                            style="height:40px; padding: 0 22px; font-size:13.5px; font-weight:900;">?�� DB ?�데?�트</button>
+                            style="height:40px; padding: 0 22px; font-size:13.5px; font-weight:900;">💾 DB 업데이트</button>
                         <button onclick="exportNormalizedDBFiles()"
-                            style="height:40px; padding:0 20px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:8px; cursor:pointer;">?��
-                            DB ?�합 ?�??/button>
+                            style="height:40px; padding:0 20px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:8px; cursor:pointer;">📤
+                            DB 통합 저장</button>
                     </div>
                 </div>
 
@@ -869,139 +869,139 @@
                             <!-- Static DB List with Clean CSS Classes -->
                             <div id="db-explorer-list-container">
                                 <div class="db-row-slim" id="row-inter">
-                                    <div class="category-info" style="color:#e74c3c;">?�� 교차�?마스??/div>
+                                    <div class="category-info" style="color:#e74c3c;">🚦 교차로 마스터</div>
                                     <div id="expl-name-inter" class="db-filename">DB_Intersections (Supabase)</div>
                                     <div class="db-type-badge">DB</div>
-                                    <div id="expl-status-inter" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-inter" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('inter')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('inter')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-inter').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('inter')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('inter')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-inter" onclick="clearDBFile('inter')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-maps">
-                                    <div class="category-info" style="color:#3498db;">?�� ?�호 �??�이??/div>
+                                    <div class="category-info" style="color:#3498db;">🚥 신호 맵 데이터</div>
                                     <div id="expl-name-maps" class="db-filename">DB_Signal_Maps (Supabase)</div>
                                     <div class="db-type-badge">MAP</div>
-                                    <div id="expl-status-maps" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-maps" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('maps')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('maps')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-maps').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('maps')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('maps')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-maps" onclick="clearDBFile('maps')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-plans">
-                                    <div class="category-info" style="color:#2ecc71;">?�� ?�영 계획(TOD)</div>
+                                    <div class="category-info" style="color:#2ecc71;">📅 운영 계획(TOD)</div>
                                     <div id="expl-name-plans" class="db-filename">DB_TOD_Plans (Supabase)</div>
                                     <div class="db-type-badge">TOD</div>
-                                    <div id="expl-status-plans" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-plans" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('plans')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('plans')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-plans').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('plans')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('plans')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-plans" onclick="clearDBFile('plans')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-groups">
-                                    <div class="category-info" style="color:#9b59b6;">?�� 그룹 ?�보 마스??/div>
+                                    <div class="category-info" style="color:#9b59b6;">🏢 그룹 정보 마스터</div>
                                     <div id="expl-name-groups" class="db-filename">DB_Groups (Supabase)</div>
                                     <div class="db-type-badge">GRP</div>
-                                    <div id="expl-status-groups" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-groups" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('groups')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('groups')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-groups').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('groups')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('groups')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-groups" onclick="clearDBFile('groups')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-stats">
-                                    <div class="category-info" style="color:#f1c40f;">?�� ?�근�??�계</div>
+                                    <div class="category-info" style="color:#f1c40f;">📈 접근로 통계</div>
                                     <div id="expl-name-stats" class="db-filename">db_stats</div>
                                     <div class="db-type-badge">ST</div>
-                                    <div id="expl-status-stats" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-stats" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('stats')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('stats')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-stats').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('stats')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('stats')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-stats" onclick="clearDBFile('stats')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-links">
-                                    <div class="category-info" style="color:#1abc9c;">?�� ?�동 구간</div>
+                                    <div class="category-info" style="color:#1abc9c;">🔗 연동 구간</div>
                                     <div id="expl-name-links" class="db-filename">db_coordlink</div>
                                     <div class="db-type-badge">GEO</div>
-                                    <div id="expl-status-links" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-links" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('links')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('links')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-links').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('links')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('links')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-links" onclick="clearDBFile('links')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-poly">
-                                    <div class="category-info" style="color:#2ecc71;">?�� ?�정경계</div>
+                                    <div class="category-info" style="color:#2ecc71;">💠 행정경계</div>
                                     <div id="expl-name-poly" class="db-filename">db_poly.geojson</div>
                                     <div class="db-type-badge">PLY</div>
-                                    <div id="expl-status-poly" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-poly" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('poly')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('poly')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-poly').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('poly')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('poly')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-poly" onclick="clearDBFile('poly')" class="btn-db-del"
-                                            title="??��">??/button>
+                                            title="삭제">❌</button>
                                     </div>
                                 </div>
                                 <div class="db-row-slim" id="row-yearbook">
-                                    <div class="category-info" style="color:#2ecc71;">?�� ?�호?�영 ?�보</div>
+                                    <div class="category-info" style="color:#2ecc71;">📗 신호운영 연보</div>
                                     <div id="expl-name-yearbook" class="db-filename">db_yearbook.csv</div>
                                     <div class="db-type-badge">ARC</div>
-                                    <div id="expl-status-yearbook" class="status-txt">[로드 ?��?</div>
+                                    <div id="expl-status-yearbook" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('yearbook')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔??DB ?�기??>?��</button>
+                                        <button onclick="syncSigmaDB('yearbook')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
                                         <button onclick="document.getElementById('file-load-db-yearbook').click()"
-                                            class="btn-db-action" title="?�기">?��</button>
+                                            class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('yearbook')" class="btn-db-action"
-                                            title="보기">?��</button>
+                                            title="보기">📋</button>
                                         <button onclick="saveDBFile('yearbook')" class="btn-db-action"
-                                            title="?�??>?��</button>
+                                            title="저장">💾</button>
                                         <button id="btn-del-yearbook" onclick="clearDBFile('yearbook')"
-                                            class="btn-db-del" title="??��">??/button>
+                                            class="btn-db-del" title="삭제">❌</button>
                                     </div>
                                 </div>
                             </div>
@@ -1011,11 +1011,11 @@
                     <div class="box-green">
                         <div class="xlsx-loader-header">
                             <div class="flex-row gap-12">
-                                <div class="xlsx-icon-box">?��</div>
-                                <div class="fs-15 fw-900" style="color:#2ecc71;">SISO ?�출???�일(XLSX) 로더</div>
+                                <div class="xlsx-icon-box">📗</div>
+                                <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
                             </div>
                             <button onclick="document.getElementById('xlsx-file-input').click()" class="btn-neon green"
-                                style="height:38px; padding:0 18px;">?�� ?�일 ?�택</button>
+                                style="height:38px; padding:0 18px;">📁 파일 선택</button>
                         </div>
                         <div id="xlsx-progress-container" class="p-10"
                             style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
@@ -1035,7 +1035,7 @@
                     <!-- [Merged] About System Information -->
                     <div class="sigma-panel" style="border-color: rgba(0, 243, 255, 0.3);">
                         <div class="card-title">
-                            <span>?�️ ?�스???�보 (SIGMA About)</span>
+                            <span>ℹ️ 시스템 정보 (SIGMA About)</span>
                         </div>
                         <div class="foldable-content">
                         <div class="glass-panel-premium p-30 mb-20" style="background: rgba(0, 212, 255, 0.05);">
@@ -1059,21 +1059,21 @@
                             <div class="flex-column gap-15">
                                 <p style="font-size: 14px; color: #fff; font-weight: 700;">SIGMA - Koroad Signal Management Architecture</p>
                                 <div class="flex-column gap-6" style="font-size: 12.5px; color: var(--text-dim);">
-                                    <div>??버전: <span style="color: var(--accent);">v2024.04.23 (SIGMA CORE)</span></div>
-                                    <div>??개발: <span style="color: #fff;">SIGMA Dev Team (Lead. ?�태??</span></div>
-                                    <div>??지?? 교통?�호 ?�이???��???�??�시�??��??�이??기반 ?�동 분석</div>
+                                    <div>• 버전: <span style="color: var(--accent);">v2024.04.23 (SIGMA CORE)</span></div>
+                                    <div>• 개발: <span style="color: #fff;">SIGMA Dev Team (Lead. 이태원)</span></div>
+                                    <div>• 지원: 교통신호 데이터 표준화 및 실시간 시뮬레이션 기반 연동 분석</div>
                                 </div>
                             </div>
                         </div>
 
                             <div class="p-10" style="line-height: 1.8; color: #eee;">
                                 <p class="fs-18 fw-600 text-accent" style="letter-spacing: -0.5px;">
-                                    "?�이???�합�?직�????�각?��? ?�한 교차�??�영???��???
+                                    "데이터 융합과 직관적 시각화를 통한 교차로 운영의 정밀화"
                                 </p>
                                 <p class="fs-12 mt-15" style="color: #bbb; text-align: justify; word-break: keep-all;">
-                                    SIGMA???�편?�된 ?�호 ?�어 ?�이?? 교차�?기하구조, 그리�??�장 민원 ?�력???�일 분석 ?�경?�로 ?�전?�게 ?�합?�는 ?�문가??교통공학
-                                    ?�레?�워?�입?�다.<br><br>?�순???�치 ?�태???�이?��? ?�차?�적 ?�적 ?��??�이?�과 ?�공�?Time-Space) 모델�?즉각 ?�환?�으로써, ?�무?��?
-                                    ?�심 교통망의 복잡??맥락???�확???�제?�고 가??최적?�된 ?�호 ?�략???�계?????�도�?강력???�사?�트�??�공?�니??
+                                    SIGMA는 파편화된 신호 제어 데이터, 교차로 기하구조, 그리고 현장 민원 이력을 단일 분석 환경으로 완전하게 통합하는 전문가용 교통공학
+                                    프레임워크입니다.<br><br>단순한 수치 형태의 데이터를 다차원적 동적 시뮬레이션과 시공간(Time-Space) 모델로 즉각 전환함으로써, 실무자가
+                                    도심 교통망의 복잡한 맥락을 정확히 통제하고 가장 최적화된 신호 전략을 설계할 수 있도록 강력한 인사이트를 제공합니다.
                                 </p>
                             </div>
 
@@ -1081,18 +1081,18 @@
                                 <button class="btn-main"
                                     style="width: 100%; height: 48px; font-size: 14px; border-radius:12px; font-weight: 600; background: var(--accent); color: #000; border: none; cursor: pointer;"
                                     onclick="window.open('Sigma_Manual.html', '_blank')">
-                                    ?�� ?�스??기술 매뉴???�기
+                                    📄 시스템 기술 매뉴얼 열기
                                 </button>
                             </div>
 
                             <div class="box-dark">
                                 <div class="flex-row-between mb-10">
                                     <span style="color: #888;">Developer / Creator</span>
-                                    <span class="fw-600" style="color: #fff;">?�태??(Traffic Signal Div.)</span>
+                                    <span class="fw-600" style="color: #fff;">이태원 (Traffic Signal Div.)</span>
                                 </div>
                                 <div class="flex-row-between mb-10">
                                     <span style="color: #888;">Organization</span>
-                                    <span style="color: #eee;">?�국?�로교통공단 (KoRoad)</span>
+                                    <span style="color: #eee;">한국도로교통공단 (KoRoad)</span>
                                 </div>
 
                             </div>
@@ -1122,10 +1122,10 @@
             <!-- Group Resizable Container -->
             <div class="sigma-panel p-0 mt-15">
                 <div class="card-title flex-row-between">
-                    <span>?�� 그룹 TOD ?�집</span>
+                    <span>👥 그룹 TOD 편집</span>
                     <button class="btn-sm btn-apply" onclick="applyGroupToMembers()"
-                        style="background: linear-gradient(135deg, #2980b9, #2471a3); font-size:11px; padding: 4px 12px; border:none; border-radius:4px; cursor:pointer;">??
-                        ?�택 그룹???�괄 ?�용</button>
+                        style="background: linear-gradient(135deg, #2980b9, #2471a3); font-size:11px; padding: 4px 12px; border:none; border-radius:4px; cursor:pointer;">✅
+                        선택 그룹에 일괄 적용</button>
                 </div>
                 <div class="foldable-content">
                     <input type="file" id="file-input-group" accept=".csv" style="display:none"
@@ -1135,9 +1135,9 @@
                         <!-- Group Detail (Left) -->
                         <div id="group-detail-panel" class="group-detail-panel">
 
-                            <!-- [개선] ?�합 컨트�?�?(?�자???�일) -->
+                            <!-- [개선] 통합 컨트롤 바 (디자인 통일) -->
                             <div class="group-control-bar">
-                                <!-- ID ?�역 -->
+                                <!-- ID 영역 -->
                                 <div class="group-id-wrap">
                                     <span class="fs-10 fw-800 text-dim" style="padding-right:4px;">ID</span>
                                     <input type="number" id="inp-edit-group-id"
@@ -1145,36 +1145,36 @@
                                         value="1">
                                 </div>
 
-                                <!-- ?�름 ?�력 -->
+                                <!-- 이름 입력 -->
                                 <input type="text" id="inp-group-name"
                                     style="flex: 1; min-width:60px; height:28px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius:4px; color:white; font-size:11.5px; padding:0 8px; outline:none;"
-                                    placeholder="그룹 ?�름" onchange="updateGroupName(this.value)">
+                                    placeholder="그룹 이름" onchange="updateGroupName(this.value)">
 
-                                <!-- 버튼 ?�트 (?�이 �??��????�일) -->
+                                <!-- 버튼 세트 (높이 및 스타일 통일) -->
                                 <div class="flex-row gap-4">
                                     <button onclick="loadGroupInfo()" class="btn-neon"
                                         style="height:28px; font-size:11px; padding:0 10px;">조회</button>
 
                                     <button id="btn-clear-highlights" onclick="clearHighlightGroupMembers()"
                                         style="background: #442222; height:28px; padding: 0 10px; font-size: 11px; color:#ff7675; border: 1px solid rgba(255,118,117,0.2); border-radius:4px; cursor:pointer; font-weight:600;"
-                                        title="지???�이?�이???�거">취소</button>
+                                        title="지도 하이라이트 제거">취소</button>
 
                                     <button onclick="applyGroupToMembers()"
                                         style="background: #1b5e20; height:28px; padding: 0 10px; font-size: 11px; color:#81c784; border: 1px solid rgba(129,199,132,0.2); border-radius:4px; cursor:pointer; font-weight:bold;"
-                                        title="?�재 ?�정??모든 ?�속 교차로에 ?�용">TOD ?�괄?�용</button>
+                                        title="현재 설정을 모든 소속 교차로에 적용">TOD 일괄적용</button>
                                 </div>
                             </div>
 
                             <div class="group-member-header">
                                 <span class="flex-row gap-6">
-                                    <span style="opacity:0.6;">?��</span> ?�속 교차�?<span id="group-member-count"
-                                        style="color:white; margin:0 2px;">0</span>�?
+                                    <span style="opacity:0.6;">📍</span> 소속 교차로 <span id="group-member-count"
+                                        style="color:white; margin:0 2px;">0</span>개
                                 </span>
                                 <div id="group-validation-status"
                                     style="font-size:10px; padding:2px 6px; border-radius:4px; display:none;"></div>
                             </div>
                             <div id="group-member-list" class="group-member-list">
-                                <div style="color: #666; text-align: center; padding: 15px;">ID�?조회?�세??</div>
+                                <div style="color: #666; text-align: center; padding: 15px;">ID를 조회하세요.</div>
                             </div>
                         </div>
 
@@ -1190,8 +1190,8 @@
                             style="flex: 1; background:#1a1a1a; display: flex; flex-direction: column; overflow: hidden; min-width: 150px;">
                             <div
                                 style="background:#222; padding:8px 12px; font-size:13px; font-weight:bold; color:var(--accent); border-bottom:1px solid #333; display: flex; justify-content: space-between;">
-                                <span>?�� 그룹 목록</span>
-                                <span class="fs-11 fw-500" style="color: #888;">*??�� ?�릭 ???�세조회</span>
+                                <span>📜 그룹 목록</span>
+                                <span class="fs-11 fw-500" style="color: #888;">*항목 클릭 시 상세조회</span>
                             </div>
                             <div id="group-list-container" style="flex:1; overflow-y:auto; background: #000;">
                                 <!-- JS LOADER READY -->
@@ -1200,27 +1200,27 @@
                         </div>
                     </div>
 
-                    <!-- [?�동?? 그룹 TOD ?�정 ?�이�?-->
+                    <!-- [이동됨] 그룹 TOD 설정 테이블 -->
                     <div class="mb-5">
                         <div class="op-row-between mb-5" style="border-bottom: 1px solid #333; padding-bottom: 4px;">
-                            <h5 class="m-0 flex-row gap-6 text-accent">?�� 그룹 TOD ?�정 (?�간/주기)</h5>
+                            <h5 class="m-0 flex-row gap-6 text-accent">📅 그룹 TOD 설정 (시간/주기)</h5>
                             <div class="flex-row gap-10">
                                 <div class="flex-row gap-8 p-4-10 chart-box-bg" style="background: rgba(0,0,0,0.2);">
-                                    <span class="fs-11 text-dim">?�이??복사:</span>
+                                    <span class="fs-11 text-dim">데이터 복사:</span>
                                     <select id="copy-from-day" class="tsd-select" style="width: 70px;">
-                                        <option value="0">?�계??1</option>
-                                        <option value="1">?�계??2</option>
-                                        <option value="2">?�계??3</option>
-                                        <option value="3">?�계??4</option>
-                                        <option value="4">?�계??5</option>
-                                        <option value="5">?�계??6</option>
-                                        <option value="6">?�계??7</option>
-                                        <option value="7">?�계??8</option>
-                                        <option value="8">?�계??9</option>
-                                        <option value="9">?�계??10</option>
+                                        <option value="0">일계획 1</option>
+                                        <option value="1">일계획 2</option>
+                                        <option value="2">일계획 3</option>
+                                        <option value="3">일계획 4</option>
+                                        <option value="4">일계획 5</option>
+                                        <option value="5">일계획 6</option>
+                                        <option value="6">일계획 7</option>
+                                        <option value="7">일계획 8</option>
+                                        <option value="8">일계획 9</option>
+                                        <option value="9">일계획 10</option>
                                     </select>
                                     <button class="btn-sm" onclick="copyGroupTODDay()"
-                                        style="background:#8e44ad; padding: 2px 8px; font-size: 11px;">가?�오�?/button>
+                                        style="background:#8e44ad; padding: 2px 8px; font-size: 11px;">가져오기</button>
                                 </div>
                             </div>
                         </div>
@@ -1235,70 +1235,70 @@
                                         <th class="gtod-th-sa">#</th>
                                         <th colspan="3" id="day-header-0" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??1</span>
+                                                <span>일계획 1</span>
                                                 <input type="text" class="inp-plan-alias" data-day="0" placeholder="명칭"
                                                     onchange="updatePlanAlias(0, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-1" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??2</span>
+                                                <span>일계획 2</span>
                                                 <input type="text" class="inp-plan-alias" data-day="1" placeholder="명칭"
                                                     onchange="updatePlanAlias(1, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-2" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??3</span>
+                                                <span>일계획 3</span>
                                                 <input type="text" class="inp-plan-alias" data-day="2" placeholder="명칭"
                                                     onchange="updatePlanAlias(2, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-3" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??4</span>
+                                                <span>일계획 4</span>
                                                 <input type="text" class="inp-plan-alias" data-day="3" placeholder="명칭"
                                                     onchange="updatePlanAlias(3, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-4" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??5</span>
+                                                <span>일계획 5</span>
                                                 <input type="text" class="inp-plan-alias" data-day="4" placeholder="명칭"
                                                     onchange="updatePlanAlias(4, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-5" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??6</span>
+                                                <span>일계획 6</span>
                                                 <input type="text" class="inp-plan-alias" data-day="5" placeholder="명칭"
                                                     onchange="updatePlanAlias(5, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-6" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??7</span>
+                                                <span>일계획 7</span>
                                                 <input type="text" class="inp-plan-alias" data-day="6" placeholder="명칭"
                                                     onchange="updatePlanAlias(6, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-7" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??8</span>
+                                                <span>일계획 8</span>
                                                 <input type="text" class="inp-plan-alias" data-day="7" placeholder="명칭"
                                                     onchange="updatePlanAlias(7, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-8" class="gtod-th-day">
                                             <div class="plan-header-cell">
-                                                <span>?�계??9</span>
+                                                <span>일계획 9</span>
                                                 <input type="text" class="inp-plan-alias" data-day="8" placeholder="명칭"
                                                     onchange="updatePlanAlias(8, this.value)">
                                             </div>
                                         </th>
                                         <th colspan="3" id="day-header-9" class="gtod-th-day-last">
                                             <div class="plan-header-cell">
-                                                <span>?�계??10</span>
+                                                <span>일계획 10</span>
                                                 <input type="text" class="inp-plan-alias" data-day="9" placeholder="명칭"
                                                     onchange="updatePlanAlias(9, this.value)">
                                             </div>
@@ -1344,10 +1344,10 @@
                         </div>
                     </div>
 
-                    <!-- [?�동?? Group Cycle Profile ?�널 -->
+                    <!-- [이동됨] Group Cycle Profile 패널 -->
                     <div class="box-yellow">
                         <div class="op-row-between mb-12">
-                            <div class="fs-13 text-accent fw-800 uppercase ls-1">?�� Group Cycle Profile</div>
+                            <div class="fs-13 text-accent fw-800 uppercase ls-1">📈 Group Cycle Profile</div>
                             <div class="flex-row gap-8 fs-11" id="group-chart-day-selector">
                                 <!-- JS dynamic injection: Checkboxes -->
                             </div>
@@ -1357,12 +1357,12 @@
                         </div>
                     </div>
 
-                    <!-- [?�동???�치] TSD ?�정 ?�트 관�??�널 -->
+                    <!-- [이동된 위치] TSD 설정 세트 관리 패널 -->
                     <div class="box-cyan mb-10">
                         <div class="op-row-between mb-10">
                             <div class="fs-13 text-neon fw-800 flex-row gap-8">
-                                <span class="fs-16">?��</span> ?�공??TSD) 분석 ?�트 관�?<span class="fs-10 text-dim fw-500">(최�?
-                                    3�??�트 ?�??가??</span>
+                                <span class="fs-16">📐</span> 시공도(TSD) 분석 세트 관리 <span class="fs-10 text-dim fw-500">(최대
+                                    3개 세트 저장 가능)</span>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
@@ -1371,59 +1371,59 @@
                                 <div class="tsd-set-header">
                                     <span class="tsd-set-title">SET 1</span>
                                     <label class="tsd-set-label"><input type="checkbox" id="tsd-set-enable-0"
-                                            onchange="updateGroupTsdConfig(0)"> ?�성??/label>
+                                            onchange="updateGroupTsdConfig(0)"> 활성화</label>
                                 </div>
-                                <div id="tsd-set-info-0" class="tsd-set-info-text">?�이???�음</div>
-                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(0)">?�재 구성 ?�??/button>
+                                <div id="tsd-set-info-0" class="tsd-set-info-text">데이터 없음</div>
+                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(0)">현재 구성 저장</button>
                             </div>
                             <!-- SET 2 -->
                             <div class="tsd-set-card">
                                 <div class="tsd-set-header">
                                     <span class="tsd-set-title">SET 2</span>
                                     <label class="tsd-set-label"><input type="checkbox" id="tsd-set-enable-1"
-                                            onchange="updateGroupTsdConfig(1)"> ?�성??/label>
+                                            onchange="updateGroupTsdConfig(1)"> 활성화</label>
                                 </div>
-                                <div id="tsd-set-info-1" class="tsd-set-info-text">?�이???�음</div>
-                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(1)">?�재 구성 ?�??/button>
+                                <div id="tsd-set-info-1" class="tsd-set-info-text">데이터 없음</div>
+                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(1)">현재 구성 저장</button>
                             </div>
                             <!-- SET 3 -->
                             <div class="tsd-set-card">
                                 <div class="tsd-set-header">
                                     <span class="tsd-set-title">SET 3</span>
                                     <label class="tsd-set-label"><input type="checkbox" id="tsd-set-enable-2"
-                                            onchange="updateGroupTsdConfig(2)"> ?�성??/label>
+                                            onchange="updateGroupTsdConfig(2)"> 활성화</label>
                                 </div>
-                                <div id="tsd-set-info-2" class="tsd-set-info-text">?�이???�음</div>
-                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(2)">?�재 구성 ?�??/button>
+                                <div id="tsd-set-info-2" class="tsd-set-info-text">데이터 없음</div>
+                                <button class="tsd-btn-save" onclick="captureCurrentTsdToSet(2)">현재 구성 저장</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- ?�� Professional TSD Console -->
+            <!-- 📊 Professional TSD Console -->
             <div class="sigma-panel mt-25 p-0" style="border-color: rgba(0, 243, 255, 0.2); background: #0a0c10;">
                 <div class="tsd-console-header flex-col">
                     <!-- Row 1: Title and Core Status -->
                     <div class="flex-row-between w-100">
                         <div class="flex-row gap-12">
                             <div class="tsd-icon-box">
-                                <span class="fs-16">?��</span>
+                                <span class="fs-16">📊</span>
                             </div>
                             <div>
-                                <h3 class="m-0 fs-15 fw-800 ls-05 text-white">?�동 ?�공??분석 콘솔</h3>
+                                <h3 class="m-0 fs-15 fw-800 ls-05 text-white">연동 시공도 분석 콘솔</h3>
                                 <p class="m-0 fs-10 text-dim uppercase">Professional Time-Space Analytics Engine</p>
                             </div>
                         </div>
-                        <div id="tsd-info-text" class="tsd-status-badge">?�이??분석 ?��?�?..</div>
+                        <div id="tsd-info-text" class="tsd-status-badge">데이터 분석 대기 중...</div>
                     </div>
 
                     <!-- Row 2: Controls & Buttons -->
                     <div class="tsd-control-bar">
-                        <!-- ?�쪽: ?�동�?+ ?�도 -->
+                        <!-- 왼쪽: 연동축 + 속도 -->
                         <div class="tsd-opt-group">
                             <!-- Axis -->
                             <div class="flex-row gap-8">
-                                <span class="tsd-label-tiny">?�동�?/span>
+                                <span class="tsd-label-tiny">연동축</span>
                                 <div class="tsd-input-wrap p-2">
                                     <label class="fs-10 text-white pointer p-3-10 flex-row gap-4">
                                         <input type="radio" name="tsd-axis" value="ew" checked
@@ -1438,7 +1438,7 @@
                             <!-- Speed -->
                             <div class="flex-row gap-6 border-l-1 pl-14"
                                 style="border-left-color: rgba(255,255,255,0.06);">
-                                <span class="tsd-label-tiny">?�도</span>
+                                <span class="tsd-label-tiny">속도</span>
                                 <div class="tsd-input-wrap">
                                     <input type="number" id="tsd-speed" value="50" step="5"
                                         onchange="renderTimeSpaceDiagram()"
@@ -1450,23 +1450,23 @@
                             <div class="flex-row gap-10 border-l-1 pl-14"
                                 style="border-left-color: rgba(255,255,255,0.06);">
                                 <div class="flex-row gap-6">
-                                    <span class="tsd-label-tiny">?�계??/span>
+                                    <span class="tsd-label-tiny">일계획</span>
                                     <select id="tsd-day-plan" onchange="updateTsdTimeSlots(); renderTimeSpaceDiagram();"
                                         class="tsd-select">
-                                        <option value="0">?�계??1</option>
-                                        <option value="1">?�계??2</option>
-                                        <option value="2">?�계??3</option>
-                                        <option value="3">?�계??4</option>
-                                        <option value="4">?�계??5</option>
-                                        <option value="5">?�계??6</option>
-                                        <option value="6">?�계??7</option>
-                                        <option value="7">?�계??8</option>
-                                        <option value="8">?�계??9</option>
-                                        <option value="9">?�계??10</option>
+                                        <option value="0">일계획 1</option>
+                                        <option value="1">일계획 2</option>
+                                        <option value="2">일계획 3</option>
+                                        <option value="3">일계획 4</option>
+                                        <option value="4">일계획 5</option>
+                                        <option value="5">일계획 6</option>
+                                        <option value="6">일계획 7</option>
+                                        <option value="7">일계획 8</option>
+                                        <option value="8">일계획 9</option>
+                                        <option value="9">일계획 10</option>
                                     </select>
                                 </div>
                                 <div class="flex-row gap-6">
-                                    <span class="tsd-label-tiny">?�간</span>
+                                    <span class="tsd-label-tiny">시간</span>
                                     <select id="tsd-time-slot" onchange="renderTimeSpaceDiagram()" class="tsd-select"
                                         style="min-width:60px;">
                                         <!-- JS Loader -->
@@ -1474,7 +1474,7 @@
                                 </div>
                                 <div class="flex-row gap-6 border-l-1 pl-10"
                                     style="border-left-color: rgba(255,255,255,0.06);">
-                                    <span class="tsd-label-tiny">분석 ?�트</span>
+                                    <span class="tsd-label-tiny">분석 세트</span>
                                     <select id="tsd-config-set" onchange="renderTimeSpaceDiagram()" class="tsd-select"
                                         style="color:var(--neon-magenta); border-color: rgba(255,0,255,0.2);">
                                         <option value="0">SET 1</option>
@@ -1483,28 +1483,28 @@
                                     </select>
                                 </div>
                             </div>
-                            <!-- 범�? -->
+                            <!-- 범례 -->
                             <div class="flex-row gap-12 border-l-1 pl-14"
                                 style="border-left-color: rgba(255,255,255,0.06);">
                                 <span class="tsd-legend-item">
                                     <span class="tsd-legend-bar"
-                                        style="background:rgba(0,230,118,0.4); border-color:#00e676;"></span>UP??
+                                        style="background:rgba(0,230,118,0.4); border-color:#00e676;"></span>UP↑
                                 </span>
                                 <span class="tsd-legend-item">
                                     <span class="tsd-legend-bar"
-                                        style="background:rgba(0,243,255,0.4); border-color:#00f3ff;"></span>DOWN??
+                                        style="background:rgba(0,243,255,0.4); border-color:#00f3ff;"></span>DOWN↓
                                 </span>
                             </div>
                         </div>
 
-                        <!-- ?�른�? 버튼??-->
+                        <!-- 오른쪽: 버튼들 -->
                         <div class="flex-row gap-8 justify-end">
                             <button onclick="resetTsdOffsets()"
                                 style="background:#1e1610; color:#ff8a65; border:1px solid #55331a; padding:5px 13px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; transition:0.2s;"
-                                title="?�프?�을 초기 ?�태�?초기??>??RESET</button>
+                                title="오프셋을 초기 상태로 초기화">↺ RESET</button>
                             <button onclick="openTsdPopup()"
                                 style="background:#0d1f14; color:#00e676; border:1px solid rgba(0,230,118,0.4); padding:5px 13px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; transition:0.2s;"
-                                title="??창에???�게보기">???�게보기</button>
+                                title="새 창에서 크게보기">⛶ 크게보기</button>
                         </div>
                     </div>
                 </div>
@@ -1517,10 +1517,10 @@
                     <!-- Footnote / System Help -->
                     <div class="mt-12 fs-10 flex-row-between p-0-5" style="color: #444;">
                         <div class="flex-row gap-15">
-                            <span>??Grid: 60s Interval</span>
-                            <span>??ID: Movement Tagging Enabled</span>
+                            <span>● Grid: 60s Interval</span>
+                            <span>● ID: Movement Tagging Enabled</span>
                         </div>
-                        <div style="color: #666; font-style: italic;">* ?�면 ?�서(Diagram Order) ?�정 값을 기�??�로 ?�각?�됩?�다.</div>
+                        <div style="color: #666; font-style: italic;">* 도면 순서(Diagram Order) 설정 값을 기준으로 시각화됩니다.</div>
                     </div>
                 </div>
             </div>
@@ -1529,7 +1529,7 @@
         <div id="tab-stats1" class="tab-content">
             <div class="sigma-panel">
                 <div class="card-title">
-                    <span>?���?Data Input</span>
+                    <span>🛠️ Data Input</span>
                 </div>
                 <div class="foldable-content">
                     <!-- Top Section: Side-by-Side Viz & Inspector -->
@@ -1539,14 +1539,14 @@
                         <div class="viz-sidebar-opt flex-col gap-10" style="flex: 0 0 320px;">
                             <div id="junction-name-banner" class="junction-banner flex-col gap-8">
                                 <div class="flex-row-between w-100">
-                                    <span id="target-name" class="flex-1 text-left">교차로�? ?�택?�세??/span>
+                                    <span id="target-name" class="flex-1 text-left">교차로를 선택하세요</span>
                                     <button class="btn-neon magenta" onclick="syncOptFromSignals()"
-                                        style="height: 28px; font-size: 11px; padding: 0 12px; border-radius: 6px; flex-shrink: 0; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);">?��
-                                        개별 ?�시 ?�정</button>
+                                        style="height: 28px; font-size: 11px; padding: 0 12px; border-radius: 6px; flex-shrink: 0; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);">🔄
+                                        개별 현시 설정</button>
                                 </div>
                                 <button class="btn-neon w-100" onclick="syncAllOptFromSignals()"
                                     style="height: 32px; font-size: 12px; font-weight:900; background:rgba(0, 243, 255, 0.1); border-color:rgba(0, 243, 255, 0.4); color:var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
-                                    ?? ?�체 교차�??�괄 ?�시 ?�정
+                                    🚀 전체 교차로 일괄 현시 설정
                                 </button>
                             </div>
 
@@ -1565,8 +1565,8 @@
                                 <div class="sector-header-opt foldable-header collapsed flex-row-between p-4-8"
                                     onclick="toggleSection(this)"
                                     style="background:rgba(255,192,0,0.1); border-radius:4px; cursor:pointer;">
-                                    <span class="fs-11">?�� ?�시 ?�이??(Ring A/B)</span>
-                                    <span class="fold-icon">??/span>
+                                    <span class="fs-11">🚦 현시 데이터 (Ring A/B)</span>
+                                    <span class="fold-icon">▼</span>
                                 </div>
                                 <div class="foldable-content mt-5">
                                     <div id="opt-mov-combined-container"></div>
@@ -1576,7 +1576,7 @@
                             <!-- Junction Summary Table -->
                             <div class="viz-sector-opt">
                                 <div class="sector-header-opt fs-11-5 mb-8 pb-4 border-b-1"
-                                    style="border-bottom-color:#444;">?�� ?�영/?�계 ?�약</div>
+                                    style="border-bottom-color:#444;">📊 운영/통계 요약</div>
                                 <div id="j-stats-container">
                                     <table id="j-stats-table" class="w-100 fs-11" style="border-collapse: collapse;">
                                         <tbody id="j-stats-tbody"></tbody>
@@ -1590,7 +1590,7 @@
                             style="display:none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
                             <div class="sector-header-opt flex-row-between gap-10 mb-10 pb-5 border-b-1"
                                 style="color:#e67e22; border-bottom-color:#444;">
-                                <span class="fs-13 fw-800">?���?방향�?차로 �??�영 ?�성</span>
+                                <span class="fs-13 fw-800">🏗️ 방향별 차로 및 운영 속성</span>
                             </div>
 
                             <!-- Lane Fields (Unified with Pedestrian & Auxiliary) -->
@@ -1601,47 +1601,47 @@
                                 <!-- Left Turn column -->
                                 <div>
                                     <div class="fs-11 fw-800 mb-6 pb-2 border-b-1 text-accent"
-                                        style="border-bottom-color: rgba(241, 196, 15, 0.3);">?�️ 좌회???�호</div>
+                                        style="border-bottom-color: rgba(241, 196, 15, 0.3);">↩️ 좌회전 신호</div>
                                     <div class="op-check-row-opt"
                                         style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
                                         <label class="fs-10-5"><input type="checkbox" data-op="leftProt"> 보호</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftUnprot"> 비보??/label>
+                                        <label class="fs-10-5"><input type="checkbox" data-op="leftUnprot"> 비보호</label>
                                         <label class="fs-10-5"><input type="checkbox" data-op="leftPplt"> PPLT</label>
                                         <label class="fs-10-5"><input type="checkbox" data-op="leftPdlt"> PDLT</label>
                                         <label class="fs-10-5"><input type="checkbox" data-op="leftTurnSimul">
-                                            ?�시</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftLeadLag"> ????/label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="uTurnSig"> ?�턴</label>
+                                            동시</label>
+                                        <label class="fs-10-5"><input type="checkbox" data-op="leftLeadLag"> 선/후</label>
+                                        <label class="fs-10-5"><input type="checkbox" data-op="uTurnSig"> 유턴</label>
                                     </div>
                                 </div>
 
                                 <!-- Right Turn column -->
                                 <div>
-                                    <div class="section-label-small label-orange">?�️ ?�회???�호</div>
+                                    <div class="section-label-small label-orange">↪️ 우회전 신호</div>
                                     <div class="op-check-row-opt grid-1col">
-                                        <label><input type="checkbox" data-op="rightOnly"> ?�회?�전??/label>
-                                        <label><input type="checkbox" data-op="rightChannel"> ?�류로신??/label>
+                                        <label><input type="checkbox" data-op="rightOnly"> 우회전전용</label>
+                                        <label><input type="checkbox" data-op="rightChannel"> 도류로신호</label>
                                     </div>
                                 </div>
 
                                 <!-- Pedestrian column -->
                                 <div>
-                                    <div class="section-label-small label-green">?�� 보행 ?�호</div>
+                                    <div class="section-label-small label-green">🚶 보행 신호</div>
                                     <div class="op-check-row-opt grid-2col">
-                                        <label><input type="checkbox" data-op="pedEarly"> 보행??/label>
+                                        <label><input type="checkbox" data-op="pedEarly"> 보행전</label>
                                         <label><input type="checkbox" data-op="pedLpi"> LPI</label>
                                         <label><input type="checkbox" data-op="spd07"> 0.7m/s</label>
-                                        <label><input type="checkbox" data-op="pedExt"> 보행?�장</label>
-                                        <label><input type="checkbox" data-op="pedMulti"> ?�회보행</label>
-                                        <label><input type="checkbox" data-op="pedSimul"> ?�시보행</label>
-                                        <label><input type="checkbox" data-op="autoExt"> ?�동?�장</label>
-                                        <label><input type="checkbox" data-op="pedLagActive"> 보행?�차</label>
+                                        <label><input type="checkbox" data-op="pedExt"> 보행연장</label>
+                                        <label><input type="checkbox" data-op="pedMulti"> 다회보행</label>
+                                        <label><input type="checkbox" data-op="pedSimul"> 동시보행</label>
+                                        <label><input type="checkbox" data-op="autoExt"> 자동연장</label>
+                                        <label><input type="checkbox" data-op="pedLagActive"> 보행시차</label>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Actuation Session -->
-                            <div class="section-label-small label-blue mt-12">??감응 ?�호 ?�어</div>
+                            <div class="section-label-small label-blue mt-12">⚡ 감응 신호 제어</div>
                             <div id="actuation-container" class="act-group-opt">
                                 <!-- Dynamic: actuation-container -->
                             </div>
@@ -1650,13 +1650,13 @@
                 </div>
             </div>
 
-            <!-- 2. ?�근로별 ?�영 지??-->
+            <!-- 2. 접근로별 운영 지표 -->
             <div class="sigma-panel mt-15">
                 <div class="card-title flex-row">
-                    <span>?�� ?�근로별 ?�세 ?�영 지??/span>
+                    <span>📋 접근로별 상세 운영 지표</span>
                     <button class="btn-sm ml-auto" id="btn-expand-stats" onclick="toggleStatsExpand()"
-                        style="padding: 2px 8px; font-size: 10px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">??
-                        방향 ?�장 (8지)</button>
+                        style="padding: 2px 8px; font-size: 10px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">➕
+                        방향 확장 (8지)</button>
                 </div>
                 <div class="foldable-content">
                     <div id="op-stats-container" class="sigma-panel scroll-x">
@@ -1672,92 +1672,92 @@
         <div id="tab-stats" class="tab-content">
             <div class="sigma-panel">
                 <div class="card-title">
-                    <span>?�� Data View</span>
+                    <span>📊 Data View</span>
                 </div>
                 <div class="foldable-content">
-                    <div id="stat-no-data" class="text-center p-50" style="color:#555;">?�이?��? 먼�? 불러?�주세??</div>
+                    <div id="stat-no-data" class="text-center p-50" style="color:#555;">데이터를 먼저 불러와주세요.</div>
                     <div id="stat-content" style="display:none;">
                         <div id="stat-summary-grid" class="grid-3col mb-20">
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid var(--accent);">
-                                <h4 class="fs-13 text-dim mb-12">교차�???/h4>
+                                <h4 class="fs-13 text-dim mb-12">교차로 수</h4>
                                 <div id="stat-total-count" class="fs-42 fw-900 text-accent ls-1">0</div>
                             </div>
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid #1abc9c;">
-                                <h4 class="fs-13 text-dim mb-12">?�체 ?�계????/h4>
+                                <h4 class="fs-13 text-dim mb-12">전체 일계획 수</h4>
                                 <div id="stat-total-plans" class="fs-42 fw-900 ls-1" style="color:#1abc9c;">0</div>
                             </div>
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid #f1c40f;">
-                                <h4 class="fs-13 text-dim mb-12">?�용 중인 ?�계????/h4>
+                                <h4 class="fs-13 text-dim mb-12">사용 중인 일계획 수</h4>
                                 <div id="stat-active-plans" class="fs-42 fw-900 ls-1" style="color:#f1c40f;">0</div>
                             </div>
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid #3498db;">
-                                <h4 class="fs-13 text-dim mb-12">?�동 그룹 ??/h4>
+                                <h4 class="fs-13 text-dim mb-12">연동 그룹 수</h4>
                                 <div id="stat-total-groups" class="fs-42 fw-900 ls-1" style="color:#3498db;">0</div>
                             </div>
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid #9b59b6;">
-                                <h4 class="fs-13 text-dim mb-12">?�균 교차�?복잡??/h4>
+                                <h4 class="fs-13 text-dim mb-12">평균 교차로 복잡도</h4>
                                 <div id="stat-avg-complexity" class="fs-42 fw-900 ls-1" style="color:#9b59b6;">0.0</div>
                             </div>
                             <div class="sigma-panel p-25 chart-box-bg m-0 text-center"
                                 style="border-top: 2px solid #e74c3c;">
-                                <h4 class="fs-13 text-dim mb-12">?�수 보호구역</h4>
+                                <h4 class="fs-13 text-dim mb-12">특수 보호구역</h4>
                                 <div id="stat-special-zones" class="fs-42 fw-900 ls-1" style="color:#e74c3c;">0</div>
                             </div>
                         </div>
 
-                        <!-- [?�규] ?�계 ?�터 (구청/경찰?? -->
+                        <!-- [신규] 통계 필터 (구청/경찰서) -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
                             <div class="flex-row gap-20">
                                 <div style="flex: 1;">
-                                    <div class="text-dim fs-11 mb-8">?�� 관리청(구청) ?�터</div>
+                                    <div class="text-dim fs-11 mb-8">🏢 관리청(구청) 필터</div>
                                     <select id="stat-office-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                                        <option value="ALL">?�체 관리청</option>
+                                        <option value="ALL">전체 관리청</option>
                                     </select>
                                 </div>
                                 <div style="flex: 1;">
-                                    <div class="text-dim fs-11 mb-8">?�� 경찰???�터</div>
+                                    <div class="text-dim fs-11 mb-8">👮 경찰서 필터</div>
                                     <select id="stat-police-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                                        <option value="ALL">?�체 경찰??/option>
+                                        <option value="ALL">전체 경찰서</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- [?�규] ?�계???�중 ?�택�?-->
+                        <!-- [신규] 일계획 다중 선택바 -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
-                            <div class="text-dim fs-11 mb-8">?�� 비교 분석 ?�계???�택 (?�중 ?�택 가??</div>
+                            <div class="text-dim fs-11 mb-8">📊 비교 분석 일계획 선택 (다중 선택 가능)</div>
                             <div class="flex-row gap-12 wrap">
                                 <label class="stat-day-label">
                                     <input type="checkbox" class="stat-day-chk" value="0" checked
-                                        onchange="renderStats()"> ?�계??1
+                                        onchange="renderStats()"> 일계획 1
                                 </label>
                                 <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="1" onchange="renderStats()"> ?�계??
+                                    <input type="checkbox" class="stat-day-chk" value="1" onchange="renderStats()"> 일계획
                                     2
                                 </label>
                                 <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="2" onchange="renderStats()"> ?�계??
+                                    <input type="checkbox" class="stat-day-chk" value="2" onchange="renderStats()"> 일계획
                                     3
                                 </label>
                                 <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="3" onchange="renderStats()"> ?�계??
+                                    <input type="checkbox" class="stat-day-chk" value="3" onchange="renderStats()"> 일계획
                                     4
                                 </label>
                                 <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="4" onchange="renderStats()"> ?�계??
+                                    <input type="checkbox" class="stat-day-chk" value="4" onchange="renderStats()"> 일계획
                                     5
                                 </label>
                             </div>
                         </div>
 
                         <div class="sigma-panel mb-30">
-                            <h5 class="flex-row gap-8 mb-10">?�� ?�간?��??�균 주기 ?�약 ?�이�?<small
-                                    class="fw-normal text-dim-dark">(?�체 교차�??�균)</small></h5>
+                            <h5 class="flex-row gap-8 mb-10">📑 시간대별 평균 주기 요약 테이블 <small
+                                    class="fw-normal text-dim-dark">(전체 교차로 평균)</small></h5>
                             <div class="chart-box-bg scroll-x" style="border: 1px solid rgba(255,255,255,0.05);">
                                 <div id="stat-cycle-avg-container"></div>
                             </div>
@@ -1765,45 +1765,45 @@
 
                         <div class="chart-container mb-35" style="position: relative; height:250px;">
                             <div class="flex-row-between mb-10">
-                                <h5 class="m-0">?�� ?�호주기 분포 (Cycle Distribution)</h5>
+                                <h5 class="m-0">📉 신호주기 분포 (Cycle Distribution)</h5>
                                 <select id="stat-hour-select" onchange="renderStats()" class="tsd-select">
-                                    <option value="0">00??/option>
-                                    <option value="1">01??/option>
-                                    <option value="2">02??/option>
-                                    <option value="3">03??/option>
-                                    <option value="4">04??/option>
-                                    <option value="5">05??/option>
-                                    <option value="6">06??/option>
-                                    <option value="7">07??/option>
-                                    <option value="8">08??/option>
-                                    <option value="9">09??/option>
-                                    <option value="10">10??/option>
-                                    <option value="11">11??/option>
-                                    <option value="12" selected>12??/option>
-                                    <option value="13">13??/option>
-                                    <option value="14">14??/option>
-                                    <option value="15">15??/option>
-                                    <option value="16">16??/option>
-                                    <option value="17">17??/option>
-                                    <option value="18">18??/option>
-                                    <option value="19">19??/option>
-                                    <option value="20">20??/option>
-                                    <option value="21">21??/option>
-                                    <option value="22">22??/option>
-                                    <option value="23">23??/option>
+                                    <option value="0">00시</option>
+                                    <option value="1">01시</option>
+                                    <option value="2">02시</option>
+                                    <option value="3">03시</option>
+                                    <option value="4">04시</option>
+                                    <option value="5">05시</option>
+                                    <option value="6">06시</option>
+                                    <option value="7">07시</option>
+                                    <option value="8">08시</option>
+                                    <option value="9">09시</option>
+                                    <option value="10">10시</option>
+                                    <option value="11">11시</option>
+                                    <option value="12" selected>12시</option>
+                                    <option value="13">13시</option>
+                                    <option value="14">14시</option>
+                                    <option value="15">15시</option>
+                                    <option value="16">16시</option>
+                                    <option value="17">17시</option>
+                                    <option value="18">18시</option>
+                                    <option value="19">19시</option>
+                                    <option value="20">20시</option>
+                                    <option value="21">21시</option>
+                                    <option value="22">22시</option>
+                                    <option value="23">23시</option>
                                 </select>
                             </div>
                             <canvas id="chart-cycle-dist"></canvas>
                         </div>
 
                         <div class="chart-container mb-30" style="position: relative; height:250px;">
-                            <h5 class="mb-10">?�� ?�간?��??�균 주기 (Hourly Avg Cycle)</h5>
+                            <h5 class="mb-10">📈 시간대별 평균 주기 (Hourly Avg Cycle)</h5>
                             <canvas id="chart-hourly-avg"></canvas>
                         </div>
 
                         <div id="stat-op-summary-panel" class="sigma-panel mt-20 border-l-4"
                             style="background:rgba(0,0,0,0.25); border-left-color:#00d4ff;">
-                            <h4 class="text-neon-cyan fs-13 flex-row gap-8 mb-12">?�� ?�호 주요 ?�영 ?�황 (Signal Assets)</h4>
+                            <h4 class="text-neon-cyan fs-13 flex-row gap-8 mb-12">📊 신호 주요 운영 현황 (Signal Assets)</h4>
                             <div id="stat-op-summary" class="p-5">
                                 <!-- JS dynamic injection: Road Facilities, Signal Operations, Controllers -->
                             </div>
@@ -1812,38 +1812,38 @@
                         <div id="stat-insights-area" class="mt-20">
                             <div class="sigma-panel mb-20 border-l-4"
                                 style="background:rgba(26, 188, 156, 0.05); border-left-color: #1abc9c;">
-                                <h4 class="text-accent-teal flex-row gap-8 mb-15">???�이??분석 추천 ?�사?�트</h4>
+                                <h4 class="text-accent-teal flex-row gap-8 mb-15">✨ 데이터 분석 추천 인사이트</h4>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                                     <ul class="pl-20 fs-13 text-dim-dark ls-1-8 m-0" style="list-style-type: disc;">
-                                        <li><b>?�균 교차�?복잡??</b> <span id="insight-complexity"
-                                                class="text-accent fw-800">--</span> <small>(?�시???�균 ?�동�???</small></li>
-                                        <li><b>�?밸런???�수:</b> <span id="insight-balance"
-                                                class="text-accent fw-800">--</span> <small>(A/B�?주기 ?�치??</small></li>
-                                        <li><b>?�호주기 변?�성:</b> <span id="insight-diversity"
-                                                class="text-accent fw-800">--</span> <small>(TOD ?�환 ??주기 변?�율)</small>
+                                        <li><b>평균 교차로 복잡도:</b> <span id="insight-complexity"
+                                                class="text-accent fw-800">--</span> <small>(현시당 평균 이동류 수)</small></li>
+                                        <li><b>링 밸런스 점수:</b> <span id="insight-balance"
+                                                class="text-accent fw-800">--</span> <small>(A/B링 주기 일치도)</small></li>
+                                        <li><b>신호주기 변동성:</b> <span id="insight-diversity"
+                                                class="text-accent fw-800">--</span> <small>(TOD 전환 시 주기 변화율)</small>
                                         </li>
                                     </ul>
                                     <ul class="pl-20 fs-13 text-dim-dark ls-1-8 m-0" style="list-style-type: disc;">
-                                        <li><b>?�동 최적??지??</b> <span id="insight-offset"
-                                                class="text-accent fw-800">--</span> <small>(Offset 분포 균일??</small></li>
-                                        <li><b>?�턴 ?�기??지??</b> <span id="insight-sync"
-                                                class="text-accent fw-800">85%</span> <small>(그룹 ??TOD ?�환 ?�점
-                                                ?�치??</small></li>
-                                        <li><b>?�화 ?�험 지??</b> <span id="insight-saturation" class="fw-800"
-                                                style="color:#e74c3c;">??��</span> <small>(최�? 주기 ?�용 비중)</small></li>
+                                        <li><b>연동 최적화 지수:</b> <span id="insight-offset"
+                                                class="text-accent fw-800">--</span> <small>(Offset 분포 균일도)</small></li>
+                                        <li><b>패턴 동기화 지수:</b> <span id="insight-sync"
+                                                class="text-accent fw-800">85%</span> <small>(그룹 내 TOD 전환 시점
+                                                일치도)</small></li>
+                                        <li><b>포화 위험 지수:</b> <span id="insight-saturation" class="fw-800"
+                                                style="color:#e74c3c;">낮음</span> <small>(최대 주기 사용 비중)</small></li>
                                     </ul>
                                 </div>
                             </div>
 
                             <div class="sigma-panel border-dashed"
                                 style="background:rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.1);">
-                                <h5 class="m-t-0 text-dim">?�� ?�후 추천 ?�계 기능</h5>
+                                <h5 class="m-t-0 text-dim">💡 향후 추천 통계 기능</h5>
                                 <div class="fs-12 text-dim-dark"
                                     style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                                    <div>??<b>주기-교통???��?관�?</b> (?��? ?�이???�동 ??</div>
-                                    <div>??<b>?�동 ?�??��(Bandwidth) ?�율:</b> TSD ?�이??기반</div>
-                                    <div>??<b>?�호 최적???�안:</b> AI 기반 ?�시 조정 추천</div>
-                                    <div>??<b>민원 발생 ?�험??</b> Yearbook ?�이??매칭</div>
+                                    <div>• <b>주기-교통량 상관관계:</b> (외부 데이터 연동 시)</div>
+                                    <div>• <b>연동 대역폭(Bandwidth) 효율:</b> TSD 데이터 기반</div>
+                                    <div>• <b>신호 최적화 제안:</b> AI 기반 현시 조정 추천</div>
+                                    <div>• <b>민원 발생 위험도:</b> Yearbook 데이터 매칭</div>
                                 </div>
                             </div>
                         </div>
@@ -1855,22 +1855,22 @@
         <div id="tab-civil" class="tab-content">
             <div class="sigma-panel">
                 <div class="card-title">
-                    <span>?�� 민원 ?�계 분석 (Yearbook)</span>
+                    <span>📢 민원 통계 분석 (Yearbook)</span>
                 </div>
                 <div class="foldable-content">
                     <p style="font-size:12px; color:#aaa; margin-bottom:15px;">
-                        ?�보 ?�이?��? 로드?�여 교차로별 민원 ?�황??분석?�니??<br>
-                        (?�수 컬럼: '교차로명')
+                        연보 데이터를 로드하여 교차로별 민원 현황을 분석합니다.<br>
+                        (필수 컬럼: '교차로명')
                     </p>
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap:6px;">
                             <button class="btn-main" onclick="reloadCivilUI()"
                                 style="background:rgba(155, 89, 182, 0.15); border-color:rgba(155, 89, 182, 0.3); color:#9b59b6; font-size:10.5px; padding: 8px 2px;">
-                                ?�� ?�이???�로고침 (Reload)
+                                🔄 데이터 새로고침 (Reload)
                             </button>
                             <button class="btn-main" onclick="showCivilFullTable()"
                                 style="background:rgba(255, 255, 255, 0.05); border-color:rgba(255, 255, 255, 0.1); color:#eee; font-size:11px;">
-                                ?�� ?�체 ?�이???�이�?보기
+                                📋 전체 데이터 테이블 보기
                             </button>
                         </div>
                     </div>
@@ -1887,11 +1887,11 @@
 
             <div class="sigma-panel mt-15">
                 <div class="card-title">
-                    <span id="civil-target-name">?�� ?�택??교차�?민원</span>
+                    <span id="civil-target-name">📍 선택된 교차로 민원</span>
                 </div>
                 <div class="foldable-content">
                     <div id="civil-list" class="scroll-y p-0 fs-11" style="max-height:600px; min-height:100px;">
-                        <div class="text-dim-dark text-center mt-20">지?�에??교차로�? ?�택?�세??</div>
+                        <div class="text-dim-dark text-center mt-20">지도에서 교차로를 선택하세요.</div>
                     </div>
                 </div>
             </div>
@@ -1900,27 +1900,27 @@
 
     <!-- Signal Simulator Floating Bar -->
     <div class="controls minimized" id="sim-controls">
-        <button id="btn-toggle-controls" class="btn-toggle-controls" onclick="toggleControls()" title="?�호 ?��??�이???�시/?�기�?>
-            <span class="handle-icon">?��</span>
-            <span class="handle-text-bottom">?�호 ?��??�이??/span>
+        <button id="btn-toggle-controls" class="btn-toggle-controls" onclick="toggleControls()" title="신호 시뮬레이터 표시/숨기기">
+            <span class="handle-icon">🚦</span>
+            <span class="handle-text-bottom">신호 시뮬레이터</span>
         </button>
         <div class="flex-row-between">
             <div class="flex-row gap-15" style="align-items: baseline;">
                 <div id="clock" class="fs-72 text-accent"
                     style="font-family: monospace; font-weight: 900; line-height: 1; text-shadow: 0 0 20px var(--accent-glow);">
                     00:00:00</div>
-                <div id="real-time-display" class="real-time-badge" onclick="goToCurrentTime()" title="?�재 ?�간?�로 ?�동">
+                <div id="real-time-display" class="real-time-badge" onclick="goToCurrentTime()" title="현재 시간으로 이동">
                     <span class="recording-dot"></span>
                     NOW: 00:00:00
                 </div>
                 <div class="sim-day-selector">
-                    <button class="btn-day active" data-day="1" onclick="setSimDay(1)">??/button>
-                    <button class="btn-day" data-day="2" onclick="setSimDay(2)">??/button>
-                    <button class="btn-day" data-day="3" onclick="setSimDay(3)">??/button>
-                    <button class="btn-day" data-day="4" onclick="setSimDay(4)">�?/button>
-                    <button class="btn-day" data-day="5" onclick="setSimDay(5)">�?/button>
-                    <button class="btn-day" data-day="6" onclick="setSimDay(6)">??/button>
-                    <button class="btn-day" data-day="0" onclick="setSimDay(0)">??/button>
+                    <button class="btn-day active" data-day="1" onclick="setSimDay(1)">월</button>
+                    <button class="btn-day" data-day="2" onclick="setSimDay(2)">화</button>
+                    <button class="btn-day" data-day="3" onclick="setSimDay(3)">수</button>
+                    <button class="btn-day" data-day="4" onclick="setSimDay(4)">목</button>
+                    <button class="btn-day" data-day="5" onclick="setSimDay(5)">금</button>
+                    <button class="btn-day" data-day="6" onclick="setSimDay(6)">토</button>
+                    <button class="btn-day" data-day="0" onclick="setSimDay(0)">일</button>
                 </div>
             </div>
             <div id="sim-speed-display" class="fs-14 text-accent fw-800">SPEED: 4x (Normal)</div>
@@ -1943,10 +1943,10 @@
         </div>
 
         <div class="sim-btn-group">
-            <button class="btn-play" id="btn-play-pause" onclick="toggleSim()">??PLAY</button>
+            <button class="btn-play" id="btn-play-pause" onclick="toggleSim()">▶ PLAY</button>
             <div style="width: 10px;"></div>
-            <button class="btn-speed" onclick="skipTime(-10)" title="10�??�로">??-10s</button>
-            <button class="btn-speed" onclick="skipTime(10)" title="10�??�으�?>+10s ??/button>
+            <button class="btn-speed" onclick="skipTime(-10)" title="10초 뒤로">⏪ -10s</button>
+            <button class="btn-speed" onclick="skipTime(10)" title="10초 앞으로">+10s ⏩</button>
             <div style="width: 20px;"></div>
             <button class="btn-speed active" id="sp-1" onclick="setSpeed(1)">1.0x</button>
             <button class="btn-speed" id="sp-4" onclick="setSpeed(4)">4.0x</button>
@@ -1957,98 +1957,98 @@
 
     <!-- Chatbot UI is now dynamically injected by js/chatbot_advanced.js -->
 
-    <!-- ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═??
-         모듈?�된 JS ?�일 (?�존???�서?��?로드)
-         ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═??-->
+    <!-- ═══════════════════════════════════════════════════
+         모듈화된 JS 파일 (의존성 순서대로 로드)
+         ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=7"></script>
+    <script src="js/security.js?v=4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=7"></script>
-    <script src="js/auth.js?v=7"></script>
-    <script src="js/ui_components.js?v=7"></script>
-    <script src="js/config.js?v=7"></script>
-    <script src="js/utils.js?v=7"></script>
-    <script src="js/ui.js?v=7"></script>
-    <script src="js/table_popup.js?v=7"></script>
-    <script src="js/map.js?v=7"></script>
-    <script src="js/junction_map.js?v=7"></script>
-    <script src="js/junction.js?v=7"></script>
-    <script src="js/data_parser.js?v=7"></script>
-    <script src="js/data.js?v=7"></script>
-    <script src="js/phase.js?v=7"></script>
-    <script src="js/sigmap_tab.js?v=7"></script>
-    <script src="js/group_parser.js?v=7"></script>
-    <script src="js/group_map.js?v=7"></script>
-    <script src="js/group.js?v=7"></script>
-    <script src="js/tsd.js?v=7"></script>
-    <script src="js/simulation.js?v=7"></script> <!-- ??부분이 ?�심?�니??-->
-    <script src="js/stats.js?v=7"></script>
-    <script src="js/api_layers.js?v=7"></script>
-    <script src="js/intersection_search.js?v=7"></script>
-    <script src="js/junction_optimizer.js?v=7"></script>
-    <script src="js/civil.js?v=7"></script>
-    <script src="js/home.js?v=7"></script>
-    <script src="js/rng_road_network.js?v=7"></script>
-    <script src="js/table_logic.js?v=7"></script>
-    <script src="js/init.js?v=7"></script>
-    <script src="js/auto_load.js?v=7"></script>
-    <script src="js/chatbot_advanced.js?v=7"></script>
+    <script src="js/dashboard.js?v=4"></script>
+    <script src="js/auth.js?v=4"></script>
+    <script src="js/ui_components.js?v=4"></script>
+    <script src="js/config.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/ui.js?v=4"></script>
+    <script src="js/table_popup.js?v=4"></script>
+    <script src="js/map.js?v=4"></script>
+    <script src="js/junction_map.js?v=4"></script>
+    <script src="js/junction.js?v=4"></script>
+    <script src="js/data_parser.js?v=4"></script>
+    <script src="js/data.js?v=4"></script>
+    <script src="js/phase.js?v=4"></script>
+    <script src="js/sigmap_tab.js?v=4"></script>
+    <script src="js/group_parser.js?v=4"></script>
+    <script src="js/group_map.js?v=4"></script>
+    <script src="js/group.js?v=4"></script>
+    <script src="js/tsd.js?v=4"></script>
+    <script src="js/simulation.js?v=4"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=4"></script>
+    <script src="js/api_layers.js?v=4"></script>
+    <script src="js/intersection_search.js?v=4"></script>
+    <script src="js/junction_optimizer.js?v=4"></script>
+    <script src="js/civil.js?v=4"></script>
+    <script src="js/home.js?v=4"></script>
+    <script src="js/rng_road_network.js?v=4"></script>
+    <script src="js/table_logic.js?v=4"></script>
+    <script src="js/init.js?v=4"></script>
+    <script src="js/auto_load.js?v=4"></script>
+    <script src="js/chatbot_advanced.js?v=4"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
         console.log("SIGMA - Debugging Mode (F12 Allowed)");
     </script>
-    <!-- DB ?�데?�트 모달 (?�업) -->
+    <!-- DB 업데이트 모달 (팝업) -->
     <div id="db-update-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="background:#1e2430; border:1px solid #38bdf8; border-radius:12px; width:450px; box-shadow:0 10px 40px rgba(0,0,0,0.8); overflow:hidden;">
             <div style="background:#262d3d; padding:15px 20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-size:16px; color:#fff;">?�� ?�이?�베?�스 반영 ?�택</h3>
+                <h3 style="margin:0; font-size:16px; color:#fff;">💾 데이터베이스 반영 선택</h3>
                 <button onclick="document.getElementById('db-update-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:20px; cursor:pointer;">&times;</button>
             </div>
             <div style="padding:20px;">
-                <div style="font-size:12px; color:#aaa; margin-bottom:15px;">?�데?�트???�?�을 ?�택?�세?? ?�래??보호�??�해 변경된 ?�용�??�송?�니??</div>
+                <div style="font-size:12px; color:#aaa; margin-bottom:15px;">업데이트할 대상을 선택하세요. 트래픽 보호를 위해 변경된 내용만 전송합니다.</div>
                 
                 <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
                     <input type="checkbox" id="chk-db-junctions" checked>
                     <div>
-                        <div style="color:#fff; font-size:14px; font-weight:bold;">교차�??�이??(마스?? �? TOD)</div>
-                        <div id="lbl-db-junctions-count" style="color:#38bdf8; font-size:11px; margin-top:3px;">?�기중??교차�? 0�?(50개씩 분할 ?�송)</div>
+                        <div style="color:#fff; font-size:14px; font-weight:bold;">교차로 데이터 (마스터, 맵, TOD)</div>
+                        <div id="lbl-db-junctions-count" style="color:#38bdf8; font-size:11px; margin-top:3px;">대기중인 교차로: 0건 (50개씩 분할 전송)</div>
                     </div>
                 </label>
                 
                 <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
                     <input type="checkbox" id="chk-db-groups" checked>
-                    <div style="color:#ccc; font-size:13px;">그룹 ?�보 마스??/div>
+                    <div style="color:#ccc; font-size:13px;">그룹 정보 마스터</div>
                 </label>
 
                 <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
                     <input type="checkbox" id="chk-db-stats">
-                    <div style="color:#ccc; font-size:13px;">?�근�??�계</div>
+                    <div style="color:#ccc; font-size:13px;">접근로 통계</div>
                 </label>
 
                 <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; cursor:pointer;">
                     <input type="checkbox" id="chk-db-yearbook">
-                    <div style="color:#ccc; font-size:13px;">?�호?�영 ?�보</div>
+                    <div style="color:#ccc; font-size:13px;">신호운영 연보</div>
                 </label>
 
-                <!-- ?�태 ?�시 -->
+                <!-- 상태 표시 -->
                 <div id="db-update-progress-info" style="display:none; font-size:12px; color:#2ecc71; text-align:center; padding-top:10px; font-weight:bold;">
-                    ?�데?�트�?준�?중입?�다...
+                    업데이트를 준비 중입니다...
                 </div>
             </div>
             <div style="padding:15px 20px; background:#262d3d; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:flex-end; gap:10px;">
                 <button onclick="document.getElementById('db-update-modal').style.display='none'" style="padding:8px 15px; border-radius:6px; background:#444; color:#fff; border:none; cursor:pointer;">취소</button>
-                <button onclick="executeDBUpdate()" style="padding:8px 15px; border-radius:6px; background:#38bdf8; color:#000; font-weight:bold; border:none; cursor:pointer;">?�데?�트 ?�행</button>
+                <button onclick="executeDBUpdate()" style="padding:8px 15px; border-radius:6px; background:#38bdf8; color:#000; font-weight:bold; border:none; cursor:pointer;">업데이트 실행</button>
             </div>
         </div>
     </div>
-    <!-- 교차�??�세?�보 ?�버?�이 (Glassmorphism) -->
+    <!-- 교차로 상세정보 오버레이 (Glassmorphism) -->
     <div id="detail-overlay-modal" class="detail-modal-overlay" style="display: none;">
         <div class="detail-modal-content glass">
             <div class="modal-header">
                 <h2 id="overlay-title" style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.2rem; pointer-events: none;">
-                    <span style="font-size: 1.1em;">?��</span>
+                    <span style="font-size: 1.1em;">🚦</span>
                     <span id="overlay-title-name" style="font-weight: 700;">교차로명</span>
                     <span id="overlay-title-id" style="font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-left: 10px;">ID: -</span>
                 </h2>
@@ -2060,7 +2060,7 @@
                 <!-- Floating Controls Container (API Parity) -->
                 <div class="overlay-toolbar" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 15px; pointer-events: none;">
                     <div style="pointer-events: auto; display: flex; background: rgba(15, 23, 42, 0.8); border: 1px solid #38bdf8; border-radius: 20px; overflow: hidden;">
-                        <button id="btn-overlay-map-expand" onclick="toggleOverlayMapExpand()" style="background: transparent; color: #38bdf8; border: none; border-right: 1px solid #38bdf8; padding: 6px 15px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">�??��?</button>
+                        <button id="btn-overlay-map-expand" onclick="toggleOverlayMapExpand()" style="background: transparent; color: #38bdf8; border: none; border-right: 1px solid #38bdf8; padding: 6px 15px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">맵 확대</button>
                         <button id="btn-overlay-mode-toggle" onclick="toggleOverlaySignalMode()" style="background: transparent; color: #38bdf8; border: none; padding: 6px 15px; display: flex; align-items: center; cursor: pointer; justify-content: center; width: 58px; height: 28px; box-sizing: border-box;">
                             <!-- Will be populated dynamically by JS: either Traffic light SVG or Arrow SVG -->
                         </button>
@@ -2069,9 +2069,9 @@
             </div>
             <div class="modal-bottom-data">
                 <div class="tabs-header">
-                    <button class="tab-btn active" id="tab-btn-phase" onclick="switchOverlayTab('phase')">?�호계획?�보</button>
-                    <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">?�그?�맵</button>
-                    <button class="tab-btn" id="tab-btn-baseinfo" onclick="switchOverlayTab('baseinfo')">교차로정�?/button>
+                    <button class="tab-btn active" id="tab-btn-phase" onclick="switchOverlayTab('phase')">신호계획정보</button>
+                    <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">시그널맵</button>
+                    <button class="tab-btn" id="tab-btn-baseinfo" onclick="switchOverlayTab('baseinfo')">교차로정보</button>
                 </div>
                 <div id="overlay-tab-phase" class="detail-tab-content active" style="display: flex;">
                     <!-- Left column -->
@@ -2082,11 +2082,11 @@
                     </div>
                 </div>
                 <div id="overlay-tab-sigmap" class="detail-tab-content" style="display: none;">
-                    <!-- ?�그?�맵 ?�이??바인???�역 -->
+                    <!-- 시그널맵 데이터 바인딩 영역 -->
                 </div>
                 <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; padding: 20px;">
-                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (?�??</button></div>
-                    <!-- 교차로정�??�이??바인???�역 -->
+                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (저장)</button></div>
+                    <!-- 교차로정보 데이터 바인딩 영역 -->
                     <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #1e293b;">
                         <!-- Dynamic: info-fields-container -->
                     </div>
@@ -2095,7 +2095,7 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=7"></script>
+    <script src="js/overlay_ui.js"></script>
 </body>
 
 </html>
