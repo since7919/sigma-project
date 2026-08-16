@@ -1199,7 +1199,7 @@ body.global-flash-on .signal-arrow.walk-mode.F {
 .slot-W  { transform: rotate(-90deg); }   
 .slot-NW { transform: rotate(-45deg); }
 
-/* 吏?꾩긽 ?붿궡??紐⑤�??좏샇 ?????*/
+/* 吏?꾩긽 ?붿궡??紐⑤�??좏샇 ?????*/
 .map-signal-arrow {
   width: 24px;
   height: 24px;
@@ -1291,7 +1291,7 @@ details.footer-section summary::marker { content: ''; }
   .modal-header h2 { font-size: 1.1rem; }
 }
 
-/* ????紐⑤??곕쭅 ??�씠?꾩썐 */
+/* ????紐⑤??곕쭅 ??�씠?꾩썐 */
 .dual-overlay-wrapper {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100dvh;
@@ -1305,7 +1305,6 @@ details.footer-section summary::marker { content: ''; }
 }
 
 
- . d e t a i l - m o d a l - c o n t e n t . e x p a n d e d - m a p   . m o d a l - t o p - m a p   {   f l e x :   0 . 7 5 ;   } 
- . d e t a i l - m o d a l - c o n t e n t . e x p a n d e d - m a p   . m o d a l - b o t t o m - d a t a   {   f l e x :   0 . 2 5 ;   } 
-  
- 
+.detail-modal-content.expanded-map .modal-top-map { flex: 0.75; }
+.detail-modal-content.expanded-map .modal-bottom-data { flex: 0.25; }
+

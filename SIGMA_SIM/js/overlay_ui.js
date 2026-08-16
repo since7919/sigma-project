@@ -410,24 +410,23 @@ function renderOverlayPlanInfo(jid) {
     }
 }
 
- f u n c t i o n   t o g g l e O v e r l a y M a p E x p a n d ( )   { 
-         c o n s t   c o n t e n t   =   d o c u m e n t . q u e r y S e l e c t o r ( ' . d e t a i l - m o d a l - c o n t e n t ' ) ; 
-         i f   ( c o n t e n t )   { 
-                 c o n t e n t . c l a s s L i s t . t o g g l e ( ' e x p a n d e d - m a p ' ) ; 
-                 s e t T i m e o u t ( ( )   = >   { 
-                         i f   ( o v e r l a y M a p )   o v e r l a y M a p . i n v a l i d a t e S i z e ( ) ; 
-                 } ,   3 0 0 ) ; 
-         } 
- } 
- 
- f u n c t i o n   t o g g l e O v e r l a y S i g n a l M o d e ( )   { 
-         i f   ( t y p e o f   S T A T E   = = =   ' u n d e f i n e d ' )   r e t u r n ; 
-         S T A T E . o v e r l a y D i s p l a y M o d e   =   S T A T E . o v e r l a y D i s p l a y M o d e   = = =   ' a r r o w '   ?   ' c o m p a s s '   :   ' a r r o w ' ; 
-         i f   ( w i n d o w . _ c u r r e n t O v e r l a y J i d )   { 
-                 i f   ( t y p e o f   c r e a t e O v e r l a y A r r o w s   = = =   ' f u n c t i o n ' )   { 
-                         c r e a t e O v e r l a y A r r o w s ( w i n d o w . _ c u r r e n t O v e r l a y J i d ,   o v e r l a y M a p ) ; 
-                 } 
-         } 
- } 
-  
- 
+function toggleOverlayMapExpand() {
+    const content = document.querySelector('.detail-modal-content');
+    if (content) {
+        content.classList.toggle('expanded-map');
+        setTimeout(() => {
+            if (overlayMap) overlayMap.invalidateSize();
+        }, 300);
+    }
+}
+
+function toggleOverlaySignalMode() {
+    if (typeof STATE === 'undefined') return;
+    STATE.overlayDisplayMode = STATE.overlayDisplayMode === 'arrow' ? 'compass' : 'arrow';
+    if (window._currentOverlayJid) {
+        if (typeof createOverlayArrows === 'function') {
+            createOverlayArrows(window._currentOverlayJid, overlayMap);
+        }
+    }
+}
+
