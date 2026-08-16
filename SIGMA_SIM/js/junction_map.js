@@ -533,7 +533,6 @@ function createOverlayArrows(jid, targetMap) {
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
     const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
-
     const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
     const allMovs = [...new Set(mapMovs)].filter(m => m > 0);
 
@@ -559,6 +558,84 @@ function createOverlayArrows(jid, targetMap) {
     j.overlayArrows = {};
     j.overlayElemCache = {};
 
+    const displayMode = (typeof STATE !== 'undefined' && STATE.overlayDisplayMode) ? STATE.overlayDisplayMode : 'compass';
+    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
+
+    if (displayMode === 'arrow') {
+        allMovs.forEach(m => {
+            const isPed = (m >= 101 && m <= 116) || pedSet.has(m);
+            const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrow(m);
+
+            const configs = j.arrowConfigs && j.arrowConfigs[m] ? (Array.isArray(j.arrowConfigs[m]) ? j.arrowConfigs[m] : [j.arrowConfigs[m]]) : [];
+            let renderConfigs = configs;
+
+            if (renderConfigs.length === 0) {
+                let ang = 0;
+                if (isPed && m > 100 && m <= 116) {
+                    const refM = m - 100;
+                    ang = defPosAngles[(refM - 1) % 16] || 0;
+                    if (refM % 2 !== 0) ang += 22;
+                    else ang -= 22;
+                } else {
+                    ang = defPosAngles[(m - 1) % 16] || 0;
+                    if (!isPed && m <= 16) {
+                        if (m % 2 !== 0) ang += 7;
+                        else ang -= 7;
+                    }
+                }
+                const offset = isPed ? 0.00022 : ((m > 8) ? 0.00018 : 0.00014);
+                const pos = [j.lat + Math.cos(ang * Math.PI / 180) * offset, j.lng + Math.sin(ang * Math.PI / 180) * offset];
+                renderConfigs = [{ dLat: pos[0] - j.lat, dLng: pos[1] - j.lng, rot: arrowData.ang }];
+            }
+
+            j.overlayArrows[m] = [];
+
+            renderConfigs.forEach((config, idx) => {
+                const pos = [j.lat + config.dLat, j.lng + config.dLng];
+                const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
+                const walkCls = isPed ? 'walk-mode' : '';
+
+                const icon = L.divIcon({
+                    className: 'signal-arrow-container',
+                    html: `
+                        <div id="icon-overlay-${jid}-${m}-${idx}" class="signal-arrow overlay-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
+                                ${isPed ? 'WALK' : arrowData.type}
+                                <div id="timer-overlay-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>
+                        </div>
+                    `,
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0]
+                });
+
+                const arrowMarker = L.marker(pos, {
+                    icon: icon,
+                    interactive: false
+                }).addTo(targetMap);
+
+                const cacheKey = `${m}-${idx}`;
+                j.overlayElemCache[cacheKey] = {
+                    arrow: null,
+                    timer: null,
+                    lastState: null,
+                    lastTimer: null
+                };
+
+                arrowMarker.on('add', () => {
+                    const el = document.getElementById(`icon-overlay-${jid}-${m}-${idx}`);
+                    const tm = document.getElementById(`timer-overlay-${jid}-${m}-${idx}`);
+                    if (j.overlayElemCache[cacheKey]) {
+                        j.overlayElemCache[cacheKey].arrow = el;
+                        j.overlayElemCache[cacheKey].timer = tm;
+                    }
+                });
+
+                j.overlayArrows[m].push(arrowMarker);
+            });
+        });
+        return;
+    }
+
+    // Compass Mode
     const directions = [
         { key: 'N', deg: 0, mS: 14, mL: 13, mP: 104 },
         { key: 'NE', deg: 45, mS: 16, mL: 15, mP: 108 },
