@@ -281,7 +281,7 @@ function updateSim() {
         }
 
         // 화살표/신호등 갱신 (핵심 최적화 구간)
-        if (!j.arrows || !j.elemCache) return;
+        if (!j.arrows && !j.elemCache && !j.overlayElemCache) return;
 
         const activeStates = {}; // { movID: stateObj }
         
@@ -470,8 +470,9 @@ function updateSim() {
         }
 
         // 3. 캐시를 사용한 실제 DOM 업데이트 (변경된 경우만)
-        Object.entries(j.elemCache).forEach(([key, cache]) => {
-            const m = parseInt(key.split('-')[0]);
+        if (j.elemCache) {
+            Object.entries(j.elemCache).forEach(([key, cache]) => {
+                const m = parseInt(key.split('-')[0]);
             const idx = parseInt(key.split('-')[1]);
             
             // [보완] 캐시에 엘리먼트가 없으면 재검색 시도
@@ -510,7 +511,8 @@ function updateSim() {
                     cache.timer.innerText = rem > 0 ? rem : '';
                 }
             }
-        });
+            });
+        }
 
         // 4. 오버레이(상세보기) 캐시 업데이트 로직
         if (j.overlayElemCache) {

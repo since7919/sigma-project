@@ -168,13 +168,13 @@ function renderOverlayPlanInfo(jid) {
     if (smMap && smMap.mainMovements && smMap.mainMovements.length > 0) {
         const mainA = smMap.mainMovements.find(m => String(m).startsWith('A'));
         if (mainA) {
-            const idx = parseInt(String(mainA).replace('A', ''));
-            mainPhase = `${idx + 1}현시`;
+            const idx = parseInt(String(mainA).replace('A', '')) || 0;
+            mainPhase = `${Math.max(1, idx + 1)}현시`;
         } else {
             const mainB = smMap.mainMovements.find(m => String(m).startsWith('B'));
             if (mainB) {
-                const idx = parseInt(String(mainB).replace('B', ''));
-                mainPhase = `${idx + 1}현시`;
+                const idx = parseInt(String(mainB).replace('B', '')) || 0;
+                mainPhase = `${Math.max(1, idx + 1)}현시`;
             }
         }
     }
