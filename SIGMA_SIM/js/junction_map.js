@@ -637,14 +637,14 @@ function createOverlayArrows(jid, targetMap) {
 
     // Compass Mode
     const directions = [
-        { key: 'N', deg: 0, mS: 14, mL: 13, mP: 104 },
-        { key: 'NE', deg: 45, mS: 16, mL: 15, mP: 108 },
-        { key: 'E', deg: 90, mS: 2, mL: 1, mP: 101 },
-        { key: 'SE', deg: 135, mS: 4, mL: 3, mP: 105 },
-        { key: 'S', deg: 180, mS: 6, mL: 5, mP: 102 },
-        { key: 'SW', deg: 225, mS: 8, mL: 7, mP: 106 },
-        { key: 'W', deg: 270, mS: 10, mL: 9, mP: 103 },
-        { key: 'NW', deg: 315, mS: 12, mL: 11, mP: 107 }
+        { key: 'N', deg: 0, mS: 4, mL: 7, mP: 104 },
+        { key: 'NE', deg: 45, mS: 14, mL: 9, mP: 114 },
+        { key: 'E', deg: 90, mS: 6, mL: 1, mP: 106 },
+        { key: 'SE', deg: 135, mS: 16, mL: 11, mP: 116 },
+        { key: 'S', deg: 180, mS: 8, mL: 3, mP: 108 },
+        { key: 'SW', deg: 225, mS: 10, mL: 13, mP: 110 },
+        { key: 'W', deg: 270, mS: 2, mL: 5, mP: 102 },
+        { key: 'NW', deg: 315, mS: 12, mL: 15, mP: 112 }
     ];
 
     const directionLabels = {
