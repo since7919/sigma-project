@@ -378,7 +378,7 @@ function updateSim() {
             const flashOn = (Math.floor(Date.now() / 500) % 2 === 0);
             document.body.classList.toggle('global-flash-on', flashOn);
 
-            const calc = (splits, yellows, allreds, movs, peds, pdlys, pmovs, pedGreens, pedFlashes) => {
+            const calc = (splits, yellows, allreds, movs, peds, pdlys, pmovs, pedGreens, pedFlashes, ring) => {
                 let elap = 0;
                 let useSplits = [...(splits || [])];
                 if (useSplits.reduce((a, b) => a + b, 0) === 0 && finalCycle > 0) {
@@ -439,6 +439,13 @@ function updateSim() {
                             }
                         }
 
+                        if (ring === 'A') {
+                            j._activePhaseA = i + 1;
+                            j._remainA = Math.ceil(sv - sub);
+                        } else if (ring === 'B') {
+                            j._activePhaseB = i + 1;
+                            j._remainB = Math.ceil(sv - sub);
+                        }
                         if (movId > 0) activeStates[movId] = { st, rem };
                         
                         if (pmovs && pmovs[i] > 0) {
@@ -465,8 +472,8 @@ function updateSim() {
                     elap += sv;
                 }
             };
-            calc(p.splitA, p.yellowA || activeMap.yellowA, p.allredA || activeMap.allredA, activeMap.movA, activeMap.pedA, activeMap.pedDelayA, activeMap.pedMovA, activeMap.pedGreenA, activeMap.pedFlashA);
-            calc(p.splitB, p.yellowB || activeMap.yellowB, p.allredB || activeMap.allredB, activeMap.movB, activeMap.pedB, activeMap.pedDelayB, activeMap.pedMovB, activeMap.pedGreenB, activeMap.pedFlashB);
+            calc(p.splitA, p.yellowA || activeMap.yellowA, p.allredA || activeMap.allredA, activeMap.movA, activeMap.pedA, activeMap.pedDelayA, activeMap.pedMovA, activeMap.pedGreenA, activeMap.pedFlashA, "A");
+            calc(p.splitB, p.yellowB || activeMap.yellowB, p.allredB || activeMap.allredB, activeMap.movB, activeMap.pedB, activeMap.pedDelayB, activeMap.pedMovB, activeMap.pedGreenB, activeMap.pedFlashB, "B");
         }
 
         // 3. 캐시를 사용한 실제 DOM 업데이트 (변경된 경우만)

@@ -276,18 +276,18 @@ function renderOverlayPlanInfo(jid) {
         const htmlB = getPhaseArrowHTML(movB_val, pedB_val);
 
         leftHTML += `
-            <div style="border: ${isActive ? '2px solid #10b981' : '1px solid #334155'}; border-radius: 4px; background: ${isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)'}; text-align: center;">
-                <div style="background: ${isActive ? '#10b981' : '#1e293b'}; padding: 2px 3px; font-size: 11px; font-weight: bold; color: ${isActive ? '#0f172a' : '#cbd5e1'}; display: flex; justify-content: space-between;">
+            <div id="phase-box-${i}" data-has-split="${isActive}" style="border: ${isActive ? '2px solid #10b981' : '1px solid #334155'}; border-radius: 4px; background: ${isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)'}; text-align: center; transition: all 0.3s;">
+                <div id="phase-title-bar-${i}" style="background: ${isActive ? '#10b981' : '#1e293b'}; padding: 2px 3px; font-size: 11px; font-weight: bold; color: ${isActive ? '#0f172a' : '#cbd5e1'}; display: flex; justify-content: space-between; align-items: center;">
                     <span>${i}현시</span>
-                    ${isActive ? `<span style="font-size: 10px; background: rgba(0,0,0,0.4); color: #fff; padding: 1px 4px; border-radius: 3px;">${timeStr}</span>` : ''}
+                    <span id="phase-title-time-${i}" style="font-size: 10px; background: rgba(0,0,0,0.4); color: #fff; padding: 1px 4px; border-radius: 3px; display: ${isActive ? 'inline-block' : 'none'};">${timeStr}</span>
                 </div>
                 <div style="padding: 6px 4px; display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: bold;">
                     <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; gap: 5px;"><span style="color: ${isRingA ? '#10b981' : '#64748b'}; width:10px;">A</span> <span style="color:#e2e8f0;">${isRingA ? splitTimeA+'s' : '-'}</span></div>
+                        <div style="display: flex; gap: 5px;"><span id="phase-label-A-${i}" style="color: ${isRingA ? '#10b981' : '#64748b'}; width:10px;">A</span> <span style="color:#e2e8f0; display:none;">${isRingA ? splitTimeA+'s' : '-'}</span></div>
                         <div style="flex: 1; display: flex; justify-content: center;">${htmlA}</div>
                     </div>
                     <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; gap: 5px;"><span style="color: ${isRingB ? '#3b82f6' : '#64748b'}; width:10px;">B</span> <span style="color:#e2e8f0;">${isRingB ? splitTimeB+'s' : '-'}</span></div>
+                        <div style="display: flex; gap: 5px;"><span id="phase-label-B-${i}" style="color: ${isRingB ? '#3b82f6' : '#64748b'}; width:10px;">B</span> <span style="color:#e2e8f0; display:none;">${isRingB ? splitTimeB+'s' : '-'}</span></div>
                         <div style="flex: 1; display: flex; justify-content: center;">${htmlB}</div>
                     </div>
                 </div>
@@ -534,3 +534,58 @@ function toggleOverlaySignalMode() {
     }
 }
 
+
+function updateOverlayPhaseDiagram(jid) {
+    if (window._currentOverlayJid !== jid) return;
+    const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
+    if (!j) return;
+    
+    const pA = j._activePhaseA || 0;
+    const pB = j._activePhaseB || 0;
+    const rA = j._remainA || 0;
+    const rB = j._remainB || 0;
+    
+    for (let i = 1; i <= 8; i++) {
+        const box = document.getElementById(`phase-box-${i}`);
+        const titleBar = document.getElementById(`phase-title-bar-${i}`);
+        const titleTime = document.getElementById(`phase-title-time-${i}`);
+        const labelA = document.getElementById(`phase-label-A-${i}`);
+        const labelB = document.getElementById(`phase-label-B-${i}`);
+        
+        if (!box) continue;
+        
+        const isAActive = (pA === i && j._simCycle > 0);
+        const isBActive = (pB === i && j._simCycle > 0);
+        const isAnyActive = isAActive || isBActive;
+        
+        if (isAnyActive) {
+            box.style.border = '2px solid #10b981';
+            box.style.background = 'rgba(16, 185, 129, 0.1)';
+            titleBar.style.background = '#10b981';
+            titleBar.style.color = '#0f172a';
+            
+            let remainText = '';
+            if (isAActive && isBActive) {
+                remainText = (rA === rB) ? `${rA}s` : `A:${rA}s B:${rB}s`;
+            } else if (isAActive) {
+                remainText = `${rA}s`;
+            } else if (isBActive) {
+                remainText = `${rB}s`;
+            }
+            if (titleTime) {
+                titleTime.style.display = 'inline-block';
+                titleTime.innerText = remainText;
+            }
+        } else {
+            const hasSplit = box.getAttribute('data-has-split') === 'true';
+            box.style.border = hasSplit ? '1px solid #334155' : '1px solid #1e293b';
+            box.style.background = 'rgba(255,255,255,0.02)';
+            titleBar.style.background = '#1e293b';
+            titleBar.style.color = '#cbd5e1';
+            if (titleTime) titleTime.style.display = 'none';
+        }
+        
+        if (labelA) labelA.style.color = isAActive ? '#10b981' : '#64748b';
+        if (labelB) labelB.style.color = isBActive ? '#10b981' : '#64748b';
+    }
+}
