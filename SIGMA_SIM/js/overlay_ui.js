@@ -90,6 +90,25 @@ function openDetailOverlay(jid) {
     if (typeof updateOverlaySignalModeButton === 'function') {
         updateOverlaySignalModeButton();
     }
+
+    // [추가] 상세보기 진입 시 현재 시간으로 동기화 및 1배속 자동 재생
+    setTimeout(() => {
+        const now = new Date();
+        const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        
+        if (typeof UI !== 'undefined' && UI.timeSlider) {
+            UI.timeSlider.value = currentSeconds;
+            UI.timeSlider.dispatchEvent(new Event('input'));
+        }
+        
+        if (typeof setSpeed === 'function') {
+            setSpeed(1);
+        }
+        
+        if (typeof startSim === 'function' && typeof STATE !== 'undefined' && !STATE.simTimer) {
+            startSim();
+        }
+    }, 200); // 맵/오버레이 초기화 대기 후 실행
 }
 
 function closeDetailOverlay() {
