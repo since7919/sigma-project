@@ -337,6 +337,28 @@ function updateSim() {
                             activeStates[i] = { st: 'G', rem: accum - currentPos };
                         }
                     }
+                    const calcRingState = (ringPrefix) => {
+                        let cumulativeTime = 0;
+                        let currentPhaseIdx = 1;
+                        let remainingTime = 0;
+                        for (let i = 1; i <= 8; i++) {
+                            const split = parseInt(activeStep[`${ringPrefix}_${i}_PHASE_VAL`]) || 0;
+                            if (split === 0) continue;
+                            if (currentPos < cumulativeTime + split) {
+                                currentPhaseIdx = i;
+                                remainingTime = (cumulativeTime + split) - currentPos;
+                                break;
+                            }
+                            cumulativeTime += split;
+                        }
+                        return { currentPhaseIdx, remainingTime };
+                    };
+                    const ringA = calcRingState('A_RING');
+                    const ringB = calcRingState('B_RING');
+                    j._activePhaseA = ringA.currentPhaseIdx;
+                    j._remainA = ringA.remainingTime;
+                    j._activePhaseB = ringB.currentPhaseIdx;
+                    j._remainB = ringB.remainingTime;
                 }
             } else {
                 // 유효한 스텝 데이터가 없을 때의 폴백 표출 로직
@@ -474,6 +496,11 @@ function updateSim() {
             };
             calc(p.splitA, p.yellowA || activeMap.yellowA, p.allredA || activeMap.allredA, activeMap.movA, activeMap.pedA, activeMap.pedDelayA, activeMap.pedMovA, activeMap.pedGreenA, activeMap.pedFlashA, "A");
             calc(p.splitB, p.yellowB || activeMap.yellowB, p.allredB || activeMap.allredB, activeMap.movB, activeMap.pedB, activeMap.pedDelayB, activeMap.pedMovB, activeMap.pedGreenB, activeMap.pedFlashB, "B");
+        }
+
+        // [추가] 교차로 상세보기 현시표 갱신 훅
+        if (window._currentOverlayJid === j.id && typeof updateOverlayPhaseDiagram === 'function') {
+            updateOverlayPhaseDiagram(j.id);
         }
 
         // 3. 캐시를 사용한 실제 DOM 업데이트 (변경된 경우만)
