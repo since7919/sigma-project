@@ -226,6 +226,9 @@ function renderOverlayPlanInfo(jid) {
     leftHTML += `</tbody></table></div>`;
 
     leftHTML += `
+        <div style="text-align: right; margin-top: 5px; font-size: 11px; color: #94a3b8;">
+            교차로시각: <span id="overlay-junction-time">00:00:00</span>
+        </div>
         <div style="margin-top: 15px; padding-top: 10px;">
             <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">현시표 (Phase Diagram)</div>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
@@ -539,6 +542,23 @@ function updateOverlayPhaseDiagram(jid) {
     if (window._currentOverlayJid !== jid) return;
     const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
     if (!j) return;
+
+    // [추가] 교차로 시각 업데이트
+    const timeElem = document.getElementById('overlay-junction-time');
+    if (timeElem) {
+        if (STATE.signalSource === 'REALTIME') {
+            const d = new Date();
+            const pad = n => n.toString().padStart(2, '0');
+            timeElem.innerText = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        } else {
+            const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
+            const hrs = Math.floor(t / 3600);
+            const mins = Math.floor((t % 3600) / 60);
+            const secs = t % 60;
+            const pad = n => n.toString().padStart(2, '0');
+            timeElem.innerText = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+        }
+    }
     
     const pA = j._activePhaseA || 0;
     const pB = j._activePhaseB || 0;
