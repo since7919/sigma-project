@@ -1301,7 +1301,13 @@ details.footer-section summary::marker { content: ''; }
   flex-direction: column;
 }
 .compass-center-overlay-wrapper {
-  transform: translate(-50%, -50%) scale(1.5);
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(1.15) !important;
+  transform-origin: center !important;
+  pointer-events: none;
+  z-index: 9999;
 }
 
 
