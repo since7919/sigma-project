@@ -48,12 +48,12 @@ function openDetailOverlay(jid) {
             scrollWheelZoom: false,
             boxZoom: false,
             keyboard: false
-        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 20);
+        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
         L.tileLayer('https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            maxZoom: 22, maxNativeZoom: 21, detectRetina: true
+            maxZoom: 22
         }).addTo(overlayMap);
     } else {
-        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 20);
+        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
     }
 
     // 중앙 원형 마커 그리기 (API와의 완벽한 화면 싱크를 위해)
