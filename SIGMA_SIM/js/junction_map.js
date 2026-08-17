@@ -680,7 +680,7 @@ function createOverlayArrows(jid, targetMap) {
         
         let html = '<div class="signal-slot slot-' + key + '" id="slot-' + key + '" style="transform: rotate(' + customAngle + 'deg);">';
         if (vehHasData) {
-            html += '<div class="signal-mount-frame" id="veh-block-' + key + '" style="pointer-events: auto; cursor: grab;">';
+            html += '<div class="signal-mount-frame" id="veh-block-' + jid + '-' + key + '" onpointerdown="handleCompassPointerDown(event, \'' + jid + '\', \'' + key + '\')" style="pointer-events: auto; cursor: grab;">';
             html += '<div class="component-block">';
             html += '<div style="font-size: 10px; color: #38bdf8; font-weight: bold; margin-bottom: 2px; text-align: center; text-shadow: 0 0 3px #000; white-space: nowrap;">';
             html += directionLabels[key] + ' <span id="car-timer-overlay-' + jid + '-' + key + '" style="color:#fff"></span>';
@@ -694,7 +694,7 @@ function createOverlayArrows(jid, targetMap) {
         }
         if (pedHasData) {
             html += '<div class="ped-mount-container">';
-            html += '<div class="ped-mount-frame" id="ped-block-' + key + '" style="pointer-events: auto; cursor: grab;">';
+            html += '<div class="ped-mount-frame" id="ped-block-' + jid + '-' + key + '" onpointerdown="handleCompassPointerDown(event, \'' + jid + '\', \'' + key + '\')" style="pointer-events: auto; cursor: grab;">';
             html += '<div class="ped-housing-box">';
             html += '<div id="ped-lens-r-' + jid + '-' + key + '" class="ped-lens p-red"></div>';
             html += '<div id="ped-lens-g-' + jid + '-' + key + '" class="ped-lens p-green"></div>';
@@ -746,73 +746,60 @@ function createOverlayArrows(jid, targetMap) {
                 j.overlayElemCache[key].timerP = document.getElementById('ped-timer-overlay-' + jid + '-' + key);
             }
             
-            // Dragging logic (with map dragging disabled during drag)
-            const vehBlock = document.getElementById('veh-block-' + key);
-            const pedBlock = document.getElementById('ped-block-' + key);
-            const slotEl = document.getElementById('slot-' + key);
-            
-            const attachDrag = (el) => {
-                if (!el || !slotEl) return;
-                el.addEventListener('pointerdown', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Disable map dragging so panning doesn't interfere
-                    if (targetMap && targetMap.dragging) {
-                        targetMap.dragging.disable();
-                    }
-                    
-                    const compassOverlay = el.closest('.compass-center-overlay');
-                    if (!compassOverlay) return;
-                    const rect = compassOverlay.getBoundingClientRect();
-                    const centerX = rect.left + rect.width / 2;
-                    const centerY = rect.top + rect.height / 2;
-                    
-                    const onPointerMove = (moveEvent) => {
-                        const dx = moveEvent.clientX - centerX;
-                        const dy = moveEvent.clientY - centerY;
-                        let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-                        if (angle < 0) angle += 360;
-                        
-                        // Use clampAngleForPfx from signalUtils (or global)
-                        if (typeof window.clampAngleForPfx === 'function') {
-                            angle = window.clampAngleForPfx(key, Math.round(angle));
-                        }
-                        
-                        if (!j.customAngles) j.customAngles = {};
-                        j.customAngles[key] = angle;
-                        slotEl.style.transform = 'rotate(' + angle + 'deg)';
-                        
-                        // Sync with UI inputs/sliders in baseinfo tab
-                        let val = angle;
-                        if (key === 'N' && val > 180) {
-                            val -= 360;
-                        }
-                        const sliderEl = document.getElementById(`slider-angle-${key}`);
-                        if (sliderEl) sliderEl.value = val;
-                        const inputEl = document.getElementById(`input-angle-${key}`);
-                        if (inputEl) inputEl.value = angle;
-                        const txtEl = document.getElementById(`txt-angle-${key}`);
-                        if (txtEl) txtEl.innerText = `${angle}°`;
-                    };
-                    
-                    const onPointerUp = () => {
-                        window.removeEventListener('pointermove', onPointerMove);
-                        window.removeEventListener('pointerup', onPointerUp);
-                        
-                        // Re-enable map dragging
-                        if (targetMap && targetMap.dragging) {
-                            targetMap.dragging.enable();
-                        }
-                    };
-                    
-                    window.addEventListener('pointermove', onPointerMove);
-                    window.addEventListener('pointerup', onPointerUp);
-                });
-            };
-            
-            attachDrag(vehBlock);
-            attachDrag(pedBlock);
+            // Dragging logic handled via window.handleCompassPointerDown
         });
     });
 }
+
+window.handleCompassPointerDown = function(e, jid, key) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const j = STATE.junctions[jid];
+    if (!j) return;
+
+    // overlayMap is a global variable from overlay_ui.js
+    const targetMap = window.overlayMap || (typeof overlayMap !== 'undefined' ? overlayMap : null);
+    if (targetMap && targetMap.dragging) {
+        targetMap.dragging.disable();
+    }
+
+    const el = e.currentTarget;
+    const compassOverlay = el.closest('.compass-center-overlay');
+    if (!compassOverlay) return;
+
+    const rect = compassOverlay.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const onPointerMove = (moveEvent) => {
+        const dx = moveEvent.clientX - centerX;
+        const dy = moveEvent.clientY - centerY;
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+        if (angle < 0) angle += 360;
+
+        if (typeof window.clampAngleForPfx === 'function') {
+            angle = window.clampAngleForPfx(key, Math.round(angle));
+        }
+
+        if (!j.customAngles) j.customAngles = {};
+        j.customAngles[key] = angle;
+
+        const slotEl = compassOverlay.querySelector('.slot-' + key);
+        if (slotEl) {
+            slotEl.style.transform = 'rotate(' + angle + 'deg)';
+        }
+    };
+
+    const onPointerUp = () => {
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+
+        if (targetMap && targetMap.dragging) {
+            targetMap.dragging.enable();
+        }
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+};

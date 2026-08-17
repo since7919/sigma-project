@@ -143,9 +143,7 @@ function selectJunction(jid, isMulti = false) {
     setVal('inp-controller', j.controller || "");
     setVal('inp-api-int-no', (j.apiIntNo !== undefined && j.apiIntNo !== null) ? j.apiIntNo : "");
 
-    if (typeof renderAngleFields === 'function') {
-        renderAngleFields(jid);
-    }
+
 
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const pIdx = parseInt(UI.planIdx ? UI.planIdx.value : 0) || 0;
