@@ -383,8 +383,8 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 10px 8px;">
                         <div class="group-neon">
                             <label style="font-size: 11px;">교차로 크기 <span id="val-node-size-bottom"
-                                    style="color:var(--neon-cyan);">0.5</span></label>
-                            <input type="range" id="scale-node-bottom" min="0.1" max="3" step="0.1" value="0.5"
+                                    style="color:var(--neon-cyan);">1.0</span></label>
+                            <input type="range" id="scale-node-bottom" min="0.1" max="3" step="0.1" value="1.0"
                                 oninput="syncScaleNode(this.value)">
                         </div>
                         <div class="group-neon">
@@ -2087,8 +2087,13 @@
                 <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; padding: 20px;">
                     <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (저장)</button></div>
                     <!-- 교차로정보 데이터 바인딩 영역 -->
-                    <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #1e293b;">
+                    <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b;">
                         <!-- Dynamic: info-fields-container -->
+                    </div>
+                    <!-- 신호등 램프 각도 조정 영역 -->
+                    <div id="angle-fields-container" style="margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b;">
+                        <h4 style="color: #38bdf8; margin: 0 0 10px 0; font-size: 13px;">신호등 램프 각도 조정</h4>
+                        <div id="angle-fields-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px;"></div>
                     </div>
                 </div>
             </div>

@@ -102,7 +102,7 @@ const STATE = {
     showCycleColors: false,
     showJunctionNames: false,
     showJunctionCycles: false,
-    nodeScale: 0.5,
+    nodeScale: 1.0,
     arrowScale: 1.5,
     simTimer: null,
     currentSpeedScale: 1,

@@ -48,12 +48,12 @@ function openDetailOverlay(jid) {
             scrollWheelZoom: false,
             boxZoom: false,
             keyboard: false
-        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
+        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
         L.tileLayer('https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             maxZoom: 22
         }).addTo(overlayMap);
     } else {
-        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 19);
+        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
     }
 
     // 중앙 원형 마커 그리기 (API와의 완벽한 화면 싱크를 위해)
@@ -202,7 +202,7 @@ function renderOverlayPlanInfo(jid) {
     let leftHTML = `<h3 style="color: #38bdf8; font-weight: bold; font-size: 13px; margin: 0 0 8px 0;">신호계획정보</h3>`;
     
     leftHTML += `
-        <div style="background: #0f172a; padding: 15px; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 15px;">
+        <div style="background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b; margin-bottom: 15px;">
             <table class="detail-grid-table" style="width: 100%; text-align: center; font-size: 12px; border-collapse: collapse;">
                 <thead>
                     <tr style="background: rgba(255,255,255,0.02); color: #94a3b8;">
@@ -307,7 +307,7 @@ function renderOverlayPlanInfo(jid) {
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05); color: #94a3b8;">
                             <th style="padding: 3px; border: 1px solid #334155;">주기(Cycle)</th>
-                            <th style="padding: 3px; border: 1px solid #334155;">주현시</th>
+                            <th style="padding: 3px; border: 1px solid #334155; white-space: nowrap;">주현시</th>
                             <th style="padding: 3px; border: 1px solid #334155;">연동값(Offset)</th>
                             <th style="padding: 3px; border: 1px solid #334155;">요일계획(Day plan)</th>
                             <th style="padding: 3px; border: 1px solid #334155;">시간계획(Time plan)</th>
@@ -318,7 +318,7 @@ function renderOverlayPlanInfo(jid) {
                     <tbody>
                         <tr>
                             <td style="padding: 3px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${sched ? sched.cycle : '-'}초</td>
-                            <td style="padding: 3px; border: 1px solid #334155; color: #fff;">${mainPhase}</td>
+                            <td style="padding: 3px; border: 1px solid #334155; color: #fff; white-space: nowrap;">${mainPhase}</td>
                             <td style="padding: 3px; border: 1px solid #334155; color: #fff; font-weight: bold;">${plan ? plan.offset : '-'}초</td>
                             <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${dayIdx + 1}</td>
                             <td style="padding: 3px; border: 1px solid #334155; color: #f472b6; font-weight: bold;">${pIdx + 1}</td>
@@ -357,7 +357,7 @@ function renderOverlayPlanInfo(jid) {
                     </div>
                 </div>
                 
-                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 6px; border: 1px solid #1e293b;">
+                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 0; border: 1px solid #1e293b;">
                 <table id="tod-table-group-1" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05);">
@@ -428,7 +428,7 @@ function renderOverlayPlanInfo(jid) {
             
             <div style="margin-top: 15px;">
                 <span style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px; display: inline-block;">플랜 인덱스별 현시계획표 (전체 통합)</span>
-                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 6px; border: 1px solid #1e293b;">
+                <div style="overflow-x: auto; background: #0f172a; padding: 1px; border-radius: 0; border: 1px solid #1e293b;">
                     <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                         <thead>
                             <tr style="background: rgba(255,255,255,0.05);">
@@ -549,14 +549,17 @@ function updateOverlayPhaseDiagram(jid) {
         if (STATE.signalSource === 'REALTIME') {
             const d = new Date();
             const pad = n => n.toString().padStart(2, '0');
-            timeElem.innerText = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            const dateStr = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+            timeElem.innerText = `${dateStr} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         } else {
             const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
             const hrs = Math.floor(t / 3600);
             const mins = Math.floor((t % 3600) / 60);
             const secs = t % 60;
             const pad = n => n.toString().padStart(2, '0');
-            timeElem.innerText = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+            const now = new Date();
+            const dateStr = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate());
+            timeElem.innerText = `${dateStr} ${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
         }
     }
     

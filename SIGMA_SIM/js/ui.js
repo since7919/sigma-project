@@ -418,7 +418,7 @@ function updateScales() {
     Object.values(STATE.junctions).forEach(j => {
         if (j.marker && j.marker.setRadius) {
             const isSelected = (j.id === STATE.activeJid);
-            j.marker.setRadius((isSelected ? 7 : 5) * STATE.nodeScale);
+            j.marker.setRadius((isSelected ? 11 : 6) * STATE.nodeScale);
         }
     });
 }

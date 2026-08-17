@@ -461,12 +461,24 @@ app.get('/api/sim/data', async (req, res) => {
           let csvContent = "\ufeff" + headers.join(",") + "\n";
           
           (rows || []).forEach(r => {
-            // arrowConfigs 복원
+            // arrowConfigs & _custom_angles 복원
             let arrowStr = "";
             if (r.arrow_configs && typeof r.arrow_configs === 'object') {
-              arrowStr = Object.entries(r.arrow_configs).flatMap(([mov, configs]) => 
-                (configs || []).map(c => `${mov}:${c.dLat}:${c.dLng}:${c.rot}`)
-              ).join(';');
+              const arrs = [];
+              Object.entries(r.arrow_configs).forEach(([mov, configs]) => {
+                if (mov === '_custom_angles') {
+                  if (configs && typeof configs === 'object') {
+                    Object.entries(configs).forEach(([pfx, angle]) => {
+                      arrs.push(`_custom_angles:${pfx}:${angle}`);
+                    });
+                  }
+                } else if (Array.isArray(configs)) {
+                  configs.forEach(c => {
+                    arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`);
+                  });
+                }
+              });
+              arrowStr = arrs.join(';');
             }
             
             const line = [
@@ -800,7 +812,10 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         const arrowConfigs = {};
         newRow.arrow_configs.split(';').forEach(conf => {
           const parts = conf.split(':');
-          if (parts.length >= 4) {
+          if (parts.length >= 3 && parts[0] === '_custom_angles') {
+            if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
+            arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+          } else if (parts.length >= 4) {
             const mov = parts[0];
             if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
             arrowConfigs[mov].push({
@@ -1131,13 +1146,16 @@ app.post('/api/sim/update-junction', async (req, res) => {
       if (interCsvLine !== undefined && interCsvLine.trim()) {
         const cols = parseCsvRow(interCsvLine);
         if (cols.length >= 8) {
-          // arrowConfigs 복원
+          // arrowConfigs & _custom_angles 복원
           let arrowConfigs = {};
           const arrowStr = cols[11];
           if (arrowStr) {
             arrowStr.split(';').forEach(conf => {
               const parts = conf.split(':');
-              if (parts.length >= 4) {
+              if (parts.length >= 3 && parts[0] === '_custom_angles') {
+                if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
+                arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+              } else if (parts.length >= 4) {
                 const mov = parts[0];
                 if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
                 arrowConfigs[mov].push({
@@ -1165,6 +1183,7 @@ app.post('/api/sim/update-junction', async (req, res) => {
               controller: cols[12] || "",
               diagram_order: parseInt(cols[13]) || -1,
               weekly_plan: cols[14] || '1;1;1;1;1;2;3',
+              api_int_no: cols[15] !== undefined ? (cols[15] !== "" ? parseInt(cols[15], 10) || null : null) : null,
               updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
 
@@ -1311,7 +1330,10 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
             if (arrowStr) {
               arrowStr.split(';').forEach(conf => {
                 const parts = conf.split(':');
-                if (parts.length >= 4) {
+                if (parts.length >= 3 && parts[0] === '_custom_angles') {
+                  if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
+                  arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+                } else if (parts.length >= 4) {
                   const mov = parts[0];
                   if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
                   arrowConfigs[mov].push({

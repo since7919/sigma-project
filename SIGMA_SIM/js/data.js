@@ -567,7 +567,17 @@ function exportNormalizedDB() {
 
 function serializeFlash(j) { return `${j.flashEnable?1:0}|${(j.flashTimes||[]).map(t=>`${t.s},${t.e}`).join(';')}|${(j.flashYellows||[]).join(';')}|${(j.flashReds||[]).join(';')}`; }
 function serializeOpInt(j) { const op = j.opIntervention||{enable:false,rows:[]}; return `${op.enable?1:0}|${(op.rows||[]).map(r=>`${r.s},${r.e},${r.cycle},${r.offset},${(r.splitA||[]).join(';')},${(r.splitB||[]).join(';')}`).join('::')}`; }
-function serializeArrows(j) { return Object.entries(j.arrowConfigs||{}).flatMap(([m, configs]) => configs.map(c => `${m}:${c.dLat}:${c.dLng}:${c.rot}`)).join(';'); }
+function serializeArrows(j) {
+    const arrs = Object.entries(j.arrowConfigs || {}).flatMap(([m, configs]) =>
+        configs.map(c => `${m}:${c.dLat}:${c.dLng}:${c.rot}`)
+    );
+    if (j.customAngles) {
+        Object.entries(j.customAngles).forEach(([pfx, angle]) => {
+            arrs.push(`_custom_angles:${pfx}:${angle}`);
+        });
+    }
+    return arrs.join(';');
+}
 
 /** [통합] 교차로 CSV 프로세서 */
 function processIntersectionCSV(csv) {
@@ -1204,6 +1214,26 @@ function parseExtraConfigs(j, row) {
         const p = fStr.split('|'); j.flashEnable = p[0] === '1';
         j.flashTimes = (p[1]||"").split(';').map(s=>{ const b=s.split(','); return b.length>=2?{s:b[0],e:b[1]}:null; }).filter(t=>t);
         j.flashYellows = (p[2]||"").split(';').filter(v=>v).map(Number); j.flashReds = (p[3]||"").split(';').filter(v=>v).map(Number);
+    }
+
+    const arrowStr = row["ArrowConfigs"];
+    j.arrowConfigs = {};
+    j.customAngles = {};
+    if (arrowStr) {
+        arrowStr.split(';').forEach(conf => {
+            const parts = conf.split(':');
+            if (parts.length >= 3 && parts[0] === '_custom_angles') {
+                j.customAngles[parts[1]] = parseInt(parts[2]) || 0;
+            } else if (parts.length >= 4) {
+                const mov = parseInt(parts[0]);
+                if (!j.arrowConfigs[mov]) j.arrowConfigs[mov] = [];
+                j.arrowConfigs[mov].push({
+                    dLat: parseFloat(parts[1]) || 0,
+                    dLng: parseFloat(parts[2]) || 0,
+                    rot: parseInt(parts[3]) || 0
+                });
+            }
+        });
     }
 }
 
