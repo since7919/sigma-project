@@ -59,6 +59,9 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
     const rect = e.currentTarget.closest('.compass-center-overlay').getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
+    const slotEl = e.currentTarget.closest('.signal-slot');
+
+    let lastClamped = 0;
 
     const onPointerMove = (moveEvent) => {
       const dx = moveEvent.clientX - centerX;
@@ -66,12 +69,20 @@ export default function CompassOverlay({ displayMode, updatedPhases, onAngleChan
       let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
       if (angle < 0) angle += 360;
       const clamped = clampAngleForPfx(pfx, Math.round(angle));
-      onAngleChange(pfx, clamped);
+      
+      if (slotEl) {
+        slotEl.style.transform = `rotate(${clamped}deg)`;
+      }
+      lastClamped = clamped;
     };
 
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      
+      if (lastClamped !== 0) {
+        onAngleChange(pfx, lastClamped);
+      }
     };
 
     window.addEventListener('pointermove', onPointerMove);

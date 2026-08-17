@@ -186,6 +186,10 @@ export default function SingleDetailOverlay({ intersection, onClose, isDual, for
 
   const [localCustomAngles, setLocalCustomAngles] = useState(intersection.custom_angles || {});
 
+  useEffect(() => {
+    setLocalCustomAngles(intersection.custom_angles || {});
+  }, [intersection.int_no, intersection.custom_angles]);
+
   // 실시간 신호 테이블 데이터 가공 로직
   const updatedPhases = useSignalPhases({ intersection, isSeoul, cropData, phaseA, phaseB, remainA, remainB, uticUpdateTick, sigMapData, sigMapDataList, customAngles: localCustomAngles });
 
