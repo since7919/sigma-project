@@ -720,16 +720,27 @@ function _serializeLaneCell(dirState) {
     return `act:${act}|A:${aVals}|B:${bVals}`;
 }
 
+const STATS_TYPE_KEYS = ['C','U','LU','L','LT','T','TR','R','R_D','CW','CW_D','SPD'];
 function _deserializeLaneCell(cellVal) {
     if (!cellVal) return null;
-    const typeKeys = ['C','U','LU','L','LT','T','TR','R','R_D','CW','CW_D','SPD'];
     const parts = cellVal.split('|');
     const act = (parts[0] || '').split(':')[1] === '1';
     const parseBlock = prefix => {
-        const part = parts.find(p => p.startsWith(prefix + ':'));
+        const prefixColon = prefix + ':';
+        let part = null;
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i].startsWith(prefixColon)) {
+                part = parts[i];
+                break;
+            }
+        }
         if (!part) return {};
-        const vals = part.substring(prefix.length + 1).split(',');
-        return Object.fromEntries(typeKeys.map((k, i) => [k, parseFloat(vals[i]) || 0]));
+        const vals = part.substring(prefixColon.length).split(',');
+        const obj = {};
+        for (let i = 0; i < STATS_TYPE_KEYS.length; i++) {
+            obj[STATS_TYPE_KEYS[i]] = parseFloat(vals[i]) || 0;
+        }
+        return obj;
     };
     return { active: act, A: parseBlock('A'), B: parseBlock('B') };
 }
@@ -831,8 +842,10 @@ function _loadStatsCsv(csvText) {
             if (parsed) {
                 if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
                 j.optimizerState[dir].active = parsed.active;
-                j.optimizerState[dir].A = { ...(j.optimizerState[dir].A || {}), ...parsed.A };
-                j.optimizerState[dir].B = { ...(j.optimizerState[dir].B || {}), ...parsed.B };
+                if (!j.optimizerState[dir].A) j.optimizerState[dir].A = {};
+                if (!j.optimizerState[dir].B) j.optimizerState[dir].B = {};
+                Object.assign(j.optimizerState[dir].A, parsed.A);
+                Object.assign(j.optimizerState[dir].B, parsed.B);
             }
         }
 
@@ -841,15 +854,20 @@ function _loadStatsCsv(csvText) {
             const cellVal = vals[idx];
             if (!cellVal) continue;
             
-            const activeDirs = cellVal.split(';').map(s => s.trim()).filter(Boolean);
+            const activeDirs = cellVal.split(';');
+            const dirMap = {};
+            for (let k = 0; k < activeDirs.length; k++) {
+                dirMap[activeDirs[k]] = true;
+            }
             for (let d = 0; d < STATS_DIRS.length; d++) {
                 const dir = STATS_DIRS[d];
                 if (!j.optimizerState[dir]) j.optimizerState[dir] = {};
+                const hasDir = dirMap[dir] || false;
                 if (mapping.path === 'top') {
-                    j.optimizerState[dir][mapping.key] = activeDirs.includes(dir);
+                    j.optimizerState[dir][mapping.key] = hasDir;
                 } else {
                     if (!j.optimizerState[dir].op) j.optimizerState[dir].op = {};
-                    j.optimizerState[dir].op[mapping.key] = activeDirs.includes(dir);
+                    j.optimizerState[dir].op[mapping.key] = hasDir;
                 }
             }
         }
@@ -861,25 +879,46 @@ function _loadStatsCsv(csvText) {
 
 function _parseCsvLine(line) {
     const result = [];
-    let start = 0;
-    let inQ = false;
-    for (let i = 0; i < line.length; i++) {
+    let i = 0;
+    const len = line.length;
+    while (i < len) {
+        while (i < len && line[i] === ' ') i++;
+        if (i >= len) {
+            result.push("");
+            break;
+        }
         if (line[i] === '"') {
-            inQ = !inQ;
-        } else if (line[i] === ',' && !inQ) {
-            let val = line.substring(start, i).trim();
-            if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
-                val = val.substring(1, val.length - 1).replace(/""/g, '"');
+            let j = i + 1;
+            while (j < len) {
+                if (line[j] === '"') {
+                    if (j + 1 < len && line[j + 1] === '"') {
+                        j += 2;
+                    } else {
+                        break;
+                    }
+                } else {
+                    j++;
+                }
             }
+            let val = line.substring(i + 1, j).replace(/""/g, '"');
             result.push(val);
-            start = i + 1;
+            i = j + 1;
+            while (i < len && line[i] !== ',') i++;
+            i++;
+        } else {
+            let j = line.indexOf(',', i);
+            if (j === -1) {
+                result.push(line.substring(i).trim());
+                break;
+            } else {
+                result.push(line.substring(i, j).trim());
+                i = j + 1;
+            }
         }
     }
-    let val = line.substring(start).trim();
-    if (val.length >= 2 && val[0] === '"' && val[val.length - 1] === '"') {
-        val = val.substring(1, val.length - 1).replace(/""/g, '"');
+    if (len > 0 && line[len - 1] === ',') {
+        result.push("");
     }
-    result.push(val);
     return result;
 }
 

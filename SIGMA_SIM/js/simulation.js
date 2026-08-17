@@ -499,7 +499,7 @@ function updateSim() {
         }
 
         // [추가] 교차로 상세보기 현시표 갱신 훅
-        if (window._currentOverlayJid === j.id && typeof updateOverlayPhaseDiagram === 'function') {
+        if (String(window._currentOverlayJid) === String(j.id) && typeof updateOverlayPhaseDiagram === 'function') {
             updateOverlayPhaseDiagram(j.id);
         }
 

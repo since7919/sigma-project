@@ -601,14 +601,21 @@ app.get('/api/sim/data', async (req, res) => {
     }
 
     // E~H 및 기호 보조 GeoJSON 등은 기존 sim_csv_storage 조회 폴백 처리
-    const { data, error } = await supabase
-      .from('sim_csv_storage')
-      .select('file_content')
-      .eq('file_name', file)
-      .single();
+    if (!global._simCsvStorageCache) global._simCsvStorageCache = {};
+    let fileContent = global._simCsvStorageCache[file];
 
-    if (error || !data) {
-      return res.status(404).json({ error: `파일을 찾을 수 없습니다: ${file}` });
+    if (!fileContent) {
+      const { data, error } = await supabase
+        .from('sim_csv_storage')
+        .select('file_content')
+        .eq('file_name', file)
+        .single();
+
+      if (error || !data) {
+        return res.status(404).json({ error: `파일을 찾을 수 없습니다: ${file}` });
+      }
+      fileContent = data.file_content;
+      global._simCsvStorageCache[file] = fileContent;
     }
 
     if (file.endsWith('.geojson')) {
@@ -619,7 +626,7 @@ app.get('/api/sim/data', async (req, res) => {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     }
 
-    res.send(data.file_content);
+    res.send(fileContent);
   } catch (err) {
     sendErrorResponse(res, err, '시뮬레이터 데이터 조회에 실패했습니다.');
   }
