@@ -231,6 +231,11 @@ function renderOverlayPlanInfo(jid) {
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
     `;
     
+    const nemaToStr = {
+        1: '동 좌', 2: '서 직', 3: '남 좌', 4: '북 직',
+        5: '서 좌', 6: '동 직', 7: '북 좌', 8: '남 직'
+    };
+
     for (let i = 1; i <= 8; i++) {
         const isRingA = (plan && plan.splitA && plan.splitA[i - 1] > 0);
         const isRingB = (plan && plan.splitB && plan.splitB[i - 1] > 0);
@@ -240,6 +245,11 @@ function renderOverlayPlanInfo(jid) {
         let splitTimeB = isRingB ? plan.splitB[i-1] : '-';
         let timeStr = isActive ? (isRingA && isRingB ? `A:${splitTimeA}s B:${splitTimeB}s` : (isRingA ? `${splitTimeA}s` : `${splitTimeB}s`)) : '';
 
+        const movA_val = (smMap && smMap.movA) ? smMap.movA[i-1] : 0;
+        const movB_val = (smMap && smMap.movB) ? smMap.movB[i-1] : 0;
+        const strA = nemaToStr[movA_val] || '';
+        const strB = nemaToStr[movB_val] || '';
+
         leftHTML += `
             <div style="border: ${isActive ? '2px solid #10b981' : '1px solid #334155'}; border-radius: 4px; background: ${isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)'}; text-align: center;">
                 <div style="background: ${isActive ? '#10b981' : '#1e293b'}; padding: 2px 3px; font-size: 11px; font-weight: bold; color: ${isActive ? '#0f172a' : '#cbd5e1'}; display: flex; justify-content: space-between;">
@@ -247,8 +257,14 @@ function renderOverlayPlanInfo(jid) {
                     ${isActive ? `<span style="font-size: 10px; background: rgba(0,0,0,0.4); color: #fff; padding: 1px 4px; border-radius: 3px;">${timeStr}</span>` : ''}
                 </div>
                 <div style="padding: 6px 4px; display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: bold;">
-                    <div style="display: flex; gap: 5px; align-items: center;"><span style="color: ${isRingA ? '#10b981' : '#64748b'}; width:10px;">A</span> <span style="color:#e2e8f0;">${isRingA ? splitTimeA+'s' : '-'}</span></div>
-                    <div style="display: flex; gap: 5px; align-items: center;"><span style="color: ${isRingB ? '#3b82f6' : '#64748b'}; width:10px;">B</span> <span style="color:#e2e8f0;">${isRingB ? splitTimeB+'s' : '-'}</span></div>
+                    <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; gap: 5px;"><span style="color: ${isRingA ? '#10b981' : '#64748b'}; width:10px;">A</span> <span style="color:#e2e8f0;">${isRingA ? splitTimeA+'s' : '-'}</span></div>
+                        <span style="color:#94a3b8; font-size:9px;">${strA}</span>
+                    </div>
+                    <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; gap: 5px;"><span style="color: ${isRingB ? '#3b82f6' : '#64748b'}; width:10px;">B</span> <span style="color:#e2e8f0;">${isRingB ? splitTimeB+'s' : '-'}</span></div>
+                        <span style="color:#94a3b8; font-size:9px;">${strB}</span>
+                    </div>
                 </div>
             </div>
         `;
