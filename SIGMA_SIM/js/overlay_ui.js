@@ -231,9 +231,31 @@ function renderOverlayPlanInfo(jid) {
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
     `;
     
-    const nemaToStr = {
-        1: '동 좌', 2: '서 직', 3: '남 좌', 4: '북 직',
-        5: '서 좌', 6: '동 직', 7: '북 좌', 8: '남 직'
+    const getPhaseArrowHTML = (mov, pedMov) => {
+        if (!mov || mov === 0) return '<span style="color: #475569">-</span>';
+        const type = (mov % 2 !== 0) ? 'L' : 'S';
+        let enterAngle = 0;
+        switch (mov) {
+            case 1: enterAngle = 90; break;
+            case 2: enterAngle = 270; break;
+            case 3: enterAngle = 180; break;
+            case 4: enterAngle = 0; break;
+            case 5: enterAngle = 270; break;
+            case 6: enterAngle = 90; break;
+            case 7: enterAngle = 0; break;
+            case 8: enterAngle = 180; break;
+        }
+        const arrowChar = type === 'L' ? '↰' : '↑';
+        const color = type === 'L' ? '#f59e0b' : '#38bdf8';
+        const rot = (enterAngle + 180) % 360;
+        
+        let html = `<div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; align-items: center;">`;
+        html += `<div style="transform: rotate(${rot}deg); color: ${color}; font-size: 14px; font-weight: bold; display: inline-block; line-height: 1;">${arrowChar}</div>`;
+        if (pedMov > 0) {
+            html += `<span style="font-size: 11px; color: #10b981; font-weight: bold;">🚶</span>`;
+        }
+        html += `</div>`;
+        return html;
     };
 
     for (let i = 1; i <= 8; i++) {
@@ -246,9 +268,12 @@ function renderOverlayPlanInfo(jid) {
         let timeStr = isActive ? (isRingA && isRingB ? `A:${splitTimeA}s B:${splitTimeB}s` : (isRingA ? `${splitTimeA}s` : `${splitTimeB}s`)) : '';
 
         const movA_val = (smMap && smMap.movA) ? smMap.movA[i-1] : 0;
+        const pedA_val = (smMap && smMap.pedMovA) ? smMap.pedMovA[i-1] : 0;
+        const htmlA = getPhaseArrowHTML(movA_val, pedA_val);
+
         const movB_val = (smMap && smMap.movB) ? smMap.movB[i-1] : 0;
-        const strA = nemaToStr[movA_val] || '';
-        const strB = nemaToStr[movB_val] || '';
+        const pedB_val = (smMap && smMap.pedMovB) ? smMap.pedMovB[i-1] : 0;
+        const htmlB = getPhaseArrowHTML(movB_val, pedB_val);
 
         leftHTML += `
             <div style="border: ${isActive ? '2px solid #10b981' : '1px solid #334155'}; border-radius: 4px; background: ${isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.02)'}; text-align: center;">
@@ -259,11 +284,11 @@ function renderOverlayPlanInfo(jid) {
                 <div style="padding: 6px 4px; display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-weight: bold;">
                     <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
                         <div style="display: flex; gap: 5px;"><span style="color: ${isRingA ? '#10b981' : '#64748b'}; width:10px;">A</span> <span style="color:#e2e8f0;">${isRingA ? splitTimeA+'s' : '-'}</span></div>
-                        <span style="color:#94a3b8; font-size:9px;">${strA}</span>
+                        <div style="flex: 1; display: flex; justify-content: center;">${htmlA}</div>
                     </div>
                     <div style="display: flex; gap: 5px; align-items: center; justify-content: space-between;">
                         <div style="display: flex; gap: 5px;"><span style="color: ${isRingB ? '#3b82f6' : '#64748b'}; width:10px;">B</span> <span style="color:#e2e8f0;">${isRingB ? splitTimeB+'s' : '-'}</span></div>
-                        <span style="color:#94a3b8; font-size:9px;">${strB}</span>
+                        <div style="flex: 1; display: flex; justify-content: center;">${htmlB}</div>
                     </div>
                 </div>
             </div>
