@@ -1334,6 +1334,148 @@ app.post('/api/sim/update-junction', async (req, res) => {
   }
 });
 
+// 1-4-OSM. OSM 반경 차로 데이터 자동 추출 및 캐싱
+app.post('/api/sim/osm-lanes', async (req, res) => {
+  const { lat, lng, osmData } = req.body;
+  if (!lat || !lng) return res.status(400).json({ error: 'lat, lng가 필요합니다.' });
+
+  try {
+    // 1. Supabase PostGIS RPC 호출로 10m 이내 캐시 데이터 확인
+    const { data: cached, error: cacheErr } = await supabase.rpc('get_cached_osm_lanes', {
+      p_lat: parseFloat(lat),
+      p_lng: parseFloat(lng),
+      p_radius_meters: 10
+    });
+
+    if (!cacheErr && cached) {
+      return res.json({ success: true, cached: true, lanes: cached });
+    }
+
+    if (!osmData || !osmData.elements) {
+      return res.status(400).json({ error: 'osmData 요소가 없습니다.' });
+    }
+
+    // 2. 캐시 미스 시 파싱 로직 수행
+    const elements = osmData.elements;
+    const nodes = {};
+    const ways = [];
+    
+    elements.forEach(el => {
+      if (el.type === 'node') nodes[el.id] = el;
+      if (el.type === 'way' && el.tags && el.tags.highway) ways.push(el);
+    });
+
+    // 2.1 대상 교차로 중심과 가장 가까운 노드(교차점) 탐색
+    let centerNodeId = null;
+    let minDiff = Infinity;
+    for (const [nid, node] of Object.entries(nodes)) {
+      const diff = Math.abs(node.lat - lat) + Math.abs(node.lon - lng);
+      if (diff < minDiff) {
+        minDiff = diff;
+        centerNodeId = parseInt(nid);
+      }
+    }
+
+    if (!centerNodeId) {
+      return res.json({ success: false, message: '주변 OSM 노드를 찾을 수 없습니다.' });
+    }
+
+    // 2.2 각도 계산 유틸리티
+    const getBearing = (lat1, lon1, lat2, lon2) => {
+      const toRad = (deg) => deg * Math.PI / 180;
+      const toDeg = (rad) => rad * 180 / Math.PI;
+      const dLon = toRad(lon2 - lon1);
+      const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+      const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - 
+                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+      return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    };
+
+    // 방향 결정 (N, E, S, W, NE, SE, SW, NW) - 진입로 기준(나한테서 교차로로 들어오는 각도)
+    const getDirection = (angle) => {
+      if (angle >= 337.5 || angle < 22.5) return 'S';      
+      if (angle >= 22.5 && angle < 67.5) return 'SW';
+      if (angle >= 67.5 && angle < 112.5) return 'W';      
+      if (angle >= 112.5 && angle < 157.5) return 'NW';
+      if (angle >= 157.5 && angle < 202.5) return 'N';     
+      if (angle >= 202.5 && angle < 247.5) return 'NE';
+      if (angle >= 247.5 && angle < 292.5) return 'E';     
+      if (angle >= 292.5 && angle < 337.5) return 'SE';
+      return 'N';
+    };
+
+    // 2.3 중심 노드로 들어오는(Incoming) 차로 수 집계
+    const incomingLanes = { N: 0, E: 0, S: 0, W: 0, NE: 0, SE: 0, SW: 0, NW: 0 };
+    
+    ways.forEach(way => {
+      const idx = way.nodes.indexOf(centerNodeId);
+      if (idx === -1) return; 
+
+      const isOneway = way.tags.oneway === 'yes' || way.tags.oneway === '1' || way.tags.oneway === '-1';
+      const lanesTotal = parseInt(way.tags.lanes) || 1;
+      const lanesFwd = parseInt(way.tags['lanes:forward']) || 0;
+      const lanesBwd = parseInt(way.tags['lanes:backward']) || 0;
+      
+      let incomingLanesCount = 0;
+      let prevNodeId = null;
+
+      if (isOneway) {
+        if (way.tags.oneway === '-1') {
+          // 역방향 일방통행
+          if (idx < way.nodes.length - 1) {
+            incomingLanesCount = lanesTotal;
+            prevNodeId = way.nodes[idx + 1];
+          }
+        } else {
+          // 정방향 일방통행
+          if (idx > 0) {
+            incomingLanesCount = lanesTotal;
+            prevNodeId = way.nodes[idx - 1];
+          }
+        }
+      } else {
+        // 양방향 도로
+        if (idx > 0) {
+          // 정방향으로 진입
+          incomingLanesCount = lanesFwd > 0 ? lanesFwd : Math.max(1, Math.floor(lanesTotal / 2));
+          prevNodeId = way.nodes[idx - 1];
+        } else if (idx < way.nodes.length - 1) {
+          // 역방향으로 진입
+          incomingLanesCount = lanesBwd > 0 ? lanesBwd : Math.max(1, Math.floor(lanesTotal / 2));
+          prevNodeId = way.nodes[idx + 1];
+        }
+      }
+
+      if (incomingLanesCount > 0 && prevNodeId && nodes[prevNodeId]) {
+        const prevNode = nodes[prevNodeId];
+        const centerNode = nodes[centerNodeId];
+        const bearing = getBearing(prevNode.lat, prevNode.lon, centerNode.lat, centerNode.lon);
+        const dir = getDirection(bearing);
+        
+        if (incomingLanesCount > incomingLanes[dir]) {
+          incomingLanes[dir] = incomingLanesCount;
+        }
+      }
+    });
+
+    // 3. 계산된 결과를 Supabase에 저장 (캐싱)
+    const { error: insertErr } = await supabase.from('osm_intersection_lanes').insert({
+      lat: lat,
+      lng: lng,
+      lanes_data: incomingLanes
+    });
+    
+    if (insertErr) {
+      console.warn("OSM Cache Insert Warning:", insertErr.message);
+    }
+
+    res.json({ success: true, cached: false, lanes: incomingLanes });
+
+  } catch (err) {
+    sendErrorResponse(res, err, 'OSM 차로 데이터 추출 중 오류가 발생했습니다.');
+  }
+});
+
 // 1-5-1. batch-update-junctions (대량 교차로 업데이트)
 app.post('/api/sim/batch-update-junctions', async (req, res) => {
   const { chunks } = req.body;

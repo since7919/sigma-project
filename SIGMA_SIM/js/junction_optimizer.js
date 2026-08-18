@@ -284,6 +284,89 @@ function handleOptInput(e) {
 }
 
 /**
+ * OSM 차로수 자동 추출 기능
+ */
+async function fetchOSMLanes() {
+    const jid = typeof STATE !== 'undefined' ? STATE.activeJid : null;
+    if (!jid || !STATE.junctions[jid]) {
+        alert("선택된 교차로가 없습니다.");
+        return;
+    }
+    const j = STATE.junctions[jid];
+    const lat = j.lat;
+    const lng = j.lng;
+
+    const btn = document.getElementById('btn-fetch-osm-lanes');
+    if (btn) {
+        btn.innerText = "⏳ 추출 중...";
+        btn.disabled = true;
+    }
+
+    try {
+        // 1. Overpass API 직접 호출
+        const query = `
+            [out:json];
+            (
+              way(around:30,${lat},${lng})["highway"];
+              node(around:30,${lat},${lng});
+            );
+            out body;
+        `;
+        const osmRes = await fetch("https://overpass-api.de/api/interpreter", {
+            method: "POST",
+            body: query
+        });
+        const osmData = await osmRes.json();
+
+        // 2. 백엔드 파싱 및 캐싱 호출
+        const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+        const res = await fetch(`${apiUrl}/api/sim/osm-lanes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lat, lng, osmData })
+        });
+        const result = await res.json();
+
+        if (result.success && result.lanes) {
+            let appliedCount = 0;
+            // 3. 방향별 직진(T) 차로수에 덮어쓰기 (또는 활성화)
+            for (const [dir, lanes] of Object.entries(result.lanes)) {
+                if (lanes > 0 && opt_state[dir]) {
+                    opt_state[dir].active = true;
+                    opt_state[dir].A.T = lanes;
+                    appliedCount++;
+                    // UI 인풋 박스도 동기화
+                    const inp = document.querySelector(`input[data-col="A"][data-type="T"]`);
+                    // 선택된 ID가 현재 방향일 때만 인풋 박스 반영
+                    if (opt_selectedIds.includes(dir) && inp) {
+                        inp.value = lanes;
+                    }
+                }
+            }
+
+            if (appliedCount > 0) {
+                renderOptimizer();
+                renderOptimizerStats();
+                saveOptToActiveJunction();
+                alert(`OSM 파싱 완료: ${appliedCount}개 방향의 진입 차로가 업데이트되었습니다. ${result.cached ? '(DB 캐시)' : '(신규 파싱)'}`);
+            } else {
+                alert("OSM에서 유효한 진입 도로(차로)를 찾지 못했습니다.");
+            }
+        } else {
+            alert(`오류: ${result.message || result.error || '알 수 없는 오류'}`);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("OSM 차로 자동 추출 중 오류가 발생했습니다.");
+    } finally {
+        if (btn) {
+            btn.innerText = "🌐 OSM 차로 자동 추출";
+            btn.disabled = false;
+        }
+    }
+}
+
+/**
  * 통계 요약표(제어기, 점멸, 긴급 등) 입력 핸들러
  */
 function handleJStatsInput(e) {
