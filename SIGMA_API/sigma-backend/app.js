@@ -1336,7 +1336,7 @@ app.post('/api/sim/update-junction', async (req, res) => {
 
 // 1-4-OSM. OSM 반경 차로 데이터 자동 추출 및 캐싱
 app.post('/api/sim/osm-lanes', async (req, res) => {
-  const { lat, lng, osmData } = req.body;
+  const { lat, lng } = req.body;
   if (!lat || !lng) return res.status(400).json({ error: 'lat, lng가 필요합니다.' });
 
   try {
@@ -1351,11 +1351,25 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       return res.json({ success: true, cached: true, lanes: cached });
     }
 
+    // 2. 캐시 미스 시 백엔드에서 Overpass API 직접 호출 (CORS 우회)
+    const query = `
+      [out:json];
+      (
+        way(around:30,${lat},${lng})["highway"];
+        node(around:30,${lat},${lng});
+      );
+      out body;
+    `;
+    const osmRes = await axios.post('https://overpass-api.de/api/interpreter', query, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    const osmData = osmRes.data;
+
     if (!osmData || !osmData.elements) {
       return res.status(400).json({ error: 'osmData 요소가 없습니다.' });
     }
 
-    // 2. 캐시 미스 시 파싱 로직 수행
+    // 3. 파싱 로직 수행
     const elements = osmData.elements;
     const nodes = {};
     const ways = [];

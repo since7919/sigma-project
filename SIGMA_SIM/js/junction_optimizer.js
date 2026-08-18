@@ -303,27 +303,12 @@ async function fetchOSMLanes() {
     }
 
     try {
-        // 1. Overpass API 직접 호출
-        const query = `
-            [out:json];
-            (
-              way(around:30,${lat},${lng})["highway"];
-              node(around:30,${lat},${lng});
-            );
-            out body;
-        `;
-        const osmRes = await fetch("https://overpass-api.de/api/interpreter", {
-            method: "POST",
-            body: query
-        });
-        const osmData = await osmRes.json();
-
-        // 2. 백엔드 파싱 및 캐싱 호출
+        // 백엔드 파싱 및 캐싱 호출 (CORS 우회를 위해 백엔드에서 Overpass 호출 수행)
         const apiUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
         const res = await fetch(`${apiUrl}/api/sim/osm-lanes`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lat, lng, osmData })
+            body: JSON.stringify({ lat, lng })
         });
         const result = await res.json();
 
