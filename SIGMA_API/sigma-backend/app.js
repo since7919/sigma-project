@@ -1360,10 +1360,18 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       );
       out body;
     `;
-    const osmRes = await axios.post('https://overpass-api.de/api/interpreter', `data=${encodeURIComponent(query)}`, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    
+    // Node.js 내장 fetch 활용 (axios 406 헤더 제약 회피)
+    const osmRes = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: query
     });
-    const osmData = osmRes.data;
+    
+    if (!osmRes.ok) {
+        throw new Error(`Overpass API 오류: ${osmRes.status} ${osmRes.statusText}`);
+    }
+    
+    const osmData = await osmRes.json();
 
     if (!osmData || !osmData.elements) {
       return res.status(400).json({ error: 'osmData 요소가 없습니다.' });
