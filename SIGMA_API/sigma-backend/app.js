@@ -1364,7 +1364,11 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
     // Node.js 내장 fetch 활용 (axios 406 헤더 제약 회피)
     const osmRes = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
-        body: query
+        body: query,
+        headers: {
+            'User-Agent': 'SigmaProject-TrafficAnalyzer/1.0',
+            'Accept': 'application/json, text/plain, */*'
+        }
     });
     
     if (!osmRes.ok) {
