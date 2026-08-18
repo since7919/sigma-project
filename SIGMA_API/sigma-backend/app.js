@@ -1360,7 +1360,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       );
       out body;
     `;
-    const osmRes = await axios.post('https://overpass-api.de/api/interpreter', query, {
+    const osmRes = await axios.post('https://overpass-api.de/api/interpreter', `data=${encodeURIComponent(query)}`, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     const osmData = osmRes.data;
