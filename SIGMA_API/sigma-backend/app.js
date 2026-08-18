@@ -1134,7 +1134,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 
 // 1-5. 교차로별 DB 업데이트 API (동시성 제어 적용)
 app.post('/api/sim/update-junction', async (req, res) => {
-  const { jid, interCsvLine, mapCsvLines, todCsvLines } = req.body;
+  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines } = req.body;
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
 
   try {
@@ -1290,6 +1290,38 @@ app.post('/api/sim/update-junction', async (req, res) => {
             .from('tod_plans')
             .upsert(todPayload, { onConflict: 'id,day_plan' });
           if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${tErr.message}`);
+        }
+      }
+
+      // 4) intersection_stats 운영통계 데이터 업데이트
+      if (statsCsvLines !== undefined && statsCsvLines.trim()) {
+        const payload = [];
+        const lines = statsCsvLines.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length > 1) {
+          const headers = parseCsvRow(lines[0]).map(h => {
+            if (h.toUpperCase() === 'ID') return 'id';
+            return h.replace(/^([A-Z])/, m => m.toLowerCase()).replace(/([A-Z])/g, m => '_' + m.toLowerCase());
+          });
+          const now = new Date().toISOString();
+          for (let i = 1; i < lines.length; i++) {
+            const cols = parseCsvRow(lines[i]);
+            if (cols.length === 0 || !cols[0]) continue;
+            const row = { updated_at: now };
+            for (let j = 0; j < headers.length; j++) {
+              let val = cols[j];
+              if (val === '') val = null;
+              else if (!isNaN(Number(val)) && val.trim() !== '') val = Number(val);
+              row[headers[j]] = val;
+            }
+            if (!row.id && row.int_no) row.id = String(row.int_no); 
+            payload.push(row);
+          }
+          if (payload.length > 0) {
+            const conflictKey = headers.includes('id') ? 'id' : (headers.includes('int_no') ? 'int_no' : null);
+            const upsertOpts = conflictKey ? { onConflict: conflictKey } : {};
+            const { error: sErr } = await supabase.from('intersection_stats').upsert(payload, upsertOpts);
+            if (sErr) throw new Error(`intersection_stats RDB 업서트 오류: ${sErr.message}`);
+          }
         }
       }
 

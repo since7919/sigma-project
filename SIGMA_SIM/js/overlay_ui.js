@@ -83,6 +83,14 @@ function openDetailOverlay(jid) {
     if (typeof renderBaseInfo === 'function') renderBaseInfo(jid);
     }
     
+    // 상세보기 탭 버튼들 복원 및 optstats 탭 버튼 숨기기
+    ['phase', 'sigmap', 'baseinfo'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.style.display = '';
+    });
+    const optStatsBtn = document.getElementById('tab-btn-optstats');
+    if (optStatsBtn) optStatsBtn.style.display = 'none';
+
     // 모달 열 때 기본 탭(신호계획정보) 활성화
     switchOverlayTab('phase');
     
@@ -157,8 +165,117 @@ function setCompassSignal(direction, color, isFlashing = false) {
     }
 }
 
+function openStatsOverlay(jid) {
+    if (!jid) {
+        if (typeof STATE !== 'undefined' && STATE.activeJid) {
+            jid = STATE.activeJid;
+        } else {
+            console.warn("열고자 하는 교차로 ID가 제공되지 않았습니다.");
+            return;
+        }
+    }
+
+    const modal = document.getElementById('detail-overlay-modal');
+    const titleName = document.getElementById('overlay-title-name');
+    const titleId = document.getElementById('overlay-title-id');
+    
+    // 교차로명 및 ID 세팅
+    if (typeof STATE !== 'undefined' && STATE.junctions && STATE.junctions[jid]) {
+        if(titleName) titleName.innerText = `📊 운영통계 - ${STATE.junctions[jid].name || '이름 없음'}`;
+        if(titleId) titleId.innerText = `ID: ${jid}`;
+    } else {
+        if(titleName) titleName.innerText = `교차로 운영통계`;
+        if(titleId) titleId.innerText = `ID: ${jid}`;
+    }
+
+    // SIM 데이터 컨테이너를 모달 내부로 이동시켜 기존 렌더링 로직 유지 (Data Binding)
+    const sigmapTab = document.getElementById('overlay-tab-sigmap');
+    const sigmapContainer = document.getElementById('sigmap-table-container');
+
+    if (sigmapContainer && !sigmapTab.contains(sigmapContainer)) {
+        sigmapTab.appendChild(sigmapContainer);
+    }
+
+    modal.style.display = 'flex';
+    
+    // Google Satellite Map 초기화 및 이동
+    if (!overlayMap) {
+        overlayMap = L.map('overlay-leaflet-map', {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            boxZoom: false,
+            keyboard: false
+        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+        L.tileLayer('https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 22
+        }).addTo(overlayMap);
+    } else {
+        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+    }
+
+    // 중앙 원형 마커 그리기
+    if (window._overlayCenterMarker) {
+        overlayMap.removeLayer(window._overlayCenterMarker);
+    }
+    window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
+        radius: 8,
+        fillColor: '#00ecff',
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.8
+    }).addTo(overlayMap);
+
+    setTimeout(() => {
+        if (overlayMap) {
+            overlayMap.invalidateSize();
+            if (typeof createOverlayArrows === 'function') {
+                createOverlayArrows(jid, overlayMap);
+                if (typeof updateSim === 'function') updateSim();
+            }
+        }
+    }, 100);
+
+    // 신호계획정보 탭(API UI) 렌더링 (백그라운드에서 계산 돌도록 실행)
+    if (typeof renderOverlayPlanInfo === 'function') {
+        renderOverlayPlanInfo(jid);
+    }
+    if (typeof renderBaseInfo === 'function') {
+        renderBaseInfo(jid);
+    }
+
+    // 로드 옵티마이저 스테이트 (Stats Input)
+    if (typeof STATE !== 'undefined' && STATE.junctions && STATE.junctions[jid]) {
+        const j = STATE.junctions[jid];
+        if (typeof loadOptStateFromJunction === 'function') {
+            loadOptStateFromJunction(j);
+        }
+    }
+
+    // 상세보기 탭 버튼들 숨기고 optstats 탭 버튼만 보여주기
+    ['phase', 'sigmap', 'baseinfo'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.style.display = 'none';
+    });
+    
+    const optStatsBtn = document.getElementById('tab-btn-optstats');
+    if (optStatsBtn) optStatsBtn.style.display = '';
+
+    // switch overlay tab to optstats
+    switchOverlayTab('optstats');
+
+    // 신호등 모드 버튼 초기화
+    if (typeof updateOverlaySignalModeButton === 'function') {
+        updateOverlaySignalModeButton();
+    }
+}
+
 // 지도 팝업이나 패널에서 이 UI를 호출할 수 있도록 글로벌에 노출
 window.openDetailOverlay = openDetailOverlay;
+window.openStatsOverlay = openStatsOverlay;
 window.closeDetailOverlay = closeDetailOverlay;
 window.switchOverlayTab = switchOverlayTab;
 window.setCompassSignal = setCompassSignal;

@@ -928,5 +928,48 @@ function generateStatsCSV() {
     return _rowsToCsvString(rows);
 }
 
+function generateSingleJunctionStatsCSV(jid) {
+    const j = STATE.junctions[jid];
+    if (!j) return "";
+    const optState = j.optimizerState;
+    const summary = (optState && optState.summary) ? optState.summary : {};
+    const flashList = summary.flash || [];
+
+    const row = {
+        ID: j.id || '',
+        Seq: j.seq || '',
+        PlanType: '일반'
+    };
+
+    STATS_GLOBAL_MAP.forEach(mapping => {
+        if (mapping.val !== null) {
+            row[mapping.csv] = flashList.includes(mapping.val) ? '1' : '0';
+        } else {
+            row[mapping.csv] = summary[mapping.key] ? '1' : '0';
+        }
+    });
+
+    STATS_DIRS.forEach(dir => {
+        row[`lane_${dir}`] = optState ? _serializeLaneCell(optState[dir]) : '';
+    });
+
+    STATS_BOOL_MAP.forEach(mapping => {
+        if (!optState) { row[mapping.csv] = ''; return; }
+        const active = STATS_DIRS.filter(dir => {
+            const s = optState[dir];
+            if (!s || !s.active) return false;
+            const val = mapping.path === 'top' ? s[mapping.key] : (s.op ? s.op[mapping.key] : false);
+            return !!val;
+        });
+        row[mapping.csv] = active.join(';');
+    });
+
+    const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const header = STATS_CSV_HEADERS.map(esc).join(',');
+    const body = STATS_CSV_HEADERS.map(h => esc(row[h] ?? '')).join(',');
+    return header + '\n' + body;
+}
+
 window.generateStatsCSV = generateStatsCSV;
+window.generateSingleJunctionStatsCSV = generateSingleJunctionStatsCSV;
 window.processStatsCSV = _loadStatsCsv; // 통합 DB 로더 연동용 노출

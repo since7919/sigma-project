@@ -1323,6 +1323,9 @@ async function updateActiveJunctionToDB() {
         if (!payload) {
             throw new Error("CSV 데이터 추출에 실패했습니다.");
         }
+        if (typeof generateSingleJunctionStatsCSV === 'function') {
+            payload.statsCsvLines = generateSingleJunctionStatsCSV(jid);
+        }
         console.log("DEBUG mapCsvLines:", payload.mapCsvLines);
 
         const response = await fetch('/api/sim/update-junction', {

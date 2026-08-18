@@ -128,6 +128,7 @@ function syncJunctionsToDashMap() {
             <div style="text-align:center;">
                 <div style="margin-bottom:8px; font-weight:bold; font-size:12px;">${j.name} (${j.id})</div>
                 <button class="btn-sm" style="background:#38bdf8; color:#000; padding:5px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;" onclick="STATE.activeJid='${j.id}'; openDetailOverlay('${j.id}');">상세보기</button>
+                <button class="btn-sm" style="background:#e67e22; color:#fff; padding:5px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%; margin-top:4px;" onclick="STATE.activeJid='${j.id}'; openStatsOverlay('${j.id}');">운영통계</button>
             </div>
         `);
     });

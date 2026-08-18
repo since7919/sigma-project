@@ -56,6 +56,7 @@ function drawJunction(jid, onlyStyle) {
             <h3>${j.name}</h3>
             <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
               <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+              <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
             </div>
           </div>
         `, { className: 'custom-popup', closeButton: true });
@@ -86,6 +87,7 @@ function drawJunction(jid, onlyStyle) {
             <h3>${j.name}</h3>
             <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
               <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+              <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
             </div>
           </div>
         `, { className: 'custom-popup', closeButton: true });

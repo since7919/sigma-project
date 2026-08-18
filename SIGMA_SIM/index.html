@@ -292,7 +292,7 @@
             <div class="tab active" onclick="openTab(event, 'tab-info')">Node/Link</div>
             <div class="tab" onclick="openTab(event, 'tab-phase')">Phase/Split</div>
             <div class="tab" onclick="openTab(event, 'tab-group')">Group TOD</div>
-            <div class="tab" onclick="openTab(event, 'tab-stats1')">Stats Input</div>
+
             <div class="tab" onclick="openTab(event, 'tab-stats')">Stats View</div>
             <div class="tab" onclick="openTab(event, 'tab-civil')">Yearbook</div>
         </div>
@@ -1526,148 +1526,7 @@
             </div>
         </div> <!-- end tab-group -->
 
-        <div id="tab-stats1" class="tab-content">
-            <div class="sigma-panel">
-                <div class="card-title">
-                    <span>🛠️ Data Input</span>
-                </div>
-                <div class="foldable-content">
-                    <!-- Top Section: Side-by-Side Viz & Inspector -->
-                    <div class="top-layout-opt flex-row gap-15 mb-8" style="align-items: flex-start;">
 
-                        <!-- Left: Visual Sidebar (Viz & Summary) -->
-                        <div class="viz-sidebar-opt flex-col gap-10" style="flex: 0 0 320px;">
-                            <div id="junction-name-banner" class="junction-banner flex-col gap-8">
-                                <div class="flex-row-between w-100">
-                                    <span id="target-name" class="flex-1 text-left">교차로를 선택하세요</span>
-                                    <button class="btn-neon magenta" onclick="syncOptFromSignals()"
-                                        style="height: 28px; font-size: 11px; padding: 0 12px; border-radius: 6px; flex-shrink: 0; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);">🔄
-                                        개별 현시 설정</button>
-                                </div>
-                                <button class="btn-neon w-100" onclick="syncAllOptFromSignals()"
-                                    style="height: 32px; font-size: 12px; font-weight:900; background:rgba(0, 243, 255, 0.1); border-color:rgba(0, 243, 255, 0.4); color:var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
-                                    🚀 전체 교차로 일괄 현시 설정
-                                </button>
-                            </div>
-
-                            <div class="viz-sector-opt flex-center chart-box-bg p-10">
-                                <svg width="300" height="300" viewBox="0 0 250 250" id="junction-svg">
-                                    <rect width="250" height="250" fill="transparent" />
-                                    <g id="road-layer"></g>
-                                    <g id="cw-layer"></g>
-                                    <g id="node-layer"></g>
-                                    <text x="125" y="125" id="junction-label" class="center-label">-</text>
-                                </svg>
-                            </div>
-
-                            <!-- Read-only Phase Summary -->
-                            <div class="viz-sector-opt">
-                                <div class="sector-header-opt foldable-header collapsed flex-row-between p-4-8"
-                                    onclick="toggleSection(this)"
-                                    style="background:rgba(255,192,0,0.1); border-radius:4px; cursor:pointer;">
-                                    <span class="fs-11">🚦 현시 데이터 (Ring A/B)</span>
-                                    <span class="fold-icon">▼</span>
-                                </div>
-                                <div class="foldable-content mt-5">
-                                    <div id="opt-mov-combined-container"></div>
-                                </div>
-                            </div>
-
-                            <!-- Junction Summary Table -->
-                            <div class="viz-sector-opt">
-                                <div class="sector-header-opt fs-11-5 mb-8 pb-4 border-b-1"
-                                    style="border-bottom-color:#444;">📊 운영/통계 요약</div>
-                                <div id="j-stats-container">
-                                    <table id="j-stats-table" class="w-100 fs-11" style="border-collapse: collapse;">
-                                        <tbody id="j-stats-tbody"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right: Inspector Main Area -->
-                        <div class="inspector-opt flex-1 p-12 chart-box-bg" id="opt-controls"
-                            style="display:none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
-                            <div class="sector-header-opt flex-row-between gap-10 mb-10 pb-5 border-b-1"
-                                style="color:#e67e22; border-bottom-color:#444;">
-                                <span class="fs-13 fw-800">🏗️ 방향별 차로 및 운영 속성</span>
-                            </div>
-
-                            <!-- Lane Fields (Unified with Pedestrian & Auxiliary) -->
-                            <div id="lane-fields-unified" class="col-box-opt mb-8"></div>
-
-                            <!-- Signal Operations Grid -->
-                            <div style="display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 12px;">
-                                <!-- Left Turn column -->
-                                <div>
-                                    <div class="fs-11 fw-800 mb-6 pb-2 border-b-1 text-accent"
-                                        style="border-bottom-color: rgba(241, 196, 15, 0.3);">↩️ 좌회전 신호</div>
-                                    <div class="op-check-row-opt"
-                                        style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftProt"> 보호</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftUnprot"> 비보호</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftPplt"> PPLT</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftPdlt"> PDLT</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftTurnSimul">
-                                            동시</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="leftLeadLag"> 선/후</label>
-                                        <label class="fs-10-5"><input type="checkbox" data-op="uTurnSig"> 유턴</label>
-                                    </div>
-                                </div>
-
-                                <!-- Right Turn column -->
-                                <div>
-                                    <div class="section-label-small label-orange">↪️ 우회전 신호</div>
-                                    <div class="op-check-row-opt grid-1col">
-                                        <label><input type="checkbox" data-op="rightOnly"> 우회전전용</label>
-                                        <label><input type="checkbox" data-op="rightChannel"> 도류로신호</label>
-                                    </div>
-                                </div>
-
-                                <!-- Pedestrian column -->
-                                <div>
-                                    <div class="section-label-small label-green">🚶 보행 신호</div>
-                                    <div class="op-check-row-opt grid-2col">
-                                        <label><input type="checkbox" data-op="pedEarly"> 보행전</label>
-                                        <label><input type="checkbox" data-op="pedLpi"> LPI</label>
-                                        <label><input type="checkbox" data-op="spd07"> 0.7m/s</label>
-                                        <label><input type="checkbox" data-op="pedExt"> 보행연장</label>
-                                        <label><input type="checkbox" data-op="pedMulti"> 다회보행</label>
-                                        <label><input type="checkbox" data-op="pedSimul"> 동시보행</label>
-                                        <label><input type="checkbox" data-op="autoExt"> 자동연장</label>
-                                        <label><input type="checkbox" data-op="pedLagActive"> 보행시차</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Actuation Session -->
-                            <div class="section-label-small label-blue mt-12">⚡ 감응 신호 제어</div>
-                            <div id="actuation-container" class="act-group-opt">
-                                <!-- Dynamic: actuation-container -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. 접근로별 운영 지표 -->
-            <div class="sigma-panel mt-15">
-                <div class="card-title flex-row">
-                    <span>📋 접근로별 상세 운영 지표</span>
-                    <button class="btn-sm ml-auto" id="btn-expand-stats" onclick="toggleStatsExpand()"
-                        style="padding: 2px 8px; font-size: 10px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">➕
-                        방향 확장 (8지)</button>
-                </div>
-                <div class="foldable-content">
-                    <div id="op-stats-container" class="sigma-panel scroll-x">
-                        <table id="op-stats-table" class="w-100 fs-10-5 text-center" style="border-collapse: collapse;">
-                            <thead id="op-stats-thead"></thead>
-                            <tbody id="op-stats-tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- end tab-stats1 -->
 
         <div id="tab-stats" class="tab-content">
             <div class="sigma-panel">
@@ -2072,6 +1931,7 @@
                     <button class="tab-btn active" id="tab-btn-phase" onclick="switchOverlayTab('phase')">신호계획정보</button>
                     <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">시그널맵</button>
                     <button class="tab-btn" id="tab-btn-baseinfo" onclick="switchOverlayTab('baseinfo')">교차로정보</button>
+                    <button class="tab-btn" id="tab-btn-optstats" onclick="switchOverlayTab('optstats')" style="display: none;">운영통계</button>
                 </div>
                 <div id="overlay-tab-phase" class="detail-tab-content active" style="display: flex;">
                     <!-- Left column -->
@@ -2090,7 +1950,150 @@
                     <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b;">
                         <!-- Dynamic: info-fields-container -->
                     </div>
+                </div>
+                <div id="overlay-tab-optstats" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;">
+                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (저장)</button></div>
+                    
+                    <div class="sigma-panel">
+                        <div class="card-title">
+                            <span>🛠️ Data Input</span>
+                        </div>
+                        <div class="foldable-content">
+                            <!-- Top Section: Side-by-Side Viz & Inspector -->
+                            <div class="top-layout-opt flex-row gap-15 mb-8" style="align-items: flex-start;">
 
+                                <!-- Left: Visual Sidebar (Viz & Summary) -->
+                                <div class="viz-sidebar-opt flex-col gap-10" style="flex: 0 0 320px;">
+                                    <div id="junction-name-banner" class="junction-banner flex-col gap-8">
+                                        <div class="flex-row-between w-100">
+                                            <span id="target-name" class="flex-1 text-left">교차로를 선택하세요</span>
+                                            <button class="btn-neon magenta" onclick="syncOptFromSignals()"
+                                                style="height: 28px; font-size: 11px; padding: 0 12px; border-radius: 6px; flex-shrink: 0; box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);">🔄
+                                                개별 현시 설정</button>
+                                        </div>
+                                        <button class="btn-neon w-100" onclick="syncAllOptFromSignals()"
+                                            style="height: 32px; font-size: 12px; font-weight:900; background:rgba(0, 243, 255, 0.1); border-color:rgba(0, 243, 255, 0.4); color:var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
+                                            🚀 전체 교차로 일괄 현시 설정
+                                        </button>
+                                    </div>
+
+                                    <div class="viz-sector-opt flex-center chart-box-bg p-10">
+                                        <svg width="300" height="300" viewBox="0 0 250 250" id="junction-svg">
+                                            <rect width="250" height="250" fill="transparent" />
+                                            <g id="road-layer"></g>
+                                            <g id="cw-layer"></g>
+                                            <g id="node-layer"></g>
+                                            <text x="125" y="125" id="junction-label" class="center-label">-</text>
+                                        </svg>
+                                    </div>
+
+                                    <!-- Read-only Phase Summary -->
+                                    <div class="viz-sector-opt">
+                                        <div class="sector-header-opt foldable-header collapsed flex-row-between p-4-8"
+                                            onclick="toggleSection(this)"
+                                            style="background:rgba(255,192,0,0.1); border-radius:4px; cursor:pointer;">
+                                            <span class="fs-11">🚦 현시 데이터 (Ring A/B)</span>
+                                            <span class="fold-icon">▼</span>
+                                        </div>
+                                        <div class="foldable-content mt-5">
+                                            <div id="opt-mov-combined-container"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Junction Summary Table -->
+                                    <div class="viz-sector-opt">
+                                        <div class="sector-header-opt fs-11-5 mb-8 pb-4 border-b-1"
+                                            style="border-bottom-color:#444;">📊 운영/통계 요약</div>
+                                        <div id="j-stats-container">
+                                            <table id="j-stats-table" class="w-100 fs-11" style="border-collapse: collapse;">
+                                                <tbody id="j-stats-tbody"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Inspector Main Area -->
+                                <div class="inspector-opt flex-1 p-12 chart-box-bg" id="opt-controls"
+                                    style="display:none; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+                                    <div class="sector-header-opt flex-row-between gap-10 mb-10 pb-5 border-b-1"
+                                        style="color:#e67e22; border-bottom-color:#444;">
+                                        <span class="fs-13 fw-800">🏗️ 방향별 차로 및 운영 속성</span>
+                                    </div>
+
+                                    <!-- Lane Fields (Unified with Pedestrian & Auxiliary) -->
+                                    <div id="lane-fields-unified" class="col-box-opt mb-8"></div>
+
+                                    <!-- Signal Operations Grid -->
+                                    <div style="display: grid; grid-template-columns: 1.1fr 1fr 1.2fr; gap: 12px;">
+                                        <!-- Left Turn column -->
+                                        <div>
+                                            <div class="fs-11 fw-800 mb-6 pb-2 border-b-1 text-accent"
+                                                style="border-bottom-color: rgba(241, 196, 15, 0.3);">↩️ 좌회전 신호</div>
+                                            <div class="op-check-row-opt"
+                                                style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftProt"> 보호</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftUnprot"> 비보호</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftPplt"> PPLT</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftPdlt"> PDLT</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftTurnSimul">
+                                                    동시</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="leftLeadLag"> 선/후</label>
+                                                <label class="fs-10-5"><input type="checkbox" data-op="uTurnSig"> 유턴</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right Turn column -->
+                                        <div>
+                                            <div class="section-label-small label-orange">↪️ 우회전 신호</div>
+                                            <div class="op-check-row-opt grid-1col">
+                                                <label><input type="checkbox" data-op="rightOnly"> 우회전전용</label>
+                                                <label><input type="checkbox" data-op="rightChannel"> 도류로신호</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Pedestrian column -->
+                                        <div>
+                                            <div class="section-label-small label-green">🚶 보행 신호</div>
+                                            <div class="op-check-row-opt grid-2col">
+                                                <label><input type="checkbox" data-op="pedEarly"> 보행전</label>
+                                                <label><input type="checkbox" data-op="pedLpi"> LPI</label>
+                                                <label><input type="checkbox" data-op="spd07"> 0.7m/s</label>
+                                                <label><input type="checkbox" data-op="pedExt"> 보행연장</label>
+                                                <label><input type="checkbox" data-op="pedMulti"> 다회보행</label>
+                                                <label><input type="checkbox" data-op="pedSimul"> 동시보행</label>
+                                                <label><input type="checkbox" data-op="autoExt"> 자동연장</label>
+                                                <label><input type="checkbox" data-op="pedLagActive"> 보행시차</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Actuation Session -->
+                                    <div class="section-label-small label-blue mt-12">⚡ 감응 신호 제어</div>
+                                    <div id="actuation-container" class="act-group-opt">
+                                        <!-- Dynamic: actuation-container -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 접근로별 운영 지표 -->
+                    <div class="sigma-panel mt-15">
+                        <div class="card-title flex-row">
+                            <span>📋 접근로별 상세 운영 지표</span>
+                            <button class="btn-sm ml-auto" id="btn-expand-stats" onclick="toggleStatsExpand()"
+                                style="padding: 2px 8px; font-size: 10px; background: rgba(52, 152, 219, 0.2); border-color: rgba(52, 152, 219, 0.3); color: #3498db;">➕
+                                방향 확장 (8지)</button>
+                        </div>
+                        <div class="foldable-content">
+                            <div id="op-stats-container" class="sigma-panel scroll-x">
+                                <table id="op-stats-table" class="w-100 fs-10-5 text-center" style="border-collapse: collapse;">
+                                    <thead id="op-stats-thead"></thead>
+                                    <tbody id="op-stats-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
