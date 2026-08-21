@@ -313,38 +313,55 @@ async function fetchOSMLanes() {
         const result = await res.json();
 
         if (result.success && result.lanes) {
-            // 원본 OSM 데이터(도로 선) 지도 위에 그리기
-            const targetMap = (typeof overlayMap !== 'undefined' && overlayMap) ? overlayMap : (typeof map !== 'undefined' ? map : null);
-            if (result.rawWays && result.rawNodes && targetMap) {
-                if (window.osmLayerGroup) {
-                    window.osmLayerGroup.clearLayers();
-                    window.osmLayerGroup.addTo(targetMap);
-                } else {
-                    window.osmLayerGroup = L.layerGroup().addTo(targetMap);
+            try {
+                // 원본 OSM 데이터(도로 선) 지도 위에 그리기
+                let targetMap = null;
+                if (window._overlayCenterMarker && window._overlayCenterMarker._map) {
+                    targetMap = window._overlayCenterMarker._map;
+                } else if (typeof overlayMap !== 'undefined' && overlayMap) {
+                    targetMap = overlayMap;
+                } else if (typeof map !== 'undefined') {
+                    targetMap = map;
                 }
+                
+                console.log("OSM Parsing Result:", result);
+                console.log("OSM Target Map found:", !!targetMap);
 
-                result.rawWays.forEach(way => {
-                    const latlngs = way.nodes.map(nid => {
-                        const node = result.rawNodes[nid];
-                        return node ? [node.lat, node.lon] : null;
-                    }).filter(Boolean);
-                    
-                    if (latlngs.length > 1) {
-                        const polyline = L.polyline(latlngs, {color: '#00ffff', weight: 4, opacity: 0.8}).addTo(window.osmLayerGroup);
-                        const tags = way.tags || {};
-                        const popupContent = `
-                            <div style="font-size:12px; line-height:1.4;">
-                                <b>Way ID:</b> ${way.id}<br>
-                                <b>Name:</b> ${tags.name || 'N/A'}<br>
-                                <b>Lanes:</b> ${tags.lanes || 'N/A'}<br>
-                                <b>Lanes:Forward:</b> ${tags['lanes:forward'] || 'N/A'}<br>
-                                <b>Lanes:Backward:</b> ${tags['lanes:backward'] || 'N/A'}<br>
-                                <b>Oneway:</b> ${tags.oneway || 'N/A'}
-                            </div>
-                        `;
-                        polyline.bindPopup(popupContent);
+                if (result.rawWays && result.rawNodes && targetMap) {
+                    if (window.osmLayerGroup) {
+                        window.osmLayerGroup.clearLayers();
+                        targetMap.addLayer(window.osmLayerGroup);
+                    } else {
+                        window.osmLayerGroup = L.layerGroup().addTo(targetMap);
                     }
-                });
+
+                    result.rawWays.forEach(way => {
+                        const latlngs = way.nodes.map(nid => {
+                            const node = result.rawNodes[nid];
+                            return node ? [node.lat, node.lon] : null;
+                        }).filter(Boolean);
+                        
+                        if (latlngs.length > 1) {
+                            // 눈에 잘 띄도록 굵은 핫핑크/레드 계열로 렌더링
+                            const polyline = L.polyline(latlngs, {color: '#ff00aa', weight: 6, opacity: 1.0}).addTo(window.osmLayerGroup);
+                            
+                            const tags = way.tags || {};
+                            const popupContent = `
+                                <div style="font-size:12px; line-height:1.4;">
+                                    <b>Way ID:</b> ${way.id}<br>
+                                    <b>Name:</b> ${tags.name || 'N/A'}<br>
+                                    <b>Lanes:</b> ${tags.lanes || 'N/A'}<br>
+                                    <b>Lanes:Forward:</b> ${tags['lanes:forward'] || 'N/A'}<br>
+                                    <b>Lanes:Backward:</b> ${tags['lanes:backward'] || 'N/A'}<br>
+                                    <b>Oneway:</b> ${tags.oneway || 'N/A'}
+                                </div>
+                            `;
+                            polyline.bindPopup(popupContent);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("OSM Polyline 렌더링 중 오류:", err);
             }
 
             let appliedCount = 0;
