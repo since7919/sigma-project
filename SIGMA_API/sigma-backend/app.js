@@ -455,180 +455,229 @@ app.get('/api/sim/data', async (req, res) => {
         
         // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
         if (type === 'intersections') {
-          const rows = await fetchAllSupabase(() => supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id'));
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Transfer-Encoding', 'chunked');
           
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
-          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          res.write("\ufeff" + headers.join(",") + "\n");
           
-          (rows || []).forEach(r => {
-            // arrowConfigs & _custom_angles 복원
-            let arrowStr = "";
-            if (r.arrow_configs && typeof r.arrow_configs === 'object') {
-              const arrs = [];
-              Object.entries(r.arrow_configs).forEach(([mov, configs]) => {
-                if (mov === '_custom_angles') {
-                  if (configs && typeof configs === 'object') {
-                    Object.entries(configs).forEach(([pfx, angle]) => {
-                      arrs.push(`_custom_angles:${pfx}:${angle}`);
+          let page = 0;
+          const pageSize = 500;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const { data, error } = await supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            
+            let chunk = "";
+            data.forEach(r => {
+              // arrowConfigs & _custom_angles 복원
+              let arrowStr = "";
+              if (r.arrow_configs && typeof r.arrow_configs === 'object') {
+                const arrs = [];
+                Object.entries(r.arrow_configs).forEach(([mov, configs]) => {
+                  if (mov === '_custom_angles') {
+                    if (configs && typeof configs === 'object') {
+                      Object.entries(configs).forEach(([pfx, angle]) => {
+                        arrs.push(`_custom_angles:${pfx}:${angle}`);
+                      });
+                    }
+                  } else if (Array.isArray(configs)) {
+                    configs.forEach(c => {
+                      arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`);
                     });
                   }
-                } else if (Array.isArray(configs)) {
-                  configs.forEach(c => {
-                    arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`);
-                  });
-                }
-              });
-              arrowStr = arrs.join(';');
-            }
+                });
+                arrowStr = arrs.join(';');
+              }
+              
+              const line = [
+                r.id,
+                r.region_cd,
+                r.name,
+                r.lat ? Number(r.lat).toFixed(9) : "37.5",
+                r.lng ? Number(r.lng).toFixed(9) : "127.0",
+                r.seq || "",
+                r.police || "",
+                r.office || "",
+                r.group_id || 0,
+                "0|||", // flash_cfg 제외
+                "0|",    // op_intervention 제외
+                arrowStr,
+                r.controller || "",
+                r.diagram_order !== null ? r.diagram_order : -1,
+                r.weekly_plan || "1;1;1;1;1;2;3",
+                r.api_int_no !== null && r.api_int_no !== undefined ? r.api_int_no : ""
+              ];
+              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
+            });
             
-            const line = [
-              r.id,
-              r.region_cd,
-              r.name,
-              r.lat ? Number(r.lat).toFixed(9) : "37.5",
-              r.lng ? Number(r.lng).toFixed(9) : "127.0",
-              r.seq || "",
-              r.police || "",
-              r.office || "",
-              r.group_id || 0,
-              "0|||", // flash_cfg 제외
-              "0|",    // op_intervention 제외
-              arrowStr,
-              r.controller || "",
-              r.diagram_order !== null ? r.diagram_order : -1,
-              r.weekly_plan || "1;1;1;1;1;2;3",
-              r.api_int_no !== null && r.api_int_no !== undefined ? r.api_int_no : ""
-            ];
-            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-          });
-          
-          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          return res.send(csvContent);
+            res.write(chunk);
+            if (data.length < pageSize) hasMore = false;
+            page++;
+          }
+          return res.end();
         }
         
         // B. 신호 현시계획 (signal_maps 테이블 쿼리 및 CSV 재가공)
         if (type === 'signal_maps') {
-          // id 컬럼은 L01-1007 형태이므로, regionCode로 시작하는지 필터링
-          const rows = await fetchAllSupabase(() => supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id'));
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Transfer-Encoding', 'chunked');
           
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime", "rawSteps"];
-          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          res.write("\ufeff" + headers.join(",") + "\n");
           
-          (rows || []).forEach(r => {
-            const line = [
-              r.id,
-              r.map_idx,
-              Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""),
-              Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""),
-              Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""),
-              Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""),
-              Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || "A0;B0"),
-              Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""),
-              Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""),
-              Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""),
-              Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""),
-              Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""),
-              Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""),
-              Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""),
-              Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""),
-              Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""),
-              Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""),
-              Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
-              Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
-              r.start_time || "",
-              r.end_time || "",
-              r.raw_steps ? JSON.stringify(r.raw_steps) : ""
-            ];
-            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-          });
+          let page = 0;
+          const pageSize = 500;
+          let hasMore = true;
           
-          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          return res.send(csvContent);
+          while (hasMore) {
+            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            
+            let chunk = "";
+            data.forEach(r => {
+              const line = [
+                r.id,
+                r.map_idx,
+                Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""),
+                Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""),
+                Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""),
+                Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""),
+                Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || "A0;B0"),
+                Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""),
+                Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""),
+                Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""),
+                Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""),
+                Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""),
+                Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""),
+                Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""),
+                Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""),
+                Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""),
+                Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""),
+                Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
+                Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
+                r.start_time || "",
+                r.end_time || "",
+                r.raw_steps ? JSON.stringify(r.raw_steps) : ""
+              ];
+              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
+            });
+            
+            res.write(chunk);
+            if (data.length < pageSize) hasMore = false;
+            page++;
+          }
+          return res.end();
         }
         
         // C. TOD 운영계획 (tod_plans 테이블 쿼리 및 CSV 재가공)
         if (type === 'tod_plans') {
-          // tod_plans도 id 컬럼이 L01-1007 형태임
-          const rows = await fetchAllSupabase(() => supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan'));
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Transfer-Encoding', 'chunked');
           
           const headers = ["ID", "Seq", "SignalMap", "GroupID", "Day_plan"];
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
-          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          res.write("\ufeff" + headers.join(",") + "\n");
           
-          (rows || []).forEach(r => {
-            const line = [r.id, r.id, r.signal_map || 0, r.group_id || 0, r.day_plan];
+          let page = 0;
+          const pageSize = 500;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(page * pageSize, (page + 1) * pageSize - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
             
-            // 16개 시간계획 복원
-            const tpMap = {};
-            (r.time_plans || []).forEach(tp => {
-              tpMap[tp.slot_idx] = tp;
+            let chunk = "";
+            data.forEach(r => {
+              const line = [r.id, r.id, r.signal_map || 0, r.group_id || 0, r.day_plan];
+              
+              // 16개 시간계획 복원
+              const tpMap = {};
+              (r.time_plans || []).forEach(tp => {
+                tpMap[tp.slot_idx] = tp;
+              });
+              
+              for (let i = 1; i <= 16; i++) {
+                const tp = tpMap[i];
+                if (tp) {
+                  const timeStr = `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
+                  line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
+                } else {
+                  line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+                }
+              }
+              
+              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            for (let i = 1; i <= 16; i++) {
-              const tp = tpMap[i];
-              if (tp) {
-                const timeStr = `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
-                line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
-              } else {
-                line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
-              }
-            }
-            
-            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-          });
-          
-          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          return res.send(csvContent);
+            res.write(chunk);
+            if (data.length < pageSize) hasMore = false;
+            page++;
+          }
+          return res.end();
         }
         
         // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
         if (type === 'groups') {
-          const rows = await fetchAllSupabase(() => supabase.from('groups').select('*').eq('region_cd', regionCode).order('group_id'));
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Transfer-Encoding', 'chunked');
           
           const headers = ["GroupID", "Region", "Name"];
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
-          let csvContent = "\ufeff" + headers.join(",") + "\n";
+          res.write("\ufeff" + headers.join(",") + "\n");
           
-          (rows || []).forEach(r => {
-            const line = [r.group_id, r.region_cd, r.name];
+          let page = 0;
+          const pageSize = 500;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const { data, error } = await supabase.from('groups').select('*').eq('region_cd', regionCode).order('group_id').range(page * pageSize, (page + 1) * pageSize - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
             
-            const schedMap = {};
-            (r.schedules || []).forEach(sch => {
-              schedMap[sch.day_plan_idx] = sch.slots;
+            let chunk = "";
+            data.forEach(r => {
+              const line = [r.group_id, r.region_cd, r.name];
+              
+              const schedMap = {};
+              (r.schedules || []).forEach(sch => {
+                schedMap[sch.day_plan_idx] = sch.slots;
+              });
+              
+              for (let d = 1; d <= 10; d++) {
+                const slots = schedMap[d] || [];
+                const slotStr = slots.map(s => `${s.time}|${s.cycle}|${s.idx}`).join(';');
+                line.push(slotStr || "-1");
+              }
+              
+              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            for (let d = 1; d <= 10; d++) {
-              const slots = schedMap[d] || [];
-              const slotStr = slots.map(s => `${s.time}|${s.cycle}|${s.idx}`).join(';');
-              line.push(slotStr || "-1");
-            }
-            
-            csvContent += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-          });
-          
-          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          return res.send(csvContent);
+            res.write(chunk);
+            if (data.length < pageSize) hasMore = false;
+            page++;
+          }
+          return res.end();
         }
       }
     }
 
     // E~H 및 기호 보조 GeoJSON 등은 기존 sim_csv_storage 조회 폴백 처리
-    if (!global._simCsvStorageCache) global._simCsvStorageCache = {};
-    let fileContent = global._simCsvStorageCache[file];
+    const { data, error } = await supabase
+      .from('sim_csv_storage')
+      .select('file_content')
+      .eq('file_name', file)
+      .single();
 
-    if (!fileContent) {
-      const { data, error } = await supabase
-        .from('sim_csv_storage')
-        .select('file_content')
-        .eq('file_name', file)
-        .single();
-
-      if (error || !data) {
-        return res.status(404).json({ error: `파일을 찾을 수 없습니다: ${file}` });
-      }
-      fileContent = data.file_content;
-      global._simCsvStorageCache[file] = fileContent;
+    if (error || !data) {
+      return res.status(404).json({ error: `파일을 찾을 수 없습니다: ${file}` });
     }
+    
+    let fileContent = data.file_content;
 
     if (file.endsWith('.geojson')) {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
