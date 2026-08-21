@@ -314,11 +314,13 @@ async function fetchOSMLanes() {
 
         if (result.success && result.lanes) {
             // 원본 OSM 데이터(도로 선) 지도 위에 그리기
-            if (result.rawWays && result.rawNodes && typeof map !== 'undefined') {
+            const targetMap = (typeof overlayMap !== 'undefined' && overlayMap) ? overlayMap : (typeof map !== 'undefined' ? map : null);
+            if (result.rawWays && result.rawNodes && targetMap) {
                 if (window.osmLayerGroup) {
                     window.osmLayerGroup.clearLayers();
+                    window.osmLayerGroup.addTo(targetMap);
                 } else {
-                    window.osmLayerGroup = L.layerGroup().addTo(map);
+                    window.osmLayerGroup = L.layerGroup().addTo(targetMap);
                 }
 
                 result.rawWays.forEach(way => {

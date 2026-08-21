@@ -1352,8 +1352,8 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       [out:json];
       (
         way(around:30,${lat},${lng})["highway"];
-        node(around:30,${lat},${lng});
       );
+      (._;>;);
       out body;
     `;
     
