@@ -313,6 +313,38 @@ async function fetchOSMLanes() {
         const result = await res.json();
 
         if (result.success && result.lanes) {
+            // 원본 OSM 데이터(도로 선) 지도 위에 그리기
+            if (result.rawWays && result.rawNodes && typeof map !== 'undefined') {
+                if (window.osmLayerGroup) {
+                    window.osmLayerGroup.clearLayers();
+                } else {
+                    window.osmLayerGroup = L.layerGroup().addTo(map);
+                }
+
+                result.rawWays.forEach(way => {
+                    const latlngs = way.nodes.map(nid => {
+                        const node = result.rawNodes[nid];
+                        return node ? [node.lat, node.lon] : null;
+                    }).filter(Boolean);
+                    
+                    if (latlngs.length > 1) {
+                        const polyline = L.polyline(latlngs, {color: '#00ffff', weight: 4, opacity: 0.8}).addTo(window.osmLayerGroup);
+                        const tags = way.tags || {};
+                        const popupContent = `
+                            <div style="font-size:12px; line-height:1.4;">
+                                <b>Way ID:</b> ${way.id}<br>
+                                <b>Name:</b> ${tags.name || 'N/A'}<br>
+                                <b>Lanes:</b> ${tags.lanes || 'N/A'}<br>
+                                <b>Lanes:Forward:</b> ${tags['lanes:forward'] || 'N/A'}<br>
+                                <b>Lanes:Backward:</b> ${tags['lanes:backward'] || 'N/A'}<br>
+                                <b>Oneway:</b> ${tags.oneway || 'N/A'}
+                            </div>
+                        `;
+                        polyline.bindPopup(popupContent);
+                    }
+                });
+            }
+
             let appliedCount = 0;
             // 3. 방향별 직진(T) 차로수에 덮어쓰기 (또는 활성화)
             for (const [dir, lanes] of Object.entries(result.lanes)) {

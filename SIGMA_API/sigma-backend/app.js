@@ -1340,18 +1340,14 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
   if (!lat || !lng) return res.status(400).json({ error: 'lat, lng가 필요합니다.' });
 
   try {
-    // 1. Supabase PostGIS RPC 호출로 10m 이내 캐시 데이터 확인
+    // 1. Supabase PostGIS RPC 호출로 10m 이내 캐시 데이터 확인 (수동 갱신을 위해 캐시 무시 또는 기록용으로만 사용)
     const { data: cached, error: cacheErr } = await supabase.rpc('get_cached_osm_lanes', {
       p_lat: parseFloat(lat),
       p_lng: parseFloat(lng),
       p_radius_meters: 10
     });
 
-    if (!cacheErr && cached) {
-      return res.json({ success: true, cached: true, lanes: cached });
-    }
-
-    // 2. 캐시 미스 시 백엔드에서 Overpass API 직접 호출 (CORS 우회)
+    // 2. 백엔드에서 Overpass API 직접 호출 (CORS 우회 및 원본 데이터 수집)
     const query = `
       [out:json];
       (
@@ -1381,7 +1377,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       return res.status(400).json({ error: 'osmData 요소가 없습니다.' });
     }
 
-    // 3. 파싱 로직 수행
+    // 3. 파싱 로직 수행 (정밀 위상 수학 로직)
     const elements = osmData.elements;
     const nodes = {};
     const ways = [];
@@ -1391,7 +1387,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       if (el.type === 'way' && el.tags && el.tags.highway) ways.push(el);
     });
 
-    // 2.1 대상 교차로 중심과 가장 가까운 노드(교차점) 탐색
+    // 3.1 대상 교차로 중심과 가장 가까운 노드(교차점) 탐색
     let centerNodeId = null;
     let minDiff = Infinity;
     for (const [nid, node] of Object.entries(nodes)) {
@@ -1406,7 +1402,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       return res.json({ success: false, message: '주변 OSM 노드를 찾을 수 없습니다.' });
     }
 
-    // 2.2 각도 계산 유틸리티
+    // 방위각 계산 유틸리티
     const getBearing = (lat1, lon1, lat2, lon2) => {
       const toRad = (deg) => deg * Math.PI / 180;
       const toDeg = (rad) => rad * 180 / Math.PI;
@@ -1417,7 +1413,6 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       return (toDeg(Math.atan2(y, x)) + 360) % 360;
     };
 
-    // 방향 결정 (N, E, S, W, NE, SE, SW, NW) - 진입로 기준(나한테서 교차로로 들어오는 각도)
     const getDirection = (angle) => {
       if (angle >= 337.5 || angle < 22.5) return 'S';      
       if (angle >= 22.5 && angle < 67.5) return 'SW';
@@ -1430,61 +1425,58 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       return 'N';
     };
 
-    // 2.3 중심 노드로 들어오는(Incoming) 차로 수 집계
+    // 3.2 진입 차로(Incoming) 계산 로직
     const incomingLanes = { N: 0, E: 0, S: 0, W: 0, NE: 0, SE: 0, SW: 0, NW: 0 };
     
     ways.forEach(way => {
       const idx = way.nodes.indexOf(centerNodeId);
       if (idx === -1) return; 
 
-      const isOneway = way.tags.oneway === 'yes' || way.tags.oneway === '1' || way.tags.oneway === '-1';
+      const oneway = way.tags.oneway;
       const lanesTotal = parseInt(way.tags.lanes) || 1;
-      const lanesFwd = parseInt(way.tags['lanes:forward']) || 0;
-      const lanesBwd = parseInt(way.tags['lanes:backward']) || 0;
-      
-      let incomingLanesCount = 0;
-      let prevNodeId = null;
+      const lanesFwd = parseInt(way.tags['lanes:forward']);
+      const lanesBwd = parseInt(way.tags['lanes:backward']);
 
-      if (isOneway) {
-        if (way.tags.oneway === '-1') {
-          // 역방향 일방통행
-          if (idx < way.nodes.length - 1) {
-            incomingLanesCount = lanesTotal;
-            prevNodeId = way.nodes[idx + 1];
-          }
+      // 1) 정방향 진입로 (이전 노드 -> Target Node)
+      if (idx > 0 && oneway !== "-1") {
+        let laneCount = 1;
+        if (!isNaN(lanesFwd)) {
+            laneCount = lanesFwd;
+        } else if (oneway === "yes" || oneway === "1") {
+            laneCount = lanesTotal;
         } else {
-          // 정방향 일방통행
-          if (idx > 0) {
-            incomingLanesCount = lanesTotal;
-            prevNodeId = way.nodes[idx - 1];
-          }
+            laneCount = Math.max(1, Math.floor(lanesTotal / 2));
         }
-      } else {
-        // 양방향 도로
-        if (idx > 0) {
-          // 정방향으로 진입
-          incomingLanesCount = lanesFwd > 0 ? lanesFwd : Math.max(1, Math.floor(lanesTotal / 2));
-          prevNodeId = way.nodes[idx - 1];
-        } else if (idx < way.nodes.length - 1) {
-          // 역방향으로 진입
-          incomingLanesCount = lanesBwd > 0 ? lanesBwd : Math.max(1, Math.floor(lanesTotal / 2));
-          prevNodeId = way.nodes[idx + 1];
+
+        const prevNodeId = way.nodes[idx - 1];
+        if (nodes[prevNodeId]) {
+            const bearing = getBearing(nodes[prevNodeId].lat, nodes[prevNodeId].lon, nodes[centerNodeId].lat, nodes[centerNodeId].lon);
+            const dir = getDirection(bearing);
+            if (laneCount > incomingLanes[dir]) incomingLanes[dir] = laneCount;
         }
       }
 
-      if (incomingLanesCount > 0 && prevNodeId && nodes[prevNodeId]) {
-        const prevNode = nodes[prevNodeId];
-        const centerNode = nodes[centerNodeId];
-        const bearing = getBearing(prevNode.lat, prevNode.lon, centerNode.lat, centerNode.lon);
-        const dir = getDirection(bearing);
-        
-        if (incomingLanesCount > incomingLanes[dir]) {
-          incomingLanes[dir] = incomingLanesCount;
+      // 2) 역방향 진입로 (다음 노드 -> Target Node)
+      if (idx < way.nodes.length - 1 && oneway !== "yes" && oneway !== "1") {
+        let laneCount = 1;
+        if (!isNaN(lanesBwd)) {
+            laneCount = lanesBwd;
+        } else if (oneway === "-1") {
+            laneCount = lanesTotal;
+        } else {
+            laneCount = Math.max(1, Math.floor(lanesTotal / 2));
+        }
+
+        const nextNodeId = way.nodes[idx + 1];
+        if (nodes[nextNodeId]) {
+            const bearing = getBearing(nodes[nextNodeId].lat, nodes[nextNodeId].lon, nodes[centerNodeId].lat, nodes[centerNodeId].lon);
+            const dir = getDirection(bearing);
+            if (laneCount > incomingLanes[dir]) incomingLanes[dir] = laneCount;
         }
       }
     });
 
-    // 3. 계산된 결과를 Supabase에 저장 (캐싱)
+    // 4. 계산된 결과를 Supabase에 저장 (캐싱)
     const { error: insertErr } = await supabase.from('osm_intersection_lanes').insert({
       lat: lat,
       lng: lng,
@@ -1495,7 +1487,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
       console.warn("OSM Cache Insert Warning:", insertErr.message);
     }
 
-    res.json({ success: true, cached: false, lanes: incomingLanes });
+    res.json({ success: true, cached: false, lanes: incomingLanes, rawWays: ways, rawNodes: nodes });
 
   } catch (err) {
     sendErrorResponse(res, err, 'OSM 차로 데이터 추출 중 오류가 발생했습니다.');
