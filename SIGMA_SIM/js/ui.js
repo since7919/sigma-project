@@ -492,6 +492,21 @@ function refreshJunctionTooltip(jid) {
     const j = STATE.junctions[jid];
     if (!j || !j.marker) return;
 
+    // [성능 극대화] 처음 생성 시점에 줌 레벨과 화면 영역을 무시하고 수만 개의 툴팁을 DOM에
+    // 강제 주입하는 병목 현상을 막기 위해, 렌더링 전 최우선으로 가시성을 검사합니다.
+    if (window.map) {
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+        const minZoom = STATE.showCycleColors ? 14 : CONFIG.MIN_ZOOM_FOR_TEXT;
+        if ((zoom < minZoom || !bounds.contains([j.lat, j.lng])) && jid !== STATE.activeJid) {
+            if (j.marker.getTooltip()) {
+                j.marker.unbindTooltip();
+                j.lastTooltipContent = null;
+            }
+            return; // 화면 밖이거나 줌아웃 상태면 아예 렌더링 연산을 수행하지 않음
+        }
+    }
+
     // [Fix] 주기 모드가 켜져 있으면 그룹ID와 주기를 강제로 표시
     const forceCycleInfo = STATE.showCycleColors;
     let { showId, showName, showSeq, showPolice, showOffice, showCycle, showOffset, showLatLng, showGroup, showController } = STATE;
