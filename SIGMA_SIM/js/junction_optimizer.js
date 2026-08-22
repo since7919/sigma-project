@@ -1184,7 +1184,7 @@ function renderTemplatePanel() {
     // 템플릿 버튼
     const templateHtml = `
         <div class="sector-header-opt flex-row-between gap-10 mb-5 pb-5 border-b-1" style="color:#2ecc71; border-bottom-color:#444;">
-            <span class="fs-12 fw-800">📋 교차로 현시 템플릿 (Template)</span>
+            <span class="fs-12 fw-800">📋 교차로 기하구조</span>
         </div>
         <div style="display: flex; gap: 4px; margin-bottom: 12px; padding: 5px; background:rgba(255,255,255,0.02); border-radius:4px;">
             <button style="${btnStyle}" onclick="applyJunctionTemplate(['N','E','S','W'])" title="4지 교차로">┼</button>
@@ -1230,7 +1230,7 @@ function renderTemplatePanel() {
                 </td>
                 <td style="padding:4px 8px;">
                     <select class="preset-select" data-dir="${d.id}" onchange="applyLanePresetToDir('${d.id}', this.value)"
-                        style="width:100%; height:22px; font-size:11px; background:#111; color:#00d4ff; border:1px solid #444; border-radius:3px; outline:none; cursor:pointer;">
+                        style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                         ${optionsHtml}
                     </select>
                 </td>
@@ -1294,9 +1294,8 @@ window.applyLanePresetToDir = function(dir, presetValue) {
         if (opt_state[dir].A[k] !== undefined) opt_state[dir].A[k] = lanes[k];
     });
 
-    // 드롭다운 리셋 (선택 후 초기화하여 계속 선택 가능하게 함)
-    const sel = document.querySelector(`.preset-select[data-dir="${dir}"]`);
-    if (sel) sel.value = "";
+    // 드롭다운 선택값 유지
+    // 선택한 값을 계속 표시되도록 리셋하지 않음
 
     renderOptimizer();
     renderOptimizerStats();
@@ -1335,7 +1334,6 @@ window.updateTemplatePanelUI = function() {
             } else {
                 row.style.opacity = '0.4';
                 sel.disabled = true;
-                sel.value = "";
             }
         }
     });
