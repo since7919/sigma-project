@@ -138,6 +138,12 @@ function initMapClickHandlers() {
  *  뷰포트 변경 시 화살표/툴팁 갱신
  * ══════════════════════════════════════════ */
 function initMapMoveHandlers() {
-    map.on('moveend zoomend', refreshVisibleArrows);
+    map.on('moveend zoomend', () => {
+        refreshVisibleArrows();
+        const zoomIndicator = document.getElementById('zoom-indicator');
+        if (zoomIndicator) {
+            zoomIndicator.innerHTML = `🔍 줌 레벨: ${map.getZoom()}`;
+        }
+    });
 }
 
