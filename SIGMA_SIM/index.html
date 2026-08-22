@@ -1846,7 +1846,7 @@
     <script src="js/stats.js?v=24"></script>
     <script src="js/api_layers.js?v=23"></script>
     <script src="js/intersection_search.js?v=23"></script>
-    <script src="js/junction_optimizer.js?v=31"></script>
+    <script src="js/junction_optimizer.js?v=32"></script>
     <script src="js/civil.js?v=23"></script>
     <script src="js/home.js?v=23"></script>
     <script src="js/rng_road_network.js?v=23"></script>
@@ -1940,6 +1940,19 @@
                                         </svg>
                                     </div>
 </div>
+<div id="overlay-summary-area" style="flex: 1; height: 100%; background: #0f172a; border-left: 1px solid #1e293b; display: flex; flex-direction: column; padding: 10px; overflow-y: auto;" class="custom-scroll">
+    <!-- Junction Summary Table -->
+                                    <div class="viz-sector-opt">
+                                        <div class="sector-header-opt fs-11-5 mb-8 pb-4 border-b-1"
+                                            style="border-bottom-color:#444;">📊 운영/통계 요약</div>
+                                        <div id="j-stats-container">
+                                            <table id="j-stats-table" class="w-100 fs-11" style="border-collapse: collapse;">
+                                                <tbody id="j-stats-tbody"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+</div>
+
                 
                 <!-- Floating Controls Container (API Parity) -->
                 <div class="overlay-toolbar" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 15px; pointer-events: none;">
@@ -1985,10 +1998,10 @@
                         </div>
                         <div class="foldable-content">
                             <!-- Top Section: Side-by-Side Viz & Inspector -->
-                            <div class="top-layout-opt flex-row gap-15 mb-8" style="align-items: flex-start;">
+                            <div class="top-layout-opt flex-col gap-15 mb-8" style="align-items: stretch; width: 100%;">
 
                                 <!-- Left: Visual Sidebar (Viz & Summary) -->
-                                <div class="viz-sidebar-opt flex-col gap-10" style="flex: 0 0 320px;">
+                                <div class="viz-sidebar-opt flex-col gap-10" style="width: 100%;">
                                     
 
                                     <!-- Read-only Phase Summary -->
@@ -2004,16 +2017,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Junction Summary Table -->
-                                    <div class="viz-sector-opt">
-                                        <div class="sector-header-opt fs-11-5 mb-8 pb-4 border-b-1"
-                                            style="border-bottom-color:#444;">📊 운영/통계 요약</div>
-                                        <div id="j-stats-container">
-                                            <table id="j-stats-table" class="w-100 fs-11" style="border-collapse: collapse;">
-                                                <tbody id="j-stats-tbody"></tbody>
-                                            </table>
-                                        </div>
-                                    </div>
+                                    
                                 </div>
 
                                 <!-- Right: Inspector Main Area -->
