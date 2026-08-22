@@ -8,7 +8,7 @@
 /* ── 앱 설정 상수 ── */
 const CONFIG = {
     MIN_ZOOM_FOR_ARROWS: 15,
-    MIN_ZOOM_FOR_TEXT: 14,
+    MIN_ZOOM_FOR_TEXT: 15,
     BASE_SPEED: 4,
     DEFAULT_LATLNG: [37.570975, 126.977759],
     CYCLE_COLORS: {

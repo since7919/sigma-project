@@ -476,8 +476,8 @@ function refreshVisibleTooltips() {
         const j = STATE.junctions[jid];
         if (!j.marker) return;
 
-        // 주기 모드 시에는 더 낮은 줌 레벨(13)에서도 정보가 보이도록 허용
-        const minZoom = STATE.showCycleColors ? 13 : CONFIG.MIN_ZOOM_FOR_TEXT;
+        // 주기 모드 시에는 더 낮은 줌 레벨(14)에서도 정보가 보이도록 허용 (성능 최적화 위해 13->14 상향)
+        const minZoom = STATE.showCycleColors ? 14 : CONFIG.MIN_ZOOM_FOR_TEXT;
         const isVisible = bounds.contains([j.lat, j.lng]) && zoom >= minZoom;
 
         if (!isVisible && j.id !== STATE.activeJid) {
