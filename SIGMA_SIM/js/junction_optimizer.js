@@ -889,6 +889,18 @@ function loadOptStateFromJunction(j) {
         if (c) c.checked = !!opt_junctionState[k];
     });
 
+    renderOptimizer();
+    renderOptimizerStats();
+    if (typeof updateTemplatePanelUI === 'function') updateTemplatePanelUI();
+
+    const firstActive = OPT_DIRS.find(d => opt_state[d.id].active);
+    if (firstActive) selectOptDir(firstActive.id);
+    else selectOptDir('N');
+}
+
+/**
+ * Optimizer State를 Active Junction 데이터에 저장
+ */
 function saveOptToActiveJunction() {
     const jid = typeof STATE !== 'undefined' ? STATE.activeJid : null;
     if (!jid || !STATE.junctions[jid]) return;
