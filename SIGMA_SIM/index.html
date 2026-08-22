@@ -1846,7 +1846,7 @@
     <script src="js/stats.js?v=23"></script>
     <script src="js/api_layers.js?v=23"></script>
     <script src="js/intersection_search.js?v=23"></script>
-    <script src="js/junction_optimizer.js?v=26"></script>
+    <script src="js/junction_optimizer.js?v=27"></script>
     <script src="js/civil.js?v=23"></script>
     <script src="js/home.js?v=23"></script>
     <script src="js/rng_road_network.js?v=23"></script>
@@ -2019,6 +2019,25 @@
                                     <div class="sector-header-opt flex-row-between gap-10 mb-10 pb-5 border-b-1"
                                         style="color:#e67e22; border-bottom-color:#444;">
                                         <span class="fs-13 fw-800">🏗️ 방향별 차로 및 운영 속성</span>
+                                        <select id="lane-preset-select" onchange="if(window.applyLanePreset) window.applyLanePreset(this.value)"
+                                            style="height: 24px; font-size: 11px; padding: 0 5px; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.4); color: #00d4ff; border-radius: 4px; outline: none; cursor: pointer;">
+                                            <option value="">▼ 차로 프리셋 선택 (화살표)</option>
+                                            <option value="L1,T1,R1">↰ ↑ ↱ (좌1, 직1, 우1)</option>
+                                            <option value="L2,T1,R1">↰ ↰ ↑ ↱ (좌2, 직1, 우1)</option>
+                                            <option value="L1,T2,R1">↰ ↑ ↑ ↱ (좌1, 직2, 우1)</option>
+                                            <option value="L2,T2,R1">↰ ↰ ↑ ↑ ↱ (좌2, 직2, 우1)</option>
+                                            <option value="L1,T3,R1">↰ ↑ ↑ ↑ ↱ (좌1, 직3, 우1)</option>
+                                            <option value="L2,T3,R1">↰ ↰ ↑ ↑ ↑ ↱ (좌2, 직3, 우1)</option>
+                                            <option value="L1,T3,R2">↰ ↑ ↑ ↑ ↱ ↱ (좌1, 직3, 우2)</option>
+                                            <option value="T1,R1">↑ ↱ (직1, 우1)</option>
+                                            <option value="T2,R1">↑ ↑ ↱ (직2, 우1)</option>
+                                            <option value="T3,R1">↑ ↑ ↑ ↱ (직3, 우1)</option>
+                                            <option value="L1,T1">↰ ↑ (좌1, 직1)</option>
+                                            <option value="L1,T2">↰ ↑ ↑ (좌1, 직2)</option>
+                                            <option value="T2">↑ ↑ (직2)</option>
+                                            <option value="T3">↑ ↑ ↑ (직3)</option>
+                                            <option value="TL1,T1">↰↑ ↑ (직좌1, 직1)</option>
+                                        </select>
                                     </div>
 
                                     <!-- Lane Fields (Unified with Pedestrian & Auxiliary) -->

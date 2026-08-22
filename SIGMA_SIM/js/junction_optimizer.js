@@ -1111,6 +1111,56 @@ window.renderOptimizerStats = renderOptimizerStats;
 window.syncOptFromSignals = syncOptFromSignals;
 window.syncAllOptFromSignals = syncAllOptFromSignals;
 window.handleJStatsInput = handleJStatsInput;
+window.applyLanePreset = applyLanePreset;
+
+/**
+ * 차로 프리셋 적용 (드롭다운)
+ */
+function applyLanePreset(presetValue) {
+    if (!presetValue) return;
+    if (opt_selectedIds.length === 0) {
+        alert("먼저 왼쪽 다이어그램에서 적용할 방향(노드)을 선택해주세요.");
+        document.getElementById('lane-preset-select').value = "";
+        return;
+    }
+
+    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, TL: 0, TR: 0 };
+    const parts = presetValue.split(',');
+    parts.forEach(p => {
+        const type = p.replace(/\d+/g, '');
+        const count = parseInt(p.replace(/\D+/g, '')) || 0;
+        if (lanes[type] !== undefined) {
+            lanes[type] = count;
+        }
+    });
+
+    opt_selectedIds.forEach(id => {
+        if (!opt_state[id]) return;
+        opt_state[id].active = true;
+        // 기존 직진/좌회전/우회전 초기화
+        Object.keys(opt_state[id].A).forEach(k => opt_state[id].A[k] = 0);
+        // 프리셋 적용
+        Object.keys(lanes).forEach(k => {
+            if (opt_state[id].A[k] !== undefined) opt_state[id].A[k] = lanes[k];
+        });
+    });
+
+    document.getElementById('lane-preset-select').value = "";
+
+    renderOptimizer();
+    renderOptimizerStats();
+    saveOptToActiveJunction();
+
+    // UI 인풋 박스 동기화 (마지막 선택 노드 기준)
+    if (opt_curId && opt_state[opt_curId]) {
+        const s = opt_state[opt_curId];
+        document.querySelectorAll('#lane-fields-unified input[type="number"]').forEach(i => {
+            if (i.dataset.col === 'A') {
+                i.value = s.A[i.dataset.type] || 0;
+            }
+        });
+    }
+}
 
 // Auto-init on load if elements exist
 document.addEventListener('DOMContentLoaded', () => {
