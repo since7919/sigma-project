@@ -63,18 +63,20 @@ function renderOpStatsTable() {
 
     if (isExpanded) {
         table.style.width = '1100px';
-        topScrollCon.style.display = 'block';
-        topScrollContent.style.width = '1100px';
+        if (topScrollCon) topScrollCon.style.display = 'block';
+        if (topScrollContent) topScrollContent.style.width = '1100px';
     } else {
         table.style.width = '100%';
-        topScrollCon.style.display = 'none';
+        if (topScrollCon) topScrollCon.style.display = 'none';
     }
     table.style.tableLayout = 'fixed';
 
     // 스크롤 동기화 및 입력 감지 (한 번만)
     if (!container.dataset.syncInit) {
-        container.onscroll = () => { topScrollCon.scrollLeft = container.scrollLeft; };
-        topScrollCon.onscroll = () => { container.scrollLeft = topScrollCon.scrollLeft; };
+        if (topScrollCon) {
+            container.onscroll = () => { topScrollCon.scrollLeft = container.scrollLeft; };
+            topScrollCon.onscroll = () => { container.scrollLeft = topScrollCon.scrollLeft; };
+        }
 
         table.oninput = (e) => {
             if (typeof syncActiveJunctionData === 'function') {
