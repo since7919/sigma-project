@@ -16,7 +16,7 @@ const OPT_DIRS = [
     { id: 'NW', a: 135, x: 45, y: 205, label: '서북' }
 ];
 
-const OPT_TYPES = { C: '중앙차로', U: '유턴', LU: '좌_유', L: '좌회전', LT: '직_좌', T: '직진', TR: '직_우', R: '우회전', R_D: '우_도류', CW: '횡단보도', CW_D: '횡단_도류', SPD: '제한속도' };
+const OPT_TYPES = { C: '중앙차로', U: '유턴', LU: '좌_유', L: '좌회전', LT: '직_좌', T: '직진', TR: '직_우', LR: '좌_우', R: '우회전', R_D: '우_도류', CW: '횡단보도', CW_D: '횡단_도류', SPD: '제한속도' };
 
 const OPT_SEQ = [
     { c: 'A', t: 'C', g: null }, { c: 'B', t: 'C', g: null },
@@ -661,7 +661,7 @@ function renderOptimizer() {
             }
 
             // 2. 화살표 표시
-            const charMap = { T: "↑", L: "↰", R: "↱", U: "↶", LU: ["↰", "↶"], LT: ["↑", "↰"], TR: ["↱", "↑"], CW: "🚶", SPD: "V" };
+            const charMap = { T: "↑", L: "↰", R: "↱", U: "↶", LU: ["↰", "↶"], LT: ["↑", "↰"], TR: ["↱", "↑"], LR: ["↰", "↱"], CW: "🚶", SPD: "V" };
             if (m.t !== 'C' && m.t !== 'CW_D') {
                 const symbols = Array.isArray(charMap[m.t]) ? charMap[m.t] : [charMap[m.t] || "↑"];
                 const isShared = symbols.length > 1;
@@ -1131,7 +1131,7 @@ function applyLanePreset(presetValue) {
         return;
     }
 
-    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, TL: 0, TR: 0 };
+    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, LU: 0, LT: 0, TR: 0, LR: 0 };
     const parts = presetValue.split(',');
     parts.forEach(p => {
         const type = p.replace(/\d+/g, '');
