@@ -1300,8 +1300,7 @@ function renderTemplatePanel() {
                 <tbody>
                     ${tbodyRow}
                 </tbody>
-            </table>`;
-
+            </table>
         </div>
     `;
 
