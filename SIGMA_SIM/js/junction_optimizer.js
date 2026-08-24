@@ -6,14 +6,14 @@
  */
 
 const OPT_DIRS = [
-    { id: 'N', a: 90, x: 125, y: 235, label: '북' },
+    { id: 'N', a: -90, x: 125, y: 15, label: '북' },
     { id: 'E', a: 0, x: 235, y: 125, label: '동' },
-    { id: 'S', a: -90, x: 125, y: 15, label: '남' },
+    { id: 'S', a: 90, x: 125, y: 235, label: '남' },
     { id: 'W', a: 180, x: 15, y: 125, label: '서' },
-    { id: 'NE', a: 45, x: 205, y: 205, label: '북동' },
-    { id: 'SE', a: -45, x: 205, y: 45, label: '동남' },
-    { id: 'SW', a: 225, x: 45, y: 45, label: '서남' },
-    { id: 'NW', a: 135, x: 45, y: 205, label: '서북' }
+    { id: 'NE', a: -45, x: 205, y: 45, label: '북동' },
+    { id: 'SE', a: 45, x: 205, y: 205, label: '동남' },
+    { id: 'SW', a: 135, x: 45, y: 205, label: '서남' },
+    { id: 'NW', a: -135, x: 45, y: 45, label: '서북' }
 ];
 
 const OPT_TYPES = { C: '중앙차로', U: '유턴', LU: '좌_유', L: '좌회전', LT: '직_좌', T: '직진', TR: '직_우', LR: '좌_우', R: '우회전', R_D: '우_도류', CW: '횡단보도', CW_D: '횡단_도류', SPD: '제한속도' };
@@ -1378,20 +1378,23 @@ window.toggleOptActiveFromPanel = function(dir) {
 
 window.updateTemplatePanelUI = function() {
     OPT_DIRS.forEach(d => {
-        const row = document.getElementById(`td-preset-${d.id}`);
         const chk = document.getElementById(`chk-preset-${d.id}`);
-        const sel = document.querySelector(`.preset-select[data-dir="${d.id}"]`);
+        const sels = document.querySelectorAll(`.preset-select[data-dir="${d.id}"]`);
         
-        if (row && chk && sel && opt_state[d.id]) {
+        if (chk && opt_state[d.id]) {
             const isActive = opt_state[d.id].active;
             chk.checked = isActive;
-            if (isActive) {
-                row.style.opacity = '1';
-                sel.disabled = false;
-            } else {
-                row.style.opacity = '0.4';
-                sel.disabled = true;
-            }
+            
+            sels.forEach(sel => {
+                const td = sel.parentElement;
+                if (isActive) {
+                    if (td) td.style.opacity = '1';
+                    sel.disabled = false;
+                } else {
+                    if (td) td.style.opacity = '0.4';
+                    sel.disabled = true;
+                }
+            });
         }
     });
 };
