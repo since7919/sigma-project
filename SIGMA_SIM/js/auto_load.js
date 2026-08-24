@@ -75,7 +75,7 @@ async function autoLoadFiles() {
     const priority3 = [
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계'),
-        // fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
     ];
     
