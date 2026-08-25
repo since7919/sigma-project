@@ -46,7 +46,7 @@ function initTableEventHandlers() {
             const type = e.target.dataset.type;
             if (type === 'sched') handleSchedInput(e.target);
             else if (type === 'offset') handleOffsetInput(e.target);
-            else if (type === 'split') handleSplitInput(e.target);
+            else if (type === 'split-cell') handleSplitInput(e.target);
         });
         summaryContainer.addEventListener('keydown', (e) => {
             if (e.target.classList.contains('sigma-input')) handleTableKeyNavigation(e);
@@ -187,25 +187,16 @@ function handleOffsetInput(el) {
 function handleSplitInput(el) {
     const idx = parseInt(el.dataset.index);
     const ring = el.dataset.ring; // "A" or "B"
-    const valStr = el.value || "";
+    const col = parseInt(el.dataset.col); // 0 to 7
+    const val = parseInt(el.value, 10) || 0;
     
-    // Parse space or comma separated numbers
-    const parts = valStr.split(/[\s,]+/).filter(Boolean);
-    const numArr = parts.map(v => parseInt(v, 10) || 0);
-    
-    // Pad or truncate to 8 elements (standard split array size in SIGMA)
-    const splitArr = Array(8).fill(0);
-    for (let i = 0; i < Math.min(numArr.length, 8); i++) {
-        splitArr[i] = numArr[i];
-    }
-
     if (typeof STATE !== 'undefined' && STATE.activeJid) {
         const j = STATE.junctions[STATE.activeJid];
         if (j && j.dayPlans && j.dayPlans[STATE.currentJunctionDayTypeIdx]) {
             if (ring === 'A') {
-                j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitA = splitArr;
+                j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitA[col] = val;
             } else if (ring === 'B') {
-                j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitB = splitArr;
+                j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitB[col] = val;
             }
             
             // 만약 편집중인 슬롯이 현재 상단에 로드된 슬롯과 같다면, 상단 UI(링 테이블)도 즉시 동기화
