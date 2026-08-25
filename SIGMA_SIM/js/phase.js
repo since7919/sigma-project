@@ -487,11 +487,16 @@ function renderSummaryTable() {
                     content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
                 },
                 {
-                    style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3; cursor:pointer;",
-                    attr: { onclick: `jumpToTOD(${i})` },
+                    style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
                     content: `
-                        <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700;" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> <span style="color:${isMatchA ? '#eee' : '#ff4444'}">${(p.splitA || []).join(' ')}</span><br>
-                        <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700;" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> <span style="color:${isMatchB ? '#888' : '#ff4444'}">${(p.splitB || []).join(' ')}</span>`
+                        <div style="display:flex; align-items:center; margin-bottom:2px;">
+                            <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
+                            <input type="text" class="sigma-input" style="flex:1; background:transparent; border:none; border-bottom:1px solid #444; color:${isMatchA ? '#eee' : '#ff4444'}; font-family:inherit; font-size:inherit; padding:0 2px;" value="${(p.splitA || []).join(' ')}" data-type="split" data-ring="A" data-index="${i}">
+                        </div>
+                        <div style="display:flex; align-items:center;">
+                            <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
+                            <input type="text" class="sigma-input" style="flex:1; background:transparent; border:none; border-bottom:1px solid #444; color:${isMatchB ? '#888' : '#ff4444'}; font-family:inherit; font-size:inherit; padding:0 2px;" value="${(p.splitB || []).join(' ')}" data-type="split" data-ring="B" data-index="${i}">
+                        </div>`
                 }
             ]
         });
