@@ -513,11 +513,15 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         if (tMatch) {
                             const tpIdx = parseInt(tMatch[1]), baseR = r + 2;
                             const tpPlans = Array(16).fill(null);
+                            let lastCycle = 100;
                             for (let idxS = 0; idxS < 16; idxS++) {
-                                const isR = (idxS >= 8), hO = isR ? 12 : 0, locI = isR ? (idxS - 8) : idxS;
+                                const locI = idxS;
                                 const rA = baseR + (locI * 2), rB = rA + 1;
-                                const spC = c + 5 + hO, offC = c + 4 + hO, cycC = c + 2 + hO, idxC = c + 3 + hO;
+                                const spC = c + 5, offC = c + 4, cycC = c + 2, idxC = c + 3;
                                 
+                                const parsedCycle = parseInt(getVal(rA, cycC));
+                                if (!isNaN(parsedCycle) && parsedCycle > 0) lastCycle = parsedCycle;
+
                                 const patternIdx = parseInt(getVal(rA, idxC));
                                 if (!isNaN(patternIdx) && patternIdx >= 1 && patternIdx <= 16) {
                                     const sAL = [], sBL = [];
@@ -527,7 +531,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                         sBL.push(parseInt(getVal(rB, sc)) || 0); 
                                     }
                                     tpPlans[patternIdx - 1] = { 
-                                        cycle: parseInt(getVal(rA, cycC)) || 0, 
+                                        cycle: lastCycle, 
                                         offset: parseInt(getVal(rA, offC)) || 0, 
                                         splitA: sAL, 
                                         splitB: sBL 
