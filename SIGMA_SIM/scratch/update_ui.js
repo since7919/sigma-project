@@ -1,62 +1,38 @@
 const fs = require('fs');
-let content = fs.readFileSync('js/overlay_ui.js', 'utf8');
+let code = fs.readFileSync('SIGMA_SIM/js/overlay_ui.js', 'utf8');
 
-if (!content.includes('function updateOverlayPhaseDiagram')) {
-    content += `
-function updateOverlayPhaseDiagram(jid) {
-    if (window._currentOverlayJid !== jid) return;
-    const j = typeof STATE !== 'undefined' ? STATE.junctions[jid] : null;
-    if (!j) return;
+const targetFunc = `function switchOverlayTab(tabName) {
+    // 모든 탭 내용 숨기기
+    document.querySelectorAll('.detail-tab-content').forEach(el => el.style.display = 'none');
+    // 모든 탭 버튼 활성화 상태 제거
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     
-    const pA = j._activePhaseA || 0;
-    const pB = j._activePhaseB || 0;
-    const rA = j._remainA || 0;
-    const rB = j._remainB || 0;
-    
-    for (let i = 1; i <= 8; i++) {
-        const box = document.getElementById(\`phase-box-\${i}\`);
-        const titleBar = document.getElementById(\`phase-title-bar-\${i}\`);
-        const titleTime = document.getElementById(\`phase-title-time-\${i}\`);
-        const labelA = document.getElementById(\`phase-label-A-\${i}\`);
-        const labelB = document.getElementById(\`phase-label-B-\${i}\`);
-        
-        if (!box) continue;
-        
-        const isAActive = (pA === i && j._simCycle > 0);
-        const isBActive = (pB === i && j._simCycle > 0);
-        const isAnyActive = isAActive || isBActive;
-        
-        if (isAnyActive) {
-            box.style.border = '2px solid #10b981';
-            box.style.background = 'rgba(16, 185, 129, 0.1)';
-            titleBar.style.background = '#10b981';
-            titleBar.style.color = '#0f172a';
-            
-            let remainText = '';
-            if (isAActive && isBActive) {
-                remainText = (rA === rB) ? \`\${rA}s\` : \`A:\${rA}s B:\${rB}s\`;
-            } else if (isAActive) {
-                remainText = \`\${rA}s\`;
-            } else if (isBActive) {
-                remainText = \`\${rB}s\`;
-            }
-            if (titleTime) {
-                titleTime.style.display = 'inline-block';
-                titleTime.innerText = remainText;
-            }
+    // 선택한 탭 보이기 및 활성화
+    const targetContent = document.getElementById(\`overlay-tab-\${tabName}\`);
+    if (targetContent) {
+        if (tabName === 'phase') {
+            targetContent.style.display = 'flex';
         } else {
-            const hasSplit = box.getAttribute('data-has-split') === 'true';
-            box.style.border = hasSplit ? '1px solid #334155' : '1px solid #1e293b';
-            box.style.background = 'rgba(255,255,255,0.02)';
-            titleBar.style.background = '#1e293b';
-            titleBar.style.color = '#cbd5e1';
-            if (titleTime) titleTime.style.display = 'none';
+            targetContent.style.display = 'block';
         }
-        
-        if (labelA) labelA.style.color = isAActive ? '#10b981' : '#64748b';
-        if (labelB) labelB.style.color = isBActive ? '#10b981' : '#64748b';
     }
-}
-`;
-    fs.writeFileSync('js/overlay_ui.js', content, 'utf8');
-}
+    
+    const targetBtn = document.getElementById(\`tab-btn-\${tabName}\`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    // 운영통계 탭일 때만 SVG 및 통계요약 보이기
+    const svgArea = document.getElementById('overlay-svg-area');
+    const summaryArea = document.getElementById('overlay-summary-area');
+    if (svgArea) svgArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
+    if (summaryArea) summaryArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
+    
+    setTimeout(() => {
+        if (typeof overlayMap !== 'undefined' && overlayMap) {
+            overlayMap.invalidateSize();
+        }
+    }, 300);
+}`;
+
+code = code.replace(/function switchOverlayTab\(tabName\) \{[\s\S]*?\}\n/, targetFunc + '\n');
+fs.writeFileSync('SIGMA_SIM/js/overlay_ui.js', code, 'utf8');
+console.log('UI updated');

@@ -851,17 +851,25 @@ function renderTodPlanInfoTable() {
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
                                 const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
                                 
-                                if (!sc || sc.h === -1) {
-                                    return `
-                                        <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; color: ${fontColor}; cursor: pointer;">-</td>
-                                        <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; background: ${bg}; color: ${fontColor}; cursor: pointer;">-</td>
-                                        <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold; cursor: pointer;">-</td>
-                                    `;
+                                let hVal = '', cycleVal = '', idxVal = '';
+                                if (sc && sc.h !== -1) {
+                                    hVal = String(sc.h).padStart(2,'0') + ':' + String(sc.m).padStart(2,'0');
+                                    cycleVal = sc.cycle || '';
+                                    idxVal = sc.idx !== undefined ? sc.idx : '';
                                 }
+
+                                const inputStyle = `background:transparent; border:none; color:${fontColor}; width:100%; text-align:center; font-family:monospace; outline:none; font-size:11px; padding:0; margin:0;`;
+
                                 return `
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; color: ${fontColor}; font-family: monospace; cursor: pointer;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; background: ${bg}; color: ${fontColor}; cursor: pointer;">${sc.cycle}</td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold; cursor: pointer;">${sc.idx !== undefined ? sc.idx : '-'}</td>
+                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer;">
+                                        <input type="text" value="${hVal}" placeholder="--:--" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
+                                    </td>
+                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; cursor: pointer;">
+                                        <input type="number" value="${cycleVal}" placeholder="-" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
+                                    </td>
+                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; font-weight: bold; cursor: pointer;">
+                                        <input type="number" value="${idxVal}" placeholder="-" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'idx', this.value)">
+                                    </td>
                                 `;
                             }).join('')}
                         </tr>
@@ -872,6 +880,91 @@ function renderTodPlanInfoTable() {
     `;
     container.innerHTML = html;
 }
+
+window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
+    const jid = STATE.activeJid;
+    const j = STATE.junctions[jid];
+    if (!j) return;
+
+    if (j.group) {
+        if (!confirm("이 수정은 그룹 소속 교차로 전체에 영향을 줍니다. 수정하시겠습니까?")) {
+            renderTodPlanInfoTable();
+            return;
+        }
+    }
+
+    let targets = [j];
+    if (j.group && STATE.groups[j.group]) {
+        targets = [];
+        for (let key in STATE.junctions) {
+            if (STATE.junctions[key].group === j.group) {
+                targets.push(STATE.junctions[key]);
+            }
+        }
+    }
+
+    targets.forEach(targetJ => {
+        if (!targetJ.schedules) targetJ.schedules = {};
+        if (!targetJ.schedules[dayIdx]) targetJ.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+        
+        let sc = targetJ.schedules[dayIdx][slotIdx];
+        if (!sc) {
+            sc = {h:-1, m:0, cycle:0};
+            targetJ.schedules[dayIdx][slotIdx] = sc;
+        }
+
+        if (field === 'time') {
+            if (!value || !value.includes(':')) {
+                sc.h = -1;
+                sc.m = 0;
+            } else {
+                let parts = value.split(':');
+                if (parts.length === 2) {
+                    sc.h = parseInt(parts[0]) || 0;
+                    sc.m = parseInt(parts[1]) || 0;
+                }
+            }
+        } else if (field === 'cycle') {
+            sc.cycle = parseInt(value) || 0;
+        } else if (field === 'idx') {
+            sc.idx = parseInt(value) || 0;
+        }
+    });
+
+    if (j.group && STATE.groups[j.group]) {
+        let g = STATE.groups[j.group];
+        if (!g.schedules) g.schedules = {};
+        if (!g.schedules[dayIdx]) g.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+        let sc = g.schedules[dayIdx][slotIdx];
+        if (!sc) {
+            sc = {h:-1, m:0, cycle:0};
+            g.schedules[dayIdx][slotIdx] = sc;
+        }
+        if (field === 'time') {
+            if (!value || !value.includes(':')) {
+                sc.h = -1;
+                sc.m = 0;
+            } else {
+                let parts = value.split(':');
+                if (parts.length === 2) {
+                    sc.h = parseInt(parts[0]) || 0;
+                    sc.m = parseInt(parts[1]) || 0;
+                }
+            }
+        } else if (field === 'cycle') {
+            sc.cycle = parseInt(value) || 0;
+        } else if (field === 'idx') {
+            sc.idx = parseInt(value) || 0;
+        }
+    }
+
+    renderTodPlanInfoTable();
+    if (STATE.currentJunctionDayTypeIdx === dayIdx && parseInt(UI.planIdx?.value || 0) === slotIdx) {
+        renderRingTables();
+        if (typeof renderSummaryTable === 'function') renderSummaryTable();
+    }
+    if (typeof updatePlanMap === 'function') updatePlanMap();
+};
 
 window.toggleTodPlanGroup = function(group) {
     if (typeof STATE !== 'undefined') {
