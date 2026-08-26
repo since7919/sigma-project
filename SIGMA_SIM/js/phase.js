@@ -683,7 +683,14 @@ function changeJunctionDayType(idx) {
     STATE.currentSignalMapIdx = targetMapIdx;
 
     try {
-        document.getElementById('j-current-day-label').innerText = `현재 조회: ${DAY_LABELS[idx]} TOD (TOD SLOT 1~16)`;
+        let labelEl = document.getElementById('j-current-day-label');
+        if(labelEl) {
+            labelEl.innerText = `현재 조회: ${DAY_LABELS[idx]} TOD (TOD SLOT 1~16)`;
+            labelEl.style.color = '#38bdf8';
+            labelEl.style.fontWeight = 'bold';
+            labelEl.style.fontSize = '13px';
+            labelEl.style.fontFamily = 'inherit';
+        }
     } catch(e) { console.warn("Day label update failed", e); }
 
     try {
@@ -976,7 +983,14 @@ window.toggleTodPlanGroup = function(group) {
 window.selectTodPlanCell = function(dayIdx, slotIdx) {
     STATE.currentJunctionDayTypeIdx = dayIdx;
     UI.planIdx.value = slotIdx;
-    document.getElementById('j-current-day-label').innerText = `현재 조회: ${DAY_LABELS[dayIdx]} TOD (TOD SLOT 1~16)`;
+    let labelEl = document.getElementById('j-current-day-label');
+    if(labelEl) {
+        labelEl.innerText = `현재 조회: ${DAY_LABELS[dayIdx]} TOD (TOD SLOT 1~16)`;
+        labelEl.style.color = '#38bdf8';
+        labelEl.style.fontWeight = 'bold';
+        labelEl.style.fontSize = '13px';
+        labelEl.style.fontFamily = 'inherit';
+    }
     renderRingTables();
     renderSummaryTable();
     updateJunctionDayUI();
