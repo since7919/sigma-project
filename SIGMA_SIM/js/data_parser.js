@@ -489,7 +489,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 sm.pedB = dataB.map(d => d.g + d.f);
             }
 
-            // [3] 일계획 및 시간계획 분석 (기존 로직 유지)
+            // [3] 일계획 및 시간계획 분석 (1-indexed getVal 오프셋 및 동적 컬럼 탐색 적용)
             const dayPlansFound = {};
             const tpPlansDict = {};
             for (let r = 1; r < sheetData.length; r++) {
@@ -499,14 +499,30 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         const dMatch = cellVal.match(/\((\d+)\)/);
                         if (dMatch) {
                             const dNo = parseInt(dMatch[1]), slots = [];
+                            let timeCol = -1, cycCol = -1, idxCol = -1;
+                            for (let colSearch = c; colSearch < c + 8; colSearch++) {
+                                const hVal = String(getVal(r + 1, colSearch) || "").toLowerCase();
+                                if (hVal.includes("시간") || hVal.includes("time")) timeCol = colSearch;
+                                if (hVal.includes("주기") || hVal.includes("cyc")) cycCol = colSearch;
+                                if (hVal.includes("index") || hVal.includes("인덱스") || hVal.includes("idx")) idxCol = colSearch;
+                            }
+                            if (timeCol === -1) timeCol = c + 1;
+                            if (cycCol === -1) cycCol = c + 2;
+                            if (idxCol === -1) idxCol = c + 3;
+
                             for (let sr = r + 2; sr < r + 18; sr++) {
-                                let vTime = getVal(sr, c + 2), tStr = "-1";
+                                let vTime = getVal(sr, timeCol), tStr = "-1";
                                 if (typeof vTime === 'number') {
                                     const tot = Math.round(vTime * 1440);
                                     tStr = `${String(Math.floor(tot/60)).padStart(2,'0')}:${String(tot%60).padStart(2,'0')}`;
-                                } else tStr = String(vTime || "-1");
-                                const cyc = parseInt(getVal(sr, c + 5)) || 0, tIdx = parseInt(getVal(sr, c + 8)) || 0;
-                                if (cyc > 0) slots.push({ time: tStr, cycle: cyc, tpIdx: tIdx });
+                                } else {
+                                    tStr = String(vTime || "-1").trim();
+                                }
+                                const cyc = parseInt(getVal(sr, cycCol)) || 0;
+                                const tIdx = parseInt(getVal(sr, idxCol)) || 0;
+                                if (cyc > 0 || (tStr !== "-1" && tStr !== "")) {
+                                    slots.push({ time: tStr, cycle: cyc, tpIdx: tIdx });
+                                }
                             }
                             dayPlansFound[dNo] = slots;
                         }
@@ -522,11 +538,11 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                 const locI = isR ? (idxS - 8) : idxS;
                                 const rA = baseR + (locI * 2), rB = rA + 1;
                                 
-                                const baseC = isR ? 13 : 1; // Col N(13), Col B(1)
-                                const cycC = baseC + 1;     // Col O(14), Col C(2)
-                                const idxC = baseC + 2;     // Col P(15), Col D(3)
-                                const offC = baseC + 3;     // Col Q(16), Col E(4)
-                                const spC = baseC + 4;      // Col R(17), Col F(5)
+                                const baseC = isR ? 14 : 2; // 1-indexed getVal 기준: Col N=14, Col B=2
+                                const cycC = baseC + 1;     // Col O=15, Col C=3
+                                const idxC = baseC + 2;     // Col P=16, Col D=4
+                                const offC = baseC + 3;     // Col Q=17, Col E=5
+                                const spC = baseC + 4;      // Col R=18, Col F=6
                                 
                                 let currentCycle = isR ? lastCycleR : lastCycleL;
                                 const parsedCycle = parseInt(getVal(rA, cycC));
@@ -553,7 +569,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             }
                             // Fill missing patterns with empty data
                             for(let i=0; i<16; i++) {
-                                if(!tpPlans[i]) tpPlans[i] = { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+                                if(!tpPlans[i]) tpPlans[i] = { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
                             }
                             tpPlansDict[tpIdx] = tpPlans;
                         }
@@ -569,7 +585,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
                         const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
                         const [h, m] = s.time.split(':').map(Number);
-                        return { h, m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
+                        return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
                     });
                     junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
                         const targetTpIdx = dIdx + 1;
