@@ -511,14 +511,32 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     if (cellVal.includes('시간계획(')) {
                         const tMatch = cellVal.match(/\((\d+)\)/);
                         if (tMatch) {
-                            const tpIdx = parseInt(tMatch[1]), baseR = r + 2, tpPlans = [];
+                            const tpIdx = parseInt(tMatch[1]), baseR = r + 2;
+                            const tpPlans = Array(16).fill(null);
                             for (let idxS = 0; idxS < 16; idxS++) {
-                                const isR = (idxS>=8), hO = isR?25:0, locI = isR?(idxS-8):idxS;
-                                const rA = baseR+(locI*2), rB = rA+1;
-                                const sAL = [], sBL = [];
-                                const spC = c+9+hO, offC = c+6+hO, cycC = c+4+hO;
-                                for (let sc=spC; sc<spC+16; sc+=2) { sAL.push(parseInt(getVal(rA, sc))||0); sBL.push(parseInt(getVal(rB, sc))||0); }
-                                tpPlans.push({ cycle:parseInt(getVal(rA, cycC))||0, offset:parseInt(getVal(rA, offC))||0, splitA: sAL, splitB: sBL });
+                                const isR = (idxS >= 8), hO = isR ? 12 : 0, locI = isR ? (idxS - 8) : idxS;
+                                const rA = baseR + (locI * 2), rB = rA + 1;
+                                const spC = c + 5 + hO, offC = c + 4 + hO, cycC = c + 2 + hO, idxC = c + 3 + hO;
+                                
+                                const patternIdx = parseInt(getVal(rA, idxC));
+                                if (!isNaN(patternIdx) && patternIdx >= 1 && patternIdx <= 16) {
+                                    const sAL = [], sBL = [];
+                                    // 8 intervals per ring
+                                    for (let sc = spC; sc < spC + 8; sc++) { 
+                                        sAL.push(parseInt(getVal(rA, sc)) || 0); 
+                                        sBL.push(parseInt(getVal(rB, sc)) || 0); 
+                                    }
+                                    tpPlans[patternIdx - 1] = { 
+                                        cycle: parseInt(getVal(rA, cycC)) || 0, 
+                                        offset: parseInt(getVal(rA, offC)) || 0, 
+                                        splitA: sAL, 
+                                        splitB: sBL 
+                                    };
+                                }
+                            }
+                            // Fill missing patterns with empty data
+                            for(let i=0; i<16; i++) {
+                                if(!tpPlans[i]) tpPlans[i] = { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
                             }
                             tpPlansDict[tpIdx] = tpPlans;
                         }

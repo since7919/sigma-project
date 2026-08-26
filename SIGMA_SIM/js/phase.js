@@ -541,8 +541,8 @@ function renderSummaryTable() {
             <table id="tod-summary-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                 <thead>
                     <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">ID</th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">패턴</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 85px; color: #94a3b8;">시작시간</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button></th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
