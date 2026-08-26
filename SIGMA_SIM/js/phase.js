@@ -45,13 +45,16 @@ function renderRingTables() {
         schedules: JSON.parse(JSON.stringify(DEFAULT_PLAN_CACHE.schedules))
     };
 
-    const pIdx = parseInt(UI.planIdx?.value) || 0;
-    const p = j.dayPlans ? j.dayPlans[dayIdx][pIdx] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
-
-    let s = { h: 0, m: 0, cycle: 100 };
+    const sIdx = parseInt(UI.planIdx?.value) || 0;
+    
+    let s = { h: 0, m: 0, cycle: 100, idx: sIdx + 1 };
     if (jid && j.schedules) {
-        s = j.schedules[dayIdx]?.[pIdx] || s; // [수정] 그룹연동보다 개별 CSV 데이터를 우선 표시 (사용자 요청)
+        s = j.schedules[dayIdx]?.[sIdx] || s; // 개별 스케줄 데이터 우선 참조
     }
+    
+    // 현재 타임 슬롯이 가리키는 패턴 번호 (1~16)를 이용해 패턴(dayPlans)을 조회
+    const patternIdx = s.idx || 1;
+    const p = j.dayPlans ? j.dayPlans[dayIdx][patternIdx - 1] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
 
     UI.todDisplayTime.innerText = s.h === -1 ? "M/F (미사용)" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
     UI.todInpCycle.value = s.cycle || 100;
@@ -459,22 +462,32 @@ function renderSummaryTable() {
     const schedules = j.schedules ? j.schedules[dayIdx] : null;
 
     const rows = [];
+    
+    // 현재 선택된 스케줄 슬롯이 가리키는 패턴 번호 (1~16)
+    const selectedPatternIdx = (schedules && schedules[cur]) ? (schedules[cur].idx || 1) : 1;
+
     for (let i = 0; i < 16; i++) {
         const p = (plans && plans[i]) ? plans[i] : { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
-        const s = (schedules && schedules[i]) ? schedules[i] : { h: -1, m: 0, cycle: 100 };
+        const patternNum = i + 1;
+        
+        // 이 패턴이 현재 일계획의 스케줄 중 어디선가 쓰이고 있는지 검사
+        const isUnused = !(schedules || []).some(sch => sch && sch.idx === patternNum && sch.h !== -1);
+        
+        // 임시로 해당 패턴의 주기를 가져오기 위해, 이 패턴을 가장 먼저 호출하는 스케줄의 주기를 찾음 (없으면 100)
+        const firstUsedSched = (schedules || []).find(sch => sch && sch.idx === patternNum && sch.h !== -1);
+        const targetCycle = firstUsedSched ? (firstUsedSched.cycle || 100) : 100;
 
         const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
         const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
-        const targetCycle = s.cycle || 100;
         
         // [보완] 소수점 오차 방지를 위해 반올림 후 비교
         const isMatchA = (Math.round(sumA) === Math.round(targetCycle));
         const isMatchB = (Math.round(sumB) === Math.round(targetCycle));
         
-        const isActive = (i === cur);
-        const isUnused = (s.h === -1);
+        // 현재 행이 선택된 패턴과 일치하는가?
+        const isActive = (patternNum === selectedPatternIdx);
         
-        // [사용자 요청] 미사용 슬롯이라도 목표 주기가 설정되어 있다면 합계 불일치 여부를 모두 표시
+        // [사용자 요청] 미사용 패턴이더라도 합계 불일치 여부를 모두 표시
         const hasMismatch = (targetCycle > 0) && (!isMatchA || !isMatchB);
 
         const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
@@ -704,8 +717,10 @@ function changeJunctionDayType(idx) {
 
     try {
         let labelEl = document.getElementById('j-current-day-label');
-        if(labelEl) {
-            labelEl.innerText = `현재 조회: ${DAY_LABELS[idx]} TOD (TOD SLOT 1~16)`;
+        if (labelEl) {
+            const planNum = idx + 1;
+            const mapType = planNum <= 5 ? "일반맵" : "시차맵";
+            labelEl.innerText = `${mapType} : 시간계획(${planNum})`;
             labelEl.style.color = '#38bdf8';
             labelEl.style.fontWeight = 'bold';
             labelEl.style.fontSize = '13px';
@@ -1004,8 +1019,10 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
     STATE.currentJunctionDayTypeIdx = dayIdx;
     UI.planIdx.value = slotIdx;
     let labelEl = document.getElementById('j-current-day-label');
-    if(labelEl) {
-        labelEl.innerText = `현재 조회: ${DAY_LABELS[dayIdx]} TOD (TOD SLOT 1~16)`;
+    if (labelEl) {
+        const planNum = dayIdx + 1;
+        const mapType = planNum <= 5 ? "일반맵" : "시차맵";
+        labelEl.innerText = `${mapType} : 시간계획(${planNum})`;
         labelEl.style.color = '#38bdf8';
         labelEl.style.fontWeight = 'bold';
         labelEl.style.fontSize = '13px';
