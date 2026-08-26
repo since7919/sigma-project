@@ -484,42 +484,55 @@ function renderSummaryTable() {
         const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
         const cycleTooltip = hasMismatch ? `주기 불일치! (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
 
+        let idCell = null;
+        if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
+        else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+        else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+        else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+        else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+        else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+
+        let rowCells = [];
+        if (idCell) rowCells.push(idCell);
+
+        rowCells.push(
+            {
+                content: i + 1,
+                className: 'row-num',
+                style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : '#888'}`,
+                attr: { onclick: `jumpToTOD(${i})` }
+            },
+            {
+                content: `
+                    <div style="display:flex; justify-content:center; align-items:center; gap:2px;">
+                        <input type="number" class="sigma-input input-mini" value="${s.h}" min="-1" max="23" data-type="sched" data-field="h" data-index="${i}">
+                        <span style="color:#666;">:</span>
+                        <input type="number" class="sigma-input input-mini" value="${s.m}" min="0" max="59" data-type="sched" data-field="m" data-index="${i}">
+                    </div>`
+            },
+            {
+                content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="sched" data-field="cycle" data-index="${i}">`
+            },
+            {
+                content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
+            },
+            {
+                style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
+                content: `
+                    <div style="display:flex; align-items:center; margin-bottom:2px; gap:4px;">
+                        <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
+                        ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchA ? '#eee' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitA[k] || 0}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`).join('') }
+                    </div>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
+                        ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchB ? '#888' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitB[k] || 0}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`).join('') }
+                    </div>`
+            }
+        );
+
         rows.push({
             style: rowStyle,
-            cells: [
-                {
-                    content: i + 1,
-                    className: 'row-num',
-                    style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : '#888'}`,
-                    attr: { onclick: `jumpToTOD(${i})` }
-                },
-                {
-                    content: `
-                        <div style="display:flex; justify-content:center; align-items:center; gap:2px;">
-                            <input type="number" class="sigma-input input-mini" value="${s.h}" min="-1" max="23" data-type="sched" data-field="h" data-index="${i}">
-                            <span style="color:#666;">:</span>
-                            <input type="number" class="sigma-input input-mini" value="${s.m}" min="0" max="59" data-type="sched" data-field="m" data-index="${i}">
-                        </div>`
-                },
-                {
-                    content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="sched" data-field="cycle" data-index="${i}">`
-                },
-                {
-                    content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
-                },
-                {
-                    style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
-                    content: `
-                        <div style="display:flex; align-items:center; margin-bottom:2px; gap:4px;">
-                            <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
-                            ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchA ? '#eee' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitA[k] || 0}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`).join('') }
-                        </div>
-                        <div style="display:flex; align-items:center; gap:4px;">
-                            <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
-                            ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchB ? '#888' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitB[k] || 0}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`).join('') }
-                        </div>`
-                }
-            ]
+            cells: rowCells
         });
     }
 
@@ -528,7 +541,8 @@ function renderSummaryTable() {
             <table id="tod-summary-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                 <thead>
                     <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">№</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">ID</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">패턴</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 85px; color: #94a3b8;">시작시간</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button></th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
