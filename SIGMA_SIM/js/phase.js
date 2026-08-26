@@ -683,7 +683,7 @@ function changeJunctionDayType(idx) {
     STATE.currentSignalMapIdx = targetMapIdx;
 
     try {
-        document.getElementById('j-current-day-label').innerText = `📅 현재 조회: ${DAY_LABELS[idx]} TOD (TOD SLOT 1~16)`;
+        document.getElementById('j-current-day-label').innerText = `현재 조회: ${DAY_LABELS[idx]} TOD (TOD SLOT 1~16)`;
     } catch(e) { console.warn("Day label update failed", e); }
 
     try {
@@ -976,7 +976,7 @@ window.toggleTodPlanGroup = function(group) {
 window.selectTodPlanCell = function(dayIdx, slotIdx) {
     STATE.currentJunctionDayTypeIdx = dayIdx;
     UI.planIdx.value = slotIdx;
-    document.getElementById('j-current-day-label').innerText = `📅 현재 조회: ${DAY_LABELS[dayIdx]} TOD (TOD SLOT 1~16)`;
+    document.getElementById('j-current-day-label').innerText = `현재 조회: ${DAY_LABELS[dayIdx]} TOD (TOD SLOT 1~16)`;
     renderRingTables();
     renderSummaryTable();
     updateJunctionDayUI();
