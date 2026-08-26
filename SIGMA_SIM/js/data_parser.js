@@ -550,14 +550,13 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 sysDayIndices.forEach(dIdx => {
                     junction.dayPlanMapIds[dIdx] = (dK - 1);
                     junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                        const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: 1 };
+                        const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
                         const [h, m] = s.time.split(':').map(Number);
-                        return { h, m, cycle: s.cycle, idx: s.tpIdx || 1 };
+                        return { h, m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
                     });
                     junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                        const s = daily[sI];
                         const tPlans = tpPlansDict[dK] || tpPlansDict[1] || [];
-                        const pl = (s && s.tpIdx > 0 && tPlans[s.tpIdx - 1]) ? tPlans[s.tpIdx - 1] : (tPlans[0] || null);
+                        const pl = tPlans[sI];
                         if (!pl) return { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
                         return { offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
                     });

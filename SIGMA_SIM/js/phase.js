@@ -503,14 +503,6 @@ function renderSummaryTable() {
                 attr: { onclick: `jumpToTOD(${i})` }
             },
             {
-                content: `
-                    <div style="display:flex; justify-content:center; align-items:center; gap:2px;">
-                        <input type="number" class="sigma-input input-mini" value="${s.h}" min="-1" max="23" data-type="sched" data-field="h" data-index="${i}">
-                        <span style="color:#666;">:</span>
-                        <input type="number" class="sigma-input input-mini" value="${s.m}" min="0" max="59" data-type="sched" data-field="m" data-index="${i}">
-                    </div>`
-            },
-            {
                 content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="sched" data-field="cycle" data-index="${i}">`
             },
             {
@@ -543,7 +535,6 @@ function renderSummaryTable() {
                     <tr style="background: rgba(255,255,255,0.05);">
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 85px; color: #94a3b8;">시작시간</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button></th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
                         <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
