@@ -479,7 +479,7 @@ function renderSummaryTable() {
 
         const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
         const mismatchStyle = hasMismatch ? 'background:rgba(255,68,68,0.15);' : '';
-        const rowStyle = (isActive ? 'background:rgba(0,212,255,0.12); border-left: 3px solid var(--accent);' : '') + unusedStyle + mismatchStyle;
+        const rowStyle = (isActive ? 'background:rgba(255,255,255,0.02);' : '') + unusedStyle + mismatchStyle;
 
         const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
         const cycleTooltip = hasMismatch ? `주기 불일치! (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
@@ -523,21 +523,36 @@ function renderSummaryTable() {
         });
     }
 
-    SigmaUI.renderTable('tod-summary-container', {
-        tableId: 'tod-summary-table',
-        className: 'sigma-table',
-        head: [
-            { label: '№', style: 'width:25px;' },
-            { label: '시작시간', style: 'width:85px;' },
-            { 
-                label: `주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>`, 
-                style: 'width:55px;' 
-            },
-            { label: '연동', style: 'width:40px;' },
-            { label: '신호시간 (Split A / B)' }
-        ],
-        rows: rows
+    let html = `
+        <div style="overflow-x: auto; background: #0f172a; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+            <table id="tod-summary-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
+                <thead>
+                    <tr style="background: rgba(255,255,255,0.05);">
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">№</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 85px; color: #94a3b8;">시작시간</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button></th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
+                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    rows.forEach(r => {
+        html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03); ${r.style}">`;
+        r.cells.forEach(c => {
+            html += `<td style="padding: 4px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
+        });
+        html += `</tr>`;
     });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    document.getElementById('tod-summary-container').innerHTML = html;
 }
 
 
