@@ -516,25 +516,35 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         if (tMatch) {
                             const tpIdx = parseInt(tMatch[1]), baseR = r + 2;
                             const tpPlans = Array(16).fill(null);
-                            let lastCycle = 100;
+                            let lastCycleL = 100, lastCycleR = 100;
                             for (let idxS = 0; idxS < 16; idxS++) {
-                                const locI = idxS;
+                                const isR = (idxS >= 8);
+                                const locI = isR ? (idxS - 8) : idxS;
                                 const rA = baseR + (locI * 2), rB = rA + 1;
-                                const spC = c + 5, offC = c + 4, cycC = c + 2, idxC = c + 3;
                                 
+                                const baseC = isR ? 13 : 1; // Col N(13), Col B(1)
+                                const cycC = baseC + 1;     // Col O(14), Col C(2)
+                                const idxC = baseC + 2;     // Col P(15), Col D(3)
+                                const offC = baseC + 3;     // Col Q(16), Col E(4)
+                                const spC = baseC + 4;      // Col R(17), Col F(5)
+                                
+                                let currentCycle = isR ? lastCycleR : lastCycleL;
                                 const parsedCycle = parseInt(getVal(rA, cycC));
-                                if (!isNaN(parsedCycle) && parsedCycle > 0) lastCycle = parsedCycle;
+                                if (!isNaN(parsedCycle) && parsedCycle > 0) {
+                                    currentCycle = parsedCycle;
+                                    if (isR) lastCycleR = parsedCycle;
+                                    else lastCycleL = parsedCycle;
+                                }
 
                                 const patternIdx = parseInt(getVal(rA, idxC));
                                 if (!isNaN(patternIdx) && patternIdx >= 1 && patternIdx <= 16) {
                                     const sAL = [], sBL = [];
-                                    // 8 intervals per ring
                                     for (let sc = spC; sc < spC + 8; sc++) { 
                                         sAL.push(parseInt(getVal(rA, sc)) || 0); 
                                         sBL.push(parseInt(getVal(rB, sc)) || 0); 
                                     }
                                     tpPlans[patternIdx - 1] = { 
-                                        cycle: lastCycle, 
+                                        cycle: currentCycle, 
                                         offset: parseInt(getVal(rA, offC)) || 0, 
                                         splitA: sAL, 
                                         splitB: sBL 
@@ -562,7 +572,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         return { h, m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
                     });
                     junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                        const tPlans = tpPlansDict[dK] || tpPlansDict[1] || [];
+                        const targetTpIdx = dIdx + 1;
+                        const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
                         const pl = tPlans[sI];
                         if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
                         return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
