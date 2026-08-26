@@ -467,15 +467,15 @@ function renderSummaryTable() {
     const selectedPatternIdx = (schedules && schedules[cur]) ? (schedules[cur].idx || 1) : 1;
 
     for (let i = 0; i < 16; i++) {
-        const p = (plans && plans[i]) ? plans[i] : { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+        const p = (plans && plans[i]) ? plans[i] : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
         const patternNum = i + 1;
         
         // 이 패턴이 현재 일계획의 스케줄 중 어디선가 쓰이고 있는지 검사
         const isUnused = !(schedules || []).some(sch => sch && sch.idx === patternNum && sch.h !== -1);
         
-        // 임시로 해당 패턴의 주기를 가져오기 위해, 이 패턴을 가장 먼저 호출하는 스케줄의 주기를 찾음 (없으면 100)
+        // 해당 패턴 고유의 주기를 먼저 사용하고, 없으면 스케줄에서 찾거나 기본값 100
         const firstUsedSched = (schedules || []).find(sch => sch && sch.idx === patternNum && sch.h !== -1);
-        const targetCycle = firstUsedSched ? (firstUsedSched.cycle || 100) : 100;
+        const targetCycle = p.cycle || (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
 
         const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
         const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
@@ -487,7 +487,7 @@ function renderSummaryTable() {
         // 현재 행이 선택된 패턴과 일치하는가?
         const isActive = (patternNum === selectedPatternIdx);
         
-        // [사용자 요청] 미사용 패턴이더라도 합계 불일치 여부를 모두 표시
+        // 미사용 패턴이라도 합계 불일치 여부를 모두 표시
         const hasMismatch = (targetCycle > 0) && (!isMatchA || !isMatchB);
 
         const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
@@ -516,7 +516,7 @@ function renderSummaryTable() {
                 attr: { onclick: `jumpToTOD(${i})` }
             },
             {
-                content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="sched" data-field="cycle" data-index="${i}">`
+                content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
             },
             {
                 content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`

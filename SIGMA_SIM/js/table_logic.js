@@ -39,12 +39,13 @@ function initTableEventHandlers() {
         tableEventInitialized.mov = true;
     }
 
-    // 3. 요약 테이블 (TOD Schedule)
+    // 3. 요약 테이블 (TOD Schedule & Pattern)
     const summaryContainer = document.getElementById('tod-summary-container');
     if (summaryContainer && !tableEventInitialized.summary) {
         summaryContainer.addEventListener('input', (e) => {
             const type = e.target.dataset.type;
             if (type === 'sched') handleSchedInput(e.target);
+            else if (type === 'pattern-cycle') handlePatternCycleInput(e.target);
             else if (type === 'offset') handleOffsetInput(e.target);
             else if (type === 'split-cell') handleSplitInput(e.target);
         });
@@ -171,6 +172,31 @@ function handleMovInput(el) {
 /**
  * [Sched] 요약 테이블 스케줄(시:분, 주기) 입력 처리
  */
+function handlePatternCycleInput(el) {
+    const idx = parseInt(el.dataset.index);
+    const val = parseInt(el.value) || 0;
+    
+    const j = STATE.junctions[STATE.activeJid];
+    if (!j) return;
+    const dayIdx = STATE.currentJunctionDayTypeIdx;
+    
+    if (j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][idx]) {
+        j.dayPlans[dayIdx][idx].cycle = val;
+    }
+    
+    // 만약 현재 다이어그램(Ring Table)이 이 패턴을 보여주고 있다면 업데이트
+    if (typeof UI !== 'undefined' && UI.planIdx) {
+        // UI.planIdx.value는 선택된 "타임 슬롯" 인덱스
+        const sIdx = parseInt(UI.planIdx.value) || 0;
+        const s = j.schedules && j.schedules[dayIdx] ? j.schedules[dayIdx][sIdx] : null;
+        if (s && s.idx === (idx + 1)) {
+            debounceUpdateRingTables();
+        }
+    }
+    
+    debounceUpdateHeavyUI();
+}
+
 function handleSchedInput(el) {
     const field = el.dataset.field; // h, m, cycle
     const idx = parseInt(el.dataset.index);

@@ -551,7 +551,7 @@ function exportNormalizedDB() {
                 const sc = (schs && schs[s]) ? schs[s] : { h: -1, m: 0, cycle: 100, idx: 1 };
                 const pl = (pls && pls[s]) ? pls[s] : { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
                 const timeStr = sc.h === -1 ? "-1" : `${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}`;
-                row.push(`${timeStr}|${sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
+                row.push(`${timeStr}|${pl.cycle || sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
             }
             todCsv += row.map(v => String(v)).join(",") + "\n";
         }
@@ -1285,7 +1285,7 @@ function exportSingleJunctionCSV(jid) {
             const sc = (schs && schs[s]) ? schs[s] : { h: -1, m: 0, cycle: 100, idx: 1 };
             const pl = (pls && pls[s]) ? pls[s] : { offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
             const timeStr = sc.h === -1 ? "-1" : `${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}`;
-            row.push(`${timeStr}|${sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
+            row.push(`${timeStr}|${pl.cycle || sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
         }
         todCsvLines += row.map(v => String(v)).join(",") + "\n";
     }
