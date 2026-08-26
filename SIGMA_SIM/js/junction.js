@@ -444,7 +444,12 @@ function syncActiveJunctionData() {
     const elApiIntNo = document.getElementById('inp-api-int-no');
 
     if (elId) j.id = elId.value;
-    if (elName) j.name = elName.value;
+    if (elName) {
+        if (j.name !== elName.value) {
+            j.name = elName.value;
+            if (typeof STATE !== 'undefined') STATE.sortedJunctions = null;
+        }
+    }
     if (elSeq) j.seq = elSeq.value;
     if (elPolice) j.police = elPolice.value;
     if (elOffice) j.office = elOffice.value;

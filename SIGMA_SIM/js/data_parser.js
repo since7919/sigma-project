@@ -57,6 +57,7 @@ function processIntersectionCSV(csv) {
     }
     Object.values(STATE.junctions).forEach(j => { if (j.marker && window.map) window.map.removeLayer(j.marker); });
     STATE.junctions = newJuncts;
+    if (typeof STATE !== 'undefined') STATE.sortedJunctions = null;
     Object.keys(STATE.junctions).forEach(jid => { if (typeof drawJunction === 'function') drawJunction(jid); });
     refreshDBStats();
 }

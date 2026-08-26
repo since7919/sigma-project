@@ -73,8 +73,22 @@ function buildVirtualListData() {
     
     _virtualListItems = [];
     _virtualListTotalHeight = 0;
+
+    // Cache pre-sorted junctions list
+    const jKeys = Object.keys(junctions);
+    if (!s.sortedJunctions || s.sortedJunctions.length !== jKeys.length) {
+        s.sortedJunctions = Object.values(junctions).sort((a, b) => {
+            const rA = getJunctionRegion(a);
+            const rB = getJunctionRegion(b);
+            const rNameA = REGION_MAP[rA] || rA;
+            const rNameB = REGION_MAP[rB] || rB;
+            const regionCompare = rNameA.localeCompare(rNameB, 'ko');
+            if (regionCompare !== 0) return regionCompare;
+            return (a.name || '').localeCompare(b.name || '', 'ko');
+        });
+    }
     
-    let filtered = Object.values(junctions);
+    let filtered = s.sortedJunctions || [];
     let hasSearchResult = true;
     
     if (query) {
@@ -87,20 +101,23 @@ function buildVirtualListData() {
     }
 
     const grouped = {};
+    const regionCodes = [];
+    
     filtered.forEach(j => {
         const rCode = getJunctionRegion(j);
-        if (!grouped[rCode]) grouped[rCode] = [];
+        if (!grouped[rCode]) {
+            grouped[rCode] = [];
+            regionCodes.push(rCode);
+        }
         grouped[rCode].push(j);
     });
 
-    const regionCodes = Object.keys(grouped).sort((a,b) => (REGION_MAP[a]||a).localeCompare(REGION_MAP[b]||b, 'ko'));
-    
     let currentTop = 0;
     
     regionCodes.forEach(rCode => {
         const rName = REGION_MAP[rCode] || rCode;
-        const items = grouped[rCode].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
-        const isOpen = query ? true : !!_openAccordions[rCode]; // 검색 중이면 모두 강제 열림
+        const items = grouped[rCode]; // already sorted!
+        const isOpen = query ? true : !!_openAccordions[rCode];
         
         _virtualListItems.push({
             type: 'header',
