@@ -216,6 +216,7 @@ function parseCSV(csv) {
 }
 
 async function handleExcelSignalLoad(input, isSingle = false) {
+    let lastProcessedJid = null;
     const files = Array.from(input.files).slice(0, 50);
     if (files.length === 0) return;
 
