@@ -462,6 +462,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             };
 
             for (let m = 0; m < 6; m++) {
+                if (!junction.signalMaps[m]) junction.signalMaps[m] = createEmptySignalMap();
                 const sm = junction.signalMaps[m];
                 const startRowA = baseRowMapStart + (m * 67) + 3;
                 const startRowB = startRowA + 32;
@@ -551,13 +552,16 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             let offCL = offCols[0] || 5, offCR = offCols[1] || 17;
                             let spCL = spCols[0] || 6, spCR = spCols[1] || 18;
 
+                                                              " | R: cyc=" + cycCR + " idx=" + idxCR + " off=" + offCR + " sp=" + spCR);
+
+
                             const parseTable = (isR) => {
                                 const idxC = isR ? idxCR : idxCL;
                                 const cycC = isR ? cycCR : cycCL;
                                 const offC = isR ? offCR : offCL;
                                 const spC = isR ? spCR : spCL;
                                 
-                                for (let rOffset = 0; rOffset < 30; rOffset++) {
+                                for (let rOffset = 0; rOffset < 60; rOffset++) {
                                     const rA = baseR + rOffset;
                                     const rB = rA + 1;
                                     const patternIdx = parseInt(getVal(rA, idxC));
