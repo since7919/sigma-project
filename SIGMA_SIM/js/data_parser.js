@@ -636,6 +636,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             }
             
             junction._isDirty = true;
+            junction._detailLoaded = true;
             successCount++;
             addToList(file.name, 'success');
         } catch (err) {
