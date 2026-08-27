@@ -550,7 +550,7 @@
                 preferCanvas: true 
             }).setView([37.5665, 126.9780], 11);
             
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(dashMap);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 }).addTo(dashMap);
 
             const cachedGeo = localStorage.getItem('SIGMA_SEOUL_GEOJSON');
             if (cachedGeo) { try { renderGeoLayer(JSON.parse(cachedGeo)); } catch (e) { } }

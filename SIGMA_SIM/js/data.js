@@ -725,7 +725,11 @@ function processTodPlanCSV(csv) {
                 STATE.junctions[jid].schedules[dIdx][sIdx].h = parseInt(hm[0]) || 0; 
                 STATE.junctions[jid].schedules[dIdx][sIdx].m = parseInt(hm[1]) || 0; 
             }
-            if (p[1]) STATE.junctions[jid].schedules[dIdx][sIdx].cycle = parseInt(p[1]);
+            if (p[1]) {
+                const cVal = parseInt(p[1]);
+                STATE.junctions[jid].schedules[dIdx][sIdx].cycle = cVal;
+                STATE.junctions[jid].dayPlans[dIdx][sIdx].cycle = cVal;
+            }
             if (p[2]) STATE.junctions[jid].dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
             if (p[3]) STATE.junctions[jid].dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
             if (p[4]) STATE.junctions[jid].dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);

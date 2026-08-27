@@ -11,9 +11,9 @@
  * ══════════════════════════════════════════ */
 const map = L.map('map', { zoomControl: false, maxZoom: 22, preferCanvas: true, boxZoom: false }).setView(CONFIG.DEFAULT_LATLNG, 18);
 window.map = map; // [중요] 전역 객체 명시적 할당 (t.addLayer 에러 방지)
-const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 22, maxNativeZoom: 20 });
+const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 });
 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19 });
-const grayLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 22, maxNativeZoom: 20 });
+const grayLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 });
 
 darkLayer.addTo(map);
 

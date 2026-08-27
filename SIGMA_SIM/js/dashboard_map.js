@@ -11,18 +11,20 @@ function initDashboardMap() {
     const container = document.getElementById('dash-map-container');
     if (!container) return;
 
-    // 대시보드용 Leaflet 인스턴스 생성 (다크 테마 타일 제외하고 벡터 중심)
+    // 3) 대시보드 지도 Leaflet 인스턴스 생성 (다크 테마 타일 사용)
     dashMap = L.map('dash-map-container', {
+        center: [37.5665, 126.9780], // 기본 중심 (서울)
+        zoom: 13,
         zoomControl: false,
         attributionControl: false,
         dragging: true,
         scrollWheelZoom: true,
         doubleClickZoom: false
-    }).setView([37.5665, 126.9780], 11);
+    });
 
-    // 타일 레이어 (아주 어두운 스타일)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
+    // CartoDB 정책 변경으로 인한 API Key 요구로 인해 Esri Dark Gray 타일로 교체
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22, maxNativeZoom: 16
     }).addTo(dashMap);
 
     // Seoul_polygon.geojson 로드 시도

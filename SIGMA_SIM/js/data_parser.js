@@ -495,12 +495,13 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             for (let r = 1; r < sheetData.length; r++) {
                 for (let c = 1; c < 60; c++) {
                     const cellVal = String(getVal(r, c) || "");
-                    if (cellVal.startsWith('일계획(')) {
-                        const dMatch = cellVal.match(/\((\d+)\)/);
+                    const cleanVal = cellVal.replace(/\s/g, '');
+                    if (cleanVal.includes('일계획(')) {
+                        const dMatch = cleanVal.match(/일계획\((\d+)\)/);
                         if (dMatch) {
                             const dNo = parseInt(dMatch[1]), slots = [];
                             let timeCol = -1, cycCol = -1, idxCol = -1;
-                            for (let colSearch = c; colSearch < c + 8; colSearch++) {
+                            for (let colSearch = c; colSearch < c + 12; colSearch++) {
                                 const hVal = String(getVal(r + 1, colSearch) || "").toLowerCase();
                                 if (hVal.includes("시간") || hVal.includes("time")) timeCol = colSearch;
                                 if (hVal.includes("주기") || hVal.includes("cyc")) cycCol = colSearch;
@@ -527,22 +528,38 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             dayPlansFound[dNo] = slots;
                         }
                     }
-                    if (cellVal.includes('시간계획(')) {
-                        const tMatch = cellVal.match(/\((\d+)\)/);
+                    if (cleanVal.includes('시간계획(')) {
+                        const tMatch = cleanVal.match(/시간계획\((\d+)\)/);
                         if (tMatch) {
                             const tpIdx = parseInt(tMatch[1]), baseR = r + 2;
                             const tpPlans = Array(16).fill(null);
                             let lastCycleL = 100, lastCycleR = 100;
+                            
+                            // 동적 헤더 탐색 (왼쪽/오른쪽 각각 탐색)
+                            const cycCols = [], idxCols = [], offCols = [], spCols = [];
+                            for (let colSearch = 1; colSearch <= 60; colSearch++) {
+                                const hVal = String(getVal(r + 1, colSearch) || "").toLowerCase().replace(/\s/g, '');
+                                if (hVal === "cycle" || hVal === "주기") cycCols.push(colSearch);
+                                else if (hVal === "index" || hVal === "인덱스") idxCols.push(colSearch);
+                                else if (hVal === "offset" || hVal === "옵셋") offCols.push(colSearch);
+                                else if (hVal === "split" || hVal === "스플릿" || hVal.includes("split")) spCols.push(colSearch);
+                            }
+                            
+                            // 왼쪽(L), 오른쪽(R) 컬럼 분리 (오른쪽이 없으면 기본값 적용)
+                            let cycCL = cycCols[0] || 3, cycCR = cycCols[1] || 15;
+                            let idxCL = idxCols[0] || 4, idxCR = idxCols[1] || 16;
+                            let offCL = offCols[0] || 5, offCR = offCols[1] || 17;
+                            let spCL = spCols[0] || 6, spCR = spCols[1] || 18;
+
                             for (let idxS = 0; idxS < 16; idxS++) {
                                 const isR = (idxS >= 8);
                                 const locI = isR ? (idxS - 8) : idxS;
                                 const rA = baseR + (locI * 2), rB = rA + 1;
                                 
-                                const baseC = isR ? 14 : 2; // 1-indexed getVal 기준: Col N=14, Col B=2
-                                const cycC = baseC + 1;     // Col O=15, Col C=3
-                                const idxC = baseC + 2;     // Col P=16, Col D=4
-                                const offC = baseC + 3;     // Col Q=17, Col E=5
-                                const spC = baseC + 4;      // Col R=18, Col F=6
+                                const cycC = isR ? cycCR : cycCL;
+                                const idxC = isR ? idxCR : idxCL;
+                                const offC = isR ? offCR : offCL;
+                                const spC  = isR ? spCR : spCL;
                                 
                                 let currentCycle = isR ? lastCycleR : lastCycleL;
                                 const parsedCycle = parseInt(getVal(rA, cycC));
@@ -554,11 +571,19 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                                 const patternIdx = parseInt(getVal(rA, idxC));
                                 if (!isNaN(patternIdx) && patternIdx >= 1 && patternIdx <= 16) {
-                                    const sAL = [], sBL = [];
-                                    for (let sc = spC; sc < spC + 8; sc++) { 
-                                        sAL.push(parseInt(getVal(rA, sc)) || 0); 
-                                        sBL.push(parseInt(getVal(rB, sc)) || 0); 
+                                    const splitCols = [];
+                                    // 공백이나 병합 셀(null)을 건너뛰고 실제 데이터가 있는 컬럼 8개를 동적으로 수집
+                                    for (let sc = spC; sc < spC + 16 && splitCols.length < 8; sc++) {
+                                        const val = getVal(rA, sc);
+                                        if (val !== null && val !== undefined && String(val).trim() !== '') {
+                                            splitCols.push(sc);
+                                        }
                                     }
+                                    const sAL = splitCols.map(sc => parseInt(getVal(rA, sc)) || 0);
+                                    const sBL = splitCols.map(sc => parseInt(getVal(rB, sc)) || 0);
+                                    while(sAL.length < 8) sAL.push(0);
+                                    while(sBL.length < 8) sBL.push(0);
+
                                     tpPlans[patternIdx - 1] = { 
                                         cycle: currentCycle, 
                                         offset: parseInt(getVal(rA, offC)) || 0, 
@@ -577,6 +602,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 }
             }
 
+            // [4] 스케줄(schedules) 매핑: 일계획(dayPlansFound) 기준
             for (let dK = 1; dK <= 5; dK++) {
                 const daily = dayPlansFound[dK]; if (!daily) continue;
                 const sysDayIndices = (dK === 1 ? [0, 5] : dK === 2 ? [1, 6] : dK === 3 ? [2, 7] : dK === 4 ? [3, 8] : dK === 5 ? [4, 9] : []);
@@ -587,15 +613,20 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         const [h, m] = s.time.split(':').map(Number);
                         return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
                     });
-                    junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                        const targetTpIdx = dIdx + 1;
-                        const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
-                        const pl = tPlans[sI];
-                        if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
-                        return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
-                    });
                 });
             }
+
+            // [5] 패턴(dayPlans) 매핑: 시간계획(tpPlansDict) 기준, 일계획 존재 여부와 무관하게 항상 매핑
+            for (let dIdx = 0; dIdx < 10; dIdx++) {
+                junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
+                    const targetTpIdx = dIdx + 1; // 일반맵(0~4) -> 1~5, 시차맵(5~9) -> 6~10
+                    const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
+                    const pl = tPlans[sI];
+                    if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+                    return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
+                });
+            }
+            
             junction._isDirty = true;
             successCount++;
             addToList(file.name, 'success');
