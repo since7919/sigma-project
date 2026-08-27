@@ -340,34 +340,34 @@
                 <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 5px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0;">
                         <div class="card-neon kpi-card" style="min-height: 70px;">
-                            <div class="kpi-label" style="color: var(--accent);">전체 교차로</div>
+                            <div class="kpi-label" style="color: var(--accent);">?�체 교차�?/div>
                             <div class="kpi-value" id="dash-total-j" style="font-size: 20px;">-</div>
                             <div class="kpi-trend up">Active</div>
                         </div>
                         <div class="card-neon kpi-card" style="min-height: 70px;">
-                            <div class="kpi-label">평균 신호주기</div>
+                            <div class="kpi-label">?�균 ?�호주기</div>
                             <div class="kpi-value" id="dash-avg-cycle" style="font-size: 20px;">-</div>
                         </div>
                     </div>
 
                     <div class="card-neon" style="height: 200px; flex-shrink: 0;">
-                        <div class="card-title">교차로 유형별 분포</div>
+                        <div class="card-title">교차�??�형�?분포</div>
                         <div class="chart-wrapper"><canvas id="chart-junction-types"></canvas></div>
                     </div>
 
                     <div class="card-neon" style="height: 200px; flex-shrink: 0;">
-                        <div class="card-title">시간대별 평균 주기</div>
+                        <div class="card-title">?�간?��??�균 주기</div>
                         <div class="chart-wrapper"><canvas id="dash-chart-hourly-avg"></canvas></div>
                     </div>
 
                     <div class="card-neon" style="height: 200px; flex-shrink: 0;">
                         <div
                             style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">
-                            <div class="card-title" style="margin: 0; border: none;">신호주기 분포</div>
+                            <div class="card-title" style="margin: 0; border: none;">?�호주기 분포</div>
                             <select id="dash-hour-select" onchange="updateDashboardUI()" class="dash-select">
-                                <option value="12">12시</option>
-                                <option value="8">08시</option>
-                                <option value="18">18시</option>
+                                <option value="12">12??/option>
+                                <option value="8">08??/option>
+                                <option value="18">18??/option>
                             </select>
                         </div>
                         <div class="chart-wrapper"><canvas id="dash-chart-cycle-dist"></canvas></div>
@@ -378,7 +378,7 @@
                 <div style="display: flex; flex-direction: column; min-width: 0;">
                     <div class="card-neon" style="flex: 1; padding: 0; background: #080a0f;">
                         <div style="position: absolute; top: 15px; left: 15px; z-index: 20; pointer-events: none;">
-                            <h3 style="margin: 0; font-size: 16px; text-shadow: 0 2px 4px #000;">서울특별시 신호교차로 현황</h3>
+                            <h3 style="margin: 0; font-size: 16px; text-shadow: 0 2px 4px #000;">?�울?�별???�호교차�??�황</h3>
                             <p style="color: var(--accent); font-size: 10px; margin: 2px 0 5px 0;">Seoul Metropolitan
                                 Signalized Intersection</p>
                         </div>
@@ -391,23 +391,23 @@
                 <div style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-right: 5px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0;">
                         <div class="card-neon kpi-card" style="min-height: 70px;">
-                            <div class="kpi-label" style="color: var(--neon-magenta);">전체 민원 건수</div>
+                            <div class="kpi-label" style="color: var(--neon-magenta);">?�체 민원 건수</div>
                             <div class="kpi-value" id="dash-total-civil" style="font-size: 20px;">-</div>
                             <div class="kpi-trend down">Analysis</div>
                         </div>
                         <div class="card-neon kpi-card" style="min-height: 70px;">
-                            <div class="kpi-label">개선 점수</div>
+                            <div class="kpi-label">개선 ?�수</div>
                             <div class="kpi-value" id="dash-imp-weight" style="font-size: 20px;">-</div>
                         </div>
                     </div>
 
                     <div class="card-neon" style="height: 240px; flex-shrink: 0;">
-                        <div class="card-title">민원 유형 통계</div>
+                        <div class="card-title">민원 ?�형 ?�계</div>
                         <div class="chart-wrapper"><canvas id="chart-civil-types"></canvas></div>
                     </div>
 
                     <div class="card-neon" style="height: 220px; flex-shrink: 0;">
-                        <div class="card-title">지역별 민원 현황</div>
+                        <div class="card-title">지??�� 민원 ?�황</div>
                         <div class="chart-wrapper"><canvas id="chart-civil-dist"></canvas></div>
                     </div>
                 </div>
@@ -420,7 +420,7 @@
             <div id="bottom-section">
                 <!-- Column 1: Op Summary -->
                 <div class="card-neon" style="min-width: 0;">
-                    <div class="card-title">운영 현황 요약</div>
+                    <div class="card-title">?�영 ?�황 ?�약</div>
                     <div id="dash-op-summary"
                         style="display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: #888; overflow-y: auto; flex: 1;">
                     </div>
@@ -428,16 +428,16 @@
 
                 <!-- Column 2: Recent Table -->
                 <div class="card-neon" style="min-width: 0;">
-                    <div class="card-title">최신 민원 리스트</div>
+                    <div class="card-title">최신 민원 리스??/div>
                     <div id="dash-recent-container" class="dash-table-wrapper">
                         <table id="dash-recent-table">
                             <thead>
                                 <tr>
-                                    <th>날짜</th>
-                                    <th>교변</th>
+                                    <th>?�짜</th>
+                                    <th>교�?</th>
                                     <th>교차로명</th>
-                                    <th>경찰서</th>
-                                    <th>개선항목</th>
+                                    <th>경찰??/th>
+                                    <th>개선??��</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -573,7 +573,7 @@
 
         function syncJunctionsOnMap(jList) {
             if (!dashMap) return;
-            // 마커만 제거 (네트워크 레이어 보존을 위해)
+            // 마커�??�거 (?�트?�크 ?�이??보존???�해)
             dashMap.eachLayer(layer => { 
                 if (layer instanceof L.CircleMarker && !(layer instanceof L.Circle)) {
                     dashMap.removeLayer(layer); 
@@ -635,9 +635,9 @@
                 datasets: [{ data: Object.values(typeCounts), backgroundColor: ['#3498db', '#2ecc71', '#e67e22', '#9b59b6'], borderWidth: 0 }]
             }, { cutout: '75%', plugins: { legend: { position: 'right' } } });
             // Hourly Avg
-            const hours = Array.from({ length: 24 }, (_, i) => i + '시');
+            const hours = Array.from({ length: 24 }, (_, i) => i + '??);
             const datasetsObj = [{
-                label: '평균주기',
+                label: '?�균주기',
                 data: hours.map((_, h) => {
                     let total = 0, count = 0;
                     jList.forEach(j => {
@@ -664,8 +664,8 @@
             });
             updateChart('dash-chart-cycle-dist', 'bar', { labels: distLabels.map(l => l + 's'), datasets: [{ data: distCounts, backgroundColor: '#2ecc71', borderRadius: 4 }] }, { scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } });
             // Civil (Mock)
-            updateChart('chart-civil-types', 'bar', { labels: ['신호불만', '주기조정', '교통사고', '보행위험', '단속요청'], datasets: [{ data: [320, 280, 150, 120, 90], backgroundColor: 'rgba(255, 0, 255, 0.6)', borderRadius: 4, indexAxis: 'y' }] }, { indexAxis: 'y' });
-            updateChart('chart-civil-dist', 'bar', { labels: ['강남', '서초', '송파', '강동', '영등포', '마포', '성동'], datasets: [{ data: [120, 95, 80, 45, 110, 70, 40], backgroundColor: '#ff00ff', borderRadius: 4 }] });
+            updateChart('chart-civil-types', 'bar', { labels: ['?�호불만', '주기조정', '교통?�고', '보행?�험', '?�속?�청'], datasets: [{ data: [320, 280, 150, 120, 90], backgroundColor: 'rgba(255, 0, 255, 0.6)', borderRadius: 4, indexAxis: 'y' }] }, { indexAxis: 'y' });
+            updateChart('chart-civil-dist', 'bar', { labels: ['강남', '?�초', '?�파', '강동', '?�등??, '마포', '?�동'], datasets: [{ data: [120, 95, 80, 45, 110, 70, 40], backgroundColor: '#ff00ff', borderRadius: 4 }] });
         }
 
         function updateChart(id, type, data, options = {}) {
@@ -680,22 +680,22 @@
 
             const summaryData = {
                 facilities: [
-                    { key: 'form_2', label: "단일로" },
-                    { id: 1, label: "3지 교차로" }, { id: 2, label: "4지 교차로" },
-                    { id: 3, label: "5지 교차로" }, { id: 4, label: "6지 이상" },
-                    { id: 21, label: "어린이 보호구역" }, { id: 22, label: "노인 보호구역" }, { id: 23, label: "장애인 보호구역" },
-                    { id: 24, label: "대각선 횡단" }, { id: 25, label: "이단 횡단" }, { id: 26, label: "교통섬" },
-                    { id: 31, label: "잔여_적색" }, { id: 32, label: "잔여_녹색" },
-                    { id: 33, label: "보조등_좌" }, { id: 34, label: "보조등_우" }, { id: 35, label: "바닥신호" }
+                    { key: 'form_2', label: "?�일�? },
+                    { id: 1, label: "3지 교차�? }, { id: 2, label: "4지 교차�? },
+                    { id: 3, label: "5지 교차�? }, { id: 4, label: "6지 ?�상" },
+                    { id: 21, label: "?�린??보호구역" }, { id: 22, label: "?�인 보호구역" }, { id: 23, label: "?�애??보호구역" },
+                    { id: 24, label: "?�각선 ?�단" }, { id: 25, label: "?�단 ?�단" }, { id: 26, label: "교통?? },
+                    { id: 31, label: "?�여_?�색" }, { id: 32, label: "?�여_?�색" },
+                    { id: 33, label: "보조??�? }, { id: 34, label: "보조???? }, { id: 35, label: "바닥?�호" }
                 ],
                 operations: [
-                    { id: 41, label: "보호 좌회전" }, { id: 42, label: "비보호 좌회전" },
-                    { id: 43, label: "PPLT" }, { id: 44, label: "PDLT" }, { id: 45, label: "직좌 동시신호" },
-                    { id: 51, label: "우회전 전용신호" }, { id: 52, label: "우회전 도류화" },
+                    { id: 41, label: "보호 좌회?? }, { id: 42, label: "비보??좌회?? },
+                    { id: 43, label: "PPLT" }, { id: 44, label: "PDLT" }, { id: 45, label: "직좌 ?�시?�호" },
+                    { id: 51, label: "?�회???�용?�호" }, { id: 52, label: "?�회???�류?? },
                     { id: 61, label: "보행조기" }, { id: 62, label: "LPI" }, { id: 63, label: "0.7m/s" },
-                    { id: 64, label: "보행연장" }, { id: 65, label: "다회보행" }, { id: 66, label: "동시보행" },
-                    { id: 67, label: "자동연장" }, { id: 68, label: "보행시차" },
-                    { id: 12, label: "항시/전일 점멸" }, { id: 13, label: "시간제 점멸" }
+                    { id: 64, label: "보행?�장" }, { id: 65, label: "?�회보행" }, { id: 66, label: "?�시보행" },
+                    { id: 67, label: "?�동?�장" }, { id: 68, label: "보행?�차" },
+                    { id: 12, label: "??��/?�일 ?�멸" }, { id: 13, label: "?�간???�멸" }
                 ]
             };
 
@@ -727,7 +727,7 @@
                         ${items.map(it => `
                             <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding:2px 0; align-items:center;">
                                 <span style="color:rgba(255,255,255,0.6); font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.label}</span>
-                                <span style="font-weight:700; color:#fff; font-size:11px;">${counts[it.label] || 0}<small style="font-weight:400; color:rgba(255,255,255,0.2); font-size:9px; margin-left:2px;">개</small></span>
+                                <span style="font-weight:700; color:#fff; font-size:11px;">${counts[it.label] || 0}<small style="font-weight:400; color:rgba(255,255,255,0.2); font-size:9px; margin-left:2px;">�?/small></span>
                             </div>
                         `).join('')}
                     </div>
@@ -739,12 +739,12 @@
                 if (entries.length === 0) return '';
                 return `
                     <div style="margin-bottom:10px;">
-                        <div style="font-size:11px; color:#3498db; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; border-bottom:1px solid rgba(52,152,219,0.2); padding-bottom:4px;">🤖 제어기 현황</div>
+                        <div style="font-size:11px; color:#3498db; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; border-bottom:1px solid rgba(52,152,219,0.2); padding-bottom:4px;">?�� ?�어�??�황</div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0 15px;">
                             ${entries.map(([lbl, cnt]) => `
                                 <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.03); padding:2px 0;">
                                     <span style="color:rgba(255,255,255,0.6); font-size:10.5px;">${lbl}</span>
-                                    <span style="font-weight:700; color:#fff; font-size:11px;">${cnt}<small style="font-weight:400; color:rgba(255,255,255,0.2); font-size:9px; margin-left:2px;">개</small></span>
+                                    <span style="font-weight:700; color:#fff; font-size:11px;">${cnt}<small style="font-weight:400; color:rgba(255,255,255,0.2); font-size:9px; margin-left:2px;">�?/small></span>
                                 </div>
                             `).join('')}
                         </div>
@@ -753,8 +753,8 @@
             };
 
             container.innerHTML = `
-                ${renderGroup('🏗️ 도로시설 (Road Facilities)', summaryData.facilities, '#00d4ff')}
-                ${renderGroup('🚦 신호운영 (Signal Operations)', summaryData.operations, '#2ecc71')}
+                ${renderGroup('?���??�로?�설 (Road Facilities)', summaryData.facilities, '#00d4ff')}
+                ${renderGroup('?�� ?�호?�영 (Signal Operations)', summaryData.operations, '#2ecc71')}
                 ${renderControllers(ctrlCounts)}
             `;
         }
@@ -763,7 +763,7 @@
             const tbody = document.querySelector('#dash-recent-table tbody');
             if (!tbody) return;
             const recent = civilData.slice(-15).reverse();
-            tbody.innerHTML = recent.map(c => `<tr><td>${(c['날짜'] || '').slice(5)}</td><td><span class="badge badge-cyan">${c['교차로번호'] || '-'}</span></td><td style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">${c['교차로명'] || '-'}</td><td>${c['경찰서'] || '-'}</td><td style="font-size:10px; color:#aaa;">${(c['개선항목'] || '').slice(0, 20)}..</td></tr>`).join('');
+            tbody.innerHTML = recent.map(c => `<tr><td>${(c['?�짜'] || '').slice(5)}</td><td><span class="badge badge-cyan">${c['교차로번??] || '-'}</span></td><td style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">${c['교차로명'] || '-'}</td><td>${c['경찰??] || '-'}</td><td style="font-size:10px; color:#aaa;">${(c['개선??��'] || '').slice(0, 20)}..</td></tr>`).join('');
         }
 
         updateDashboardTime();
