@@ -566,7 +566,7 @@ function renderSummaryTable() {
     };
 
     const finalHtml = `
-        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; width: 100%; min-width: 680px; align-items: flex-start;">
             ${generateTableHTML(0, 8)}
             ${generateTableHTML(8, 16)}
         </div>
