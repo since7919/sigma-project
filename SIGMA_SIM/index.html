@@ -11,14 +11,14 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=38">
+    <link rel="stylesheet" href="css/style.css?v=39">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/panels.css">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
-    <link rel="stylesheet" href="css/modals.css?v=38">
+    <link rel="stylesheet" href="css/modals.css?v=39">
 </head>
 
 <body>
@@ -1820,39 +1820,39 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=38"></script>
+    <script src="js/security.js?v=39"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=38"></script>
-    <script src="js/auth.js?v=38"></script>
-    <script src="js/ui_components.js?v=38"></script>
-    <script src="js/config.js?v=38"></script>
-    <script src="js/utils.js?v=38"></script>
-    <script src="js/ui.js?v=38"></script>
-    <script src="js/table_popup.js?v=38"></script>
-    <script src="js/map.js?v=38"></script>
-    <script src="js/junction_map.js?v=38"></script>
-    <script src="js/junction.js?v=38"></script>
-    <script src="js/data_parser.js?v=38"></script>
-    <script src="js/data.js?v=38"></script>
-    <script src="js/phase.js?v=38"></script>
-    <script src="js/sigmap_tab.js?v=38"></script>
-    <script src="js/group_parser.js?v=38"></script>
-    <script src="js/group_map.js?v=38"></script>
-    <script src="js/group.js?v=38"></script>
-    <script src="js/tsd.js?v=38"></script>
-    <script src="js/simulation.js?v=38"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=38"></script>
-    <script src="js/api_layers.js?v=38"></script>
-    <script src="js/intersection_search.js?v=38"></script>
-    <script src="js/junction_optimizer.js?v=38"></script>
-    <script src="js/civil.js?v=38"></script>
-    <script src="js/home.js?v=38"></script>
-    <script src="js/rng_road_network.js?v=38"></script>
-    <script src="js/table_logic.js?v=38"></script>
-    <script src="js/init.js?v=38"></script>
-    <script src="js/auto_load.js?v=38"></script>
-    <script src="js/chatbot_advanced.js?v=38"></script>
+    <script src="js/dashboard.js?v=39"></script>
+    <script src="js/auth.js?v=39"></script>
+    <script src="js/ui_components.js?v=39"></script>
+    <script src="js/config.js?v=39"></script>
+    <script src="js/utils.js?v=39"></script>
+    <script src="js/ui.js?v=39"></script>
+    <script src="js/table_popup.js?v=39"></script>
+    <script src="js/map.js?v=39"></script>
+    <script src="js/junction_map.js?v=39"></script>
+    <script src="js/junction.js?v=39"></script>
+    <script src="js/data_parser.js?v=39"></script>
+    <script src="js/data.js?v=39"></script>
+    <script src="js/phase.js?v=39"></script>
+    <script src="js/sigmap_tab.js?v=39"></script>
+    <script src="js/group_parser.js?v=39"></script>
+    <script src="js/group_map.js?v=39"></script>
+    <script src="js/group.js?v=39"></script>
+    <script src="js/tsd.js?v=39"></script>
+    <script src="js/simulation.js?v=39"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=39"></script>
+    <script src="js/api_layers.js?v=39"></script>
+    <script src="js/intersection_search.js?v=39"></script>
+    <script src="js/junction_optimizer.js?v=39"></script>
+    <script src="js/civil.js?v=39"></script>
+    <script src="js/home.js?v=39"></script>
+    <script src="js/rng_road_network.js?v=39"></script>
+    <script src="js/table_logic.js?v=39"></script>
+    <script src="js/init.js?v=39"></script>
+    <script src="js/auto_load.js?v=39"></script>
+    <script src="js/chatbot_advanced.js?v=39"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
@@ -2113,7 +2113,21 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=38"></script>
+    <script src="js/overlay_ui.js?v=39"></script>
+
+    <!-- Global File Inputs placed at body root for reliable triggering -->
+    <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
+        <input type="file" id="file-load-db-inter" onchange="handleDBFileLoad(this, 'inter')">
+        <input type="file" id="file-load-db-maps" onchange="handleDBFileLoad(this, 'maps')">
+        <input type="file" id="file-load-db-plans" onchange="handleDBFileLoad(this, 'plans')">
+        <input type="file" id="file-load-db-groups" onchange="handleDBFileLoad(this, 'groups')">
+        <input type="file" id="file-load-db-stats" onchange="handleDBFileLoad(this, 'stats')">
+        <input type="file" id="file-load-db-links" onchange="handleDBFileLoad(this, 'links')">
+        <input type="file" id="file-load-db-yearbook" onchange="handleDBFileLoad(this, 'yearbook')">
+        <input type="file" id="file-load-db-poly" onchange="handleDBFileLoad(this, 'poly')">
+        <input type="file" id="xlsx-file-input-phase" accept=".xlsx, .xls" onclick="this.value=''" onchange="handleExcelSignalLoad(this, true)">
+        <input type="file" id="xlsx-file-input" accept=".xlsx, .xls" multiple onclick="this.value=''" onchange="handleExcelSignalLoad(this)">
+    </div>
 </body>
 
 </html>
