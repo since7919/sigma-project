@@ -551,47 +551,53 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             let offCL = offCols[0] || 5, offCR = offCols[1] || 17;
                             let spCL = spCols[0] || 6, spCR = spCols[1] || 18;
 
-                            for (let idxS = 0; idxS < 16; idxS++) {
-                                const isR = (idxS >= 8);
-                                const locI = isR ? (idxS - 8) : idxS;
-                                const rA = baseR + (locI * 2), rB = rA + 1;
-                                
-                                const cycC = isR ? cycCR : cycCL;
+                            const parseTable = (isR) => {
                                 const idxC = isR ? idxCR : idxCL;
+                                const cycC = isR ? cycCR : cycCL;
                                 const offC = isR ? offCR : offCL;
-                                const spC  = isR ? spCR : spCL;
+                                const spC = isR ? spCR : spCL;
                                 
-                                let currentCycle = isR ? lastCycleR : lastCycleL;
-                                const parsedCycle = parseInt(getVal(rA, cycC));
-                                if (!isNaN(parsedCycle) && parsedCycle > 0) {
-                                    currentCycle = parsedCycle;
-                                    if (isR) lastCycleR = parsedCycle;
-                                    else lastCycleL = parsedCycle;
-                                }
-
-                                const patternIdx = parseInt(getVal(rA, idxC));
-                                if (!isNaN(patternIdx) && patternIdx >= 1 && patternIdx <= 16) {
-                                    const splitCols = [];
-                                    // 공백이나 병합 셀(null)을 건너뛰고 실제 데이터가 있는 컬럼 8개를 동적으로 수집
-                                    for (let sc = spC; sc < spC + 16 && splitCols.length < 8; sc++) {
-                                        const val = getVal(rA, sc);
-                                        if (val !== null && val !== undefined && String(val).trim() !== '') {
-                                            splitCols.push(sc);
+                                for (let rOffset = 0; rOffset < 30; rOffset++) {
+                                    const rA = baseR + rOffset;
+                                    const rB = rA + 1;
+                                    const patternIdx = parseInt(getVal(rA, idxC));
+                                    
+                                    const validRange = isR ? (patternIdx >= 9 && patternIdx <= 16) : (patternIdx >= 1 && patternIdx <= 8);
+                                    
+                                    if (!isNaN(patternIdx) && validRange) {
+                                        let currentCycle = isR ? lastCycleR : lastCycleL;
+                                        const parsedCycle = parseInt(getVal(rA, cycC));
+                                        if (!isNaN(parsedCycle) && parsedCycle > 0) {
+                                            currentCycle = parsedCycle;
+                                            if (isR) lastCycleR = parsedCycle;
+                                            else lastCycleL = parsedCycle;
                                         }
-                                    }
-                                    const sAL = splitCols.map(sc => parseInt(getVal(rA, sc)) || 0);
-                                    const sBL = splitCols.map(sc => parseInt(getVal(rB, sc)) || 0);
-                                    while(sAL.length < 8) sAL.push(0);
-                                    while(sBL.length < 8) sBL.push(0);
 
-                                    tpPlans[patternIdx - 1] = { 
-                                        cycle: currentCycle, 
-                                        offset: parseInt(getVal(rA, offC)) || 0, 
-                                        splitA: sAL, 
-                                        splitB: sBL 
-                                    };
+                                        const splitCols = [];
+                                        for (let sc = spC; sc < spC + 16 && splitCols.length < 8; sc++) {
+                                            const val = getVal(rA, sc);
+                                            if (val !== null && val !== undefined && String(val).trim() !== '') {
+                                                splitCols.push(sc);
+                                            }
+                                        }
+
+                                        const sAL = splitCols.map(sc => parseInt(getVal(rA, sc)) || 0);
+                                        const sBL = splitCols.map(sc => parseInt(getVal(rB, sc)) || 0);
+                                        while(sAL.length < 8) sAL.push(0);
+                                        while(sBL.length < 8) sBL.push(0);
+
+                                        tpPlans[patternIdx - 1] = { 
+                                            cycle: currentCycle, 
+                                            offset: parseInt(getVal(rA, offC)) || 0, 
+                                            splitA: sAL, 
+                                            splitB: sBL 
+                                        };
+                                    }
                                 }
-                            }
+                            };
+
+                            parseTable(false); // Left table (1~8)
+                            parseTable(true);  // Right table (9~16)
                             // Fill missing patterns with empty data
                             for(let i=0; i<16; i++) {
                                 if(!tpPlans[i]) tpPlans[i] = { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
