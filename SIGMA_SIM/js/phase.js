@@ -492,7 +492,8 @@ function renderSummaryTable() {
 
         const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
         const mismatchStyle = hasMismatch ? 'background:rgba(255,68,68,0.15);' : '';
-        const rowStyle = (isActive ? 'background:rgba(255,255,255,0.02);' : '') + unusedStyle + mismatchStyle;
+        const activeStyle = isActive ? 'background:rgba(0, 242, 254, 0.2); border: 2px solid #00f2fe; box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.4);' : '';
+        const rowStyle = (isActive ? activeStyle : mismatchStyle) + unusedStyle;
 
         const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
         const cycleTooltip = hasMismatch ? `주기 불일치! (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
