@@ -488,7 +488,7 @@ function renderSummaryTable() {
         const isActive = (patternNum === selectedPatternIdx);
         
         // 미사용 패턴이라도 합계 불일치 여부를 모두 표시
-        const hasMismatch = (targetCycle > 0) && (!isMatchA || !isMatchB);
+        const hasMismatch = !isUnused && (targetCycle > 0) && (!isMatchA || !isMatchB);
 
         const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
         const mismatchStyle = hasMismatch ? 'background:rgba(255,68,68,0.15);' : '';
