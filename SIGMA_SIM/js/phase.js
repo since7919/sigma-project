@@ -458,120 +458,121 @@ function renderSummaryTable() {
     const cur = parseInt(UI.planIdx?.value) || 0;
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const plans = j.dayPlans[dayIdx];
-    // [사용자 요청] 신호주기 및 시간은 그룹 스케줄 대신 교차로 개별 데이터(db_tod_plans.csv)를 강제 참조
     const schedules = j.schedules ? j.schedules[dayIdx] : null;
 
-    const rows = [];
-    
-    // 현재 선택된 스케줄 슬롯이 가리키는 패턴 번호 (1~16)
     const selectedPatternIdx = (schedules && schedules[cur]) ? (schedules[cur].idx || 1) : 1;
 
-    for (let i = 0; i < 16; i++) {
-        const p = (plans && plans[i]) ? plans[i] : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
-        const patternNum = i + 1;
-        
-        // 이 패턴이 현재 일계획의 스케줄 중 어디선가 쓰이고 있는지 검사
-        const isUnused = !(schedules || []).some(sch => sch && sch.idx === patternNum && sch.h !== -1);
-        
-        // 해당 패턴 고유의 주기를 먼저 사용하고, 없으면 스케줄에서 찾거나 기본값 100
-        const firstUsedSched = (schedules || []).find(sch => sch && sch.idx === patternNum && sch.h !== -1);
-        const targetCycle = p.cycle || (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
+    const generateTableHTML = (startIdx, endIdx) => {
+        const rows = [];
+        for (let i = startIdx; i < endIdx; i++) {
+            const p = (plans && plans[i]) ? plans[i] : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+            const patternNum = i + 1;
+            
+            const isUnused = !(schedules || []).some(sch => sch && sch.idx === patternNum && sch.h !== -1);
+            const firstUsedSched = (schedules || []).find(sch => sch && sch.idx === patternNum && sch.h !== -1);
+            const targetCycle = p.cycle || (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
 
-        const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
-        const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
-        
-        // [보완] 소수점 오차 방지를 위해 반올림 후 비교
-        const isMatchA = (Math.round(sumA) === Math.round(targetCycle));
-        const isMatchB = (Math.round(sumB) === Math.round(targetCycle));
-        
-        // 현재 행이 선택된 패턴과 일치하는가?
-        const isActive = (patternNum === selectedPatternIdx);
-        
-        // 미사용 패턴이라도 합계 불일치 여부를 모두 표시
-        const hasMismatch = !isUnused && (targetCycle > 0) && (!isMatchA || !isMatchB);
+            const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
+            const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
+            
+            const isMatchA = (Math.round(sumA) === Math.round(targetCycle));
+            const isMatchB = (Math.round(sumB) === Math.round(targetCycle));
+            const isActive = (patternNum === selectedPatternIdx);
+            
+            const hasMismatch = !isUnused && (targetCycle > 0) && (!isMatchA || !isMatchB);
 
-        const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
-        const mismatchStyle = hasMismatch ? 'background:rgba(255,68,68,0.15);' : '';
-        const activeStyle = isActive ? 'background:rgba(0, 242, 254, 0.2); border: 2px solid #00f2fe; box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.4);' : '';
-        const rowStyle = (isActive ? activeStyle : mismatchStyle) + unusedStyle;
+            const unusedStyle = isUnused ? 'opacity: 0.45; filter: grayscale(0.5);' : '';
+            const mismatchStyle = hasMismatch ? 'background:rgba(255,68,68,0.15);' : '';
+            const activeStyle = isActive ? 'background:rgba(0, 242, 254, 0.2); border: 2px solid #00f2fe; box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.4);' : '';
+            const rowStyle = (isActive ? activeStyle : mismatchStyle) + unusedStyle;
 
-        const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
-        const cycleTooltip = hasMismatch ? `주기 불일치! (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
+            const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
+            const cycleTooltip = hasMismatch ? `주기 불일치 (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
 
-        let idCell = null;
-        if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
-        else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-        else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-        else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-        else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-        else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            let idCell = null;
+            if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
+            else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
+            else if (i === 8) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 2 } };
+            else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
 
-        let rowCells = [];
-        if (idCell) rowCells.push(idCell);
+            let rowCells = [];
+            if (idCell) rowCells.push(idCell);
 
-        rowCells.push(
-            {
-                content: i + 1,
-                className: 'row-num',
-                style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : '#888'}`,
-                attr: { onclick: `jumpToTOD(${i})` }
-            },
-            {
-                content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
-            },
-            {
-                content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
-            },
-            {
-                style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
-                content: `
-                    <div style="display:flex; align-items:center; margin-bottom:2px; gap:4px;">
-                        <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
-                        ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchA ? '#eee' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitA[k] || 0}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`).join('') }
-                    </div>
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
-                        ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchB ? '#888' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitB[k] || 0}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`).join('') }
-                    </div>`
-            }
-        );
+            rowCells.push(
+                {
+                    content: i + 1,
+                    className: 'row-num',
+                    style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : '#888'}`,
+                    attr: { onclick: `jumpToTOD(${i})` }
+                },
+                {
+                    content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
+                },
+                {
+                    content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
+                },
+                {
+                    style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
+                    content: `
+                        <div style="display:flex; align-items:center; margin-bottom:2px; gap:4px;">
+                            <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
+                            ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchA ? '#eee' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitA[k] || 0}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`).join('') }
+                        </div>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
+                            ${ Array.from({length: 8}).map((_, k) => `<input type="text" class="sigma-input" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; color:${isMatchB ? '#888' : '#ff4444'}; font-family:inherit; font-size:11px; padding:2px 0;" value="${p.splitB[k] || 0}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`).join('') }
+                        </div>`
+                }
+            );
 
-        rows.push({
-            style: rowStyle,
-            cells: rowCells
+            rows.push({
+                style: rowStyle,
+                cells: rowCells
+            });
+        }
+
+        let html = `
+            <div style="flex: 1; min-width: 320px; overflow-x: auto; background: #0f172a; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+                <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.05);">
+                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
+                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
+                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>` : ''}</th>
+                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
+                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        rows.forEach(r => {
+            html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03); ${r.style}">`;
+            r.cells.forEach(c => {
+                html += `<td style="padding: 4px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
+            });
+            html += `</tr>`;
         });
-    }
 
-    let html = `
-        <div style="overflow-x: auto; background: #0f172a; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-            <table id="tod-summary-table" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
-                <thead>
-                    <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기 <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button></th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        return html;
+    };
 
-    rows.forEach(r => {
-        html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03); ${r.style}">`;
-        r.cells.forEach(c => {
-            html += `<td style="padding: 4px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
-        });
-        html += `</tr>`;
-    });
-
-    html += `
-                </tbody>
-            </table>
+    const finalHtml = `
+        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+            ${generateTableHTML(0, 8)}
+            ${generateTableHTML(8, 16)}
         </div>
     `;
 
-    document.getElementById('tod-summary-container').innerHTML = html;
+    document.getElementById('tod-summary-container').innerHTML = finalHtml;
 }
 
 

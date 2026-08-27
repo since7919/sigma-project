@@ -552,9 +552,6 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             let offCL = offCols[0] || 5, offCR = offCols[1] || 17;
                             let spCL = spCols[0] || 6, spCR = spCols[1] || 18;
 
-                                                              " | R: cyc=" + cycCR + " idx=" + idxCR + " off=" + offCR + " sp=" + spCR);
-
-
                             const parseTable = (isR) => {
                                 const idxC = isR ? idxCR : idxCL;
                                 const cycC = isR ? cycCR : cycCL;
@@ -578,7 +575,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                         }
 
                                         const splitCols = [];
-                                        for (let sc = spC; sc < spC + 16 && splitCols.length < 8; sc++) {
+                                        for (let sc = spC; sc < spC + 35 && splitCols.length < 8; sc++) {
                                             const val = getVal(rA, sc);
                                             if (val !== null && val !== undefined && String(val).trim() !== '') {
                                                 splitCols.push(sc);
@@ -602,6 +599,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                             parseTable(false); // Left table (1~8)
                             parseTable(true);  // Right table (9~16)
+                            
                             // Fill missing patterns with empty data
                             for(let i=0; i<16; i++) {
                                 if(!tpPlans[i]) tpPlans[i] = { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
@@ -612,7 +610,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 }
             }
 
-            // [4] 스케줄(schedules) 매핑: 일계획(dayPlansFound) 기준
+            // [4] ������(schedules) ����: �ϰ�ȹ(dayPlansFound) ����
             for (let dK = 1; dK <= 5; dK++) {
                 const daily = dayPlansFound[dK]; if (!daily) continue;
                 const sysDayIndices = (dK === 1 ? [0, 5] : dK === 2 ? [1, 6] : dK === 3 ? [2, 7] : dK === 4 ? [3, 8] : dK === 5 ? [4, 9] : []);
