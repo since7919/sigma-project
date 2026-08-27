@@ -11,14 +11,14 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=29">
+    <link rel="stylesheet" href="css/style.css?v=30">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/panels.css">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
-    <link rel="stylesheet" href="css/modals.css?v=29">
+    <link rel="stylesheet" href="css/modals.css?v=30">
 </head>
 
 <body>
@@ -825,10 +825,7 @@
                         
                         <button class="btn-neon" onclick="fetchAndCopyUTICSignalMap()">🌐 UTIC에서 복사</button>
                         
-                        <label class="btn-neon magenta" style="display: inline-block; cursor: pointer; padding: 0 12px; height: 30px; line-height: 30px; text-align: center; font-size: 12px; font-weight: bold; border-radius: 4px; margin: 0;">
-                            📁 엑셀에서 복사
-                            <input type="file" id="sigmap-excel-loader" style="display:none;" onchange="loadSignalMapFromExcel(this)">
-                        </label>
+                        
                     </div>
                     
                     <div id="sigmap-loading-indicator" style="display:none; padding: 30px; text-align: center; color: #38bdf8; font-weight: bold;">
@@ -1823,39 +1820,39 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=29"></script>
+    <script src="js/security.js?v=30"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=29"></script>
-    <script src="js/auth.js?v=29"></script>
-    <script src="js/ui_components.js?v=29"></script>
-    <script src="js/config.js?v=29"></script>
-    <script src="js/utils.js?v=29"></script>
-    <script src="js/ui.js?v=29"></script>
-    <script src="js/table_popup.js?v=29"></script>
-    <script src="js/map.js?v=29"></script>
-    <script src="js/junction_map.js?v=29"></script>
-    <script src="js/junction.js?v=29"></script>
-    <script src="js/data_parser.js?v=29"></script>
-    <script src="js/data.js?v=29"></script>
-    <script src="js/phase.js?v=29"></script>
-    <script src="js/sigmap_tab.js?v=29"></script>
-    <script src="js/group_parser.js?v=29"></script>
-    <script src="js/group_map.js?v=29"></script>
-    <script src="js/group.js?v=29"></script>
-    <script src="js/tsd.js?v=29"></script>
-    <script src="js/simulation.js?v=29"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=29"></script>
-    <script src="js/api_layers.js?v=29"></script>
-    <script src="js/intersection_search.js?v=29"></script>
-    <script src="js/junction_optimizer.js?v=29"></script>
-    <script src="js/civil.js?v=29"></script>
-    <script src="js/home.js?v=29"></script>
-    <script src="js/rng_road_network.js?v=29"></script>
-    <script src="js/table_logic.js?v=29"></script>
-    <script src="js/init.js?v=29"></script>
-    <script src="js/auto_load.js?v=29"></script>
-    <script src="js/chatbot_advanced.js?v=29"></script>
+    <script src="js/dashboard.js?v=30"></script>
+    <script src="js/auth.js?v=30"></script>
+    <script src="js/ui_components.js?v=30"></script>
+    <script src="js/config.js?v=30"></script>
+    <script src="js/utils.js?v=30"></script>
+    <script src="js/ui.js?v=30"></script>
+    <script src="js/table_popup.js?v=30"></script>
+    <script src="js/map.js?v=30"></script>
+    <script src="js/junction_map.js?v=30"></script>
+    <script src="js/junction.js?v=30"></script>
+    <script src="js/data_parser.js?v=30"></script>
+    <script src="js/data.js?v=30"></script>
+    <script src="js/phase.js?v=30"></script>
+    <script src="js/sigmap_tab.js?v=30"></script>
+    <script src="js/group_parser.js?v=30"></script>
+    <script src="js/group_map.js?v=30"></script>
+    <script src="js/group.js?v=30"></script>
+    <script src="js/tsd.js?v=30"></script>
+    <script src="js/simulation.js?v=30"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=30"></script>
+    <script src="js/api_layers.js?v=30"></script>
+    <script src="js/intersection_search.js?v=30"></script>
+    <script src="js/junction_optimizer.js?v=30"></script>
+    <script src="js/civil.js?v=30"></script>
+    <script src="js/home.js?v=30"></script>
+    <script src="js/rng_road_network.js?v=30"></script>
+    <script src="js/table_logic.js?v=30"></script>
+    <script src="js/init.js?v=30"></script>
+    <script src="js/auto_load.js?v=30"></script>
+    <script src="js/chatbot_advanced.js?v=30"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
@@ -2116,7 +2113,7 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=29"></script>
+    <script src="js/overlay_ui.js?v=30"></script>
 </body>
 
 </html>
