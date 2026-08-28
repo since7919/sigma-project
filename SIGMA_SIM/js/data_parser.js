@@ -563,9 +563,11 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                                 const rB = rA + 1;
 
+                                const idxCL = idxCols[0] || 3, idxCR = idxCols[1] || (idxCols[0] ? idxCols[0] + 25 : 28);
+
                                 // [좌측 테이블]
-                                const parsedNoL = parseInt(getVal(rA, noCL));
-                                if (!isNaN(parsedNoL) && parsedNoL >= 1 && parsedNoL <= 16) {
+                                const parsedIdxL = parseInt(getVal(rA, idxCL));
+                                if (!isNaN(parsedIdxL) && parsedIdxL >= 1 && parsedIdxL <= 16) {
                                     const parsedCycL = parseInt(getVal(rA, cycCL));
                                     if (!isNaN(parsedCycL) && parsedCycL > 0) lastCycL = parsedCycL;
                                     
@@ -581,7 +583,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                     while (sAL.length < 8) sAL.push(0);
                                     while (sBL.length < 8) sBL.push(0);
 
-                                    tpPlans[parsedNoL - 1] = {
+                                    tpPlans[parsedIdxL - 1] = {
                                         cycle: lastCycL,
                                         offset: offL,
                                         splitA: sAL,
@@ -590,8 +592,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                 }
 
                                 // [우측 테이블]
-                                const parsedNoR = parseInt(getVal(rA, noCR));
-                                if (!isNaN(parsedNoR) && parsedNoR >= 1 && parsedNoR <= 16) {
+                                const parsedIdxR = parseInt(getVal(rA, idxCR));
+                                if (!isNaN(parsedIdxR) && parsedIdxR >= 1 && parsedIdxR <= 16) {
                                     const parsedCycR = parseInt(getVal(rA, cycCR));
                                     if (!isNaN(parsedCycR) && parsedCycR > 0) lastCycR = parsedCycR;
                                     
@@ -607,7 +609,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                     while (sAR.length < 8) sAR.push(0);
                                     while (sBR.length < 8) sBR.push(0);
 
-                                    tpPlans[parsedNoR - 1] = {
+                                    tpPlans[parsedIdxR - 1] = {
                                         cycle: lastCycR,
                                         offset: offR,
                                         splitA: sAR,
