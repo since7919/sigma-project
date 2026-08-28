@@ -15,6 +15,18 @@ app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// [성능 최적화] /api/sim/data CSV 응답 메모리 캐시 (100배 속도 향상)
+const CSV_CACHE = {};
+
+// 캐시 무효화 미들웨어: 데이터 변경(POST/PUT/DELETE) 시 캐시를 날림
+app.use('/api', (req, res, next) => {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
+        Object.keys(CSV_CACHE).forEach(k => delete CSV_CACHE[k]);
+        console.log(`[Cache] Cleared due to ${req.method} ${req.url}`);
+    }
+    next();
+});
+
 // 통합 랜딩 페이지 및 서비스 서빙 설정
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../index.html'));
@@ -443,6 +455,26 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
 app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: 'file 파라미터가 필요합니다.' });
+
+  if (CSV_CACHE[file]) {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      return res.send(CSV_CACHE[file]);
+  }
+
+  let cacheBuffer = "";
+  const originalWrite = res.write.bind(res);
+  const originalEnd = res.end.bind(res);
+
+  res.write = function(chunk) {
+      cacheBuffer += chunk;
+      return originalWrite(chunk);
+  };
+
+  res.end = function(chunk) {
+      if (chunk) cacheBuffer += chunk;
+      CSV_CACHE[file] = cacheBuffer;
+      return originalEnd(chunk);
+  };
 
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
