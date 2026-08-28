@@ -592,7 +592,8 @@ function autoFillCycleFromSplits() {
 
         const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
         if (sumA > 0) {
-            s.cycle = Math.round(sumA);
+            p.cycle = Math.round(sumA);
+            if (s) s.cycle = Math.round(sumA);
         }
     }
     

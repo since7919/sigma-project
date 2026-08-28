@@ -244,6 +244,20 @@ function handleSplitInput(el) {
         if (j && j.dayPlans && j.dayPlans[STATE.currentJunctionDayTypeIdx]) {
             if (ring === 'A') {
                 j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitA[col] = val;
+                // Auto-update cycle based on Ring A sum (User Request)
+                const sumA = j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitA.reduce((a, b) => a + b, 0);
+                j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].cycle = Math.round(sumA);
+                if (j.schedules && j.schedules[STATE.currentJunctionDayTypeIdx] && j.schedules[STATE.currentJunctionDayTypeIdx][idx]) {
+                    j.schedules[STATE.currentJunctionDayTypeIdx][idx].cycle = Math.round(sumA);
+                }
+                // Update UI instantly
+                const cycleInput = document.querySelector(`input[data-type="pattern-cycle"][data-index="${idx}"]`);
+                if (cycleInput) {
+                    cycleInput.value = Math.round(sumA);
+                    cycleInput.style.background = '';
+                    cycleInput.style.border = '';
+                    cycleInput.style.color = 'var(--accent)';
+                }
             } else if (ring === 'B') {
                 j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitB[col] = val;
             }
