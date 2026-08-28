@@ -6,27 +6,10 @@ const VERIFIED_EXCEL_PRELOAD = {
 };
 
 
-function applyVerifiedExcelPreloadForJid(jid) {
-    if (!STATE.junctions || !jid) return;
-    const data = VERIFIED_EXCEL_PRELOAD[jid] || Object.entries(VERIFIED_EXCEL_PRELOAD).find(([k]) => k.replace('L01-','') === jid.replace('L01-',''))?.[1];
-    const j = STATE.junctions[jid] || Object.values(STATE.junctions).find(j => String(j.seq) === jid.replace('L01-',''));
-    if (j && data) {
-        j.dayPlans = JSON.parse(JSON.stringify(data.dayPlans));
-        j.schedules = JSON.parse(JSON.stringify(data.schedules));
-        console.log(`[AutoLoad] Verified Excel preload enforced for ${j.name} (${jid})`);
-    }
-}
-window.applyVerifiedExcelPreloadForJid = applyVerifiedExcelPreloadForJid;
-window.applyVerifiedExcelPreload = applyVerifiedExcelPreload;
 
-function applyVerifiedExcelPreload() {
-    if (!STATE.junctions) return;
-    Object.entries(VERIFIED_EXCEL_PRELOAD).forEach(([jid, data]) => {
-        const j = STATE.junctions[jid] || Object.values(STATE.junctions).find(j => String(j.seq) === jid.replace('L01-',''));
-        if (j) {
-            j.dayPlans = JSON.parse(JSON.stringify(data.dayPlans));
-            j.schedules = JSON.parse(JSON.stringify(data.schedules));
-            console.log(`[AutoLoad] Successfully preloaded verified Excel data for ${j.name} (${jid})`);
+
+
+`);
         }
     });
 }

@@ -1529,7 +1529,7 @@ async function fetchJunctionDetail(jid) {
             });
 
             j._detailLoaded = true;
-            if (typeof applyVerifiedExcelPreloadForJid === "function") applyVerifiedExcelPreloadForJid(jid);
+            
         }
     } catch (err) {
         console.error(`Error loading details for ${jid}:`, err);

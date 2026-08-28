@@ -534,7 +534,7 @@
 
             <div class="sigma-panel" style="margin-top: 0;">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3 style="color:var(--accent);">📅 TOD 및 신호시간(Split) 설정</h3>
+                    <h3 style="color:var(--accent);">📅 최소녹색(MG) 설정</h3>
                     <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
@@ -611,7 +611,6 @@
                                 현재 조회: 일계획 1 TOD (TOD SLOT 1~16)
                             </span>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="color:#aaa; font-size:9.5px;">데이터 복사(가져오기):</span>
                                 <select id="j-copy-from-day" class="input-dark"
                                     style="width: 70px; height: 20px; font-size: 9.5px; border-radius: 3px;">
                                     <option value="0">일계획 1</option>
@@ -625,9 +624,12 @@
                                     <option value="8">일계획 9</option>
                                     <option value="9">일계획 10</option>
                                 </select>
-                                <button class="btn-sm" onclick="const fi = document.getElementById('xlsx-file-input'); fi.value=''; fi.click();" style="background:#16a085; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: 1px solid #1abc9c; color: #fff; cursor:pointer;">엑셀 로드</button>
                                 <button class="btn-sm" onclick="copyJunctionTODDay()"
-                                    style="background:#8e44ad; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px;">가져오기</button>
+                                    style="background:#8e44ad; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: 1px solid #9b59b6; color: #fff; cursor:pointer;">가져오기</button>
+                                <button class="btn-sm" onclick="autoFillCycleFromSplits()"
+                                    style="background:var(--accent); color:#000; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: none; font-weight: bold; cursor:pointer;" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">주기합계</button>
+                                <button class="btn-sm" onclick="const fi = document.getElementById('xlsx-file-input'); fi.value=''; fi.click();" 
+                                    style="background:#16a085; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: 1px solid #1abc9c; color: #fff; cursor:pointer;">엑셀 로드</button>
                             </div>
                         </div>
 
@@ -1109,11 +1111,7 @@
                     <input type="file" id="file-load-db-stats" onchange="handleDBFileLoad(this, 'stats')">
                     <input type="file" id="file-load-db-links" onchange="handleDBFileLoad(this, 'links')">
                     <input type="file" id="file-load-db-yearbook" onchange="handleDBFileLoad(this, 'yearbook')">
-                    <input type="file" id="file-load-db-poly" onchange="handleDBFileLoad(this, 'poly')">
-                    <input type="file" id="xlsx-file-input-phase" style="display:none;" accept=".xlsx, .xls" onclick="this.value=''"
-                        onchange="handleExcelSignalLoad(this, true)">
-                    <input type="file" id="xlsx-file-input" accept=".xlsx, .xls" multiple onclick="this.value=''"
-                        onchange="handleExcelSignalLoad(this)">
+                    
                 </div>
             </div>
         </div> <!-- end tab-db -->
@@ -1834,8 +1832,8 @@
     <script src="js/junction_map.js?v=40"></script>
     <script src="js/junction.js?v=40"></script>
     <script src="js/data_parser.js?v=40"></script>
-    <script src="js/data.js?v=40"></script>
-    <script src="js/phase.js?v=40"></script>
+    <script src="js/data.js?v=42"></script>
+    <script src="js/phase.js?v=42"></script>
     <script src="js/sigmap_tab.js?v=40"></script>
     <script src="js/group_parser.js?v=40"></script>
     <script src="js/group_map.js?v=40"></script>
@@ -1851,7 +1849,7 @@
     <script src="js/rng_road_network.js?v=40"></script>
     <script src="js/table_logic.js?v=40"></script>
     <script src="js/init.js?v=40"></script>
-    <script src="js/auto_load.js?v=40"></script>
+    <script src="js/auto_load.js?v=42"></script>
     <script src="js/chatbot_advanced.js?v=40"></script>
 
     <!-- Security: Allowed for Debugging -->

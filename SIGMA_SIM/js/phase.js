@@ -493,8 +493,7 @@ function renderSummaryTable() {
             if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
             else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
             else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-            else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
-            else if (i === 8) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 2 } };
+            else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
             else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
             else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
 
@@ -552,7 +551,7 @@ function renderSummaryTable() {
         rows.forEach(r => {
             html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03); ${r.style}">`;
             r.cells.forEach(c => {
-                html += `<td style="padding: 4px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
+                html += `<td style="padding: 2px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
             });
             html += `</tr>`;
         });
@@ -566,7 +565,7 @@ function renderSummaryTable() {
     };
 
     const finalHtml = `
-        <div style="display: flex; gap: 8px; width: 100%; min-width: 680px; align-items: flex-start;">
+        <div style="width: 100%; align-items: flex-start;">
             ${generateTableHTML(0, 8)}
             ${generateTableHTML(8, 16)}
         </div>
