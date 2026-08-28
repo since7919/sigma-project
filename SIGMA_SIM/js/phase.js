@@ -508,10 +508,10 @@ function renderSummaryTable() {
                     attr: { onclick: `jumpToTOD(${i})` }
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini" value="${targetCycle}" style="${cycleWarningStyle}; width: 45px; text-align: center;" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini" value="${p.offset}" data-type="offset" style="width: 35px; text-align: center;" data-index="${i}">`
                 },
                 {
                     style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",

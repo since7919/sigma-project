@@ -537,18 +537,20 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             const tpPlans = Array(16).fill(null);
                             
                             // 1. 헤더 행(r + 1)에서 컬럼 위치 자동 탐색
-                            const cycCols = [], idxCols = [], offCols = [], spCols = [];
+                            const cycCols = [], idxCols = [], offCols = [], spCols = [], noCols = [];
                             for (let col = 1; col <= 80; col++) {
                                 const hVal = String(getVal(r + 1, col) || "").toLowerCase().replace(/\s/g, '');
                                 if (hVal === "cycle" || hVal === "주기") cycCols.push(col);
                                 else if (hVal === "index" || hVal === "인덱스") idxCols.push(col);
                                 else if (hVal === "offset" || hVal === "옵셋") offCols.push(col);
                                 else if (hVal === "split" || hVal === "스플릿" || hVal.includes("split")) spCols.push(col);
+                                else if (hVal === "no" || hVal === "패턴") noCols.push(col);
                             }
                             
                             const cycCL = cycCols[0] || 5, cycCR = cycCols[1] || (cycCols[0] ? cycCols[0] + 24 : 29);
                             const offCL = offCols[0] || 9, offCR = offCols[1] || (offCols[0] ? offCols[0] + 23 : 32);
                             const spCL = spCols[0] || 13, spCR = spCols[1] || (spCols[0] ? spCols[0] + 22 : 35);
+                            const noCL = noCols[0] || 1, noCR = noCols[1] || (noCols[0] ? noCols[0] + 25 : 26);
 
                             let lastCycL = 100, lastCycR = 100;
 
@@ -557,7 +559,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                 const rA = baseR + (k * 2);
                                 const rB = rA + 1;
 
-                                // [좌측 테이블: 패턴 1 ~ 8] (k = 0~7 -> pattern 1~8)
+                                // [좌측 테이블]
                                 const parsedCycL = parseInt(getVal(rA, cycCL));
                                 if (!isNaN(parsedCycL) && parsedCycL > 0) lastCycL = parsedCycL;
                                 
@@ -573,14 +575,16 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                 while (sAL.length < 8) sAL.push(0);
                                 while (sBL.length < 8) sBL.push(0);
 
-                                tpPlans[k] = {
+                                const parsedNoL = parseInt(getVal(rA, noCL));
+                                const pIdxL = (!isNaN(parsedNoL) && parsedNoL >= 1 && parsedNoL <= 16) ? (parsedNoL - 1) : k;
+                                tpPlans[pIdxL] = {
                                     cycle: lastCycL,
                                     offset: offL,
                                     splitA: sAL,
                                     splitB: sBL
                                 };
 
-                                // [우측 테이블: 패턴 9 ~ 16] (k = 0~7 -> pattern 9~16)
+                                // [우측 테이블]
                                 const parsedCycR = parseInt(getVal(rA, cycCR));
                                 if (!isNaN(parsedCycR) && parsedCycR > 0) lastCycR = parsedCycR;
                                 
@@ -596,7 +600,9 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                 while (sAR.length < 8) sAR.push(0);
                                 while (sBR.length < 8) sBR.push(0);
 
-                                tpPlans[k + 8] = {
+                                const parsedNoR = parseInt(getVal(rA, noCR));
+                                const pIdxR = (!isNaN(parsedNoR) && parsedNoR >= 1 && parsedNoR <= 16) ? (parsedNoR - 1) : (k + 8);
+                                tpPlans[pIdxR] = {
                                     cycle: lastCycR,
                                     offset: offR,
                                     splitA: sAR,
