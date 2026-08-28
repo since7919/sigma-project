@@ -727,6 +727,8 @@ function changeJunctionDayType(idx) {
             labelEl.style.fontSize = '13px';
             labelEl.style.fontFamily = 'inherit';
         }
+        let viewSel = document.getElementById('j-view-day-select');
+        if (viewSel) viewSel.value = idx;
     } catch(e) { console.warn("Day label update failed", e); }
 
     try {
@@ -762,11 +764,19 @@ function changeSignalMap(idx) {
 function copyJunctionTODDay() {
     const jid = STATE.activeJid;
     if (!jid || !STATE.junctions[jid]) return;
-    const fromIdx = parseInt(document.getElementById('j-copy-from-day').value);
     const toIdx = STATE.currentJunctionDayTypeIdx;
+    
+    let input = prompt(`현재 [${DAY_LABELS[toIdx]}] 화면입니다.\n\n데이터를 덮어쓸 원본 '일계획 번호(1~10)'를 입력하세요:`);
+    if (!input) return;
+    
+    const fromIdx = parseInt(input, 10) - 1;
+    if (isNaN(fromIdx) || fromIdx < 0 || fromIdx > 9) {
+        alert("올바른 일계획 번호(1~10)를 입력해주세요.");
+        return;
+    }
 
-    if (fromIdx === toIdx) { alert("출발지와 목적지가 같습니다."); return; }
-    if (!confirm(`${DAY_LABELS[fromIdx]}의 모든 TOD 데이터(시작시간, 주기, 연동, 스플릿)를 ${DAY_LABELS[toIdx]}로 복사하시겠습니까?`)) return;
+    if (fromIdx === toIdx) { alert("현재 보고 있는 일계획과 같은 번호입니다."); return; }
+    if (!confirm(`'${DAY_LABELS[fromIdx]}'의 모든 TOD 데이터(시작시간, 주기, 연동, 스플릿)를 '${DAY_LABELS[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
 
     const j = STATE.junctions[jid];
 

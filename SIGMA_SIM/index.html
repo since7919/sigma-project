@@ -611,8 +611,8 @@
                                 현재 조회: 일계획 1 TOD (TOD SLOT 1~16)
                             </span>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <select id="j-copy-from-day" class="input-dark"
-                                    style="width: 70px; height: 20px; font-size: 9.5px; border-radius: 3px;">
+                                <select id="j-view-day-select" class="input-dark" onchange="changeJunctionDayType(parseInt(this.value))"
+                                    style="width: 70px; height: 20px; font-size: 9.5px; border-radius: 3px;" title="조회할 일계획 선택">
                                     <option value="0">일계획 1</option>
                                     <option value="1">일계획 2</option>
                                     <option value="2">일계획 3</option>
@@ -625,7 +625,7 @@
                                     <option value="9">일계획 10</option>
                                 </select>
                                 <button class="btn-sm" onclick="copyJunctionTODDay()"
-                                    style="background:#8e44ad; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: 1px solid #9b59b6; color: #fff; cursor:pointer;">가져오기</button>
+                                    style="background:#8e44ad; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: 1px solid #9b59b6; color: #fff; cursor:pointer;" title="다른 일계획 데이터 복사해오기">📋 가져오기</button>
                                 <button class="btn-sm" onclick="autoFillCycleFromSplits()"
                                     style="background:var(--accent); color:#000; padding: 2px 8px; font-size: 9.5px; height: 20px; line-height: 16px; border-radius: 3px; border: none; font-weight: bold; cursor:pointer;" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">주기합계</button>
                                 <button class="btn-sm" onclick="const fi = document.getElementById('xlsx-file-input-phase'); fi.value=''; fi.click();" 
@@ -815,7 +815,7 @@
                 </div>
                 <div class="foldable-content">
                     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
-                        <span style="font-weight: bold; color: #fff; font-size: 13px;">시그널맵 번호:</span>
+                        <span style="font-weight: bold; color: #fff; font-size: 13px;">👀 시그널맵 조회:</span>
                         <select id="sigmap-index-select" class="input-premium" style="width: 100px; height: 32px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white;" onchange="renderSignalMapTab()">
                             <option value="0">플랜 0</option>
                             <option value="1">플랜 1</option>
@@ -1833,7 +1833,7 @@
     <script src="js/junction.js?v=40"></script>
     <script src="js/data_parser.js?v=51"></script>
     <script src="js/data.js?v=44"></script>
-    <script src="js/phase.js?v=49"></script>
+    <script src="js/phase.js?v=50"></script>
     <script src="js/sigmap_tab.js?v=40"></script>
     <script src="js/group_parser.js?v=40"></script>
     <script src="js/group_map.js?v=40"></script>
