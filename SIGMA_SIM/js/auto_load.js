@@ -13,6 +13,7 @@ const VERIFIED_EXCEL_PRELOAD = {
 
 async function autoLoadFiles() {
     console.log("SIGMA - Starting Auto-load sequence (Verified Regional Path)...");
+    const t0 = performance.now();
 
     if (!STATE.loadedFiles) STATE.loadedFiles = {};
 
@@ -23,22 +24,26 @@ async function autoLoadFiles() {
     async function fetchAndProcess(url, type, processFunc, label, isGroup = false) {
         try {
             if (!processFunc) return null;
+            const ft0 = performance.now();
             const res = await fetch(url);
             if (!res.ok) {
                 console.warn(`[Auto-load] ${label} file not found (${url}).`);
                 return null;
             }
             const buf = await res.arrayBuffer();
+            const ft1 = performance.now();
             const content = decodeBuffer(buf);
             
             if (content && content.length > 5) {
+                const pt0 = performance.now();
                 if (isGroup) {
                     processFunc(content, true);
                 } else {
                     processFunc(content);
                 }
+                const pt1 = performance.now();
                 STATE.loadedFiles[type] = url;
-                console.log(`[Auto-load] ✅ ${label} Processed.`);
+                console.log(`[Auto-load] ✅ ${label} Processed. Fetch: ${(ft1-ft0).toFixed(1)}ms, Parse: ${(pt1-pt0).toFixed(1)}ms`);
             }
         } catch (e) {
             console.error(`[Auto-load] Error loading ${label} (${url}):`, e);
@@ -52,21 +57,38 @@ async function autoLoadFiles() {
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
     ];
     await Promise.all(priority1);
+    
+    const t1 = performance.now();
+    console.log(`[Perf] Step 1 (DB Fetch & Parse) completed in ${(t1-t0).toFixed(1)}ms`);
 
     // [Step 2] 그 다음: 그룹정보 마스터 (완료 후 교차로 목록 렌더링)
     await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
+    
+    const t2 = performance.now();
     
     // 그룹정보까지 로딩 완료 시 교차로 목록 렌더링 및 UI 갱신
     if (typeof refreshDBStats === 'function') refreshDBStats();
     if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
     
     if (typeof renderJunctionList === 'function') {
+        const rt0 = performance.now();
         renderJunctionList();
+        const rt1 = performance.now();
+        
         const sidebar = document.getElementById('left-search-sidebar');
         if (sidebar) {
             sidebar.classList.remove('hidden');
             document.body.classList.add('left-sidebar-open');
-            console.log("[Auto-load] Search Sidebar Revealed (Priority 1 & Group finished).");
+            console.log(`[Perf] Sidebar Rendered in ${(rt1-rt0).toFixed(1)}ms. Total time from start: ${(rt1-t0).toFixed(1)}ms`);
+            
+            // UI에 프로파일링 결과 표시 (사용자 확인용)
+            setTimeout(() => {
+                const resultsEl = document.getElementById('phase-search-results');
+                if (resultsEl) {
+                    resultsEl.innerHTML = `<div style="padding:10px;font-size:12px;color:red;">로드: ${(t1-t0).toFixed(0)}ms<br>목록렌더: ${(rt1-rt0).toFixed(0)}ms</div>`;
+                    resultsEl.classList.remove('hidden');
+                }
+            }, 1000);
         }
     }
 
