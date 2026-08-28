@@ -78,7 +78,24 @@ function processIntersectionCSV(csv) {
     Object.values(STATE.junctions).forEach(j => { if (j.marker && window.map) window.map.removeLayer(j.marker); });
     STATE.junctions = newJuncts;
     if (typeof STATE !== 'undefined') STATE.sortedJunctions = null;
-    Object.keys(STATE.junctions).forEach(jid => { if (typeof drawJunction === 'function') drawJunction(jid); });
+    
+    // [성능 개선] 3000개 마커 렌더링 시 발생하는 브라우저 프리징(10초 지연)을 막기 위해 비동기 청크 렌더링 적용
+    if (typeof drawJunction === 'function') {
+        const jidsToDraw = Object.keys(STATE.junctions);
+        let drawIdx = 0;
+        const batchDraw = () => {
+            const end = Math.min(drawIdx + 300, jidsToDraw.length);
+            while (drawIdx < end) {
+                drawJunction(jidsToDraw[drawIdx]);
+                drawIdx++;
+            }
+            if (drawIdx < jidsToDraw.length) {
+                requestAnimationFrame(batchDraw);
+            }
+        };
+        requestAnimationFrame(batchDraw);
+    }
+    
     refreshDBStats();
 }
 
