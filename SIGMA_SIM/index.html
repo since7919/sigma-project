@@ -19,6 +19,40 @@
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
     <link rel="stylesheet" href="css/modals.css?v=40">
+    <link href="css/compass.css?v=23" rel="stylesheet">
+    <style>
+        .phase-action-btn {
+            height: 24px;
+            line-height: 22px;
+            padding: 0 10px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .phase-btn-purple { background: #8b5cf6; color: white; border: 1px solid #a78bfa; }
+        .phase-btn-purple:hover { background: #7c3aed; }
+        .phase-btn-cyan { background: var(--accent); color: #000; }
+        .phase-btn-cyan:hover { background: #67e8f9; }
+        .phase-btn-green { background: #10b981; color: white; border: 1px solid #34d399; }
+        .phase-btn-green:hover { background: #059669; }
+        .phase-select {
+            height: 24px;
+            font-size: 11px;
+            padding: 0 4px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            outline: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -569,9 +603,7 @@
                                 <span class="fs-11 fw-500 text-dim">그룹 ID:</span>
                                 <input type="number" id="inp-group-assign" class="input-dark p-10"
                                     style="width:45px; padding:3px;" placeholder="0" disabled>
-                                <button class="btn-sm" onclick="applyGroupTOD()"
-                                    style="background: var(--accent); color: #000; font-size: 10.5px; border:none; border-radius:4px;"
-                                    disabled>그룹 지정/적용</button>
+                                <button class="phase-action-btn phase-btn-cyan" onclick="applyGroupTOD()" id="btn-group-assign" disabled>그룹 지정/적용</button>
                             </div>
                             <div class="flex-row gap-12">
                                 <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
@@ -611,8 +643,7 @@
                                 현재 조회: 일계획 1 TOD (TOD SLOT 1~16)
                             </span>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <select id="j-view-day-select" class="input-dark" onchange="changeJunctionDayType(parseInt(this.value))"
-                                    style="width: 80px; height: 22px; font-size: 11px; padding: 0 4px; border-radius: 3px;" title="조회할 일계획 선택">
+                                <select id="j-view-day-select" class="phase-select" style="width: 80px;" onchange="changeJunctionDayType(parseInt(this.value))" title="조회할 일계획 선택">
                                     <option value="0">일계획 1</option>
                                     <option value="1">일계획 2</option>
                                     <option value="2">일계획 3</option>
@@ -624,12 +655,9 @@
                                     <option value="8">일계획 9</option>
                                     <option value="9">일계획 10</option>
                                 </select>
-                                <button class="btn-sm" onclick="copyJunctionTODDay()"
-                                    style="background:#8e44ad; padding: 0 8px; font-size: 11px; height: 22px; line-height: 20px; border-radius: 3px; border: 1px solid #9b59b6; color: #fff; cursor:pointer;" title="다른 일계획 데이터 복사해오기">📋 가져오기</button>
-                                <button class="btn-sm" onclick="autoFillCycleFromSplits()"
-                                    style="background:var(--accent); color:#000; padding: 0 8px; font-size: 11px; height: 22px; line-height: 20px; border-radius: 3px; border: none; font-weight: bold; cursor:pointer;" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">주기합계</button>
-                                <button class="btn-sm" onclick="const fi = document.getElementById('xlsx-file-input-phase'); fi.value=''; fi.click();" 
-                                    style="background:#16a085; padding: 0 8px; font-size: 11px; height: 22px; line-height: 20px; border-radius: 3px; border: 1px solid #1abc9c; color: #fff; cursor:pointer;">엑셀 로드</button>
+                                <button class="phase-action-btn phase-btn-purple" onclick="copyJunctionTODDay()" title="다른 일계획 데이터 복사해오기">📋 가져오기</button>
+                                <button class="phase-action-btn phase-btn-cyan" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">주기합계</button>
+                                <button class="phase-action-btn phase-btn-green" onclick="const fi = document.getElementById('xlsx-file-input-phase'); fi.value=''; fi.click();">엑셀 로드</button>
                             </div>
                         </div>
 
@@ -814,7 +842,7 @@
                     <h3 style="margin: 0; color: var(--accent); font-family: 'Outfit'; font-weight: 800; font-size: 16px;">📊 시그널맵 (Signal Map)</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <span style="font-weight: bold; color: #fff; font-size: 12px;">👀 시그널맵 조회:</span>
-                        <select id="sigmap-index-select" class="input-premium" style="width: 75px; height: 26px; padding: 0 4px; font-size: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white;" onchange="renderSignalMapTab()">
+                        <select id="sigmap-index-select" class="phase-select" style="width: 75px;" onchange="renderSignalMapTab()">
                             <option value="0">플랜 0</option>
                             <option value="1">플랜 1</option>
                             <option value="2">플랜 2</option>

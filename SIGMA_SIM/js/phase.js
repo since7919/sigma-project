@@ -272,13 +272,9 @@ function renderSignalMapButtons() {
     // 헤더: 타이틀 + 복사 UI 통합 (높이 축소)
     html += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <span style="font-size:11px; font-weight:bold; color:var(--accent);">🚦 현시계획(Map) 설정</span>
+            <span style="font-size:12px; font-weight:bold; color:var(--accent);">🚦 현시계획(Map) 설정</span>
             <div style="display:flex; align-items:center; gap:4px;">
-                <select id="sm-copy-from" class="input-dark" style="width:55px; height:18px; font-size:10px; border-radius:3px; padding:0 2px;">
-                    ${labels.map((l, idx) => `<option value="${idx}">${l}</option>`).join('')}
-                </select>
-                <button class="btn-sm" onclick="copySignalMap()" 
-                        style="background:#8e44ad; padding:0 6px; font-size:10px; border-radius:3px; height:18px;">복사</button>
+                <button class="phase-action-btn phase-btn-purple" onclick="copySignalMap()" title="다른 현시계획 데이터 복사해오기">📋 가져오기</button>
             </div>
         </div>`;
 
@@ -317,16 +313,6 @@ function renderSignalMapButtons() {
     container.innerHTML = html;
 }
 
-/** 현시계획(Signal Map) 데이터 복사 */
-function copySignalMap() {
-    const jid = STATE.activeJid;
-    if (!jid || !STATE.junctions[jid]) return;
-
-    const fromIdx = parseInt(document.getElementById('sm-copy-from').value);
-    const toIdx = STATE.currentSignalMapIdx || 0;
-
-    if (fromIdx === toIdx) { alert("출발지와 목적지가 동일합니다."); return; }
-
 window.updateSignalMapTime = function(mapIdx, field, val) {
     const jid = STATE.activeJid;
     if (!jid || !STATE.junctions[jid]) return;
@@ -336,14 +322,25 @@ window.updateSignalMapTime = function(mapIdx, field, val) {
     }
 };
 
-    /* ══════════════════════════════════════════
- *  실시간 동기화 (saveSettingsAndApply 삭제됨)
- * ══════════════════════════════════════════ */
-// [개정] 버튼 기반의 saveSettingsAndApply를 삭제하고 
-// table_logic.js의 실시간 핸들러가 모든 데이터 업데이트를 담당합니다.
+/** 현시계획(Signal Map) 데이터 복사 */
+function copySignalMap() {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) return;
 
-    const labels = ["일반", "플렉스1", "플렉스2", "플렉스3", "플렉스4", "플렉스5"];
-    if (!confirm(`${labels[fromIdx]}의 현시 데이터를 ${labels[toIdx]}로 복사하시겠습니까?`)) return;
+    const toIdx = STATE.currentSignalMapIdx || 0;
+    const labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
+    
+    let input = prompt(`현재 [${labels[toIdx]}] 화면입니다.\n\n데이터를 덮어쓸 원본 '현시계획 번호(0~5)'를 입력하세요:\n(0: 일반, 1: 시차1, 2: 시차2, 3: 시차3, 4: 시차4, 5: 시차5)`);
+    if (!input) return;
+    
+    const fromIdx = parseInt(input, 10);
+    if (isNaN(fromIdx) || fromIdx < 0 || fromIdx > 5) {
+        alert("올바른 현시계획 번호(0~5)를 입력해주세요.");
+        return;
+    }
+
+    if (fromIdx === toIdx) { alert("현재 보고 있는 현시계획과 동일합니다."); return; }
+    if (!confirm(`'${labels[fromIdx]}'의 현시 데이터를 '${labels[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
 
     const j = STATE.junctions[jid];
     const fromMap = j.signalMaps[fromIdx];
