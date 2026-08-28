@@ -554,60 +554,68 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                             let lastCycL = 100, lastCycR = 100;
 
-                            // 2. 엑셀 구조와 1:1 매핑: 총 8개 행(각 행당 A/B 2개 라인)
-                            for (let k = 0; k < 8; k++) {
-                                const rA = baseR + (k * 2);
+                            // 2. 엑셀 구조 스캔 (최대 30행)
+                            let rA = baseR;
+                            while (rA < baseR + 30 && rA < sheetData.length) {
+                                // 다음 표(예: 시간계획(2)) 시작을 만나면 중단
+                                const firstCell = String(getVal(rA, 1) || "").replace(/\s/g, '');
+                                if (firstCell.includes('시간계획(') || firstCell.includes('일계획(')) break;
+
                                 const rB = rA + 1;
 
                                 // [좌측 테이블]
-                                const parsedCycL = parseInt(getVal(rA, cycCL));
-                                if (!isNaN(parsedCycL) && parsedCycL > 0) lastCycL = parsedCycL;
-                                
-                                const offL = parseInt(getVal(rA, offCL)) || 0;
-                                
-                                const splitColsL = [];
-                                for (let sc = spCL; sc < spCL + 35 && splitColsL.length < 8; sc++) {
-                                    const v = getVal(rA, sc);
-                                    if (v !== null && v !== undefined && String(v).trim() !== '') splitColsL.push(sc);
-                                }
-                                const sAL = splitColsL.map(sc => parseInt(getVal(rA, sc)) || 0);
-                                const sBL = splitColsL.map(sc => parseInt(getVal(rB, sc)) || 0);
-                                while (sAL.length < 8) sAL.push(0);
-                                while (sBL.length < 8) sBL.push(0);
-
                                 const parsedNoL = parseInt(getVal(rA, noCL));
-                                const pIdxL = (!isNaN(parsedNoL) && parsedNoL >= 1 && parsedNoL <= 16) ? (parsedNoL - 1) : k;
-                                tpPlans[pIdxL] = {
-                                    cycle: lastCycL,
-                                    offset: offL,
-                                    splitA: sAL,
-                                    splitB: sBL
-                                };
+                                if (!isNaN(parsedNoL) && parsedNoL >= 1 && parsedNoL <= 16) {
+                                    const parsedCycL = parseInt(getVal(rA, cycCL));
+                                    if (!isNaN(parsedCycL) && parsedCycL > 0) lastCycL = parsedCycL;
+                                    
+                                    const offL = parseInt(getVal(rA, offCL)) || 0;
+                                    
+                                    const splitColsL = [];
+                                    for (let sc = spCL; sc < spCL + 35 && splitColsL.length < 8; sc++) {
+                                        const v = getVal(rA, sc);
+                                        if (v !== null && v !== undefined && String(v).trim() !== '') splitColsL.push(sc);
+                                    }
+                                    const sAL = splitColsL.map(sc => parseInt(getVal(rA, sc)) || 0);
+                                    const sBL = splitColsL.map(sc => parseInt(getVal(rB, sc)) || 0);
+                                    while (sAL.length < 8) sAL.push(0);
+                                    while (sBL.length < 8) sBL.push(0);
+
+                                    tpPlans[parsedNoL - 1] = {
+                                        cycle: lastCycL,
+                                        offset: offL,
+                                        splitA: sAL,
+                                        splitB: sBL
+                                    };
+                                }
 
                                 // [우측 테이블]
-                                const parsedCycR = parseInt(getVal(rA, cycCR));
-                                if (!isNaN(parsedCycR) && parsedCycR > 0) lastCycR = parsedCycR;
-                                
-                                const offR = parseInt(getVal(rA, offCR)) || 0;
-
-                                const splitColsR = [];
-                                for (let sc = spCR; sc < spCR + 35 && splitColsR.length < 8; sc++) {
-                                    const v = getVal(rA, sc);
-                                    if (v !== null && v !== undefined && String(v).trim() !== '') splitColsR.push(sc);
-                                }
-                                const sAR = splitColsR.map(sc => parseInt(getVal(rA, sc)) || 0);
-                                const sBR = splitColsR.map(sc => parseInt(getVal(rB, sc)) || 0);
-                                while (sAR.length < 8) sAR.push(0);
-                                while (sBR.length < 8) sBR.push(0);
-
                                 const parsedNoR = parseInt(getVal(rA, noCR));
-                                const pIdxR = (!isNaN(parsedNoR) && parsedNoR >= 1 && parsedNoR <= 16) ? (parsedNoR - 1) : (k + 8);
-                                tpPlans[pIdxR] = {
-                                    cycle: lastCycR,
-                                    offset: offR,
-                                    splitA: sAR,
-                                    splitB: sBR
-                                };
+                                if (!isNaN(parsedNoR) && parsedNoR >= 1 && parsedNoR <= 16) {
+                                    const parsedCycR = parseInt(getVal(rA, cycCR));
+                                    if (!isNaN(parsedCycR) && parsedCycR > 0) lastCycR = parsedCycR;
+                                    
+                                    const offR = parseInt(getVal(rA, offCR)) || 0;
+
+                                    const splitColsR = [];
+                                    for (let sc = spCR; sc < spCR + 35 && splitColsR.length < 8; sc++) {
+                                        const v = getVal(rA, sc);
+                                        if (v !== null && v !== undefined && String(v).trim() !== '') splitColsR.push(sc);
+                                    }
+                                    const sAR = splitColsR.map(sc => parseInt(getVal(rA, sc)) || 0);
+                                    const sBR = splitColsR.map(sc => parseInt(getVal(rB, sc)) || 0);
+                                    while (sAR.length < 8) sAR.push(0);
+                                    while (sBR.length < 8) sBR.push(0);
+
+                                    tpPlans[parsedNoR - 1] = {
+                                        cycle: lastCycR,
+                                        offset: offR,
+                                        splitA: sAR,
+                                        splitB: sBR
+                                    };
+                                }
+                                
+                                rA += 2; // 다음 패턴 (A, B 두 줄 차지하므로 +2)
                             }
 
                             tpPlansDict[tpIdx] = tpPlans;

@@ -566,8 +566,7 @@ function renderSummaryTable() {
 
     const finalHtml = `
         <div style="width: 100%; align-items: flex-start;">
-            ${generateTableHTML(0, 8)}
-            ${generateTableHTML(8, 16)}
+            ${generateTableHTML(0, 16)}
         </div>
     `;
 
