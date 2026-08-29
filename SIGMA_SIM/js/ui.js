@@ -279,33 +279,28 @@ const AppStateMachine = {
         const btnResetArrows = document.getElementById('btn-reset-arrows');
 
         // 모든 버튼 초기화
-        if (btnAdd) { btnAdd.style.background = ''; btnAdd.innerHTML = '➕ 교차로 추가'; }
-        if (btnMapEdit) { btnMapEdit.style.background = ''; btnMapEdit.innerText = "🔧 신호등 편집"; }
+        if (btnAdd) { btnAdd.className = 'phase-action-btn phase-btn-green'; btnAdd.innerHTML = '➕ 교차로 추가'; }
+        if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-purple'; btnMapEdit.innerText = "🔧 신호등 편집"; }
         if (btnResetArrows) {
             btnResetArrows.disabled = true;
             btnResetArrows.style.opacity = '0.5';
-            btnResetArrows.style.borderColor = 'rgba(255,255,255,0.1)';
             btnResetArrows.style.pointerEvents = 'none';
         }
         if (btnNetworkEdit) {
-            btnNetworkEdit.style.background = 'rgba(255, 255, 255, 0.05)';
-            btnNetworkEdit.style.color = '#fff';
-            btnNetworkEdit.style.borderColor = '#666';
-            btnNetworkEdit.style.boxShadow = 'none';
+            btnNetworkEdit.className = 'phase-action-btn phase-btn-gray';
             btnNetworkEdit.textContent = '✏️ 편집 모드';
         }
 
         // 현재 모드 강조
         switch (mode) {
             case CONFIG.APP_MODE.ADD_NODE:
-                if (btnAdd) { btnAdd.style.background = '#2ecc71'; btnAdd.innerHTML = '⏹ 취소(종료)'; }
+                if (btnAdd) { btnAdd.className = 'phase-action-btn phase-btn-red'; btnAdd.innerHTML = '⏹ 취소(종료)'; }
                 break;
             case CONFIG.APP_MODE.MAP_EDIT:
-                if (btnMapEdit) { btnMapEdit.innerText = "💾 편집 완료"; btnMapEdit.style.background = "#2ecc71"; }
+                if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-green'; btnMapEdit.innerText = "💾 편집 완료"; }
                 if (btnResetArrows) {
                     btnResetArrows.disabled = false;
                     btnResetArrows.style.opacity = '1';
-                    btnResetArrows.style.borderColor = 'var(--accent)';
                     btnResetArrows.style.pointerEvents = 'auto';
                 }
                 break;

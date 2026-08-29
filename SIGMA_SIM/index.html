@@ -42,6 +42,10 @@
         .phase-btn-cyan:hover { background: #67e8f9; }
         .phase-btn-green { background: #10b981; color: white; border: 1px solid #34d399; }
         .phase-btn-green:hover { background: #059669; }
+        .phase-btn-red { background: #ef4444; color: white; border: 1px solid #f87171; }
+        .phase-btn-red:hover { background: #dc2626; }
+        .phase-btn-gray { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+        .phase-btn-gray:hover { background: rgba(255,255,255,0.2); }
         .phase-select {
             height: 24px;
             font-size: 11px;
@@ -342,19 +346,12 @@
                 </div>
                 <div class="foldable-content">
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        <button id="btn-add-junction" class="btn-neon" onclick="toggleAddMode()"
-                            style="font-size: 10px; padding: 5px;">➕ 교차로 추가</button>
-                        <button class="btn-neon" onclick="deleteJunction()"
-                            style="font-size: 10px; padding: 5px; background: rgba(255, 71, 87, 0.1); border-color: rgba(255, 71, 87, 0.3);">🗑️
-                            교차로 삭제</button>
-
-                        <button id="btn-map-edit" class="btn-neon magenta" onclick="toggleMapEdit()"
-                            style="font-size: 10px; padding: 5px;">🔧 신호등 편집</button>
-                        <button id="btn-reset-arrows" class="btn-neon" onclick="resetArrowPositions()"
-                            style="font-size: 10px; padding: 5px;">🔄 신호등 초기화</button>
-                        <button class="btn-neon" onclick="applyInfo()"
-                            style="font-size: 10px; padding: 5px; background: var(--neon-cyan); color: #000;">✅
-                            적용</button>
+                        <button id="btn-add-junction" class="phase-action-btn phase-btn-green" onclick="toggleAddMode()">➕ 교차로 추가</button>
+                        <button class="phase-action-btn phase-btn-red" onclick="deleteJunction()">🗑️ 교차로 삭제</button>
+                        
+                        <button id="btn-map-edit" class="phase-action-btn phase-btn-purple" onclick="toggleMapEdit()">🔧 신호등 편집</button>
+                        <button id="btn-reset-arrows" class="phase-action-btn phase-btn-gray" onclick="resetArrowPositions()">🔄 신호등 초기화</button>
+                        <button class="phase-action-btn phase-btn-cyan" onclick="applyInfo()">✅ 적용</button>
                     </div>
                 </div>
             </div>
@@ -366,26 +363,16 @@
                     <span>🔗 연동구간 정보</span>
                 </div>
                 <div class="foldable-content">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px;">
-                        <button class="btn-sm" onclick="analyzeRoadNetwork()"
-                            style="background: rgba(0, 212, 255, 0.1); border: 1px solid #00d4ff; color: #00d4ff; padding: 10px 0; font-size: 10.5px;">🔍
-                            분석 (전체)</button>
-                        <button class="btn-sm" onclick="analyzeSelectedGroupNetwork()"
-                            style="background: rgba(155, 89, 182, 0.1); border: 1px solid #9b59b6; color: #9b59b6; padding: 10px 0; font-size: 10.5px;">🎯
-                            분석 (그룹)</button>
-                        <button id="btn-edit-network" class="btn-sm" onclick="toggleNetworkEditMode()"
-                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid #666; color: #fff; padding: 10px 0; font-size: 10.5px;">✏️
-                            편집 모드</button>
-                        <button class="btn-sm" onclick="clearDBFile('links')"
-                            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); color: #bbb; padding: 10px 0; font-size: 10.5px;">🔄
-                            연동 초기화</button>
-                        <button class="btn-sm" onclick="exportRoadNetwork()"
-                            style="background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; color: #e74c3c; padding: 10px 0; font-size: 10.5px;">📥
-                            내보내기</button>
-                            
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <button class="phase-action-btn phase-btn-cyan" onclick="analyzeRoadNetwork()">🔍 분석 (전체)</button>
+                        <button class="phase-action-btn phase-btn-purple" onclick="analyzeSelectedGroupNetwork()">🎯 분석 (그룹)</button>
+                        <button id="btn-edit-network" class="phase-action-btn phase-btn-gray" onclick="toggleNetworkEditMode()">✏️ 편집 모드</button>
+                        <button class="phase-action-btn phase-btn-gray" onclick="clearDBFile('links')">🔄 연동 초기화</button>
+                        <button class="phase-action-btn phase-btn-red" onclick="exportRoadNetwork()">📥 내보내기</button>
+                        
                         <div style="grid-column: span 3; display: flex; align-items: center; gap: 8px; margin-top: 4px;">
                             <span style="font-size: 11px; color: #bbb;">🕒 주기기준 분석:</span>
-                            <select id="cycle-analyze-hour" style="background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px 5px; height: 26px; font-size: 11px;">
+                            <select id="cycle-analyze-hour" class="phase-select">
                                 <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
                                 <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
                                 <option value="6">06시</option><option value="7">07시</option><option value="8">08시</option>
@@ -395,9 +382,7 @@
                                 <option value="18">18시</option><option value="19">19시</option><option value="20">20시</option>
                                 <option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
                             </select>
-                            <button class="btn-sm" onclick="analyzeCycleNetwork()" style="background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; color: #2ecc71; padding: 5px 10px; font-size: 10.5px; flex: 1;">
-                                ⏱️ 동일주기 망 구성
-                            </button>
+                            <button class="phase-action-btn phase-btn-green" style="flex: 1;" onclick="analyzeCycleNetwork()">⏱️ 동일주기 망 구성</button>
                         </div>
                     </div>
                     <div style="font-size: 11px; color: #888; padding: 5px 10px 10px 10px; line-height: 1.5;">
