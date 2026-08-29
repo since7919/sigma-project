@@ -817,3 +817,59 @@ window.triggerUticPlanSync = async function() {
         }
     }
 };
+
+
+window.handleStepSlider = function(e, container, paramType) {
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    
+    let step = 0;
+    if (ratio < 0.33) step = 0;
+    else if (ratio < 0.66) step = 1;
+    else step = 2;
+    
+    window.updateStepSliderUI(container, step);
+    
+    const labels = ['작게', '보통', '크게'];
+    if (paramType === 'node') {
+        const vals = [0.5, 1.0, 1.5];
+        document.getElementById('val-node-size-bottom').innerText = labels[step];
+        if (typeof syncScaleNode === 'function') syncScaleNode(vals[step]);
+    } else if (paramType === 'arrow') {
+        const vals = [1.0, 1.5, 2.0]; 
+        document.getElementById('val-arrow-size-bottom').innerText = labels[step];
+        if (typeof syncScaleArrow === 'function') syncScaleArrow(vals[step]);
+    } else if (paramType === 'weight') {
+        const vals = [1, 2, 4]; 
+        document.getElementById('txt-network-weight').innerText = labels[step];
+        if (typeof updateNetworkWeight === 'function') updateNetworkWeight(vals[step]);
+    } else if (paramType === 'name') {
+        const vals = [9, 11, 14]; 
+        document.getElementById('val-name-size-bottom').innerText = labels[step];
+        if (typeof syncScaleName === 'function') syncScaleName(vals[step]);
+    }
+};
+
+window.updateStepSliderUI = function(container, step) {
+    const fill = container.querySelector('.step-slider-fill');
+    const dots = container.querySelectorAll('.step-slider-dot');
+    
+    if (step === 0) fill.style.width = '0%';
+    else if (step === 1) fill.style.width = '50%';
+    else fill.style.width = 'calc(100% - 8px)';
+    
+    dots.forEach((dot, idx) => {
+        if (idx <= step) {
+            dot.style.background = '#38bdf8';
+            if (idx === step) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        } else {
+            dot.style.background = '#475569';
+            dot.classList.remove('active');
+        }
+    });
+};
