@@ -1162,9 +1162,7 @@
             <div class="sigma-panel p-0 mt-15">
                 <div class="card-title flex-row-between">
                     <span>👥 그룹 TOD 편집</span>
-                    <button class="btn-sm btn-apply" onclick="applyGroupToMembers()"
-                        style="background: linear-gradient(135deg, #2980b9, #2471a3); font-size:11px; padding: 4px 12px; border:none; border-radius:4px; cursor:pointer;">✅
-                        선택 그룹에 일괄 적용</button>
+                    <button class="phase-action-btn phase-btn-cyan" onclick="applyGroupToMembers()">✅ 선택 그룹에 일괄 적용</button>
                 </div>
                 <div class="foldable-content">
                     <input type="file" id="file-input-group" accept=".csv" style="display:none"
@@ -1191,16 +1189,9 @@
 
                                 <!-- 버튼 세트 (높이 및 스타일 통일) -->
                                 <div class="flex-row gap-4">
-                                    <button onclick="loadGroupInfo()" class="btn-neon"
-                                        style="height:28px; font-size:11px; padding:0 10px;">조회</button>
-
-                                    <button id="btn-clear-highlights" onclick="clearHighlightGroupMembers()"
-                                        style="background: #442222; height:28px; padding: 0 10px; font-size: 11px; color:#ff7675; border: 1px solid rgba(255,118,117,0.2); border-radius:4px; cursor:pointer; font-weight:600;"
-                                        title="지도 하이라이트 제거">취소</button>
-
-                                    <button onclick="applyGroupToMembers()"
-                                        style="background: #1b5e20; height:28px; padding: 0 10px; font-size: 11px; color:#81c784; border: 1px solid rgba(129,199,132,0.2); border-radius:4px; cursor:pointer; font-weight:bold;"
-                                        title="현재 설정을 모든 소속 교차로에 적용">TOD 일괄적용</button>
+                                    <button onclick="loadGroupInfo()" class="phase-action-btn phase-btn-gray">조회</button>
+                                    <button id="btn-clear-highlights" onclick="clearHighlightGroupMembers()" class="phase-action-btn phase-btn-red" title="지도 하이라이트 제거">취소</button>
+                                    <button onclick="applyGroupToMembers()" class="phase-action-btn phase-btn-green" title="현재 설정을 모든 소속 교차로에 적용">TOD 일괄적용</button>
                                 </div>
                             </div>
 
@@ -1246,7 +1237,7 @@
                             <div class="flex-row gap-10">
                                 <div class="flex-row gap-8 p-4-10 chart-box-bg" style="background: rgba(0,0,0,0.2);">
                                     <span class="fs-11 text-dim">데이터 복사:</span>
-                                    <select id="copy-from-day" class="tsd-select" style="width: 70px;">
+                                    <select id="copy-from-day" class="phase-select" style="width: 75px;">
                                         <option value="0">일계획 1</option>
                                         <option value="1">일계획 2</option>
                                         <option value="2">일계획 3</option>
@@ -1258,8 +1249,7 @@
                                         <option value="8">일계획 9</option>
                                         <option value="9">일계획 10</option>
                                     </select>
-                                    <button class="btn-sm" onclick="copyGroupTODDay()"
-                                        style="background:#8e44ad; padding: 2px 8px; font-size: 11px;">가져오기</button>
+                                    <button class="phase-action-btn phase-btn-purple" onclick="copyGroupTODDay()" title="다른 일계획 데이터 복사해오기">📋 가져오기</button>
                                 </div>
                             </div>
                         </div>
