@@ -866,11 +866,8 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button onclick="openDBUpdateModal()" class="btn-neon magenta"
-                            style="height:40px; padding: 0 22px; font-size:13.5px; font-weight:900;">💾 DB 업데이트</button>
-                        <button onclick="exportNormalizedDBFiles()"
-                            style="height:40px; padding:0 20px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:8px; cursor:pointer;">📤
-                            DB 통합 저장</button>
+                        <button onclick="openDBUpdateModal()" class="phase-action-btn phase-btn-purple" style="height:36px; padding: 0 20px; font-size:13px; font-weight:900;">💾 DB 업데이트</button>
+                        <button onclick="exportNormalizedDBFiles()" class="phase-action-btn phase-btn-gray" style="height:36px; padding:0 16px; font-size:13px;">📤 DB 통합 저장</button>
                     </div>
                 </div>
 
@@ -1026,8 +1023,7 @@
                                 <div class="xlsx-icon-box">📗</div>
                                 <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
                             </div>
-                            <button onclick="document.getElementById('xlsx-file-input').click()" class="btn-neon green"
-                                style="height:38px; padding:0 18px;">📁 파일 선택</button>
+                            <button onclick="document.getElementById('xlsx-file-input').click()" class="phase-action-btn phase-btn-green" style="height:36px; padding:0 18px; font-size:13px;">📁 파일 선택</button>
                         </div>
                         <div id="xlsx-progress-container" class="p-10"
                             style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
@@ -1090,9 +1086,7 @@
                             </div>
 
                             <div class="mt-25 mb-25">
-                                <button class="btn-main"
-                                    style="width: 100%; height: 48px; font-size: 14px; border-radius:12px; font-weight: 600; background: var(--accent); color: #000; border: none; cursor: pointer;"
-                                    onclick="window.open('Sigma_Manual.html', '_blank')">
+                                <button class="phase-action-btn phase-btn-cyan" style="width: 100%; height: 48px; font-size: 14px; font-weight: 600;" onclick="window.open('Sigma_Manual.html', '_blank')">
                                     📄 시스템 기술 매뉴얼 열기
                                 </button>
                             </div>
