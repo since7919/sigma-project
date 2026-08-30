@@ -919,11 +919,13 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
           if (val && val !== "-1") {
             const tpParts = val.split('|');
             if (tpParts.length >= 6) {
-              const timeParts = tpParts[0].split(':');
+              const timeStr = tpParts[0] || "-1";
+              const isUnused = (timeStr === "-1");
+              const timeParts = isUnused ? [] : timeStr.split(':');
               timePlans.push({
                 slot_idx: i,
-                h: parseInt(timeParts[0]) || 0,
-                m: parseInt(timeParts[1]) || 0,
+                h: isUnused ? -1 : (parseInt(timeParts[0]) || 0),
+                m: isUnused ? 0 : (parseInt(timeParts[1]) || 0),
                 cycle: parseInt(tpParts[1]) || 100,
                 offset: parseInt(tpParts[2]) || 0,
                 splitA: tpParts[3] ? tpParts[3].split(';').map(Number) : [],
@@ -1694,13 +1696,13 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
               if (val && val !== "-1") {
                 const parts = val.split('|');
                 const timeStr = parts[0] || "-1";
-                if (timeStr !== "-1") {
-                  const [h, m] = timeStr.split(':').map(Number);
-                  timePlans.push({
-                    slot_idx: tp,
-                    h: h,
-                    m: m,
-                    cycle: parseInt(parts[1]) || 100,
+                const isUnused = (timeStr === "-1");
+                const [h, m] = isUnused ? [-1, 0] : timeStr.split(':').map(Number);
+                timePlans.push({
+                  slot_idx: tp,
+                  h: h,
+                  m: m,
+                  cycle: parseInt(parts[1]) || 100,
                     offset: parseInt(parts[2]) || 0,
                     splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
                     splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
