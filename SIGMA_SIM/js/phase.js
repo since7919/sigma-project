@@ -442,8 +442,24 @@ function renderSummaryTable() {
             const p = (plans && plans[i]) ? plans[i] : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
             const patternNum = i + 1;
             
-            const isUnused = !(schedules || []).some(sch => sch && sch.idx === patternNum && sch.h !== -1);
-            const firstUsedSched = (schedules || []).find(sch => sch && sch.idx === patternNum && sch.h !== -1);
+            // 모든 일계획(1~10)을 뒤져서 이 패턴(patternNum)이 한 번이라도 사용되었는지 확인 (유저 요청: 공통 적용)
+            let isUsedAnywhere = false;
+            let firstGlobalSched = null;
+            if (j.schedules) {
+                for (let d = 0; d < 10; d++) {
+                    const dSch = j.schedules[d];
+                    if (dSch) {
+                        const found = dSch.find(sch => sch && sch.idx === patternNum && sch.h !== -1);
+                        if (found) {
+                            isUsedAnywhere = true;
+                            if (!firstGlobalSched) firstGlobalSched = found;
+                            break;
+                        }
+                    }
+                }
+            }
+            const isUnused = !isUsedAnywhere;
+            const firstUsedSched = firstGlobalSched;
             const targetCycle = p.cycle || (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
 
             const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
@@ -478,7 +494,7 @@ function renderSummaryTable() {
                 {
                     content: i + 1,
                     className: 'row-num',
-                    style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : '#888'}`,
+                    style: `cursor:pointer; font-weight:600; color:${isActive ? 'var(--accent)' : (isUnused ? '#555' : '#fff')}`,
                     attr: { onclick: `jumpToTOD(${i})` }
                 },
                 {
