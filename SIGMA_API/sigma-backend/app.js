@@ -962,6 +962,10 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         delete newRow.flash_cfg;
         delete newRow.op_intervention;
       }
+      if (tableName === 'signal_maps') {
+        delete newRow.start_time;
+        delete newRow.end_time;
+      }
       if (tableName === 'tod_plans') {
         delete newRow.seq;
       }
