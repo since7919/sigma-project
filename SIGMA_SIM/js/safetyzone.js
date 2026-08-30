@@ -36,6 +36,17 @@ async function toggleSafetyZone() {
     } else {
         if (window.map) {
             safetyZoneLayer.addTo(window.map);
+            
+            // 줌 레벨에 따라 툴팁 표시/숨김
+            const updateTooltips = () => {
+                const z = window.map.getZoom();
+                const tooltips = document.querySelectorAll('.safetyzone-tooltip');
+                tooltips.forEach(t => {
+                    t.style.visibility = z >= 16 ? 'visible' : 'hidden';
+                });
+            };
+            window.map.on('zoomend', updateTooltips);
+            updateTooltips(); // 초기 설정
         }
     }
 }
@@ -94,6 +105,15 @@ async function fetchAndDrawSafetyZones() {
                 const type = item.spt_se || "보호구역";
                 const marker = L.marker([lat, lng], { icon: circleIcon });
                 marker.bindPopup('<div style="padding:5px; text-align:center;"><b>' + name + '</b><br><span style="font-size:11px; color:#555;">' + type + '</span></div>');
+                
+                // 사용자 요청: 정보표시는 줌레벨 16부터 표시
+                marker.bindTooltip(name, {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -12],
+                    className: 'safetyzone-tooltip'
+                });
+                
                 safetyZoneLayer.addLayer(marker);
             }
         });

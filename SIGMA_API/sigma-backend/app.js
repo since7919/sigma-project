@@ -2330,6 +2330,24 @@ app.get('/api/sim/safetyzone', async (req, res) => {
              items = data.response.body.items;
              if (!Array.isArray(items)) items = [items];
           }
+          
+          // proj4로 EPSG:5181(또는 2097) 좌표를 WGS84(lat, lng)로 변환
+          const proj4 = require('proj4');
+          proj4.defs('EPSG:5181', '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs');
+          
+          items.forEach(item => {
+             if (item.fturGeomVl) {
+                // POINT, MULTIPOINT, POLYGON 내부의 첫 번째 (X Y) 좌표 추출
+                const match = item.fturGeomVl.match(/\(?\s*([\d.]+)\s+([\d.]+)\s*\)?/);
+                if (match) {
+                    const x = parseFloat(match[1]);
+                    const y = parseFloat(match[2]);
+                    const [lng, lat] = proj4('EPSG:5181', 'WGS84', [x, y]);
+                    item.lat = lat;
+                    item.lng = lng;
+                }
+             }
+          });
           return items;
         } catch (e) {
           console.error(`sggCd ${sggCd} 호출 오류:`, e.message);
