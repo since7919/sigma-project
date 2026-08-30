@@ -2298,7 +2298,8 @@ app.get('/api/sim/safetyzone', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('safety_zones')
-      .select('*');
+      .select('*')
+      .limit(3000);
 
     if (error) throw error;
     
