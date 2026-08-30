@@ -1304,10 +1304,8 @@ app.post('/api/sim/update-junction', async (req, res) => {
             ped_flash_b: cols[16] || "",
             ped_green_a: cols[17] || "",
             ped_green_b: cols[18] || "",
-            start_time: cols[19] || "",
-            end_time: cols[20] || "",
             raw_steps: (() => {
-              try { return cols[21] ? JSON.parse(cols[21]) : null; }
+              try { return cols[19] ? JSON.parse(cols[19]) : null; }
               catch(e) { return null; }
             })(),
             updated_at: new Date().toISOString()
@@ -1669,10 +1667,8 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
               ped_flash_b: cols[16] || "",
               ped_green_a: cols[17] || "",
               ped_green_b: cols[18] || "",
-              start_time: cols[19] || "",
-              end_time: cols[20] || "",
               raw_steps: (() => {
-                try { return cols[21] ? JSON.parse(cols[21]) : null; }
+                try { return cols[19] ? JSON.parse(cols[19]) : null; }
                 catch(e) { return null; }
               })(),
               updated_at: now
