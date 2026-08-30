@@ -87,7 +87,7 @@ async function fetchAllSupabase(queryBuilderFn) {
   const step = 1000;
   while (true) {
     const { data, error } = await queryBuilderFn().range(from, from + step - 1);
-    if (error) throw error;
+    
     if (!data || data.length === 0) break;
     allData = allData.concat(data);
     if (data.length < step) break;
@@ -341,7 +341,7 @@ app.get('/api/intersections/nearest', async (req, res) => {
       .eq('region_cd', region)
       .limit(5000);
 
-    if (error) throw error;
+    
     if (!list || list.length === 0) {
       return res.json({ success: false, message: '비교할 API 교차로가 존재하지 않습니다.' });
     }
@@ -444,7 +444,7 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
       .update({ custom_angles: custom_angles })
       .eq('int_no', Number(int_no));
 
-    if (error) throw error;
+    
     res.json({ success: true, message: '각도 설정이 저장되었습니다.' });
   } catch (err) {
     sendErrorResponse(res, err, '각도 설정 저장 중 오류가 발생했습니다.');
@@ -503,7 +503,7 @@ app.get('/api/sim/data', async (req, res) => {
           
           while (hasMore) {
             const { data, error } = await supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
-            if (error) throw error;
+            
             if (!data || data.length === 0) break;
             
             let chunk = "";
@@ -570,7 +570,7 @@ app.get('/api/sim/data', async (req, res) => {
           
           while (hasMore) {
             const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
-            if (error) throw error;
+            
             if (!data || data.length === 0) break;
             
             let chunk = "";
@@ -622,7 +622,7 @@ app.get('/api/sim/data', async (req, res) => {
           
           while (hasMore) {
             const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(page * pageSize, (page + 1) * pageSize - 1);
-            if (error) throw error;
+            
             if (!data || data.length === 0) break;
             
             let chunk = "";
@@ -670,7 +670,7 @@ app.get('/api/sim/data', async (req, res) => {
           
           while (hasMore) {
             const { data, error } = await supabase.from('groups').select('*').eq('region_cd', regionCode).order('group_id').range(page * pageSize, (page + 1) * pageSize - 1);
-            if (error) throw error;
+            
             if (!data || data.length === 0) break;
             
             let chunk = "";
@@ -988,7 +988,7 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
       .from(tableName)
       .upsert(processedRecords, { onConflict: conflictKeys });
       
-    if (error) throw error;
+    
     
     // 업로드된 데이터에 없는 항목 삭제 처리 (교차로의 경우 해당 지역 기준으로 삭제)
     if (tableName === 'junctions') {
@@ -2296,12 +2296,10 @@ let safetyZoneCacheTime = 0;
 
 app.get('/api/sim/safetyzone', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('safety_zones')
-      .select('*')
-      .limit(3000);
+        const data = await fetchAllSupabase(() => supabase.from('safety_zones').select('*'));
+    
 
-    if (error) throw error;
+    
     
     // 프론트엔드 호환성을 위해 geojson 키 유지
     const items = data.map(row => ({
