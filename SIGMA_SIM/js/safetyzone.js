@@ -103,18 +103,33 @@ async function fetchAndDrawSafetyZones() {
             if (!isNaN(lat) && !isNaN(lng)) {
                 const name = item.fac_name || item.name || item.소재지지번주소 || item.spt_nm || item.fcltyNm || "보호구역";
                 const type = item.spt_se || "보호구역";
-                const marker = L.marker([lat, lng], { icon: circleIcon });
-                marker.bindPopup('<div style="padding:5px; text-align:center;"><b>' + name + '</b><br><span style="font-size:11px; color:#555;">' + type + '</span></div>');
+                let layerToAdd;
                 
-                // 사용자 요청: 정보표시는 줌레벨 16부터 표시
-                marker.bindTooltip(name, {
+                if (item.geojson) {
+                    layerToAdd = L.geoJSON(item.geojson, {
+                        style: {
+                            color: '#e74c3c',
+                            weight: 2,
+                            fillColor: '#f39c12',
+                            fillOpacity: 0.2
+                        },
+                        pointToLayer: function (feature, latlng) {
+                            return L.marker(latlng, { icon: circleIcon });
+                        }
+                    });
+                } else {
+                    layerToAdd = L.marker([lat, lng], { icon: circleIcon });
+                }
+
+                layerToAdd.bindPopup('<div style="padding:5px; text-align:center;"><b>' + name + '</b><br><span style="font-size:11px; color:#555;">' + type + '</span></div>');
+                
+                layerToAdd.bindTooltip(name, {
                     permanent: true,
-                    direction: 'top',
-                    offset: [0, -12],
+                    direction: 'center',
                     className: 'safetyzone-tooltip'
                 });
                 
-                safetyZoneLayer.addLayer(marker);
+                safetyZoneLayer.addLayer(layerToAdd);
             }
         });
         

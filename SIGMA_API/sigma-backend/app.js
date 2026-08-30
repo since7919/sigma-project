@@ -2337,14 +2337,25 @@ app.get('/api/sim/safetyzone', async (req, res) => {
           
           items.forEach(item => {
              if (item.fturGeomVl) {
-                // POINT, MULTIPOINT, POLYGON 내부의 첫 번째 (X Y) 좌표 추출
-                const match = item.fturGeomVl.match(/\(?\s*([\d.]+)\s+([\d.]+)\s*\)?/);
-                if (match) {
-                    const x = parseFloat(match[1]);
-                    const y = parseFloat(match[2]);
-                    const [lng, lat] = proj4('EPSG:5181', 'WGS84', [x, y]);
-                    item.lat = lat;
-                    item.lng = lng;
+                // WKT 문자열 내부의 모든 (X Y) 좌표를 WGS84(lng lat)로 변환
+                const parseWkt = require('wellknown');
+                
+                const newWkt = item.fturGeomVl.replace(/([\d.]+)\s+([\d.]+)/g, (m, x, y) => {
+                    const [lng, lat] = proj4('EPSG:5181', 'WGS84', [parseFloat(x), parseFloat(y)]);
+                    return `${lng} ${lat}`;
+                });
+                
+                try {
+                    item.geojson = parseWkt(newWkt);
+                    
+                    // 폴백용 중심 좌표 (첫 번째 포인트)
+                    const match = newWkt.match(/([\d.]+)\s+([\d.]+)/);
+                    if (match) {
+                        item.lng = parseFloat(match[1]);
+                        item.lat = parseFloat(match[2]);
+                    }
+                } catch (e) {
+                    console.error("WKT 파싱 오류:", e);
                 }
              }
           });
