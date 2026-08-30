@@ -57,13 +57,10 @@ async function fetchAndDrawSafetyZones() {
         }
         
         let items = [];
-        if (data && data.response && data.response.body && data.response.body.items) {
-            items = data.response.body.items.item || data.response.body.items;
-        } else if (data && data.items) {
+        if (data && data.items) {
             items = data.items;
-        } else {
-            if (Array.isArray(data)) items = data;
-            else if (data.data) items = data.data;
+        } else if (Array.isArray(data)) {
+            items = data;
         }
         
         if (!Array.isArray(items)) {
