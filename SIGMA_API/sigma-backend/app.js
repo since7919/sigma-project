@@ -456,6 +456,10 @@ app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: 'file 파라미터가 필요합니다.' });
 
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (CSV_CACHE[file]) {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       return res.send(CSV_CACHE[file]);
