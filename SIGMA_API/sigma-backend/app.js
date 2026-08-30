@@ -1345,8 +1345,8 @@ app.post('/api/sim/update-junction', async (req, res) => {
             if (val && val !== "-1") {
               const parts = val.split('|');
               const timeStr = parts[0] || "-1";
-              if (timeStr !== "-1") {
-                const [h, m] = timeStr.split(':').map(Number);
+              const isUnused = (timeStr === "-1");
+                const [h, m] = isUnused ? [-1, 0] : timeStr.split(':').map(Number);
                 timePlans.push({
                   slot_idx: tp,
                   h: h,
@@ -1357,7 +1357,6 @@ app.post('/api/sim/update-junction', async (req, res) => {
                   splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
                   idx: parseInt(parts[5]) || 1
                 });
-              }
             }
           }
 
@@ -1708,7 +1707,6 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
                     splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
                     idx: parseInt(parts[5]) || 1
                   });
-                }
               }
             }
 
