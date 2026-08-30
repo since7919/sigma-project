@@ -408,9 +408,13 @@ async function executeDBUpdate() {
         return;
     }
 
+    const progContainer = document.getElementById('db-update-progress-container');
+    const progBar = document.getElementById('db-update-progress-bar');
     const progInfo = document.getElementById('db-update-progress-info');
-    progInfo.style.display = 'block';
-    progInfo.textContent = '업데이트를 시작합니다...';
+    
+    if (progContainer) progContainer.style.display = 'block';
+    if (progInfo) { progInfo.style.display = 'block'; progInfo.textContent = '업데이트를 시작합니다...'; }
+    if (progBar) progBar.style.width = '0%';
 
     try {
         if (chkJunctions) {
@@ -428,7 +432,9 @@ async function executeDBUpdate() {
                 const chunkSize = 50;
                 for (let i = 0; i < targets.length; i += chunkSize) {
                     const chunk = targets.slice(i, i + chunkSize);
-                    progInfo.textContent = `교차로 업데이트 중... (${i + 1} ~ ${Math.min(i + chunkSize, targets.length)} / ${targets.length})`;
+                    const currentCount = Math.min(i + chunkSize, targets.length);
+                    if (progInfo) progInfo.textContent = `교차로 데이터 전송 중... (${currentCount} / ${targets.length})`;
+                    if (progBar) progBar.style.width = `${(currentCount / targets.length) * 100}%`;
                     
                     const payloads = chunk.map(j => {
                         const exportData = exportSingleJunctionCSV(j.id);
@@ -485,6 +491,7 @@ async function executeDBUpdate() {
             // Not strictly implemented in previous export functions, assuming custom logic if needed.
         }
 
+        if (progBar) progBar.style.width = '100%';
         progInfo.textContent = '모든 업데이트가 성공적으로 완료되었습니다!';
         setTimeout(() => {
             document.getElementById('db-update-modal').style.display = 'none';
