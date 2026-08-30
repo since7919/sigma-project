@@ -1314,3 +1314,6 @@ details.footer-section summary::marker { content: ''; }
 .detail-modal-content.expanded-map .modal-top-map { flex: 0.75; }
 .detail-modal-content.expanded-map .modal-bottom-data { flex: 0.25; }
 
+
+/* 보호구역 줌레벨 제어 */
+body.zoom-15-minus .safetyzone-tooltip { visibility: hidden !important; display: none !important; opacity: 0 !important; }

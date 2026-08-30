@@ -138,12 +138,36 @@ function initMapClickHandlers() {
  *  뷰포트 변경 시 화살표/툴팁 갱신
  * ══════════════════════════════════════════ */
 function initMapMoveHandlers() {
+    let lastZ = map.getZoom();
     map.on('moveend zoomend', () => {
         refreshVisibleArrows();
+        
+        const currentZ = map.getZoom();
         const zoomIndicator = document.getElementById('zoom-indicator');
         if (zoomIndicator) {
-            zoomIndicator.innerHTML = `🔍 줌 레벨: ${map.getZoom()}`;
+            zoomIndicator.innerHTML = `🔍 줌 레벨: ${currentZ}`;
+        }
+        
+        // 줌 레벨 16 경계(15 <-> 16)를 넘나들 때 교차로명 툴팁 일괄 업데이트
+        if ((lastZ < 16 && currentZ >= 16) || (lastZ >= 16 && currentZ < 16)) {
+            for (const jid in STATE.junctions) {
+                if (typeof updateMarkerTooltip === 'function') {
+                    updateMarkerTooltip(jid);
+                }
+            }
+        }
+        lastZ = currentZ;
+        
+        // 보호구역 툴팁 가시성 CSS 토글
+        if (currentZ >= 16) {
+            document.body.classList.remove('zoom-15-minus');
+        } else {
+            document.body.classList.add('zoom-15-minus');
         }
     });
+    
+    // 초기 줌 상태 설정
+    if (map.getZoom() < 16) document.body.classList.add('zoom-15-minus');
+
 }
 

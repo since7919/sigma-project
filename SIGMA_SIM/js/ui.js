@@ -539,7 +539,8 @@ function refreshJunctionTooltip(jid) {
     const content = parts.join('<br>');
 
     // [성능최적화] 이전 내용과 동일하고 툴팁이 이미 존재하면 업데이트 건너뜀
-    const currentPermanent = (STATE.showAllTooltips || jid === STATE.activeJid || STATE.showCycleColors || STATE.showName || STATE.showId || STATE.showSeq || STATE.showPolice || STATE.showOffice || STATE.showCycle || STATE.showOffset || STATE.showLatLng || STATE.showGroup || STATE.showController);
+    const z = window.map ? window.map.getZoom() : 18;
+    const currentPermanent = (z >= 16 || jid === STATE.activeJid) && (STATE.showAllTooltips || jid === STATE.activeJid || STATE.showCycleColors || STATE.showName || STATE.showId || STATE.showSeq || STATE.showPolice || STATE.showOffice || STATE.showCycle || STATE.showOffset || STATE.showLatLng || STATE.showGroup || STATE.showController);
     const hasTooltip = !!j.marker.getTooltip();
     
     if (hasTooltip && j.lastTooltipContent === content && j.lastPermanentState === currentPermanent) {
@@ -560,7 +561,8 @@ function refreshJunctionTooltip(jid) {
 }
 
 function bindNewTooltip(j, jid, content) {
-    const isPermanent = (STATE.showAllTooltips || jid === STATE.activeJid || STATE.showCycleColors || STATE.showName || STATE.showId || STATE.showSeq || STATE.showPolice || STATE.showOffice || STATE.showCycle || STATE.showOffset || STATE.showLatLng || STATE.showGroup || STATE.showController);
+    const z = window.map ? window.map.getZoom() : 18;
+    const isPermanent = (z >= 16 || jid === STATE.activeJid) && (STATE.showAllTooltips || jid === STATE.activeJid || STATE.showCycleColors || STATE.showName || STATE.showId || STATE.showSeq || STATE.showPolice || STATE.showOffice || STATE.showCycle || STATE.showOffset || STATE.showLatLng || STATE.showGroup || STATE.showController);
     j.marker.bindTooltip(content, {
         permanent: isPermanent,
         direction: 'top',
