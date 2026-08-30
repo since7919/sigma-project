@@ -16,7 +16,7 @@ function serializeArrows(j) {
     return arrs.join(';');
 }
 
-function processIntersectionCSV(csv) {
+function processIntersectionCSV(csv, isAppend = false) {
     const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
     const firstLine = lines[0].replace(/^\ufeff/, '').trim();
     const delimiter = firstLine.includes(';') ? ';' : ',';
@@ -75,8 +75,17 @@ function processIntersectionCSV(csv) {
         if (dOrder !== null) newJuncts[id].extra.diagramOrder = parseInt(dOrder);
         parseExtraConfigs(newJuncts[id], newJuncts[id].extra);
     }
-    Object.values(STATE.junctions).forEach(j => { if (j.marker && window.map) window.map.removeLayer(j.marker); });
-    STATE.junctions = newJuncts;
+    if (!isAppend) {
+        Object.values(STATE.junctions).forEach(j => { if (j.marker && window.map) window.map.removeLayer(j.marker); });
+        STATE.junctions = newJuncts;
+    } else {
+        Object.keys(newJuncts).forEach(id => {
+            if (STATE.junctions[id] && STATE.junctions[id].marker && window.map) {
+                window.map.removeLayer(STATE.junctions[id].marker);
+            }
+            STATE.junctions[id] = newJuncts[id];
+        });
+    }
     if (typeof STATE !== 'undefined') STATE.sortedJunctions = null;
     
     // [성능 개선] 3000개 마커 렌더링 시 발생하는 브라우저 프리징(10초 지연)을 막기 위해 비동기 청크 렌더링 적용

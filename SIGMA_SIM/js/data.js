@@ -747,7 +747,7 @@ async function revertActiveJunctionFromDB() {
         // 가져온 데이터로 메모리(STATE.junctions[jid]) 덮어쓰기
         if (data.interCsvLine) {
             const mockCsv = "ID,Name,Lat,Lng,Seq,Police,Office,GroupID,FlashCfg,OpIntervention,ArrowConfigs,Controller,DiagramOrder,Weekly_plan\n" + data.interCsvLine;
-            processIntersectionCSV(mockCsv);
+            processIntersectionCSV(mockCsv, true);
         }
         if (data.mapCsvLines) {
             const mockCsv = "ID,MapIdx,movA,movB,pedMovA,pedMovB,mainMovements,yellowA,yellowB,allredA,allredB,pedA,pedB,pedDelayA,pedDelayB,pedFlashA,pedFlashB,pedGreenA,pedGreenB,rawSteps\n" + data.mapCsvLines;
