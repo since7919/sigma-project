@@ -557,7 +557,7 @@ app.get('/api/sim/data', async (req, res) => {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
           res.setHeader('Transfer-Encoding', 'chunked');
           
-          const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "startTime", "endTime", "rawSteps"];
+          const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
           res.write("\ufeff" + headers.join(",") + "\n");
           
           let page = 0;
@@ -591,8 +591,6 @@ app.get('/api/sim/data', async (req, res) => {
                 Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""),
                 Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
                 Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
-                r.start_time || "",
-                r.end_time || "",
                 r.raw_steps ? JSON.stringify(r.raw_steps) : ""
               ];
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";

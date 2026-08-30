@@ -109,9 +109,6 @@ function processSignalMapCSV(csv) {
     const fields = ["movA","movB","pedMovA","pedMovB","yellowA","yellowB","allredA","allredB","pedA","pedB","pedDelayA","pedDelayB","pedFlashA","pedFlashB","pedGreenA","pedGreenB"];
     const fieldIndices = fields.map(f => headers.findIndex(h => h === f));
     const mainMovIdx = headers.findIndex(h => h === "mainMovements");
-    const startIdx = headers.findIndex(h => h === "startTime");
-    const endIdx = headers.findIndex(h => h === "endTime");
-
     const rawStepsIdx = headers.findIndex(h => h === "rawSteps");
 
     for (let i = 1; i < lines.length; i++) {
@@ -144,8 +141,6 @@ function processSignalMapCSV(csv) {
         }
         
         if (mainMovIdx !== -1 && cols[mainMovIdx]) sm.mainMovements = String(cols[mainMovIdx]).split(';');
-        if (startIdx !== -1) sm.startTime = cols[startIdx] || ""; 
-        if (endIdx !== -1) sm.endTime = cols[endIdx] || "";
         if (rawStepsIdx !== -1 && cols[rawStepsIdx]) {
             try {
                 const rs = JSON.parse(cols[rawStepsIdx]);

@@ -282,45 +282,22 @@ function renderSignalMapButtons() {
     html += '<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:5px;">';
     labels.forEach((lab, i) => {
         const isActive = (STATE.currentSignalMapIdx === i);
-        const mapData = j ? j.signalMaps[i] : { startTime: "", endTime: "" };
-        const startTime = mapData.startTime || "";
-        const endTime = mapData.endTime || "";
 
         html += `
             <div style="display:flex; flex-direction:column; gap:2px; background:rgba(255,255,255,0.02); padding:2px; border-radius:6px; ${isActive ? 'outline:1px solid var(--accent);' : ''}">
                 <button class="btn-sm" onclick="changeSignalMap(${i})" 
-                    style="width:100%; font-size:10px; border:none; height:18px; line-height:18px;
+                    style="width:100%; font-size:10px; border:none; height:26px; line-height:26px;
                     background:${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.05)'};
                     color:${isActive ? '#000' : '#888'}; font-weight:${isActive ? 'bold' : 'normal'}; border-radius:4px;">
                     ${lab}
-                </button>`;
-
-        if (i === 0) {
-            html += `<span style="font-size:9px; color:#444; text-align:center; height:16px; line-height:16px;">상시 운영</span>`;
-        } else {
-            html += `
-                <div style="display:flex; align-items:center; gap:0px; justify-content:center; height:16px;">
-                    <input type="text" class="input-dark inp-sm-start" data-index="${i}" value="${startTime}" placeholder="00:00" onchange="updateSignalMapTime(${i}, 'startTime', this.value)"
-                           style="width:42px; height:14px; font-size:9px; text-align:center; border:none; background:rgba(0,0,0,0.3); padding:0; border-radius:2px;">
-                    <span style="color:#444; font-size:8px; margin:0 1px;">~</span>
-                    <input type="text" class="input-dark inp-sm-end" data-index="${i}" value="${endTime}" placeholder="00:00" onchange="updateSignalMapTime(${i}, 'endTime', this.value)"
-                           style="width:42px; height:14px; font-size:9px; text-align:center; border:none; background:rgba(0,0,0,0.3); padding:0; border-radius:2px;">
-                </div>`;
-        }
-        html += `</div>`;
+                </button>
+            </div>`;
     });
     html += '</div></div>';
     container.innerHTML = html;
 }
 
-window.updateSignalMapTime = function(mapIdx, field, val) {
-    const jid = STATE.activeJid;
-    if (!jid || !STATE.junctions[jid]) return;
-    const j = STATE.junctions[jid];
-    if (j.signalMaps && j.signalMaps[mapIdx]) {
-        j.signalMaps[mapIdx][field] = val;
-    }
-};
+
 
 /** 현시계획(Signal Map) 데이터 복사 */
 function copySignalMap() {
