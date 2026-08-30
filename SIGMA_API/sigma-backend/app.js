@@ -2308,7 +2308,7 @@ app.get('/api/sim/safetyzone', async (req, res) => {
 
     // 캐시가 유효한지 확인 (하루 동안 유지)
     const now = Date.now();
-    if (safetyZoneCache && (now - safetyZoneCacheTime < 24 * 60 * 60 * 1000)) {
+    if (safetyZoneCache && (now - safetyZoneCacheTime < 24 * 60 * 60 * 1000) && safetyZoneCache[0] && safetyZoneCache[0].geojson) {
       return res.json({ success: true, items: safetyZoneCache, cached: true });
     }
 
@@ -2333,12 +2333,13 @@ app.get('/api/sim/safetyzone', async (req, res) => {
           
           // proj4로 EPSG:5181(또는 2097) 좌표를 WGS84(lat, lng)로 변환
           const proj4 = require('proj4');
+          const parseWkt = require('wellknown');
           proj4.defs('EPSG:5181', '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs');
           
           items.forEach(item => {
              if (item.fturGeomVl) {
                 // WKT 문자열 내부의 모든 (X Y) 좌표를 WGS84(lng lat)로 변환
-                const parseWkt = require('wellknown');
+                
                 
                 const newWkt = item.fturGeomVl.replace(/([\d.]+)\s+([\d.]+)/g, (m, x, y) => {
                     const [lng, lat] = proj4('EPSG:5181', 'WGS84', [parseFloat(x), parseFloat(y)]);

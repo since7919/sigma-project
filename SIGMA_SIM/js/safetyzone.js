@@ -16,22 +16,7 @@ async function toggleSafetyZone() {
     btn.innerHTML = '🚸 보호구역 <span style="color:#10b981; font-weight:bold;">● On</span>';
     
     if (!safetyZoneLayer) {
-        if (typeof L.markerClusterGroup === 'function') {
-            safetyZoneLayer = L.markerClusterGroup({
-                maxClusterRadius: 50,
-                disableClusteringAtZoom: 15,
-                iconCreateFunction: function(cluster) {
-                    const count = cluster.getChildCount();
-                    return L.divIcon({
-                        html: '<div style="background-color:rgba(255,165,0,0.8); color:white; font-weight:bold; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid orange;">' + count + '</div>',
-                        className: 'safety-cluster',
-                        iconSize: [30, 30]
-                    });
-                }
-            });
-        } else {
-            safetyZoneLayer = L.layerGroup();
-        }
+        safetyZoneLayer = L.layerGroup();
         await fetchAndDrawSafetyZones();
     } else {
         if (window.map) {
