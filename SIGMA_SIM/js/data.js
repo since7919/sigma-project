@@ -525,12 +525,33 @@ function exportNormalizedDB() {
         interCsv += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
     });
 
-    const mapHeaders = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB"];
+    // 배열의 끝에서부터 0 또는 빈 문자열 제거하여 직렬화 (DB varchar(50) 초과 방지)
+    const compressArr = (arr) => {
+        if (!arr || !Array.isArray(arr) || arr.length === 0) return "";
+        let end = arr.length - 1;
+        while (end >= 0 && (arr[end] === 0 || arr[end] === "0" || arr[end] === "")) end--;
+        return end < 0 ? "" : arr.slice(0, end + 1).join(';');
+    };
+
+    const mapHeaders = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
     let mapCsv = "\ufeff" + mapHeaders.join(",") + "\n";
     junctions.forEach(j => {
         (j.signalMaps || []).forEach((sm, idx) => {
-            const row = [j.id, idx, (sm.movA||[]).join(';'), (sm.movB||[]).join(';'), (sm.pedMovA||[]).join(';'), (sm.pedMovB||[]).join(';'), (sm.mainMovements||[]).join(';'), (sm.yellowA||[]).join(';'), (sm.yellowB||[]).join(';'), (sm.allredA||[]).join(';'), (sm.allredB||[]).join(';'), (sm.pedA||[]).join(';'), (sm.pedB||[]).join(';'), (sm.pedDelayA||[]).join(';'), (sm.pedDelayB||[]).join(';'), (sm.pedFlashA||[]).join(';'), (sm.pedFlashB||[]).join(';'), (sm.pedGreenA||[]).join(';'), (sm.pedGreenB||[]).join(';'), ];
-            mapCsv += row.map(v => String(v)).join(",") + "\n";
+            const rawStepsJson = (sm.rawSteps && sm.rawSteps.length > 0) ? JSON.stringify(sm.rawSteps) : "";
+            const row = [
+                j.id, idx,
+                compressArr(sm.movA), compressArr(sm.movB),
+                compressArr(sm.pedMovA), compressArr(sm.pedMovB),
+                compressArr(sm.mainMovements),
+                compressArr(sm.yellowA), compressArr(sm.yellowB),
+                compressArr(sm.allredA), compressArr(sm.allredB),
+                compressArr(sm.pedA), compressArr(sm.pedB),
+                compressArr(sm.pedDelayA), compressArr(sm.pedDelayB),
+                compressArr(sm.pedFlashA), compressArr(sm.pedFlashB),
+                compressArr(sm.pedGreenA), compressArr(sm.pedGreenB),
+                rawStepsJson
+            ];
+            mapCsv += row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",") + "\n";
         });
     });
 
