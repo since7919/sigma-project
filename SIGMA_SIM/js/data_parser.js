@@ -203,16 +203,16 @@ function processTodPlanCSV(csv) {
                 STATE.junctions[jid].schedules[dIdx][sIdx].h = parseInt(hm[0]) || 0; 
                 STATE.junctions[jid].schedules[dIdx][sIdx].m = parseInt(hm[1]) || 0; 
             }
-            const patternIdx = (p[5] ? parseInt(p[5]) : ((parseInt(cols[sigMapIdx]) || 0) + 1)) - 1;
-            STATE.junctions[jid].schedules[dIdx][sIdx].idx = patternIdx + 1;
+                        const scheduleIdx = (p[5] ? parseInt(p[5]) : ((parseInt(cols[sigMapIdx]) || 0) + 1));
+            STATE.junctions[jid].schedules[dIdx][sIdx].idx = scheduleIdx;
             
             if (p[1]) STATE.junctions[jid].schedules[dIdx][sIdx].cycle = parseInt(p[1]);
 
-            if (patternIdx >= 0 && patternIdx < 16 && p[3] && p[4] && p[3] !== '0;0;0;0;0;0;0;0') {
-                if (p[1]) STATE.junctions[jid].dayPlans[dIdx][patternIdx].cycle = parseInt(p[1]);
-                if (p[2]) STATE.junctions[jid].dayPlans[dIdx][patternIdx].offset = parseInt(p[2]);
-                STATE.junctions[jid].dayPlans[dIdx][patternIdx].splitA = p[3].split(';').map(Number);
-                STATE.junctions[jid].dayPlans[dIdx][patternIdx].splitB = p[4].split(';').map(Number);
+            if (p[3] && p[4] && p[3] !== '0;0;0;0;0;0;0;0') {
+                if (p[1]) STATE.junctions[jid].dayPlans[dIdx][sIdx].cycle = parseInt(p[1]);
+                if (p[2]) STATE.junctions[jid].dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
+                STATE.junctions[jid].dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
+                STATE.junctions[jid].dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);
             }
         }
     }
