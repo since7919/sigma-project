@@ -1173,8 +1173,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
           r.ped_flash_b || "",
           r.ped_green_a || "",
           r.ped_green_b || "",
-          r.start_time || "",
-          r.end_time || ""
+          r.raw_steps ? JSON.stringify(r.raw_steps) : ""
         ];
         return line.map(v => String(v)).join(",");
       });
