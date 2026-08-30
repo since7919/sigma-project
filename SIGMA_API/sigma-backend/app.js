@@ -2327,7 +2327,7 @@ app.get('/api/sim/safetyzone', async (req, res) => {
           const data = response.data;
           let items = [];
           if (data && data.response && data.response.body && data.response.body.items) {
-             items = data.response.body.items;
+             items = data.response.body.items.item || data.response.body.items;
              if (!Array.isArray(items)) items = [items];
           }
           
@@ -2375,6 +2375,7 @@ app.get('/api/sim/safetyzone', async (req, res) => {
     }
 
     safetyZoneCache = allItems;
+    safetyZoneCacheTime = 0; // 강제 캐시 무효화 (한번만)
     safetyZoneCacheTime = now;
     console.log(`보호구역 데이터 갱신 완료! 총 ${allItems.length}건 캐싱됨.`);
 
