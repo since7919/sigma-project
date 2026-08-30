@@ -2289,6 +2289,25 @@ app.post('/api/main-phases', async (req, res) => {
 
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
 
+
+// --- 보호구역 API Proxy ---
+app.get('/api/sim/safetyzone', async (req, res) => {
+  try {
+    const serviceKey = '013f89aa23da0d52fc89902a5e2fe0f78c1af9bb764b02b31c55f259310c6698';
+    const apiUrl = `https://apis.data.go.kr/1320000/safetyzonedtlinfo?serviceKey=${serviceKey}&pageNo=1&numOfRows=2000&type=json`;
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`API HTTP error: ${response.status}`);
+    }
+    const data = await response.text();
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.send(data);
+  } catch (err) {
+    console.error("보호구역 API 프록시 오류:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Sigma Backend Server is running on http://${HOST}:${PORT}`);
 });
