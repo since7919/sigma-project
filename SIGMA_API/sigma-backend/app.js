@@ -2354,8 +2354,6 @@ app.get('/api/sim/safetyzone', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-  }
-});
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Sigma Backend Server is running on http://${HOST}:${PORT}`);
 });
