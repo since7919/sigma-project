@@ -2296,92 +2296,24 @@ let safetyZoneCacheTime = 0;
 
 app.get('/api/sim/safetyzone', async (req, res) => {
   try {
-    const serviceKey = '013f89aa23da0d52fc89902a5e2fe0f78c1af9bb764b02b31c55f259310c6698';
-    const axios = require('axios');
+    const { data, error } = await supabase
+      .from('safety_zones')
+      .select('*');
+
+    if (error) throw error;
     
-    // 서울시 25개 구 sggCd 목록
-    const seoulSggCds = [
-      '11110', '11140', '11170', '11200', '11215', '11230', '11260', '11290', '11305', '11320', 
-      '11350', '11380', '11410', '11440', '11470', '11500', '11530', '11545', '11560', '11590', 
-      '11620', '11650', '11680', '11710', '11740'
-    ];
+    // 프론트엔드 호환성을 위해 geojson 키 유지
+    const items = data.map(row => ({
+      ptznMngNo: row.ptznmngno,
+      trgtFcltNm: row.name,
+      sggCd: row.sggcd,
+      fcltTypeCd: row.type,
+      geojson: row.geojson
+    }));
 
-    // 캐시가 유효한지 확인 (하루 동안 유지)
-    const now = Date.now();
-    if (safetyZoneCache && (now - safetyZoneCacheTime < 24 * 60 * 60 * 1000) && safetyZoneCache[0] && safetyZoneCache[0].geojson) {
-      return res.json({ success: true, items: safetyZoneCache, cached: true });
-    }
-
-    console.log("보호구역 데이터 갱신 중... (서울시 25개 구 API 호출 시작)");
-    let allItems = [];
-
-    // Promise.all로 병렬 처리하되, 공공데이터포털 부하 방지를 위해 5개씩 청크 처리
-    const chunkArray = (arr, size) => arr.length > 0 ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)] : [];
-    const chunks = chunkArray(seoulSggCds, 5);
-
-    for (const chunk of chunks) {
-      const promises = chunk.map(async (sggCd) => {
-        const apiUrl = `https://apis.data.go.kr/1320000/safetyzonedtlinfo/getdtllist?serviceKey=${serviceKey}&pageNo=1&numOfRows=1000&type=json&sggCd=${sggCd}`;
-        try {
-          const response = await axios.get(apiUrl, { timeout: 10000 });
-          const data = response.data;
-          let items = [];
-          if (data && data.response && data.response.body && data.response.body.items) {
-             items = data.response.body.items.item || data.response.body.items;
-             if (!Array.isArray(items)) items = [items];
-          }
-          
-          // proj4로 EPSG:5181(또는 2097) 좌표를 WGS84(lat, lng)로 변환
-          const proj4 = require('proj4');
-          const parseWkt = require('wellknown');
-          proj4.defs('EPSG:5181', '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs');
-          
-          items.forEach(item => {
-             if (item.fturGeomVl) {
-                // WKT 문자열 내부의 모든 (X Y) 좌표를 WGS84(lng lat)로 변환
-                
-                
-                const newWkt = item.fturGeomVl.replace(/([\d.]+)\s+([\d.]+)/g, (m, x, y) => {
-                    const [lng, lat] = proj4('EPSG:5181', 'WGS84', [parseFloat(x), parseFloat(y)]);
-                    return `${lng} ${lat}`;
-                });
-                
-                try {
-                    item.geojson = parseWkt(newWkt);
-                    
-                    // 폴백용 중심 좌표 (첫 번째 포인트)
-                    const match = newWkt.match(/([\d.]+)\s+([\d.]+)/);
-                    if (match) {
-                        item.lng = parseFloat(match[1]);
-                        item.lat = parseFloat(match[2]);
-                    }
-                } catch (e) {
-                    console.error("WKT 파싱 오류:", e);
-                }
-             }
-          });
-          return items;
-        } catch (e) {
-          console.error(`sggCd ${sggCd} 호출 오류:`, e.message);
-          return [];
-        }
-      });
-      const results = await Promise.all(promises);
-      results.forEach(items => {
-        allItems = allItems.concat(items);
-      });
-      // 0.5초 대기 (API Rate Limit 방지)
-      await new Promise(r => setTimeout(r, 500));
-    }
-
-    safetyZoneCache = allItems;
-    safetyZoneCacheTime = 0; // 강제 캐시 무효화 (한번만)
-    safetyZoneCacheTime = now;
-    console.log(`보호구역 데이터 갱신 완료! 총 ${allItems.length}건 캐싱됨.`);
-
-    res.json({ success: true, items: allItems, cached: false });
+    res.json({ success: true, items: items, source: 'supabase' });
   } catch (err) {
-    console.error("보호구역 API 프록시 오류:", err);
+    console.error("보호구역 DB 프록시 오류:", err);
     res.status(500).json({ error: err.message });
   }
 });
