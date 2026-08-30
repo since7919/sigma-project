@@ -1175,7 +1175,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
           r.ped_green_b || "",
           r.raw_steps ? JSON.stringify(r.raw_steps) : ""
         ];
-        return line.map(v => String(v)).join(",");
+        return line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
       });
       result.mapCsvLines = mapLines.join('\n');
     }

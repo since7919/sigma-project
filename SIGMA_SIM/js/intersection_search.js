@@ -273,7 +273,7 @@ function handleNoSearchResult(show) {
             noResultEl.style.textAlign = 'center';
             noResultEl.style.color = '#bbb';
             noResultEl.style.fontSize = '12px';
-            document.getElementById('j-sidebar-list').appendChild(noResultEl);
+            document.getElementById('accordion-container').appendChild(noResultEl);
         }
         noResultEl.innerHTML = `
             <div style="margin-bottom:10px;">교차로 검색 결과가 없습니다.</div>
