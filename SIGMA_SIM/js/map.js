@@ -12,8 +12,7 @@
 const map = L.map('map', { zoomControl: false, maxZoom: 22, preferCanvas: true, boxZoom: false }).setView(CONFIG.DEFAULT_LATLNG, 18);
 window.map = map; // [중요] 전역 객체 명시적 할당 (t.addLayer 에러 방지)
 const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 });
-const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19 });
-const grayLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 });
+const googleSatLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22, maxNativeZoom: 20 });
 
 darkLayer.addTo(map);
 
@@ -30,22 +29,22 @@ if (!map.getPane('civil-pane')) {
 function toggleMapTheme() {
     if (STATE.currentTheme === 'dark') {
         map.removeLayer(darkLayer);
-        grayLayer.addTo(map);
-        STATE.currentTheme = 'gray';
-        UI.btnMapTheme.innerHTML = '🗺️ OSM(Gray)';
-        UI.btnMapTheme.classList.add('on');
-    } else if (STATE.currentTheme === 'gray') {
-        map.removeLayer(grayLayer);
-        STATE.currentTheme = 'none';
-        UI.btnMapTheme.innerHTML = '🗺️ OSM(Off)';
-        UI.btnMapTheme.classList.remove('on');
-        UI.btnMapTheme.style.borderColor = 'rgba(255,255,255,0.1)';
+        googleSatLayer.addTo(map);
+        STATE.currentTheme = 'satellite';
+        if (UI.btnMapTheme) {
+            UI.btnMapTheme.innerHTML = '🗺️ 기본지도';
+            UI.btnMapTheme.classList.add('on');
+            UI.btnMapTheme.style.borderColor = 'var(--accent)';
+        }
     } else {
+        map.removeLayer(googleSatLayer);
         darkLayer.addTo(map);
         STATE.currentTheme = 'dark';
-        UI.btnMapTheme.innerHTML = '🗺️ OSM(Black)';
-        UI.btnMapTheme.classList.add('on');
-        UI.btnMapTheme.style.borderColor = 'var(--accent)';
+        if (UI.btnMapTheme) {
+            UI.btnMapTheme.innerHTML = '🗺️ 위성지도';
+            UI.btnMapTheme.classList.remove('on');
+            UI.btnMapTheme.style.borderColor = 'rgba(255,255,255,0.1)';
+        }
     }
     updateGeoJsonStyle();
 }
