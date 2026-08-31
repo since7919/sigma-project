@@ -15,6 +15,7 @@ import IntersectionMarkers, { MapAutoResizer } from './components/IntersectionMa
 import HeaderClock from './components/HeaderClock';
 import MapResizer from './components/MapResizer';
 import MapPanner from './components/MapPanner';
+import SafetyZoneOverlay from './components/SafetyZoneOverlay';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const SUPABASE_URL = import.meta.env.VITE_SIGMA_DB_URL || import.meta.env.VITE_SUPABASE_URL;
@@ -101,6 +102,7 @@ function App() {
   const [mapZoom, setMapZoom] = useState(12);
   const [compassSizeVal, setCompassSizeVal] = useState(200);
   const [filterSeoulActive, setFilterSeoulActive] = useState(false);
+  const [isSafetyZoneOn, setIsSafetyZoneOn] = useState(false);
 
   useEffect(() => {
     const scale = compassSizeVal / 180;
@@ -721,14 +723,40 @@ function App() {
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="멀티스크린"><rect x="2" y="2" width="9" height="9" rx="1" /><rect x="13" y="2" width="9" height="9" rx="1" /><rect x="2" y="13" width="9" height="9" rx="1" /><rect x="13" y="13" width="9" height="9" rx="1" /></svg>
             </button>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.15)', alignSelf: 'center', margin: '0 4px' }}></div>
+
+            <button 
+              className={`btn-clear ${isSafetyZoneOn ? 'active' : ''}`}
+              style={{
+                background: isSafetyZoneOn ? 'rgba(243, 156, 18, 0.25)' : 'transparent',
+                color: isSafetyZoneOn ? '#f39c12' : '#94a3b8',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '15px',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              onClick={() => setIsSafetyZoneOn(prev => !prev)}
+              title="어린이 보호구역"
+            >
+              <span style={{ fontSize: '14px' }}>🚸</span>
+            </button>
           </div>
 
-          <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true} zoomControl={false}>
+          <MapContainer center={DEFAULT_CENTER} zoom={12} style={{width:'100%', height:'100%'}} preferCanvas={true} zoomControl={false} className={mapZoom <= 15 ? 'zoom-15-minus' : ''}>
             <MapBoundsTracker setBounds={setMapBounds} setZoom={setMapZoom} />
             <ZoomControl position="bottomright" />
             <MapAutoResizer />
             <MapPanner intersections={filteredIntersections} targetId={activeNodeId} />
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" attribution='&copy; CARTO' />
+            <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}" maxZoom={22} maxNativeZoom={16} />
+            
+            <SafetyZoneOverlay isVisible={isSafetyZoneOn} />
+            
             <IntersectionMarkers 
               intersections={filteredIntersections} 
               onDetailClick={openDetail}

@@ -186,6 +186,44 @@ async function syncUticIntersections(regionCode) {
   return insertedRecords;
 }
 
+// 1-0. 보호구역 데이터 로드 (Supabase 페이징 우회)
+app.get('/api/safetyzone', async (req, res) => {
+  try {
+    let allData = [];
+    let from = 0;
+    const step = 1000;
+    
+    // Supabase 1,000건 한도 우회를 위한 페이징 로직
+    while (true) {
+      const { data, error } = await supabase
+        .from('safety_zones')
+        .select('*')
+        .range(from, from + step - 1);
+        
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      
+      allData = allData.concat(data);
+      if (data.length < step) break;
+      from += step;
+    }
+    
+    // 프론트엔드가 처리하기 편하도록 키 매핑
+    const items = allData.map(row => ({
+      ptznMngNo: row.ptznmngno,
+      trgtFcltNm: row.name,
+      sggCd: row.sggcd,
+      fcltTypeCd: row.type,
+      geojson: row.geojson
+    }));
+    
+    res.json({ success: true, items: items });
+  } catch (err) {
+    console.error('Error fetching safety zones:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 1-1. 교차로 마스터 데이터 수동 갱신 (UTIC -> DB)
 app.get('/api/intersections/sync', async (req, res) => {
   const { regionCode } = req.query;

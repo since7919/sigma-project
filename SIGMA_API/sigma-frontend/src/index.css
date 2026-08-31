@@ -671,3 +671,21 @@ details.footer-section summary::marker { content: ''; }
 .eop-row td { border-top: 2px solid #f59e0b !important; border-bottom: 2px solid #f59e0b !important; }  
 .eop-row td:first-child { border-left: 2px solid #f59e0b !important; }  
 .eop-row td:last-child { border-right: 2px solid #f59e0b !important; } 
+
+/* Safety Zone Styles */
+.safety-zone-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.safetyzone-tooltip {
+  background: rgba(15, 23, 42, 0.85);
+  color: #f39c12;
+  border: 1px solid #e74c3c;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 11px;
+}
+.zoom-15-minus .safetyzone-tooltip {
+  display: none !important;
+}
