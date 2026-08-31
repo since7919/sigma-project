@@ -837,7 +837,7 @@ window.handleStepSlider = function(e, container, paramType) {
         document.getElementById('val-arrow-size-bottom').innerText = labels[step];
         if (typeof syncScaleArrow === 'function') syncScaleArrow(vals[step]);
     } else if (paramType === 'weight') {
-        const vals = [2.5, 5.5, 9.5]; 
+        const vals = [3, 8, 16]; 
         document.getElementById('txt-network-weight').innerText = labels[step];
         updateGroupLineWeight(vals[step]);
     } else if (paramType === 'name') {
@@ -874,12 +874,21 @@ window.updateStepSliderUI = function(container, step) {
 window.updateGroupLineWeight = function(val) {
     if (typeof STATE !== 'undefined') {
         STATE.groupLineWeight = val;
-        if (STATE.geoJsonLayer) {
-            STATE.geoJsonLayer.eachLayer(layer => {
-                if (layer.setStyle) {
-                    layer.setStyle({ weight: val });
-                }
-            });
+        
+        // CSS 변수로 강제 제어 (100% 확실한 반영)
+        document.documentElement.style.setProperty('--group-line-weight', val + 'px');
+        
+        // 1. 일반 geoJsonLayer (기본 연동구간 표시) - Leaflet style 객체로도 업데이트
+        if (STATE.geoJsonLayer && typeof STATE.geoJsonLayer.setStyle === 'function') {
+            STATE.geoJsonLayer.setStyle({ weight: val });
+        }
+        
+        // 2. RoadManager 에디터 캔버스 (우측 상단 '연동' 버튼 활성화 시 오버레이되는 라인)
+        if (window.RoadManager) {
+            window.RoadManager.baseWeight = val;
+            if (window.RoadManager.isActive && typeof window.RoadManager.render === 'function') {
+                window.RoadManager.render();
+            }
         }
     }
 };

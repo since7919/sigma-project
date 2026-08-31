@@ -745,7 +745,8 @@ function processGeoJSON(json) {
                     lineJoin: 'round',
                     lineCap: 'round',
                     fillColor: color,
-                    fillOpacity: 0.05
+                    fillOpacity: 0.05,
+                    className: 'group-line'
                 };
             },
             onEachFeature: (feature, layer) => {
