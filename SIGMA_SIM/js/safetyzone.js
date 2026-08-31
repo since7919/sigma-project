@@ -85,7 +85,6 @@ async function fetchAndDrawSafetyZones() {
                         geometry: parsedGeo,
                         properties: { name, type }
                     });
-                });
                 }
             } else {
                 const lat = parseFloat(item.lat || item.latitude || item.y || item.Y);
