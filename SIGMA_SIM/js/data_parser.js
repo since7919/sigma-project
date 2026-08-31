@@ -353,7 +353,17 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     throw new Error("먼저 교차로를 선택해주세요.");
                 }
                 const activeSeq = parseInt(STATE.junctions[STATE.activeJid].seq);
-                if (!isNaN(activeSeq) && activeSeq !== expectedSeq) {
+                const activeName = String(STATE.junctions[STATE.activeJid].name || "").trim();
+                const expectedName = String(getVal(3, 49) || "").trim();
+
+                let nameWarning = (activeName && expectedName && activeName !== expectedName);
+                let seqWarning = (!isNaN(activeSeq) && activeSeq !== expectedSeq);
+
+                if (nameWarning) {
+                    if (!confirm(`현재 선택된 교차로명(${activeName})과 업로드하신 엑셀 파일의 교차로명(${expectedName})이 일치하지 않습니다.\n교차로명이 다른데도 업데이트를 계속하시겠습니까?`)) {
+                        throw new Error(`사용자 취소 (교차로명 불일치)`);
+                    }
+                } else if (seqWarning) {
                     if (!confirm(`현재 선택된 교차로(No. ${activeSeq})와 업로드하신 엑셀 파일의 교차로(No. ${expectedSeq})가 일치하지 않습니다.\n선택된 교차로(No. ${activeSeq})에 이 데이터를 업데이트하시겠습니까?`)) {
                         throw new Error(`사용자 취소 (교차로번호 불일치)`);
                     }
