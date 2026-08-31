@@ -12,7 +12,7 @@
 const map = L.map('map', { zoomControl: false, maxZoom: 22, preferCanvas: true, boxZoom: false }).setView(CONFIG.DEFAULT_LATLNG, 18);
 window.map = map; // [중요] 전역 객체 명시적 할당 (t.addLayer 에러 방지)
 const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22, maxNativeZoom: 16 });
-const googleSatLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22, maxNativeZoom: 20 });
+const googleSatLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, maxNativeZoom: 20 });
 
 darkLayer.addTo(map);
 
