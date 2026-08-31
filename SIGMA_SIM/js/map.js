@@ -55,12 +55,8 @@ function toggleMapTheme() {
 function updateGeoJsonStyle() {
     if (!STATE.geoJsonLayer) return;
     const isNone = (STATE.currentTheme === 'none');
-    STATE.geoJsonLayer.setStyle({
-        color: isNone ? "#00d4ff" : "var(--accent)",
-        weight: isNone ? 2 : 1.2,
-        opacity: isNone ? 0.8 : 0.4,
-        fillOpacity: isNone ? 0.2 : 0.08
-    });
+    // 테마가 바뀌어도 연동그룹 색상과 두께를 유지하도록 제거 (혹은 최소한만 업데이트)
+    // STATE.geoJsonLayer.setStyle({...});
     STATE.geoJsonLayer.bringToBack();
 }
 

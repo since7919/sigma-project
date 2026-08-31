@@ -837,9 +837,9 @@ window.handleStepSlider = function(e, container, paramType) {
         document.getElementById('val-arrow-size-bottom').innerText = labels[step];
         if (typeof syncScaleArrow === 'function') syncScaleArrow(vals[step]);
     } else if (paramType === 'weight') {
-        const vals = [1, 2, 4]; 
+        const vals = [2.5, 5.5, 9.5]; 
         document.getElementById('txt-network-weight').innerText = labels[step];
-        if (typeof updateNetworkWeight === 'function') updateNetworkWeight(vals[step]);
+        updateGroupLineWeight(vals[step]);
     } else if (paramType === 'name') {
         const vals = [9, 11, 14]; 
         document.getElementById('val-name-size-bottom').innerText = labels[step];
@@ -868,4 +868,18 @@ window.updateStepSliderUI = function(container, step) {
             dot.classList.remove('active');
         }
     });
+};
+
+
+window.updateGroupLineWeight = function(val) {
+    if (typeof STATE !== 'undefined') {
+        STATE.groupLineWeight = val;
+        if (STATE.geoJsonLayer) {
+            STATE.geoJsonLayer.eachLayer(layer => {
+                if (layer.setStyle) {
+                    layer.setStyle({ weight: val });
+                }
+            });
+        }
+    }
 };

@@ -740,7 +740,7 @@ function processGeoJSON(json) {
                 
                 return {
                     color: color,
-                    weight: 5.5,
+                    weight: (typeof STATE !== 'undefined' && STATE.groupLineWeight) ? STATE.groupLineWeight : 5.5,
                     opacity: 0.4, // 반투명 감각 강화
                     lineJoin: 'round',
                     lineCap: 'round',
