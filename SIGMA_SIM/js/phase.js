@@ -843,9 +843,16 @@ function renderTodPlanInfoTable() {
 
     const jid = STATE.activeJid;
     const j = jid ? STATE.junctions[jid] : null;
+    // 교차로가 선택되지 않았을 경우, 기본 상태(defaultSchedules)를 보여주고 수정 가능하도록 함
+    let useSchedules = j ? j.schedules : null;
     if (!j) {
-        container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666; font-size: 11.5px;">교차로를 선택해 주세요.</div>';
-        return;
+        if (!STATE.defaultSchedules) {
+            STATE.defaultSchedules = {};
+            for(let i=0; i<10; i++) {
+                STATE.defaultSchedules[i] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+            }
+        }
+        useSchedules = STATE.defaultSchedules;
     }
 
     const dayIdx = STATE.currentJunctionDayTypeIdx;
@@ -889,7 +896,7 @@ function renderTodPlanInfoTable() {
                         <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: ${pIdx === rIdx ? 'rgba(255,255,255,0.02)' : 'transparent'};">
                             <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                             ${dayPlanIndices.map(idx => {
-                                const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
+                                const sc = (useSchedules && useSchedules[idx]) ? useSchedules[idx][rIdx] : null;
                                 const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
                                 const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
@@ -925,9 +932,67 @@ function renderTodPlanInfoTable() {
 }
 
 window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
+    let activeDay = null, activeSlot = null, activeField = null;
+    if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
+        activeDay = document.activeElement.getAttribute('data-day');
+        activeSlot = document.activeElement.getAttribute('data-slot');
+        activeField = document.activeElement.getAttribute('data-field');
+    }
     const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
-    if (!j) return;
+    // 교차로가 없을 때는 defaultSchedules를 수정하도록 함
+    if (!j) {
+        if (!STATE.defaultSchedules) {
+            STATE.defaultSchedules = {};
+            for(let i=0; i<10; i++) {
+                STATE.defaultSchedules[i] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+            }
+        }
+        let sc = STATE.defaultSchedules[dayIdx][slotIdx];
+        if (!sc) {
+            sc = {h:-1, m:0, cycle:0};
+            STATE.defaultSchedules[dayIdx][slotIdx] = sc;
+        }
+
+        if (field === 'time') {
+            if (!value || !value.includes(':')) {
+                sc.h = -1; sc.m = 0;
+            } else {
+                let parts = value.split(':');
+                if (parts.length === 2) {
+                    sc.h = parseInt(parts[0]) || 0;
+                    sc.m = parseInt(parts[1]) || 0;
+                }
+            }
+        } else if (field === 'cycle') {
+            sc.cycle = parseInt(value) || 0;
+        } else if (field === 'idx') {
+            sc.idx = parseInt(value) || 0;
+        }
+
+        let activeDay = null, activeSlot = null, activeField = null;
+        if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
+            activeDay = document.activeElement.getAttribute('data-day');
+            activeSlot = document.activeElement.getAttribute('data-slot');
+            activeField = document.activeElement.getAttribute('data-field');
+        }
+
+        renderTodPlanInfoTable();
+
+        if (activeDay !== null) {
+            setTimeout(() => {
+                const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
+                if (inputToFocus) {
+                    inputToFocus.focus();
+                    if (inputToFocus.type === 'text') {
+                        const len = inputToFocus.value.length;
+                        inputToFocus.setSelectionRange(len, len);
+                    }
+                }
+            }, 10);
+        }
+        return;
+    }
 
     if (j.group) {
         if (!confirm("이 수정은 그룹 소속 교차로 전체에 영향을 줍니다. 수정하시겠습니까?")) {
@@ -1007,6 +1072,19 @@ window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
         if (typeof renderSummaryTable === 'function') renderSummaryTable();
     }
     if (typeof updatePlanMap === 'function') updatePlanMap();
+
+    if (activeDay !== null) {
+        setTimeout(() => {
+            const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
+            if (inputToFocus) {
+                inputToFocus.focus();
+                if (inputToFocus.type === 'text') {
+                    const len = inputToFocus.value.length;
+                    inputToFocus.setSelectionRange(len, len);
+                }
+            }
+        }, 10);
+    }
 };
 
 window.toggleTodPlanGroup = function(group) {
@@ -1017,6 +1095,16 @@ window.toggleTodPlanGroup = function(group) {
 };
 
 window.selectTodPlanCell = function(dayIdx, slotIdx) {
+    if (STATE.currentJunctionDayTypeIdx === dayIdx && parseInt(UI.planIdx.value || 0) === slotIdx) {
+        return; // 불필요한 재렌더링 방지
+    }
+
+    let activeDay = null, activeSlot = null, activeField = null;
+    if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
+        activeDay = document.activeElement.getAttribute('data-day');
+        activeSlot = document.activeElement.getAttribute('data-slot');
+        activeField = document.activeElement.getAttribute('data-field');
+    }
     STATE.currentJunctionDayTypeIdx = dayIdx;
     UI.planIdx.value = slotIdx;
     let labelEl = document.getElementById('j-current-day-label');
@@ -1032,6 +1120,19 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
     renderRingTables();
     renderSummaryTable();
     updateJunctionDayUI();
+
+    if (activeDay !== null) {
+        setTimeout(() => {
+            const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
+            if (inputToFocus) {
+                inputToFocus.focus();
+                if (inputToFocus.type === 'text') {
+                    const len = inputToFocus.value.length;
+                    inputToFocus.setSelectionRange(len, len);
+                }
+            }
+        }, 10);
+    }
 };
 
 /** [신규] DB 파일 관리 전용 패널 렌더링 (최상단 고정) */
