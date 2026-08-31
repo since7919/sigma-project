@@ -11,7 +11,7 @@ class RoadNetworkManager {
         this.layerGroup = null;
         this.isActive = false;      // 데이터 로드 여부
         this.isEditMode = false;    // 편집 가능 여부
-        this.baseWeight = 2;        // 도로망 기본 선 굵기
+        this.baseWeight = 5.5;        // 도로망 기본 선 굵기
         this.selectedNode = null;
         this.highlightGroupId = null;
         this.edgeSet = new Set();    // [최적화] 중복 체크용 고속 Set
@@ -466,7 +466,7 @@ class RoadNetworkManager {
 
             L.polyline([[u.lat, u.lng], [v.lat, v.lng]], {
                 color: isHighlightGroup ? '#2ecc71' : color, // 강조 시에만 에메랄드 컬러
-                weight: isHighlightGroup ? 8 : 5.5,
+                weight: isHighlightGroup ? (this.baseWeight * 1.5) : this.baseWeight,
                 opacity: isHighlightGroup ? 0.8 : 0.4, // 반투명 감각 강조
                 lineJoin: 'round',
                 lineCap: 'round',
