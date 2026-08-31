@@ -653,8 +653,7 @@ function exportSingleJunctionCSV(jid) {
         const pls = (j.dayPlans && j.dayPlans[d]) ? j.dayPlans[d] : null;
         for (let s = 0; s < 16; s++) {
             const sc = (schs && schs[s]) ? schs[s] : { h: -1, m: 0, cycle: 100, idx: 1 };
-            const pIdx = (sc.idx || 1) - 1;
-            const pl = (pls && pls[pIdx]) ? pls[pIdx] : { offset: 0, cycle: 100, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+            const pl = (pls && pls[s]) ? pls[s] : { offset: 0, cycle: 100, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
             const timeStr = sc.h === -1 ? "-1" : `${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}`;
             row.push(`${timeStr}|${pl.cycle || sc.cycle || 100}|${pl.offset || 0}|${(pl.splitA||[]).join(';')}|${(pl.splitB||[]).join(';')}|${sc.idx || 1}`);
         }
