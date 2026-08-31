@@ -106,17 +106,18 @@ async function fetchAndDrawSafetyZones() {
                     color: '#e74c3c',
                     weight: 2,
                     fillColor: '#f39c12',
-                    fillOpacity: 0.3
+                    fillOpacity: 0.3, interactive: true
                 };
             },
             pointToLayer: function(feature, latlng) {
-                // 무거운 L.divIcon 대신 고속 렌더링 L.circleMarker 사용
                 return L.circleMarker(latlng, {
                     radius: 8,
                     color: '#fff',
                     weight: 2,
                     fillColor: '#f39c12',
-                    fillOpacity: 0.8
+                    fillOpacity: 0.8,
+                    interactive: true,
+                    pane: 'markerPane'
                 });
             },
             onEachFeature: function(feature, layer) {
