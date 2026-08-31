@@ -69,7 +69,7 @@ body {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: var(--neon-cyan);
+    color: #ffffff;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -120,7 +120,7 @@ body {
 /* Congestion List */
 .road-item {
     padding: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid #3e3e42;
     font-size: 0.85rem;
     transition: 0.2s;
     cursor: pointer;
@@ -209,7 +209,7 @@ body {
 }
 
 .card-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--neon-cyan);
     margin-bottom: 4px;

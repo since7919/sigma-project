@@ -22,35 +22,37 @@
 
     <style>
         .phase-action-btn {
-            height: 24px;
-            line-height: 22px;
-            padding: 0 10px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 4px;
+            height: 28px;
+            line-height: 26px;
+            padding: 0 12px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 2px;
             cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            transition: background 0.1s ease, border-color 0.1s ease;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
             white-space: nowrap;
             flex-shrink: 0;
+            box-shadow: none;
         }
-        .phase-btn-purple { background: #8b5cf6; color: white; border: 1px solid #a78bfa; }
-        .phase-btn-purple:hover { background: #7c3aed; }
-        .phase-btn-cyan { background: var(--accent); color: #000; }
-        .phase-btn-cyan:hover { background: #67e8f9; }
-        .phase-btn-green { background: #10b981; color: white; border: 1px solid #34d399; }
-        .phase-btn-green:hover { background: #059669; }
-        .phase-btn-red { background: #ef4444; color: white; border: 1px solid #f87171; }
-        .phase-btn-red:hover { background: #dc2626; }
-        .phase-btn-gray { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
-        .phase-btn-gray:hover { background: rgba(255,255,255,0.2); }
+        .phase-btn-purple { background: #3c2a63; color: #d1bdfa; border-color: #553b8c; }
+        .phase-btn-purple:hover { background: #4a347a; }
+        .phase-btn-cyan { background: #0b455b; color: #99e6ff; border-color: #126b8c; }
+        .phase-btn-cyan:hover { background: #105a75; }
+        .phase-btn-green { background: #1c4532; color: #a7f3d0; border-color: #2b6b4d; }
+        .phase-btn-green:hover { background: #255a42; }
+        .phase-btn-red { background: #5c1c1c; color: #fecaca; border-color: #8c2b2b; }
+        .phase-btn-red:hover { background: #732323; }
+        .phase-btn-gray { background: #333333; color: #cccccc; border-color: #4d4d4d; }
+        .phase-btn-gray:hover { background: #404040; }
+        
         .step-slider-container { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; padding: 4px 0;}
         .step-slider { position: relative; width: 100%; height: 12px; cursor: pointer; }
-        .step-slider-track { position: absolute; left: 4px; right: 4px; height: 4px; background: #475569; top: 4px; z-index: 1; border-radius: 2px; }
+        .step-slider-track { position: absolute; left: 4px; right: 4px; height: 2px; background: #3e3e42; top: 5px; z-index: 1; }
         .step-slider-fill { position: absolute; left: 4px; height: 4px; background: #38bdf8; top: 4px; z-index: 1; transition: width 0.2s; border-radius: 2px; }
         .step-slider-dot { position: absolute; top: 0; width: 10px; height: 10px; margin-top: 1px; border-radius: 50%; background: #475569; z-index: 2; transition: all 0.2s; }
         .step-slider-dot.active { width: 12px; height: 12px; margin-top: 0; background: #38bdf8; }
@@ -348,19 +350,21 @@
 
 
         <div id="tab-info" class="tab-content active">
-            <!-- 1. [교차로&신호등 편집] -->
+            <!-- 1. [교차로 & 신호등 편집] -->
             <div class="sigma-panel">
                 <div class="card-title">
-                    <span>🛠️ 교차로 & 신호등 편집</span>
+                    <span style="font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: #fff;">⚙️ 교차로 & 신호등 설정</span>
                 </div>
-                <div class="foldable-content">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        <button id="btn-add-junction" class="phase-action-btn phase-btn-green" onclick="toggleAddMode()">➕ 교차로 추가</button>
-                        <button class="phase-action-btn phase-btn-red" onclick="deleteJunction()">🗑️ 교차로 삭제</button>
+                <div class="foldable-content" style="padding-top: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button id="btn-add-junction" class="phase-action-btn phase-btn-green" onclick="toggleAddMode()">➕ 추가</button>
+                        <button class="phase-action-btn phase-btn-red" onclick="deleteJunction()">🗑️ 삭제</button>
                         
-                        <button id="btn-map-edit" class="phase-action-btn phase-btn-purple" onclick="toggleMapEdit()">🔧 신호등 편집</button>
-                        <button id="btn-reset-arrows" class="phase-action-btn phase-btn-gray" onclick="resetArrowPositions()">🔄 신호등 초기화</button>
-                        <button class="phase-action-btn phase-btn-cyan" onclick="applyInfo()">✅ 적용</button>
+                        <div style="grid-column: span 2; height: 1px; background: #3e3e42; margin: 4px 0;"></div>
+                        
+                        <button id="btn-map-edit" class="phase-action-btn phase-btn-purple" onclick="toggleMapEdit()">🔧 위치 편집</button>
+                        <button id="btn-reset-arrows" class="phase-action-btn phase-btn-gray" onclick="resetArrowPositions()">🔄 초기화</button>
+                        <button class="phase-action-btn phase-btn-cyan" style="grid-column: span 2;" onclick="applyInfo()">✅ 변경사항 적용</button>
                     </div>
                 </div>
             </div>
@@ -369,19 +373,29 @@
             <!-- 3. [연동구간 편집] -->
             <div class="sigma-panel" style="margin-top: 15px;">
                 <div class="card-title">
-                    <span>🔗 연동구간 정보</span>
+                    <span style="font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: #fff;">🔗 연동 네트워크 제어</span>
                 </div>
-                <div class="foldable-content">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                        <button class="phase-action-btn phase-btn-cyan" onclick="analyzeRoadNetwork()">🔍 분석 (전체)</button>
-                        <button class="phase-action-btn phase-btn-purple" onclick="analyzeSelectedGroupNetwork()">🎯 분석 (그룹)</button>
-                        <button id="btn-edit-network" class="phase-action-btn phase-btn-gray" onclick="toggleNetworkEditMode()">✏️ 편집 모드</button>
-                        <button class="phase-action-btn phase-btn-gray" onclick="clearDBFile('links')">🔄 연동 초기화</button>
-                        <button class="phase-action-btn phase-btn-red" onclick="exportRoadNetwork()">📥 내보내기</button>
+                <div class="foldable-content" style="padding-top: 8px;">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <button class="phase-action-btn phase-btn-cyan" onclick="analyzeRoadNetwork()">전체 망 분석</button>
+                            <button class="phase-action-btn phase-btn-purple" onclick="analyzeSelectedGroupNetwork()">선택 그룹 분석</button>
+                        </div>
+                        <div style="font-size: 11px; color: #888; padding-left: 4px;">ARN 최적화망 자동 생성 (GeoJSON)</div>
                         
-                        <div style="grid-column: span 3; display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                            <span style="font-size: 11px; color: #bbb;">🕒 주기기준 분석:</span>
-                            <select id="cycle-analyze-hour" class="phase-select">
+                        <div style="height: 1px; background: #3e3e42; margin: 2px 0;"></div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <button id="btn-edit-network" class="phase-action-btn phase-btn-gray" onclick="toggleNetworkEditMode()">수동 편집 모드</button>
+                            <button class="phase-action-btn phase-btn-red" onclick="exportRoadNetwork()">위상 데이터 저장</button>
+                        </div>
+                        <div style="font-size: 11px; color: #888; padding-left: 4px;">편집: Alt+클릭(삭제), 노드간 클릭(연결)</div>
+                        
+                        <div style="height: 1px; background: #3e3e42; margin: 2px 0;"></div>
+                        
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 12px; color: #ccc; white-space: nowrap;">동일주기:</span>
+                            <select id="cycle-analyze-hour" class="phase-select" style="background:#1e1e1e; border:1px solid #3e3e42; color:#fff; padding:4px; border-radius:2px; font-size:12px;">
                                 <option value="0">00시</option><option value="1">01시</option><option value="2">02시</option>
                                 <option value="3">03시</option><option value="4">04시</option><option value="5">05시</option>
                                 <option value="6">06시</option><option value="7">07시</option><option value="8">08시</option>
@@ -391,13 +405,10 @@
                                 <option value="18">18시</option><option value="19">19시</option><option value="20">20시</option>
                                 <option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
                             </select>
-                            <button class="phase-action-btn phase-btn-green" style="flex: 1;" onclick="analyzeCycleNetwork()">⏱️ 동일주기 망 구성</button>
+                            <button class="phase-action-btn phase-btn-green" style="flex: 1;" onclick="analyzeCycleNetwork()">실행</button>
                         </div>
-                    </div>
-                    <div style="font-size: 11px; color: #888; padding: 5px 10px 10px 10px; line-height: 1.5;">
-                        * <b>분석</b>: 그룹 ID 기준으로 ARN 최적화망 자동 생성<br>
-                        * <b>편집</b>: Alt+클릭(삭제), 노드간 클릭(추가) 활성화<br>
-                        * <b>내보내기</b>: GeoJSON 형식으로 네트워크 위상 저장
+                        
+                        <button class="phase-action-btn phase-btn-gray" style="margin-top: 4px;" onclick="clearDBFile('links')">망 데이터 전체 초기화</button>
                     </div>
                 </div>
             </div>
@@ -410,8 +421,8 @@
                 <div class="foldable-content">
                     <!-- Row 1: 교차로 크기, 신호등 크기, 연동구간 두께 -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 10px 8px;">
-                        <div class="group-neon">
-                            <label style="font-size: 11px;">교차로 크기 <span id="val-node-size-bottom" style="color:var(--neon-cyan);">보통</span></label>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 11px;">교차로 크기 <span id="val-node-size-bottom" style="color: #38bdf8; font-weight: 600;">보통</span></label>
                             
 <div class="step-slider-container">
     <div class="step-slider" onclick="handleStepSlider(event, this, 'node')">
@@ -424,8 +435,8 @@
 </div>
 
                         </div>
-                        <div class="group-neon">
-                            <label style="font-size: 11px;">신호등 크기 <span id="val-arrow-size-bottom" style="color:var(--neon-cyan);">보통</span></label>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 11px;">신호등 크기 <span id="val-arrow-size-bottom" style="color: #38bdf8; font-weight: 600;">보통</span></label>
                             
 <div class="step-slider-container">
     <div class="step-slider" onclick="handleStepSlider(event, this, 'arrow')">
@@ -438,8 +449,8 @@
 </div>
 
                         </div>
-                        <div class="group-neon">
-                            <label style="font-size: 11px;">연동구간 두께 <span id="txt-network-weight" style="color:#00d4ff;">보통</span></label>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 11px;">연동구간 두께 <span id="txt-network-weight" style="color: #38bdf8; font-weight: 600;">보통</span></label>
                             
 <div class="step-slider-container">
     <div class="step-slider" onclick="handleStepSlider(event, this, 'weight')">
@@ -456,8 +467,8 @@
 
                     <!-- Row 2: 글자 크기, 글자색 -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 8px 10px 8px;">
-                        <div class="group-neon">
-                            <label style="font-size: 11px;">글자 크기 <span id="val-name-size-bottom" style="color:var(--neon-cyan);">보통</span></label>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 11px;">글자 크기 <span id="val-name-size-bottom" style="color: #38bdf8; font-weight: 600;">보통</span></label>
                             
 <div class="step-slider-container">
     <div class="step-slider" onclick="handleStepSlider(event, this, 'name')">
@@ -470,7 +481,7 @@
 </div>
 
                         </div>
-                        <div class="group-neon">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
                             <label style="font-size: 11px;">글자색</label>
                             <input type="color" id="color-name-bottom" value="#ffffff"
                                 oninput="syncColorName(this.value)"
@@ -1693,7 +1704,7 @@
                         </div>
 
                         <div id="stat-op-summary-panel" class="sigma-panel mt-20 border-l-4"
-                            style="background:rgba(0,0,0,0.25); border-left-color:#00d4ff;">
+                            style="background:rgba(0,0,0,0.25); border-left-color: #38bdf8; font-weight: 600;">
                             <h4 class="text-neon-cyan fs-13 flex-row gap-8 mb-12">📊 신호 주요 운영 현황 (Signal Assets)</h4>
                             <div id="stat-op-summary" class="p-5">
                                 <!-- JS dynamic injection: Road Facilities, Signal Operations, Controllers -->
@@ -1973,7 +1984,7 @@
                                                 개별 현시 설정</button>
                                         </div>
                                         <button class="btn-neon w-100" onclick="syncAllOptFromSignals()"
-                                            style="height: 32px; font-size: 12px; font-weight:900; background:rgba(0, 243, 255, 0.1); border-color:rgba(0, 243, 255, 0.4); color:var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
+                                            style="height: 32px; font-size: 12px; font-weight:900; background:rgba(0, 243, 255, 0.1); border-color:rgba(0, 243, 255, 0.4); color: #38bdf8; font-weight: 600; box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);">
                                             🚀 전체 교차로 일괄 현시 설정
                                         </button>
                                     </div>
