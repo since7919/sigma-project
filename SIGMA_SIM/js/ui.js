@@ -396,55 +396,49 @@ function initSidebarResizer() {
  *  스케일(크기) 업데이트
  * ══════════════════════════════════════════ */
 function updateScales() {
-    // [하단 컨트롤로 통일됨]
-    const nodeEl = document.getElementById('scale-node-bottom');
-    const arrowEl = document.getElementById('scale-arrow-bottom');
-    if (!nodeEl || !arrowEl) return;
-
-    STATE.nodeScale = parseFloat(nodeEl.value);
-    STATE.arrowScale = parseFloat(arrowEl.value);
-    
-    if (UI.nodeSizeVal) UI.nodeSizeVal.innerText = STATE.nodeScale.toFixed(1);
-    if (UI.arrowSizeVal) UI.arrowSizeVal.innerText = STATE.arrowScale.toFixed(1);
-
-    document.documentElement.style.setProperty('--node-scale', STATE.nodeScale);
-    document.documentElement.style.setProperty('--arrow-scale', STATE.arrowScale);
-
-    Object.values(STATE.junctions).forEach(j => {
-        if (j.marker && j.marker.setRadius) {
-            const isSelected = (j.id === STATE.activeJid);
-            j.marker.setRadius((isSelected ? 11 : 6) * STATE.nodeScale);
-        }
-    });
+    syncScaleNode(STATE.nodeScale);
+    syncScaleArrow(STATE.arrowScale);
 }
 
-function syncScaleNode(val) { updateScales(); }
-function syncScaleArrow(val) { updateScales(); }
+function syncScaleNode(val) {
+    if (val !== undefined) STATE.nodeScale = val;
+    document.documentElement.style.setProperty('--node-scale', STATE.nodeScale);
+    if (STATE.junctions) {
+        Object.values(STATE.junctions).forEach(j => {
+            if (j.marker && j.marker.setRadius) {
+                const isSelected = (j.id === STATE.activeJid);
+                j.marker.setRadius((isSelected ? 11 : 6) * STATE.nodeScale);
+            }
+        });
+    }
+}
+
+function syncScaleArrow(val) {
+    if (val !== undefined) STATE.arrowScale = val;
+    document.documentElement.style.setProperty('--arrow-scale', STATE.arrowScale);
+}
 
 /* ══════════════════════════════════════════
  *  명칭 스타일 업데이트
  * ══════════════════════════════════════════ */
 function updateNameStyles() {
-    const sizeEl = document.getElementById('scale-name-bottom');
-    const colorEl = document.getElementById('color-name-bottom');
-    if (!sizeEl || !colorEl) return;
-
-    const size = sizeEl.value;
-    const color = colorEl.value;
-    
-    if (UI.nameSizeVal) UI.nameSizeVal.innerText = size;
-
-    document.documentElement.style.setProperty('--name-size', size + 'px');
-    document.documentElement.style.setProperty('--name-color', color);
-
-    document.querySelectorAll('.leaflet-tooltip-own').forEach(el => {
-        el.style.fontSize = size + 'px';
-        el.style.color = color;
-    });
+    syncScaleName(window._currentNameSize || 11);
 }
 
-function syncScaleName(val) { updateNameStyles(); }
-function syncColorName(val) { updateNameStyles(); }
+function syncScaleName(val) {
+    if (val !== undefined) window._currentNameSize = val;
+    else val = window._currentNameSize || 11;
+    document.documentElement.style.setProperty('--name-size', val + 'px');
+    document.querySelectorAll('.leaflet-tooltip-own').forEach(el => {
+        el.style.fontSize = val + 'px';
+    });
+}
+function syncColorName(val) {
+    document.documentElement.style.setProperty('--name-color', val);
+    document.querySelectorAll('.leaflet-tooltip-own').forEach(el => {
+        el.style.color = val;
+    });
+}
 
 /* ══════════════════════════════════════════
  *  툴팁 관리
@@ -566,7 +560,7 @@ function bindNewTooltip(j, jid, content) {
     j.marker.bindTooltip(content, {
         permanent: isPermanent,
         direction: 'top',
-        className: 'map-label',
+        className: 'leaflet-tooltip-own',
         offset: [0, -10],
         opacity: isPermanent ? 1 : 0.8
     });
