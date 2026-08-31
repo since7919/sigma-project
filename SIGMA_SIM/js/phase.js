@@ -790,215 +790,12 @@ function copyJunctionTODDay() {
 
 function updateJunctionDayUI() {
     renderWeeklyPlanTable();
-    renderTodPlanInfoTable();
-}
-
-function renderWeeklyPlanTable() {
-    const container = document.getElementById('weekly-plan-container');
-    if (!container) return;
-
-    const jid = STATE.activeJid;
-    const j = jid ? STATE.junctions[jid] : null;
-    const weeklyPlan = (j && j.weeklyPlan) ? j.weeklyPlan.split(';') : ["1", "1", "1", "1", "1", "2", "3"];
-    const weekLabels = ["월", "화", "수", "목", "금", "토", "일"];
-    
-    const dayOfWeek = (typeof STATE !== 'undefined' && STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
-    const jsToWeeklyMap = [6, 0, 1, 2, 3, 4, 5];
-    const currentDayIndex = jsToWeeklyMap[dayOfWeek];
-
-    let html = `
-        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 일계획표</div>
-        <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; border: 1px solid rgba(255,255,255,0.08);">
-            <thead>
-                <tr style="background: rgba(255,255,255,0.05);">
-                    ${weekLabels.map((w, idx) => {
-                        const isToday = idx === currentDayIndex;
-                        return `<th style="padding: 6px; color: ${isToday ? 'var(--accent)' : '#94a3b8'}; border: 1px solid rgba(255,255,255,0.08);">${w}</th>`;
-                    }).join('')}
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    ${weekLabels.map((w, idx) => {
-                        const planNum = parseInt(weeklyPlan[idx] || 1);
-                        const isToday = idx === currentDayIndex;
-                        return `
-                            <td style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); background: ${isToday ? 'rgba(241,196,15,0.1)' : 'transparent'};">
-                                <input type="number" class="sigma-input inp-weekly-plan" data-index="${idx}" min="1" max="10" 
-                                       value="${planNum}" onchange="updateWeeklyPlanData(${idx}, this.value)"
-                                       style="width:100%; height:20px; font-size:11.5px; font-weight:bold; text-align:center; color:${isToday ? 'var(--accent)' : '#fff'}; background:transparent; border:none; padding:0;">
-                            </td>
-                        `;
-                    }).join('')}
-                </tr>
-            </tbody>
-        </table>
-    `;
-    container.innerHTML = html;
-}
-
-function renderTodPlanInfoTable() {
-    const container = document.getElementById('tod-plan-info-container');
-    if (!container) return;
-
-    const jid = STATE.activeJid;
-    const j = jid ? STATE.junctions[jid] : null;
-    if (!j) {
-        container.innerHTML = '<div style="padding: 10px; text-align: center; color: #666; font-size: 11.5px;">교차로를 선택해 주세요.</div>';
-        return;
-    }
-
-    const dayIdx = STATE.currentJunctionDayTypeIdx;
-    const pIdx = parseInt(UI.planIdx?.value) || 0;
-
-    STATE._todPlanGroup = STATE._todPlanGroup || 1;
-    const group = STATE._todPlanGroup;
-
-    const dayPlanIndices = group === 1 ? [0, 1, 2, 3, 4] : [5, 6, 7, 8, 9];
-
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획정보 (현재 조회: ${DAY_LABELS[dayIdx]})</span>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="toggleTodPlanGroup(1)" style="background: ${group === 1 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">일반맵 (1~5)</button>
-                <button onclick="toggleTodPlanGroup(2)" style="background: ${group === 2 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">시차맵 (6~10)</button>
-            </div>
-        </div>
-        <div style="overflow-x: auto; background: #0f172a; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-            <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
-                <thead>
-                    <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 30px; color: #94a3b8;">#</th>
-                        ${dayPlanIndices.map(idx => `
-                            <th colspan="3" onclick="changeJunctionDayType(${idx})" style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.08); color: ${dayIdx === idx ? 'var(--accent)' : '#94a3b8'}; cursor: pointer; font-weight: bold; background: ${dayIdx === idx ? 'rgba(241,196,15,0.05)' : 'transparent'};">
-                                ${DAY_LABELS[idx]}
-                            </th>
-                        `).join('')}
-                    </tr>
-                    <tr style="background: rgba(255,255,255,0.03);">
-                        <th style="padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.08);"></th>
-                        ${dayPlanIndices.map(idx => `
-                            <th style="padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.08); font-weight: normal; color: #94a3b8; font-size: 9px;">TIME</th>
-                            <th style="padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: normal; color: #94a3b8; font-size: 9px;">CYC</th>
-                            <th style="padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.08); font-weight: normal; color: #94a3b8; font-size: 9px;">IDX</th>
-                        `).join('')}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${Array.from({length: 16}).map((_, rIdx) => `
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); background: ${pIdx === rIdx ? 'rgba(255,255,255,0.02)' : 'transparent'};">
-                            <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
-                            ${dayPlanIndices.map(idx => {
-                                const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
-                                const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
-                                const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
-                                const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
-                                
-                                let hVal = '', cycleVal = '', idxVal = '';
-                                if (sc && sc.h !== -1) {
-                                    hVal = String(sc.h).padStart(2,'0') + ':' + String(sc.m).padStart(2,'0');
-                                    cycleVal = sc.cycle || '';
-                                    idxVal = sc.idx !== undefined ? sc.idx : '';
-                                }
-
-                                const inputStyle = `background:transparent; border:none; color:${fontColor}; width:100%; text-align:center; font-family:monospace; outline:none; font-size:11px; padding:0; margin:0;`;
-
-                                return `
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer;">
-                                        <input type="text" value="${hVal}" placeholder="--:--" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
-                                    </td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; cursor: pointer;">
-                                        <input type="number" value="${cycleVal}" placeholder="-" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
-                                    </td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; font-weight: bold; cursor: pointer;">
-                                        <input type="number" value="${idxVal}" placeholder="-" style="${inputStyle}" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'idx', this.value)">
-                                    </td>
-                                `;
-                            }).join('')}
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-    container.innerHTML = html;
-}
-
-window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
-    const jid = STATE.activeJid;
-    const j = STATE.junctions[jid];
-    if (!j) return;
-
-    if (j.group) {
-        if (!confirm("이 수정은 그룹 소속 교차로 전체에 영향을 줍니다. 수정하시겠습니까?")) {
-            renderTodPlanInfoTable();
-            return;
-        }
-    }
-
-    let targets = [j];
-    if (j.group && STATE.groups[j.group]) {
-        targets = [];
-        for (let key in STATE.junctions) {
-            if (STATE.junctions[key].group === j.group) {
-                targets.push(STATE.junctions[key]);
-            }
-        }
-    }
-
-    targets.forEach(targetJ => {
-        if (!targetJ.schedules) targetJ.schedules = {};
-        if (!targetJ.schedules[dayIdx]) targetJ.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
-        
-        let sc = targetJ.schedules[dayIdx][slotIdx];
-        if (!sc) {
-            sc = {h:-1, m:0, cycle:0};
-            targetJ.schedules[dayIdx][slotIdx] = sc;
-        }
-
-        if (field === 'time') {
-            if (!value || !value.includes(':')) {
-                sc.h = -1;
-                sc.m = 0;
-            } else {
-                let parts = value.split(':');
-                if (parts.length === 2) {
-                    sc.h = parseInt(parts[0]) || 0;
-                    sc.m = parseInt(parts[1]) || 0;
-                }
-            }
-        } else if (field === 'cycle') {
-            sc.cycle = parseInt(value) || 0;
-        } else if (field === 'idx') {
-            sc.idx = parseInt(value) || 0;
-        }
-    });
-
-    if (j.group && STATE.groups[j.group]) {
-        let g = STATE.groups[j.group];
-        if (!g.schedules) g.schedules = {};
-        if (!g.schedules[dayIdx]) g.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
-        let sc = g.schedules[dayIdx][slotIdx];
-        if (!sc) {
-            sc = {h:-1, m:0, cycle:0};
-            g.schedules[dayIdx][slotIdx] = sc;
-        }
-        if (field === 'time') {
-            if (!value || !value.includes(':')) {
-                sc.h = -1;
-                sc.m = 0;
-            } else {
-                let parts = value.split(':');
-                if (parts.length === 2) {
-                    sc.h = parseInt(parts[0]) || 0;
-                    sc.m = parseInt(parts[1]) || 0;
-                }
-            }
-        } else if (field === 'cycle') {
-            sc.cycle = parseInt(value) || 0;
-        } else if (field === 'idx') {
-            sc.idx = parseInt(value) || 0;
-        }
+    // 현재 포커스된 입력창 정보 저장 (스핀박스 클릭 등으로 onchange 발생 시 포커스 유지)
+    let activeDay = null, activeSlot = null, activeField = null;
+    if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
+        activeDay = document.activeElement.getAttribute('data-day');
+        activeSlot = document.activeElement.getAttribute('data-slot');
+        activeField = document.activeElement.getAttribute('data-field');
     }
 
     renderTodPlanInfoTable();
@@ -1007,6 +804,20 @@ window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
         if (typeof renderSummaryTable === 'function') renderSummaryTable();
     }
     if (typeof updatePlanMap === 'function') updatePlanMap();
+
+    // 포커스 복구
+    if (activeDay !== null) {
+        setTimeout(() => {
+            const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
+            if (inputToFocus) {
+                inputToFocus.focus();
+                if (inputToFocus.type === 'text') {
+                    const len = inputToFocus.value.length;
+                    inputToFocus.setSelectionRange(len, len);
+                }
+            }
+        }, 10);
+    }
 };
 
 window.toggleTodPlanGroup = function(group) {
@@ -1017,6 +828,18 @@ window.toggleTodPlanGroup = function(group) {
 };
 
 window.selectTodPlanCell = function(dayIdx, slotIdx) {
+    if (STATE.currentJunctionDayTypeIdx === dayIdx && parseInt(UI.planIdx.value || 0) === slotIdx) {
+        return; // 불필요한 재렌더링 방지 (포커스 탈취 원인)
+    }
+
+    // 현재 포커스된 입력창 정보 저장
+    let activeDay = null, activeSlot = null, activeField = null;
+    if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
+        activeDay = document.activeElement.getAttribute('data-day');
+        activeSlot = document.activeElement.getAttribute('data-slot');
+        activeField = document.activeElement.getAttribute('data-field');
+    }
+
     STATE.currentJunctionDayTypeIdx = dayIdx;
     UI.planIdx.value = slotIdx;
     let labelEl = document.getElementById('j-current-day-label');
@@ -1032,6 +855,20 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
     renderRingTables();
     renderSummaryTable();
     updateJunctionDayUI();
+
+    // 포커스 복구
+    if (activeDay !== null) {
+        setTimeout(() => {
+            const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
+            if (inputToFocus) {
+                inputToFocus.focus();
+                if (inputToFocus.type === 'text') {
+                    const len = inputToFocus.value.length;
+                    inputToFocus.setSelectionRange(len, len);
+                }
+            }
+        }, 10);
+    }
 };
 
 /** [신규] DB 파일 관리 전용 패널 렌더링 (최상단 고정) */
