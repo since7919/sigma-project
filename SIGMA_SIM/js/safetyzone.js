@@ -71,15 +71,21 @@ async function fetchAndDrawSafetyZones() {
                 } catch(e) { return; }
                 
                 // 속성 병합
-                if (parsedGeo.type === 'Feature') {
+                if (parsedGeo.type === 'FeatureCollection' && Array.isArray(parsedGeo.features)) {
+                    parsedGeo.features.forEach(f => {
+                        f.properties = { ...f.properties, name, type };
+                        features.push(f);
+                    });
+                } else if (parsedGeo.type === 'Feature') {
                     parsedGeo.properties = { ...parsedGeo.properties, name, type };
                     features.push(parsedGeo);
-                } else if (parsedGeo.type === 'Polygon' || parsedGeo.type === 'MultiPolygon' || parsedGeo.type === 'Point') {
+                } else if (parsedGeo.type) { // Any geometry type (Polygon, MultiPolygon, Point, etc)
                     features.push({
                         type: 'Feature',
                         geometry: parsedGeo,
                         properties: { name, type }
                     });
+                });
                 }
             } else {
                 const lat = parseFloat(item.lat || item.latitude || item.y || item.Y);
