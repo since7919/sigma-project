@@ -1,19 +1,20 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export default function SafetyZoneOverlay({ isVisible }) {
+export default function SafetyZoneOverlay({ isVisible, regionCode }) {
   const map = useMap();
   const [safetyZoneLayer, setSafetyZoneLayer] = useState(null);
+  const layerRef = useRef(null); // Keep a ref to the current layer to remove it easily
 
   useEffect(() => {
     let isMounted = true;
     const fetchAndDraw = async () => {
       try {
-        const res = await axios.get($API_BASE/api/safetyzone);
+        const res = await axios.get(`${API_BASE}/api/safetyzone?regionCode=${regionCode}`);
         const data = res.data;
         
         if (!isMounted) return;
@@ -23,7 +24,7 @@ export default function SafetyZoneOverlay({ isVisible }) {
         (data.items || []).forEach(item => {
           if (!item.geojson) return;
           
-          const name = item.trgtFcltNm || '보호구역';
+          const name = item.trgtFcltNm || "보호구역";
           
           const geoLayer = L.geoJSON(item.geojson, {
             style: { color: '#e74c3c', weight: 2, fillColor: '#f39c12', fillOpacity: 0.2 },
@@ -42,18 +43,24 @@ export default function SafetyZoneOverlay({ isVisible }) {
           layerGroup.addLayer(geoLayer);
         });
 
+        if (layerRef.current) {
+           map.removeLayer(layerRef.current);
+        }
+        layerRef.current = layerGroup;
         setSafetyZoneLayer(layerGroup);
       } catch (err) {
         console.error('Error loading safety zones:', err);
       }
     };
 
-    fetchAndDraw();
+    if (isVisible) {
+      fetchAndDraw();
+    }
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [regionCode, isVisible, map]);
 
   useEffect(() => {
     if (!safetyZoneLayer) return;

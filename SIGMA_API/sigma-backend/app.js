@@ -189,16 +189,23 @@ async function syncUticIntersections(regionCode) {
 // 1-0. 보호구역 데이터 로드 (Supabase 페이징 우회)
 app.get('/api/safetyzone', async (req, res) => {
   try {
+    const { regionCode } = req.query;
+    let sggPrefix = '';
+    if (regionCode === 'L01') sggPrefix = '11%';
+    else if (regionCode === 'L02') sggPrefix = '28%';
+    
     let allData = [];
     let from = 0;
     const step = 1000;
     
     // Supabase 1,000건 한도 우회를 위한 페이징 로직
     while (true) {
-      const { data, error } = await supabase
-        .from('safety_zones')
-        .select('*')
-        .range(from, from + step - 1);
+      let query = supabase.from('safety_zones').select('*');
+      if (sggPrefix) {
+        query = query.like('sggcd', sggPrefix);
+      }
+      
+      const { data, error } = await query.range(from, from + step - 1);
         
       if (error) throw error;
       if (!data || data.length === 0) break;
