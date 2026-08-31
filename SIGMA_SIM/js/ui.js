@@ -583,10 +583,19 @@ function toggleSignalMode() {
     refreshVisibleArrows();
 
     // [New] 신호등 On 시 교차로 크기 1.5 확대, Off 시 0.5 축소
-    const nodeSlider = document.getElementById('scale-node-bottom');
-    if (nodeSlider) {
-        nodeSlider.value = STATE.showSignalArrows ? 1.5 : 0.5;
-        if (typeof updateScales === 'function') updateScales();
+    const val = STATE.showSignalArrows ? 1.5 : 0.5;
+    if (typeof syncScaleNode === 'function') {
+        syncScaleNode(val);
+        const labels = ['작게', '보통', '크게'];
+        const step = (val === 1.5) ? 2 : 0;
+        const valSpan = document.getElementById('val-node-size-bottom');
+        if (valSpan) valSpan.innerText = labels[step];
+        document.querySelectorAll('.step-slider').forEach(container => {
+            const onclickAttr = container.getAttribute('onclick') || '';
+            if (onclickAttr.includes("'node'") && typeof window.updateStepSliderUI === 'function') {
+                window.updateStepSliderUI(container, step);
+            }
+        });
     }
 
     // [New] 신호등 On 시 컨트롤러(슬라이더) 표시, Off 시 숨김
