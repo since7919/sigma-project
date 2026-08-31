@@ -1,20 +1,56 @@
 ﻿import React, { useEffect, useState, useRef } from 'react';
-import { useMap } from 'react-leaflet';
+import { useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export default function SafetyZoneOverlay({ isVisible, regionCode }) {
+export default function SafetyZoneOverlay({ isVisible, intersections }) {
   const map = useMap();
   const [safetyZoneLayer, setSafetyZoneLayer] = useState(null);
-  const layerRef = useRef(null); // Keep a ref to the current layer to remove it easily
+  const layerRef = useRef(null);
+  const [currentRegion, setCurrentRegion] = useState('L01');
+
+  // Detect which region we are looking at
+  const updateRegion = () => {
+    if (!intersections || intersections.length === 0) return;
+    const bounds = map.getBounds();
+    let regionCount = {};
+    let maxRegion = currentRegion;
+    let maxCount = 0;
+    
+    for (const item of intersections) {
+      if (!item.y_coord || !item.x_coord) continue;
+      if (bounds.contains([item.y_coord, item.x_coord])) {
+        const r = item.region_cd || 'L01';
+        regionCount[r] = (regionCount[r] || 0) + 1;
+        if (regionCount[r] > maxCount) {
+          maxCount = regionCount[r];
+          maxRegion = r;
+        }
+      }
+    }
+    
+    if (maxRegion !== currentRegion) {
+      setCurrentRegion(maxRegion);
+    }
+  };
+
+  useMapEvents({
+    moveend: updateRegion,
+    zoomend: updateRegion
+  });
+
+  useEffect(() => {
+    // Initial check
+    updateRegion();
+  }, [intersections]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchAndDraw = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/safetyzone?regionCode=${regionCode}`);
+        const res = await axios.get(`${API_BASE}/api/safetyzone?regionCode=${currentRegion}`);
         const data = res.data;
         
         if (!isMounted) return;
@@ -60,7 +96,7 @@ export default function SafetyZoneOverlay({ isVisible, regionCode }) {
     return () => {
       isMounted = false;
     };
-  }, [regionCode, isVisible, map]);
+  }, [currentRegion, isVisible, map]);
 
   useEffect(() => {
     if (!safetyZoneLayer) return;
