@@ -523,6 +523,22 @@
                 </div>
             </div>
 
+            
+            <!-- Interactive Phase Diagram (Temporary) -->
+            <div class="sigma-panel" style="margin-bottom:15px; background:#fff; color:#000;">
+                <div style="font-weight:bold; margin-bottom:10px; font-size:14px; border-bottom:1px solid #ccc; padding-bottom:5px;">반응형 현시표 (미리보기)</div>
+                <div id="interactive-phase-container"></div>
+            </div>
+            
+            <script>
+                // Initialize after a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    if(window.InteractivePhaseDiagram) {
+                        new window.InteractivePhaseDiagram('interactive-phase-container');
+                    }
+                }, 1000);
+            </script>
+            
             <div class="box-green" style="margin-bottom: 10px;">
                 <div class="xlsx-loader-header">
                     <div class="flex-row gap-12">
