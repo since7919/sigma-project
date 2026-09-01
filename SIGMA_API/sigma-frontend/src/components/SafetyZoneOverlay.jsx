@@ -42,7 +42,6 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
   });
 
   useEffect(() => {
-    // Initial check
     updateRegion();
   }, [intersections]);
 
@@ -55,35 +54,55 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
         
         if (!isMounted) return;
 
-        const layerGroup = L.layerGroup();
-
+        const features = [];
         (data.items || []).forEach(item => {
           if (!item.geojson) return;
           
-          const name = item.trgtFcltNm || "보호구역";
-          
-          const geoLayer = L.geoJSON(item.geojson, {
+          let geometry = item.geojson;
+          if (geometry.type === 'Feature') {
+             geometry.properties = { ...geometry.properties, name: item.trgtFcltNm || "보호구역" };
+             features.push(geometry);
+          } else {
+             features.push({
+                 type: 'Feature',
+                 geometry: geometry,
+                 properties: { name: item.trgtFcltNm || "보호구역" }
+             });
+          }
+        });
+
+        const featureCollection = {
+            type: 'FeatureCollection',
+            features: features
+        };
+
+        const geoLayer = L.geoJSON(featureCollection, {
             style: { color: '#e74c3c', weight: 2, fillColor: '#f39c12', fillOpacity: 0.2 },
             pointToLayer: function (feature, latlng) {
-              const icon = L.divIcon({
-                className: 'safety-zone-marker',
-                html: '<div style="width:24px; height:24px; background:rgba(255,165,0,0.8); border:2px solid #fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px;">🚸</div>',
-                iconSize: [24, 24], 
-                iconAnchor: [12, 12]
+              return L.circleMarker(latlng, {
+                  radius: 8,
+                  color: '#e74c3c',
+                  weight: 2,
+                  fillColor: '#f39c12',
+                  fillOpacity: 0.8
               });
-              return L.marker(latlng, { icon });
+            },
+            onEachFeature: function (feature, layer) {
+                if (feature.properties && feature.properties.name) {
+                    // permanent를 지정하지 않음으로써 Hover 시에만 표시되도록 최적화
+                    layer.bindTooltip(feature.properties.name, { 
+                        direction: 'top', 
+                        className: 'safetyzone-tooltip' 
+                    });
+                }
             }
-          });
-          
-          geoLayer.bindTooltip(name, { permanent: true, direction: 'center', className: 'safetyzone-tooltip' });
-          layerGroup.addLayer(geoLayer);
         });
 
         if (layerRef.current) {
            map.removeLayer(layerRef.current);
         }
-        layerRef.current = layerGroup;
-        setSafetyZoneLayer(layerGroup);
+        layerRef.current = geoLayer;
+        setSafetyZoneLayer(geoLayer);
       } catch (err) {
         console.error('Error loading safety zones:', err);
       }
@@ -91,6 +110,13 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
 
     if (isVisible) {
       fetchAndDraw();
+    } else {
+      // isVisible가 false가 되면 레이어 제거 (리렌더링 시 useEffect 클린업 전에 숨길 수 있게)
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current);
+        layerRef.current = null;
+        setSafetyZoneLayer(null);
+      }
     }
 
     return () => {
