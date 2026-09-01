@@ -3,8 +3,7 @@
 class InteractivePhaseDiagram {
     constructor(containerId) {
         this.containerId = containerId;
-        this.movements = {}; // tracking selected movements: { arrowId: sequenceNumber }
-        this.nextNumber = 1;
+        this.activeMovements = {}; // { phaseIndex: Set(arrowId) }
         this.init();
     }
 
@@ -17,181 +16,147 @@ class InteractivePhaseDiagram {
     }
 
     getHTML() {
+        // Base SVG for all 16 movements
+        const baseArrows = `
+            <!-- N (from bottom) -->
+            <path class="ipd-arrow ipd-nbl" id="NBL" d="M 55,90 Q 55,45 10,45" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-nbt" id="NBT" d="M 65,90 L 65,10" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-nbr" id="NBR" d="M 65,90 Q 65,65 90,65" marker-end="url(#ah-gray)" />
+            
+            <!-- S (from top) -->
+            <path class="ipd-arrow ipd-sbl" id="SBL" d="M 45,10 Q 45,55 90,55" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-sbt" id="SBT" d="M 35,10 L 35,90" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-sbr" id="SBR" d="M 35,10 Q 35,35 10,35" marker-end="url(#ah-gray)" />
+            
+            <!-- E (from right) -->
+            <path class="ipd-arrow ipd-wbl" id="WBL" d="M 90,45 Q 45,45 45,90" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-wbt" id="WBT" d="M 90,35 L 10,35" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-wbr" id="WBR" d="M 90,35 Q 65,35 65,10" marker-end="url(#ah-gray)" />
+            
+            <!-- W (from left) -->
+            <path class="ipd-arrow ipd-ebl" id="EBL" d="M 10,55 Q 55,55 55,10" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ebt" id="EBT" d="M 10,65 L 90,65" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-ebr" id="EBR" d="M 10,65 Q 35,65 35,90" marker-end="url(#ah-gray)" />
+            
+            <!-- Peds -->
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-S" d="M 20,80 L 80,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-N" d="M 20,20 L 80,20" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-W" d="M 20,20 L 20,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-E" d="M 80,20 L 80,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+        `;
+
+        // Pre-fill standard NEMA for visual cue if wanted, but user asked to toggle on/off. 
+        // We'll leave them all gray initially, or preset them. Let's preset them as per NEMA standard so the user doesn't face a blank sheet.
+        const presets = {
+            1: ['WBL'],
+            2: ['SBT', 'SBR', 'PED-W', 'PED-E'],
+            3: ['NBL'],
+            4: ['WBT', 'WBR', 'PED-N', 'PED-S'],
+            5: ['SBL'],
+            6: ['NBT', 'NBR', 'PED-W', 'PED-E'],
+            7: ['EBL'],
+            8: ['EBT', 'EBR', 'PED-N', 'PED-S']
+        };
+
+        let cellsHtml = '';
+        for (let i = 1; i <= 8; i++) {
+            // Generate unique IDs for each cell's arrows
+            let cellSvg = baseArrows.replace(/id="(.*?)"/g, `id="arr-${i}-$1"`);
+            
+            // Apply presets
+            if (presets[i]) {
+                presets[i].forEach(mov => {
+                    cellSvg = cellSvg.replace(`id="arr-${i}-${mov}"`, `id="arr-${i}-${mov}" class="ipd-arrow ipd-preset ipd-active"`);
+                });
+            }
+
+            // Fix the dashed class persistence logic in replace
+            cellSvg = cellSvg.replace(/class="ipd-arrow( ipd-[^"]*)? ipd-preset ipd-active"/g, `class="ipd-arrow$1 ipd-active"`);
+
+            const isBottomRow = i >= 5;
+            const borderBottom = isBottomRow ? 'border-bottom:none;' : '';
+            const borderRight = (i === 4 || i === 8) ? 'border-right:none;' : '';
+            
+            cellsHtml += `
+                <div class="ipd-cell" style="${borderBottom} ${borderRight}">
+                    <div class="ipd-cell-label">Ø${i}</div>
+                    <svg width="100%" height="100%" viewBox="0 0 100 100">
+                        ${cellSvg}
+                    </svg>
+                </div>
+            `;
+            
+            if (i === 2 || i === 6) {
+                cellsHtml += `<div class="ipd-barrier" style="${borderBottom}"></div>`;
+            }
+        }
+
         return `
-        <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:800px; margin: 0 auto; user-select:none;">
+        <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:800px; margin: 0 auto; user-select:none; font-family:sans-serif;">
             <style>
-                .ipd-grid { display: grid; grid-template-columns: 1fr 1fr 8px 1fr 1fr 8px; grid-template-rows: 140px 140px; background: #fff; }
+                .ipd-grid { display: grid; grid-template-columns: 1fr 1fr 8px 1fr 1fr; grid-template-rows: 150px 150px; background: #fff; }
                 .ipd-cell { position: relative; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; background:#fff; }
-                .ipd-cell-label { position: absolute; top: 8px; left: 8px; font-weight: bold; color: #888; font-size: 16px; font-family: sans-serif; }
+                .ipd-cell-label { position: absolute; top: 8px; left: 8px; font-weight: bold; color: #888; font-size: 16px; }
                 .ipd-barrier { background: #fdf5d3; border-left: 2px solid #aaa; border-right: 2px solid #aaa; }
-                .ipd-arrow { cursor: pointer; transition: all 0.2s; stroke: #ccc; fill: transparent; }
-                .ipd-arrow-head { fill: #ccc; transition: all 0.2s; }
-                .ipd-arrow-dashed { stroke-dasharray: 6 4; }
+                
+                .ipd-arrow { 
+                    fill: none; 
+                    stroke: #e5e7eb; /* faint gray */
+                    stroke-width: 3.5; 
+                    cursor: pointer; 
+                    transition: all 0.2s; 
+                }
+                .ipd-arrow:hover { stroke: #cbd5e1; }
+                
+                .ipd-dashed { stroke-dasharray: 4 3; }
                 
                 /* Active state styles */
-                .ipd-arrow.active { stroke: #0088cc; }
-                .ipd-arrow-head.active { fill: #0088cc; }
-                
-                .ipd-badge {
-                    position: absolute;
-                    background: #ff4757;
-                    color: white;
-                    font-size: 12px;
-                    font-weight: bold;
-                    border-radius: 50%;
-                    width: 20px;
-                    height: 20px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    pointer-events: none;
-                    transform: translate(-50%, -50%);
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    z-index: 10;
-                    opacity: 0;
-                    transition: opacity 0.2s;
-                }
-                .ipd-badge.visible { opacity: 1; }
+                .ipd-arrow.ipd-active { stroke: #0ea5e9; }
+                .ipd-arrow.ipd-active:hover { stroke: #0284c7; }
                 
                 /* Legend */
-                .ipd-legend { display: flex; flex-direction: column; gap: 8px; padding: 15px; background: #fff; border-top: 1px solid #ccc; font-family: sans-serif; font-size: 13px; color: #555; font-weight: bold;}
+                .ipd-legend { display: flex; flex-direction: column; gap: 8px; padding: 15px; background: #fff; border-top: 1px solid #ccc; font-size: 13px; color: #555; font-weight: bold;}
                 .ipd-legend-item { display: flex; align-items: center; gap: 10px; }
             </style>
 
             <!-- SVG Defs for arrowheads -->
             <svg width="0" height="0" style="position:absolute;">
                 <defs>
-                    <marker id="arrowhead-gray" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
-                        <polygon points="0 0, 6 3, 0 6" fill="#ccc" class="ipd-arrow-head" />
+                    <!-- Marker sizing relative to stroke-width, made smaller for sleekness -->
+                    <marker id="ah-gray" markerWidth="2.5" markerHeight="2.5" refX="2" refY="1.25" orient="auto">
+                        <polygon points="0 0, 2.5 1.25, 0 2.5" fill="#e5e7eb" />
                     </marker>
-                    <marker id="arrowhead-blue" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
-                        <polygon points="0 0, 6 3, 0 6" fill="#0088cc" />
+                    <marker id="ah-blue" markerWidth="2.5" markerHeight="2.5" refX="2" refY="1.25" orient="auto">
+                        <polygon points="0 0, 2.5 1.25, 0 2.5" fill="#0ea5e9" />
                     </marker>
-                    <marker id="arrowhead-gray-rev" markerWidth="6" markerHeight="6" refX="2" refY="3" orient="auto">
-                        <polygon points="6 0, 0 3, 6 6" fill="#ccc" class="ipd-arrow-head" />
+                    <marker id="ah-gray-rev" markerWidth="2.5" markerHeight="2.5" refX="0.5" refY="1.25" orient="auto">
+                        <polygon points="2.5 0, 0 1.25, 2.5 2.5" fill="#e5e7eb" />
                     </marker>
-                    <marker id="arrowhead-blue-rev" markerWidth="6" markerHeight="6" refX="2" refY="3" orient="auto">
-                        <polygon points="6 0, 0 3, 6 6" fill="#0088cc" />
+                    <marker id="ah-blue-rev" markerWidth="2.5" markerHeight="2.5" refX="0.5" refY="1.25" orient="auto">
+                        <polygon points="2.5 0, 0 1.25, 2.5 2.5" fill="#0ea5e9" />
                     </marker>
                 </defs>
             </svg>
 
             <div class="ipd-grid">
-                <!-- ROW 1 -->
-                <div class="ipd-cell">
-                    <div class="ipd-cell-label">Ø1</div>
-                    <svg width="100%" height="100%">
-                        <!-- WBL: from right to down -->
-                        <path class="ipd-arrow" id="arr-1-1" d="M 80,40 Q 50,40 50,80" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-1-1" style="left:65px; top:60px;"></div>
-                </div>
-                <div class="ipd-cell">
-                    <div class="ipd-cell-label">Ø2</div>
-                    <svg width="100%" height="100%">
-                        <!-- SBT: from top to down -->
-                        <path class="ipd-arrow" id="arr-2-1" d="M 60,20 L 60,90" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                        <!-- SBR: from top to left (dashed) -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-2-2" d="M 80,20 Q 80,50 40,50" stroke-width="4" marker-end="url(#arrowhead-gray)" />
-                        <!-- Ped: vertical dashed double -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-2-3" d="M 20,30 L 20,80" stroke-width="3" marker-start="url(#arrowhead-gray-rev)" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-2-1" style="left:60px; top:55px;"></div>
-                    <div class="ipd-badge" id="badge-arr-2-2" style="left:60px; top:35px;"></div>
-                    <div class="ipd-badge" id="badge-arr-2-3" style="left:20px; top:55px;"></div>
-                </div>
-                
-                <div class="ipd-barrier"></div>
-                
-                <div class="ipd-cell">
-                    <div class="ipd-cell-label">Ø3</div>
-                    <svg width="100%" height="100%">
-                        <!-- NBL: from bottom to right -->
-                        <path class="ipd-arrow" id="arr-3-1" d="M 40,90 Q 40,60 80,60" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-3-1" style="left:60px; top:75px;"></div>
-                </div>
-                <div class="ipd-cell">
-                    <div class="ipd-cell-label">Ø4</div>
-                    <svg width="100%" height="100%">
-                        <!-- WBT: from right to left -->
-                        <path class="ipd-arrow" id="arr-4-1" d="M 80,70 L 20,70" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                        <!-- WBR: from right to up (dashed) -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-4-2" d="M 80,50 Q 50,50 50,20" stroke-width="4" marker-end="url(#arrowhead-gray)" />
-                        <!-- Ped: horizontal dashed double -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-4-3" d="M 30,20 L 70,20" stroke-width="3" marker-start="url(#arrowhead-gray-rev)" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-4-1" style="left:50px; top:70px;"></div>
-                    <div class="ipd-badge" id="badge-arr-4-2" style="left:65px; top:35px;"></div>
-                    <div class="ipd-badge" id="badge-arr-4-3" style="left:50px; top:20px;"></div>
-                </div>
-                
-                <div class="ipd-barrier"></div>
-
-                <!-- ROW 2 -->
-                <div class="ipd-cell" style="border-bottom:none;">
-                    <div class="ipd-cell-label">Ø5</div>
-                    <svg width="100%" height="100%">
-                        <!-- SBL: from top to right -->
-                        <path class="ipd-arrow" id="arr-5-1" d="M 40,20 Q 40,60 80,60" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-5-1" style="left:60px; top:40px;"></div>
-                </div>
-                <div class="ipd-cell" style="border-bottom:none;">
-                    <div class="ipd-cell-label">Ø6</div>
-                    <svg width="100%" height="100%">
-                        <!-- NBT: from bottom to up -->
-                        <path class="ipd-arrow" id="arr-6-1" d="M 40,90 L 40,20" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                        <!-- NBR: from bottom to right (dashed) -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-6-2" d="M 60,90 Q 60,50 80,50" stroke-width="4" marker-end="url(#arrowhead-gray)" />
-                        <!-- Ped: vertical dashed double -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-6-3" d="M 90,30 L 90,80" stroke-width="3" marker-start="url(#arrowhead-gray-rev)" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-6-1" style="left:40px; top:55px;"></div>
-                    <div class="ipd-badge" id="badge-arr-6-2" style="left:70px; top:70px;"></div>
-                    <div class="ipd-badge" id="badge-arr-6-3" style="left:90px; top:55px;"></div>
-                </div>
-                
-                <div class="ipd-barrier"></div>
-                
-                <div class="ipd-cell" style="border-bottom:none;">
-                    <div class="ipd-cell-label">Ø7</div>
-                    <svg width="100%" height="100%">
-                        <!-- EBL: from top to left (based on visual) or wait, visual Ø7 starts top, curves left. -->
-                        <path class="ipd-arrow" id="arr-7-1" d="M 60,20 Q 60,60 20,60" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-7-1" style="left:40px; top:40px;"></div>
-                </div>
-                <div class="ipd-cell" style="border-bottom:none;">
-                    <div class="ipd-cell-label">Ø8</div>
-                    <svg width="100%" height="100%">
-                        <!-- EBT: from left to right -->
-                        <path class="ipd-arrow" id="arr-8-1" d="M 20,40 L 80,40" stroke-width="8" marker-end="url(#arrowhead-gray)" />
-                        <!-- EBR: from left to down (dashed) -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-8-2" d="M 20,60 Q 50,60 50,90" stroke-width="4" marker-end="url(#arrowhead-gray)" />
-                        <!-- Ped: horizontal dashed double -->
-                        <path class="ipd-arrow ipd-arrow-dashed" id="arr-8-3" d="M 30,90 L 70,90" stroke-width="3" marker-start="url(#arrowhead-gray-rev)" marker-end="url(#arrowhead-gray)" />
-                    </svg>
-                    <div class="ipd-badge" id="badge-arr-8-1" style="left:50px; top:40px;"></div>
-                    <div class="ipd-badge" id="badge-arr-8-2" style="left:35px; top:75px;"></div>
-                    <div class="ipd-badge" id="badge-arr-8-3" style="left:50px; top:90px;"></div>
-                </div>
-                
-                <div class="ipd-barrier"></div>
+                ${cellsHtml}
             </div>
             
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0088cc" stroke-width="4" marker-end="url(#arrowhead-blue)"/></svg>
-                    <span>Protected Phase</span>
+                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="3.5" marker-end="url(#ah-blue)"/></svg>
+                    <span>Protected Phase (직진/좌회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0088cc" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#arrowhead-blue)"/></svg>
-                    <span>Permissive Phase</span>
+                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="3.5" stroke-dasharray="4 3" marker-end="url(#ah-blue)"/></svg>
+                    <span>Permissive Phase (비보호/우회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M5,5 L35,5" stroke="#0088cc" stroke-width="2" stroke-dasharray="4 2" marker-start="url(#arrowhead-blue-rev)" marker-end="url(#arrowhead-blue)"/></svg>
-                    <span>Pedestrian Phase</span>
+                    <svg width="40" height="10"><path d="M5,5 L35,5" stroke="#0ea5e9" stroke-width="3.5" stroke-dasharray="4 3" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
+                    <span>Pedestrian Phase (보행자)</span>
+                </div>
+                <div style="font-size:11px; color:#888; font-weight:normal; margin-top:5px;">
+                    * 팁: 회색 실선을 클릭하면 파란색으로 활성화되며 해당 현시에 배정됩니다. 다시 클릭하면 해제됩니다.
                 </div>
             </div>
         </div>
@@ -202,73 +167,31 @@ class InteractivePhaseDiagram {
         const container = document.getElementById(this.containerId);
         const arrows = container.querySelectorAll('.ipd-arrow');
         
+        // Ensure initial markers are set correctly based on active class
         arrows.forEach(arrow => {
-            // Increase hit area for easier clicking
-            arrow.style.cursor = 'pointer';
+            this.updateMarkers(arrow);
             
             arrow.addEventListener('click', (e) => {
-                const id = arrow.id;
-                
-                if (this.movements[id]) {
-                    // Deactivate
-                    arrow.classList.remove('active');
-                    
-                    // Update marker colors
-                    if (arrow.id.includes('arr-2-3') || arrow.id.includes('arr-4-3') || arrow.id.includes('arr-6-3') || arrow.id.includes('arr-8-3')) {
-                        arrow.setAttribute('marker-start', 'url(#arrowhead-gray-rev)');
-                        arrow.setAttribute('marker-end', 'url(#arrowhead-gray)');
-                    } else {
-                        arrow.setAttribute('marker-end', 'url(#arrowhead-gray)');
-                    }
-                    
-                    const badge = document.getElementById('badge-' + id);
-                    if (badge) {
-                        badge.classList.remove('visible');
-                        badge.innerText = '';
-                    }
-                    delete this.movements[id];
-                    this.recalcNumbers();
+                if (arrow.classList.contains('ipd-active')) {
+                    arrow.classList.remove('ipd-active');
                 } else {
-                    // Activate
-                    arrow.classList.add('active');
-                    
-                    if (arrow.id.includes('arr-2-3') || arrow.id.includes('arr-4-3') || arrow.id.includes('arr-6-3') || arrow.id.includes('arr-8-3')) {
-                        arrow.setAttribute('marker-start', 'url(#arrowhead-blue-rev)');
-                        arrow.setAttribute('marker-end', 'url(#arrowhead-blue)');
-                    } else {
-                        arrow.setAttribute('marker-end', 'url(#arrowhead-blue)');
-                    }
-                    
-                    this.movements[id] = this.nextNumber++;
-                    const badge = document.getElementById('badge-' + id);
-                    if (badge) {
-                        badge.innerText = this.movements[id];
-                        badge.classList.add('visible');
-                    }
+                    arrow.classList.add('ipd-active');
                 }
+                this.updateMarkers(arrow);
             });
         });
     }
 
-    recalcNumbers() {
-        // Reassign numbers sequentially to active movements
-        let num = 1;
+    updateMarkers(arrow) {
+        const isActive = arrow.classList.contains('ipd-active');
+        const color = isActive ? 'blue' : 'gray';
         
-        // Sort by creation time (which is roughly maintaining original order) or by ID
-        // For standard feeling, we keep the numbers assigned in chronological click order
-        // by sorting the object entries by their current value.
-        const sorted = Object.entries(this.movements).sort((a, b) => a[1] - b[1]);
-        
-        this.movements = {};
-        sorted.forEach(([id, oldNum]) => {
-            this.movements[id] = num;
-            const badge = document.getElementById('badge-' + id);
-            if (badge) {
-                badge.innerText = num;
-            }
-            num++;
-        });
-        this.nextNumber = num;
+        if (arrow.classList.contains('ipd-ped')) {
+            arrow.setAttribute('marker-start', `url(#ah-${color}-rev)`);
+            arrow.setAttribute('marker-end', `url(#ah-${color})`);
+        } else {
+            arrow.setAttribute('marker-end', `url(#ah-${color})`);
+        }
     }
 }
 
