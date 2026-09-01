@@ -17,7 +17,7 @@ class InteractivePhaseDiagram {
     }
 
     getHTML() {
-        return \`
+        return `
         <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:800px; margin: 0 auto; user-select:none;">
             <style>
                 .ipd-grid { display: grid; grid-template-columns: 1fr 1fr 8px 1fr 1fr 8px; grid-template-rows: 140px 140px; background: #fff; }
@@ -195,7 +195,7 @@ class InteractivePhaseDiagram {
                 </div>
             </div>
         </div>
-        \`;
+        `;
     }
 
     attachEvents() {
