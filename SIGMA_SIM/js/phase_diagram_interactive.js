@@ -3,7 +3,7 @@
 class InteractivePhaseDiagram {
     constructor(containerId) {
         this.containerId = containerId;
-        this.activeMovements = {}; // { phaseIndex: Set(arrowId) }
+        this.activeMovements = {};
         this.init();
     }
 
@@ -16,37 +16,35 @@ class InteractivePhaseDiagram {
     }
 
     getHTML() {
-        // Base SVG for all 16 movements
+        // Base SVG for all 16 movements (styled as road surface markings)
         const baseArrows = `
-            <!-- N (from bottom) -->
-            <path class="ipd-arrow ipd-nbl" id="NBL" d="M 55,90 Q 55,45 10,45" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-nbt" id="NBT" d="M 65,90 L 65,10" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-dashed ipd-nbr" id="NBR" d="M 65,90 Q 65,65 90,65" marker-end="url(#ah-gray)" />
+            <!-- NB (from bottom) -->
+            <path class="ipd-arrow ipd-nbl" id="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-nbt" id="NBT" d="M 68,85 L 68,55" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-nbr" id="NBR" d="M 80,85 L 80,70 Q 80,60 90,60" marker-end="url(#ah-gray)" />
             
-            <!-- S (from top) -->
-            <path class="ipd-arrow ipd-sbl" id="SBL" d="M 45,10 Q 45,55 90,55" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-sbt" id="SBT" d="M 35,10 L 35,90" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-dashed ipd-sbr" id="SBR" d="M 35,10 Q 35,35 10,35" marker-end="url(#ah-gray)" />
+            <!-- SB (from top) -->
+            <path class="ipd-arrow ipd-sbl" id="SBL" d="M 44,15 L 44,30 Q 44,40 54,40" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-sbt" id="SBT" d="M 32,15 L 32,45" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-sbr" id="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" marker-end="url(#ah-gray)" />
             
-            <!-- E (from right) -->
-            <path class="ipd-arrow ipd-wbl" id="WBL" d="M 90,45 Q 45,45 45,90" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-wbt" id="WBT" d="M 90,35 L 10,35" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-dashed ipd-wbr" id="WBR" d="M 90,35 Q 65,35 65,10" marker-end="url(#ah-gray)" />
+            <!-- EB (from left) -->
+            <path class="ipd-arrow ipd-ebl" id="EBL" d="M 15,56 L 30,56 Q 40,56 40,46" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ebt" id="EBT" d="M 15,68 L 45,68" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-ebr" id="EBR" d="M 15,80 L 30,80 Q 40,80 40,90" marker-end="url(#ah-gray)" />
             
-            <!-- W (from left) -->
-            <path class="ipd-arrow ipd-ebl" id="EBL" d="M 10,55 Q 55,55 55,10" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-ebt" id="EBT" d="M 10,65 L 90,65" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-dashed ipd-ebr" id="EBR" d="M 10,65 Q 35,65 35,90" marker-end="url(#ah-gray)" />
+            <!-- WB (from right) -->
+            <path class="ipd-arrow ipd-wbl" id="WBL" d="M 85,44 L 70,44 Q 60,44 60,54" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-wbt" id="WBT" d="M 85,32 L 55,32" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-dashed ipd-wbr" id="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" marker-end="url(#ah-gray)" />
             
             <!-- Peds -->
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-S" d="M 20,80 L 80,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-N" d="M 20,20 L 80,20" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-W" d="M 20,20 L 20,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-E" d="M 80,20 L 80,80" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-S" d="M 30,92 L 70,92" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-N" d="M 30,8 L 70,8" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-W" d="M 8,30 L 8,70" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-E" d="M 92,30 L 92,70" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
         `;
 
-        // Pre-fill standard NEMA for visual cue if wanted, but user asked to toggle on/off. 
-        // We'll leave them all gray initially, or preset them. Let's preset them as per NEMA standard so the user doesn't face a blank sheet.
         const presets = {
             1: ['WBL'],
             2: ['SBT', 'SBR', 'PED-W', 'PED-E'],
@@ -60,17 +58,14 @@ class InteractivePhaseDiagram {
 
         let cellsHtml = '';
         for (let i = 1; i <= 8; i++) {
-            // Generate unique IDs for each cell's arrows
             let cellSvg = baseArrows.replace(/id="(.*?)"/g, `id="arr-${i}-$1"`);
             
-            // Apply presets
             if (presets[i]) {
                 presets[i].forEach(mov => {
                     cellSvg = cellSvg.replace(`id="arr-${i}-${mov}"`, `id="arr-${i}-${mov}" class="ipd-arrow ipd-preset ipd-active"`);
                 });
             }
 
-            // Fix the dashed class persistence logic in replace
             cellSvg = cellSvg.replace(/class="ipd-arrow( ipd-[^"]*)? ipd-preset ipd-active"/g, `class="ipd-arrow$1 ipd-active"`);
 
             const isBottomRow = i >= 5;
@@ -102,13 +97,14 @@ class InteractivePhaseDiagram {
                 .ipd-arrow { 
                     fill: none; 
                     stroke: #e5e7eb; /* faint gray */
-                    stroke-width: 3.5; 
+                    stroke-width: 4.5; 
+                    
                     cursor: pointer; 
                     transition: all 0.2s; 
                 }
                 .ipd-arrow:hover { stroke: #cbd5e1; }
                 
-                .ipd-dashed { stroke-dasharray: 4 3; }
+                .ipd-dashed { stroke-dasharray: 5 4; }
                 
                 /* Active state styles */
                 .ipd-arrow.ipd-active { stroke: #0ea5e9; }
@@ -122,18 +118,18 @@ class InteractivePhaseDiagram {
             <!-- SVG Defs for arrowheads -->
             <svg width="0" height="0" style="position:absolute;">
                 <defs>
-                    <!-- Marker sizing relative to stroke-width, made smaller for sleekness -->
-                    <marker id="ah-gray" markerWidth="2.5" markerHeight="2.5" refX="2" refY="1.25" orient="auto">
-                        <polygon points="0 0, 2.5 1.25, 0 2.5" fill="#e5e7eb" />
+                    <!-- Road marking style wide flat arrowheads -->
+                    <marker id="ah-gray" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                        <polygon points="0 0, 3 1.5, 0 3" fill="#e5e7eb" />
                     </marker>
-                    <marker id="ah-blue" markerWidth="2.5" markerHeight="2.5" refX="2" refY="1.25" orient="auto">
-                        <polygon points="0 0, 2.5 1.25, 0 2.5" fill="#0ea5e9" />
+                    <marker id="ah-blue" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                        <polygon points="0 0, 3 1.5, 0 3" fill="#0ea5e9" />
                     </marker>
-                    <marker id="ah-gray-rev" markerWidth="2.5" markerHeight="2.5" refX="0.5" refY="1.25" orient="auto">
-                        <polygon points="2.5 0, 0 1.25, 2.5 2.5" fill="#e5e7eb" />
+                    <marker id="ah-gray-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                        <polygon points="3 0, 0 1.5, 3 3" fill="#e5e7eb" />
                     </marker>
-                    <marker id="ah-blue-rev" markerWidth="2.5" markerHeight="2.5" refX="0.5" refY="1.25" orient="auto">
-                        <polygon points="2.5 0, 0 1.25, 2.5 2.5" fill="#0ea5e9" />
+                    <marker id="ah-blue-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                        <polygon points="3 0, 0 1.5, 3 3" fill="#0ea5e9" />
                     </marker>
                 </defs>
             </svg>
@@ -144,19 +140,19 @@ class InteractivePhaseDiagram {
             
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="3.5" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
                     <span>Protected Phase (직진/좌회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="3.5" stroke-dasharray="4 3" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
                     <span>Permissive Phase (비보호/우회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M5,5 L35,5" stroke="#0ea5e9" stroke-width="3.5" stroke-dasharray="4 3" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="40" height="10"><path d="M5,5 L35,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
                     <span>Pedestrian Phase (보행자)</span>
                 </div>
                 <div style="font-size:11px; color:#888; font-weight:normal; margin-top:5px;">
-                    * 팁: 회색 실선을 클릭하면 파란색으로 활성화되며 해당 현시에 배정됩니다. 다시 클릭하면 해제됩니다.
+                    * 팁: 회색 노면표시를 클릭하면 파란색으로 활성화되며 해당 현시에 배정됩니다. 다시 클릭하면 해제됩니다.
                 </div>
             </div>
         </div>
@@ -167,7 +163,6 @@ class InteractivePhaseDiagram {
         const container = document.getElementById(this.containerId);
         const arrows = container.querySelectorAll('.ipd-arrow');
         
-        // Ensure initial markers are set correctly based on active class
         arrows.forEach(arrow => {
             this.updateMarkers(arrow);
             
