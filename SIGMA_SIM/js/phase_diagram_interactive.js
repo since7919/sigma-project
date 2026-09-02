@@ -23,27 +23,68 @@ class InteractivePhaseDiagram {
         }, 100);
     }
 
+    loadFromSignalMap(sm) {
+        if (!sm) return;
+        this.activeMovements = {};
+
+        // Korean Standard Phase Mapping
+        // 2: EBT (Eastbound), 6: WBT (Westbound), 4: SBT (Southbound), 8: NBT (Northbound)
+        // 1: EBL, 5: WBL, 3: NBL, 7: SBL
+        const mapMov = (m) => {
+            const MAP = {
+                1: ['EBL'], 2: ['EBT'], 3: ['NBL'], 4: ['SBT'],
+                5: ['WBL'], 6: ['WBT'], 7: ['SBL'], 8: ['NBT'],
+                102: ['PED-S'], 106: ['PED-N'],
+                104: ['PED-E'], 108: ['PED-W']
+            };
+            return MAP[m] || [];
+        };
+
+        for (let i = 0; i < 8; i++) {
+            const ringAMovs = [];
+            const ringBMovs = [];
+            
+            if (sm.movA && sm.movA[i]) ringAMovs.push(...mapMov(sm.movA[i]));
+            if (sm.movB && sm.movB[i]) ringBMovs.push(...mapMov(sm.movB[i]));
+            
+            if (sm.pedMovA && sm.pedMovA[i]) ringAMovs.push(...mapMov(sm.pedMovA[i]));
+            if (sm.pedMovB && sm.pedMovB[i]) ringBMovs.push(...mapMov(sm.pedMovB[i]));
+
+            this.activeMovements['P' + (i + 1) + '-A'] = ringAMovs;
+            this.activeMovements['P' + (i + 1) + '-B'] = ringBMovs;
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            this.renderCell('P' + i + '-A');
+            this.renderCell('P' + i + '-B');
+        }
+    }
+
     getBaseSVGPaths(prefix) {
         return `
             <!-- NB -->
             <path class="ipd-arrow ipd-nbl" id="${prefix}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+            <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-NBL-P" data-mov="NBL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
             <path class="ipd-arrow ipd-nbt" id="${prefix}-NBT" data-mov="NBT" d="M 68,85 L 68,55" />
-            <path class="ipd-arrow ipd-dashed ipd-nbr" id="${prefix}-NBR" data-mov="NBR" d="M 80,85 L 80,70 Q 80,60 90,60" />
+            <path class="ipd-arrow ipd-nbr" id="${prefix}-NBR" data-mov="NBR" d="M 80,85 L 80,70 Q 80,60 90,60" />
             
             <!-- SB -->
             <path class="ipd-arrow ipd-sbl" id="${prefix}-SBL" data-mov="SBL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+            <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-SBL-P" data-mov="SBL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
             <path class="ipd-arrow ipd-sbt" id="${prefix}-SBT" data-mov="SBT" d="M 32,15 L 32,45" />
-            <path class="ipd-arrow ipd-dashed ipd-sbr" id="${prefix}-SBR" data-mov="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" />
+            <path class="ipd-arrow ipd-sbr" id="${prefix}-SBR" data-mov="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" />
             
             <!-- EB -->
             <path class="ipd-arrow ipd-ebl" id="${prefix}-EBL" data-mov="EBL" d="M 15,56 L 30,56 Q 40,56 40,46" />
+            <path class="ipd-arrow ipd-dashed ipd-ebl-p" id="${prefix}-EBL-P" data-mov="EBL-P" d="M 15,60 L 30,60 Q 45,60 45,46" />
             <path class="ipd-arrow ipd-ebt" id="${prefix}-EBT" data-mov="EBT" d="M 15,68 L 45,68" />
-            <path class="ipd-arrow ipd-dashed ipd-ebr" id="${prefix}-EBR" data-mov="EBR" d="M 15,80 L 30,80 Q 40,80 40,90" />
+            <path class="ipd-arrow ipd-ebr" id="${prefix}-EBR" data-mov="EBR" d="M 15,80 L 30,80 Q 40,80 40,90" />
             
             <!-- WB -->
             <path class="ipd-arrow ipd-wbl" id="${prefix}-WBL" data-mov="WBL" d="M 85,44 L 70,44 Q 60,44 60,54" />
+            <path class="ipd-arrow ipd-dashed ipd-wbl-p" id="${prefix}-WBL-P" data-mov="WBL-P" d="M 85,40 L 70,40 Q 55,40 55,54" />
             <path class="ipd-arrow ipd-wbt" id="${prefix}-WBT" data-mov="WBT" d="M 85,32 L 55,32" />
-            <path class="ipd-arrow ipd-dashed ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
+            <path class="ipd-arrow ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
             
             <!-- Peds -->
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
@@ -75,14 +116,12 @@ class InteractivePhaseDiagram {
     }
 
     getGridHTML() {
-        // Headers
         let gridHtml = `<div class="ipd-header-cell" style="border-right:1px solid #3e3e42; border-bottom:1px solid #3e3e42;"></div>`;
         for (let i = 1; i <= 8; i++) {
             const br = (i === 8) ? '' : 'border-right:1px solid #3e3e42;';
             gridHtml += `<div class="ipd-header-cell" style="${br} border-bottom:1px solid #3e3e42;">P${i}</div>`;
         }
 
-        // A Ring
         gridHtml += `<div class="ipd-row-label" style="border-right:1px solid #3e3e42; border-bottom:1px solid #3e3e42;">A링</div>`;
         for (let i = 1; i <= 8; i++) {
             const cId = 'P' + i + '-A';
@@ -96,7 +135,6 @@ class InteractivePhaseDiagram {
             `;
         }
 
-        // B Ring
         gridHtml += `<div class="ipd-row-label" style="border-right:1px solid #3e3e42;">B링</div>`;
         for (let i = 1; i <= 8; i++) {
             const cId = 'P' + i + '-B';
@@ -145,21 +183,20 @@ class InteractivePhaseDiagram {
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
                     <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
-                    <span>Protected</span>
+                    <span>Protected (직/좌/우)</span>
                 </div>
                 <div class="ipd-legend-item">
                     <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
-                    <span>Permissive</span>
+                    <span>Permissive (비보호 좌회전)</span>
                 </div>
                 <div class="ipd-legend-item">
                     <svg width="30" height="10" style="overflow:visible;"><path d="M8,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
-                    <span>Pedestrian</span>
+                    <span>Pedestrian (보행자)</span>
                 </div>
                 <div style="font-size:11px; color:#666; font-weight:normal; margin-left: auto; display: flex; align-items: center;">
                     * 팁: 현시 칸을 클릭하여 팔레트(Popup)를 띄워 편집하세요.
                 </div>
             </div>
-        </div>
         </div>
         `;
     }
@@ -173,7 +210,7 @@ class InteractivePhaseDiagram {
                     <button onclick="document.getElementById('ipd-modal').style.display='none'" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
                 </h3>
                 <div style="text-align:center; font-size:12px; color:#888; margin-bottom:15px;">
-                    원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.
+                    원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.<br>비보호 좌회전은 점선으로 표시됩니다.
                 </div>
                 <div style="width:300px; height:300px; margin: 0 auto; background:#252526; border-radius:4px; border:1px solid #3e3e42;">
                     <svg class="ipd-modal-svg" id="ipd-modal-svg" width="100%" height="100%" viewBox="0 0 100 100">
@@ -203,7 +240,6 @@ class InteractivePhaseDiagram {
 
         const clearBtn = document.getElementById('ipd-modal-clear');
         if(clearBtn) {
-            // Remove old listener if re-attaching, though this is init once
             clearBtn.addEventListener('click', () => {
                 const modalSvg = document.getElementById('ipd-modal-svg');
                 const arrows = modalSvg.querySelectorAll('.ipd-arrow');
@@ -271,12 +307,11 @@ class InteractivePhaseDiagram {
         const activeMovs = this.activeMovements[cellId] || [];
         const arrows = svg.querySelectorAll('.ipd-arrow');
         
-        
         const BBOX = {
-            'NBL': {x:46, y:60, w:10, h:25}, 'NBT': {x:68, y:55, w:0, h:30}, 'NBR': {x:80, y:60, w:10, h:25},
-            'SBL': {x:44, y:15, w:10, h:25}, 'SBT': {x:32, y:15, w:0, h:30}, 'SBR': {x:10, y:15, w:10, h:25},
-            'EBL': {x:15, y:46, w:25, h:10}, 'EBT': {x:15, y:68, w:30, h:0}, 'EBR': {x:15, y:80, w:25, h:10},
-            'WBL': {x:60, y:44, w:25, h:10}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10},
+            'NBL': {x:46, y:60, w:10, h:25}, 'NBL-P': {x:42, y:55, w:10, h:30}, 'NBT': {x:68, y:55, w:0, h:30}, 'NBR': {x:80, y:60, w:10, h:25},
+            'SBL': {x:44, y:15, w:10, h:25}, 'SBL-P': {x:48, y:15, w:10, h:30}, 'SBT': {x:32, y:15, w:0, h:30}, 'SBR': {x:10, y:15, w:10, h:25},
+            'EBL': {x:15, y:46, w:25, h:10}, 'EBL-P': {x:15, y:46, w:30, h:14}, 'EBT': {x:15, y:68, w:30, h:0}, 'EBR': {x:15, y:80, w:25, h:10},
+            'WBL': {x:60, y:44, w:25, h:10}, 'WBL-P': {x:55, y:40, w:30, h:14}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10},
             'PED-S': {x:30, y:92, w:40, h:0}, 'PED-N': {x:30, y:8, w:40, h:0}, 'PED-W': {x:8, y:30, w:0, h:40}, 'PED-E': {x:92, y:30, w:0, h:40}
         };
 
@@ -309,8 +344,8 @@ class InteractivePhaseDiagram {
             const cy = (minY + maxY) / 2;
             const objW = maxX - minX;
             const objH = maxY - minY;
-            const pad = 20; // safe padding
-            const size = Math.max(objW + 2*pad, objH + 2*pad, 45); // Keep a minimum size to prevent over-zooming on tiny arrows
+            const pad = 20;
+            const size = Math.max(objW + 2*pad, objH + 2*pad, 45);
             svg.setAttribute('viewBox', `${cx - size/2} ${cy - size/2} ${size} ${size}`);
         } else {
             svg.setAttribute('viewBox', '0 0 100 100');
@@ -328,40 +363,6 @@ class InteractivePhaseDiagram {
             arrow.setAttribute('marker-end', `url(#ah-${color})`);
         }
     }
-
-    loadFromSignalMap(sm) {
-        if (!sm) return;
-        this.activeMovements = {};
-
-        const mapMov = (m) => {
-            const MAP = {
-                1: ['SBL'], 2: ['NBT', 'NBR'], 3: ['WBL'], 4: ['EBT', 'EBR'],
-                5: ['NBL'], 6: ['SBT', 'SBR'], 7: ['EBL'], 8: ['WBT', 'WBR'],
-                102: ['PED-W'], 106: ['PED-E'],
-                104: ['PED-S'], 108: ['PED-N']
-            };
-            return MAP[m] || [];
-        };
-
-        for (let i = 0; i < 8; i++) {
-            const ringAMovs = [];
-            const ringBMovs = [];
-            
-            if (sm.movA && sm.movA[i]) ringAMovs.push(...mapMov(sm.movA[i]));
-            if (sm.movB && sm.movB[i]) ringBMovs.push(...mapMov(sm.movB[i]));
-            
-            if (sm.pedMovA && sm.pedMovA[i]) ringAMovs.push(...mapMov(sm.pedMovA[i]));
-            if (sm.pedMovB && sm.pedMovB[i]) ringBMovs.push(...mapMov(sm.pedMovB[i]));
-
-            this.activeMovements['P' + (i + 1) + '-A'] = ringAMovs;
-            this.activeMovements['P' + (i + 1) + '-B'] = ringBMovs;
-        }
-
-        for (let i = 1; i <= 8; i++) {
-            this.renderCell('P' + i + '-A');
-            this.renderCell('P' + i + '-B');
-        }
-    }
 }
-window.InteractivePhaseDiagram = InteractivePhaseDiagram;
 
+window.InteractivePhaseDiagram = InteractivePhaseDiagram;
