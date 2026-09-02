@@ -111,7 +111,7 @@ class InteractivePhaseDiagram {
         return `
         <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:100%; margin: 0 auto; user-select:none; font-family:sans-serif; overflow-x: auto;">
             <style>
-                .ipd-grid { display: grid; grid-template-columns: repeat(8, minmax(110px, 1fr)); grid-template-rows: repeat(2, 110px); background: #fff; min-width: 880px; }
+                .ipd-grid { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(2, minmax(80px, 110px)); background: #fff; width: 100%; }
                 .ipd-cell { position: relative; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; background:#fff; cursor:pointer; transition: background 0.1s; }
                 .ipd-cell:hover { background: #f8fafc; }
                 .ipd-cell-label { position: absolute; top: 4px; left: 6px; font-weight: bold; color: #888; font-size: 13px; z-index:2; }
