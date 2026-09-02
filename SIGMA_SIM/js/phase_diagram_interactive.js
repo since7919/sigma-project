@@ -45,60 +45,40 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-ped ipd-dashed" id="PED-E" d="M 92,30 L 92,70" marker-start="url(#ah-gray-rev)" marker-end="url(#ah-gray)" />
         `;
 
-        const presets = {
-            1: ['WBL'],
-            2: ['SBT', 'SBR', 'PED-W', 'PED-E'],
-            3: ['NBL'],
-            4: ['WBT', 'WBR', 'PED-N', 'PED-S'],
-            5: ['SBL'],
-            6: ['NBT', 'NBR', 'PED-W', 'PED-E'],
-            7: ['EBL'],
-            8: ['EBT', 'EBR', 'PED-N', 'PED-S']
-        };
+        // 16 Cells: A-Ring (P1~P8), B-Ring (P1~P8)
+        const cellIds = [];
+        for (let i = 1; i <= 8; i++) cellIds.push('P' + i + '-A');
+        for (let i = 1; i <= 8; i++) cellIds.push('P' + i + '-B');
 
         let cellsHtml = '';
-        for (let i = 1; i <= 8; i++) {
-            let cellSvg = baseArrows.replace(/id="(.*?)"/g, `id="arr-${i}-$1"`);
+        cellIds.forEach((cId, idx) => {
+            let cellSvg = baseArrows.replace(/id="(.*?)"/g, `id="arr-${cId}-$1"`);
             
-            if (presets[i]) {
-                presets[i].forEach(mov => {
-                    cellSvg = cellSvg.replace(`id="arr-${i}-${mov}"`, `id="arr-${i}-${mov}" class="ipd-arrow ipd-preset ipd-active"`);
-                });
-            }
-
-            cellSvg = cellSvg.replace(/class="ipd-arrow( ipd-[^"]*)? ipd-preset ipd-active"/g, `class="ipd-arrow$1 ipd-active"`);
-
-            const isBottomRow = i >= 5;
+            const isBottomRow = idx >= 8;
             const borderBottom = isBottomRow ? 'border-bottom:none;' : '';
-            const borderRight = (i === 4 || i === 8) ? 'border-right:none;' : '';
+            const borderRight = (idx === 7 || idx === 15) ? 'border-right:none;' : '';
             
             cellsHtml += `
                 <div class="ipd-cell" style="${borderBottom} ${borderRight}">
-                    <div class="ipd-cell-label">Ø${i}</div>
+                    <div class="ipd-cell-label">${cId}</div>
                     <svg width="100%" height="100%" viewBox="0 0 100 100">
                         ${cellSvg}
                     </svg>
                 </div>
             `;
-            
-            if (i === 2 || i === 6) {
-                cellsHtml += `<div class="ipd-barrier" style="${borderBottom}"></div>`;
-            }
-        }
+        });
 
         return `
-        <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:800px; margin: 0 auto; user-select:none; font-family:sans-serif;">
+        <div class="interactive-phase-diagram" style="background:#fff; border:1px solid #ccc; width:100%; max-width:100%; margin: 0 auto; user-select:none; font-family:sans-serif; overflow-x: auto;">
             <style>
-                .ipd-grid { display: grid; grid-template-columns: 1fr 1fr 8px 1fr 1fr; grid-template-rows: 150px 150px; background: #fff; }
+                .ipd-grid { display: grid; grid-template-columns: repeat(8, minmax(120px, 1fr)); grid-template-rows: repeat(2, 120px); background: #fff; min-width: 960px; }
                 .ipd-cell { position: relative; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; background:#fff; }
-                .ipd-cell-label { position: absolute; top: 8px; left: 8px; font-weight: bold; color: #888; font-size: 16px; }
-                .ipd-barrier { background: #fdf5d3; border-left: 2px solid #aaa; border-right: 2px solid #aaa; }
+                .ipd-cell-label { position: absolute; top: 4px; left: 6px; font-weight: bold; color: #888; font-size: 13px; }
                 
                 .ipd-arrow { 
                     fill: none; 
-                    stroke: #e5e7eb; /* faint gray */
+                    stroke: #e5e7eb; 
                     stroke-width: 4.5; 
-                    
                     cursor: pointer; 
                     transition: all 0.2s; 
                 }
@@ -111,14 +91,12 @@ class InteractivePhaseDiagram {
                 .ipd-arrow.ipd-active:hover { stroke: #0284c7; }
                 
                 /* Legend */
-                .ipd-legend { display: flex; flex-direction: column; gap: 8px; padding: 15px; background: #fff; border-top: 1px solid #ccc; font-size: 13px; color: #555; font-weight: bold;}
-                .ipd-legend-item { display: flex; align-items: center; gap: 10px; }
+                .ipd-legend { display: flex; flex-direction: row; flex-wrap: wrap; gap: 16px; padding: 12px 15px; background: #fff; border-top: 1px solid #ccc; font-size: 12px; color: #555; font-weight: bold;}
+                .ipd-legend-item { display: flex; align-items: center; gap: 6px; }
             </style>
 
-            <!-- SVG Defs for arrowheads -->
             <svg width="0" height="0" style="position:absolute;">
                 <defs>
-                    <!-- Road marking style wide flat arrowheads -->
                     <marker id="ah-gray" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="0 0, 3 1.5, 0 3" fill="#e5e7eb" />
                     </marker>
@@ -140,18 +118,18 @@ class InteractivePhaseDiagram {
             
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
-                    <span>Protected Phase (직진/좌회전)</span>
+                    <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
+                    <span>Protected (직진/좌회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
-                    <span>Permissive Phase (비보호/우회전)</span>
+                    <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
+                    <span>Permissive (비보호/우회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="40" height="10"><path d="M5,5 L35,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
-                    <span>Pedestrian Phase (보행자)</span>
+                    <svg width="30" height="10"><path d="M5,5 L25,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
+                    <span>Pedestrian (보행자)</span>
                 </div>
-                <div style="font-size:11px; color:#888; font-weight:normal; margin-top:5px;">
+                <div style="font-size:11px; color:#888; font-weight:normal; margin-left: auto; display: flex; align-items: center;">
                     * 팁: 회색 노면표시를 클릭하면 파란색으로 활성화되며 해당 현시에 배정됩니다. 다시 클릭하면 해제됩니다.
                 </div>
             </div>
