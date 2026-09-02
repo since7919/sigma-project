@@ -366,3 +366,20 @@ class InteractivePhaseDiagram {
 }
 
 window.InteractivePhaseDiagram = InteractivePhaseDiagram;
+
+// Auto-initialize robustly
+let initAttempts = 0;
+function tryInitIPD() {
+    if (document.getElementById('interactive-phase-container') && !window.ipdInstance) {
+        window.ipdInstance = new InteractivePhaseDiagram('interactive-phase-container');
+        // Restore data if already loaded
+        if (window.STATE && window.STATE.junctions && window.STATE.activeJid) {
+            const j = window.STATE.junctions[window.STATE.activeJid];
+            if (j && j.signalMaps) window.ipdInstance.loadFromSignalMap(j.signalMaps[window.STATE.currentSignalMapIdx || 0]);
+        }
+    } else if (!window.ipdInstance && initAttempts < 10) {
+        initAttempts++;
+        setTimeout(tryInitIPD, 500);
+    }
+}
+setTimeout(tryInitIPD, 100);
