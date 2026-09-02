@@ -534,7 +534,7 @@
                 // Initialize after a small delay to ensure DOM is ready
                 setTimeout(() => {
                     if(window.InteractivePhaseDiagram) {
-                        new window.InteractivePhaseDiagram('interactive-phase-container');
+                        window.ipdInstance = new window.InteractivePhaseDiagram('interactive-phase-container');
                     }
                 }, 1000);
             </script>

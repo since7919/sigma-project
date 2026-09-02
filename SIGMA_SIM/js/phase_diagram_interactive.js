@@ -3,16 +3,7 @@
 class InteractivePhaseDiagram {
     constructor(containerId) {
         this.containerId = containerId;
-        this.activeMovements = {
-            'P1-A': ['WBL'],
-            'P2-A': ['SBT', 'SBR', 'PED-W', 'PED-E'],
-            'P3-A': ['NBL'],
-            'P4-A': ['WBT', 'WBR', 'PED-N', 'PED-S'],
-            'P5-A': ['SBL'],
-            'P6-A': ['NBT', 'NBR', 'PED-W', 'PED-E'],
-            'P7-A': ['EBL'],
-            'P8-A': ['EBT', 'EBR', 'PED-N', 'PED-S']
-        };
+        this.activeMovements = {};
         this.currentEditingCell = null;
         this.init();
     }
@@ -337,6 +328,40 @@ class InteractivePhaseDiagram {
             arrow.setAttribute('marker-end', `url(#ah-${color})`);
         }
     }
-}
 
+    loadFromSignalMap(sm) {
+        if (!sm) return;
+        this.activeMovements = {};
+
+        const mapMov = (m) => {
+            const MAP = {
+                1: ['SBL'], 2: ['NBT', 'NBR'], 3: ['WBL'], 4: ['EBT', 'EBR'],
+                5: ['NBL'], 6: ['SBT', 'SBR'], 7: ['EBL'], 8: ['WBT', 'WBR'],
+                102: ['PED-W'], 106: ['PED-E'],
+                104: ['PED-S'], 108: ['PED-N']
+            };
+            return MAP[m] || [];
+        };
+
+        for (let i = 0; i < 8; i++) {
+            const ringAMovs = [];
+            const ringBMovs = [];
+            
+            if (sm.movA && sm.movA[i]) ringAMovs.push(...mapMov(sm.movA[i]));
+            if (sm.movB && sm.movB[i]) ringBMovs.push(...mapMov(sm.movB[i]));
+            
+            if (sm.pedMovA && sm.pedMovA[i]) ringAMovs.push(...mapMov(sm.pedMovA[i]));
+            if (sm.pedMovB && sm.pedMovB[i]) ringBMovs.push(...mapMov(sm.pedMovB[i]));
+
+            this.activeMovements['P' + (i + 1) + '-A'] = ringAMovs;
+            this.activeMovements['P' + (i + 1) + '-B'] = ringBMovs;
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            this.renderCell('P' + i + '-A');
+            this.renderCell('P' + i + '-B');
+        }
+    }
+}
 window.InteractivePhaseDiagram = InteractivePhaseDiagram;
+

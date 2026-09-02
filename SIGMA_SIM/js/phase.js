@@ -98,7 +98,14 @@ function renderRingTables() {
         pedDelayA: [0, 0, 0, 0, 0, 0, 0, 0], pedDelayB: [0, 0, 0, 0, 0, 0, 0, 0],
         mainMovements: ['A0', 'B0']
     };
+    
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : fallbackMap;
+
+    // 동적 현시표 업데이트 연동
+    if (window.ipdInstance && sm) {
+        window.ipdInstance.loadFromSignalMap(sm);
+    }
+
 
 
 
