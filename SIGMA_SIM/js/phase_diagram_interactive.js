@@ -278,6 +278,15 @@ class InteractivePhaseDiagram {
         const activeMovs = this.activeMovements[cellId] || [];
         const arrows = svg.querySelectorAll('.ipd-arrow');
         
+        
+        const BBOX = {
+            'NBL': {x:46, y:60, w:10, h:25}, 'NBT': {x:68, y:55, w:0, h:30}, 'NBR': {x:80, y:60, w:10, h:25},
+            'SBL': {x:44, y:15, w:10, h:25}, 'SBT': {x:32, y:15, w:0, h:30}, 'SBR': {x:10, y:15, w:10, h:25},
+            'EBL': {x:15, y:46, w:25, h:10}, 'EBT': {x:15, y:68, w:30, h:0}, 'EBR': {x:15, y:80, w:25, h:10},
+            'WBL': {x:60, y:44, w:25, h:10}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10},
+            'PED-S': {x:30, y:92, w:40, h:0}, 'PED-N': {x:30, y:8, w:40, h:0}, 'PED-W': {x:8, y:30, w:0, h:40}, 'PED-E': {x:92, y:30, w:0, h:40}
+        };
+
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         let hasActive = false;
 
@@ -286,21 +295,22 @@ class InteractivePhaseDiagram {
             if (activeMovs.includes(mov)) {
                 arrow.classList.add('ipd-active');
                 this.updateArrowMarker(arrow);
-                
-                try {
-                    const bbox = arrow.getBBox();
-                    if (bbox && bbox.width > 0) {
-                        minX = Math.min(minX, bbox.x);
-                        minY = Math.min(minY, bbox.y);
-                        maxX = Math.max(maxX, bbox.x + bbox.width);
-                        maxY = Math.max(maxY, bbox.y + bbox.height);
-                        hasActive = true;
-                    }
-                } catch(e) {}
             } else {
                 arrow.classList.remove('ipd-active');
             }
         });
+
+        activeMovs.forEach(mov => {
+            const box = BBOX[mov];
+            if (box) {
+                minX = Math.min(minX, box.x);
+                minY = Math.min(minY, box.y);
+                maxX = Math.max(maxX, box.x + box.w);
+                maxY = Math.max(maxY, box.y + box.h);
+                hasActive = true;
+            }
+        });
+
 
         if (hasActive) {
             const pad = 15;
