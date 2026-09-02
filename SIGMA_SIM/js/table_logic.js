@@ -158,6 +158,7 @@ function handleMovInput(el) {
         sm[key][idx] = val;
         // 0번 맵인 경우 루트 레벨도 동기화
         if (smIdx === 0) j[key][idx] = val;
+        if (window.ipdInstance) window.ipdInstance.loadFromSignalMap(sm);
         // ※ 현시계획(Map)은 A/B 링 독립 입력 - Dual 동기화 불필요
     } else {
         j[key][idx] = val;
