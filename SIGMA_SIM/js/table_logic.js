@@ -155,6 +155,7 @@ function handleMovInput(el) {
     const sm = j.signalMaps ? j.signalMaps[smIdx] : null;
 
     if (sm) {
+        if (!sm[key]) sm[key] = [0,0,0,0,0,0,0,0];
         sm[key][idx] = val;
         // 0번 맵인 경우 루트 레벨도 동기화
         if (smIdx === 0) { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
