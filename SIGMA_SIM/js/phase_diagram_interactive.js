@@ -32,8 +32,8 @@ class InteractivePhaseDiagram {
         // 1: EBL, 5: WBL, 3: NBL, 7: SBL
         const mapMov = (m) => {
             const MAP = {
-                1: ['EBL'], 2: ['EBT'], 3: ['NBL'], 4: ['SBT'],
-                5: ['WBL'], 6: ['WBT'], 7: ['SBL'], 8: ['NBT'],
+                1: ['WBL'], 2: ['EBT'], 3: ['NBL'], 4: ['SBT'],
+                5: ['EBL'], 6: ['WBT'], 7: ['SBL'], 8: ['NBT'],
                 102: ['PED-S'], 106: ['PED-N'],
                 104: ['PED-E'], 108: ['PED-W']
             };
