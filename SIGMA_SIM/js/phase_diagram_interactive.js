@@ -122,11 +122,12 @@ class InteractivePhaseDiagram {
         return `
         <div class="interactive-phase-diagram" style="background:#1e1e1e; border:1px solid #3e3e42; width:100%; margin: 0 auto; user-select:none; font-family:sans-serif; overflow: hidden; border-radius:6px;">
             <style>
-                .ipd-grid { display: grid; grid-template-columns: 36px repeat(8, 1fr); background: #1e1e1e; width: 100%; }
-                .ipd-header-cell { background: #252526; color: #888; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; height: 24px; }
-                .ipd-row-label { background: #252526; color: #888; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -2px; }
+                .interactive-phase-diagram * { box-sizing: border-box; }
+                .ipd-grid { display: grid; grid-template-columns: 28px repeat(8, 1fr); background: #1e1e1e; width: 100%; }
+                .ipd-header-cell { background: #252526; color: #888; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; height: 20px; min-width: 0; min-height: 0; overflow: hidden; }
+                .ipd-row-label { background: #252526; color: #888; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; text-orientation: upright; letter-spacing: -2px; min-width: 0; min-height: 0; overflow: hidden; }
                 
-                .ipd-cell { position: relative; aspect-ratio: 1 / 1; background:#1e1e1e; cursor:pointer; transition: background 0.1s; }
+                .ipd-cell { position: relative; aspect-ratio: 1 / 1; background:#1e1e1e; cursor:pointer; transition: background 0.1s; min-width: 0; min-height: 0; overflow: hidden; }
                 .ipd-cell:hover { background: #2a2d2e; }
                 
                 .ipd-arrow { fill: none; stroke: #444; stroke-width: 4.5; transition: all 0.2s; }
@@ -152,21 +153,22 @@ class InteractivePhaseDiagram {
             
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
                     <span>Protected</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10"><path d="M0,5 L30,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
                     <span>Permissive</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10"><path d="M5,5 L25,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M8,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
                     <span>Pedestrian</span>
                 </div>
                 <div style="font-size:11px; color:#666; font-weight:normal; margin-left: auto; display: flex; align-items: center;">
                     * 팁: 현시 칸을 클릭하여 팔레트(Popup)를 띄워 편집하세요.
                 </div>
             </div>
+        </div>
         </div>
         `;
     }
@@ -311,18 +313,13 @@ class InteractivePhaseDiagram {
             }
         });
 
-
         if (hasActive) {
-            const pad = 15;
-            minX -= pad;
-            minY -= pad;
-            const w = (maxX - minX) + 2*pad;
-            const h = (maxY - minY) + 2*pad;
-            
-            const size = Math.max(w, h, 35);
-            const cx = minX + w/2;
-            const cy = minY + h/2;
-            
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+            const objW = maxX - minX;
+            const objH = maxY - minY;
+            const pad = 20; // safe padding
+            const size = Math.max(objW + 2*pad, objH + 2*pad, 45); // Keep a minimum size to prevent over-zooming on tiny arrows
             svg.setAttribute('viewBox', `${cx - size/2} ${cy - size/2} ${size} ${size}`);
         } else {
             svg.setAttribute('viewBox', '0 0 100 100');
