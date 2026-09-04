@@ -60,7 +60,7 @@ class InteractivePhaseDiagram {
         }
     }
 
-    getBaseSVGPaths(prefix) {
+    getVehSVGPaths(prefix) {
         return `
             <!-- NB -->
             <path class="ipd-arrow ipd-nbl" id="${prefix}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
@@ -85,7 +85,11 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-dashed ipd-wbl-p" id="${prefix}-WBL-P" data-mov="WBL-P" d="M 85,40 L 70,40 Q 55,40 55,54" />
             <path class="ipd-arrow ipd-wbt" id="${prefix}-WBT" data-mov="WBT" d="M 85,32 L 55,32" />
             <path class="ipd-arrow ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
-            
+        `;
+    }
+
+    getPedSVGPaths(prefix) {
+        return `
             <!-- Peds -->
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
@@ -128,8 +132,11 @@ class InteractivePhaseDiagram {
             const br = (i === 8) ? '' : 'border-right:1px solid #3e3e42;';
             gridHtml += `
                 <div class="ipd-cell" id="cell-${cId}" data-cell="${cId}" style="${br} border-bottom:1px solid #3e3e42;">
-                    <svg class="ipd-svg" id="svg-${cId}" width="100%" height="100%" viewBox="0 0 100 100">
-                        ${this.getBaseSVGPaths('cell-' + cId)}
+                    <svg class="ipd-svg-main" width="100%" height="100%" viewBox="0 0 100 100">
+                        <svg class="ipd-svg" id="svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
+                            ${this.getVehSVGPaths('cell-' + cId)}
+                        </svg>
+                        ${this.getPedSVGPaths('cell-' + cId)}
                     </svg>
                 </div>
             `;
@@ -141,8 +148,11 @@ class InteractivePhaseDiagram {
             const br = (i === 8) ? '' : 'border-right:1px solid #3e3e42;';
             gridHtml += `
                 <div class="ipd-cell" id="cell-${cId}" data-cell="${cId}" style="${br}">
-                    <svg class="ipd-svg" id="svg-${cId}" width="100%" height="100%" viewBox="0 0 100 100">
-                        ${this.getBaseSVGPaths('cell-' + cId)}
+                    <svg class="ipd-svg-main" width="100%" height="100%" viewBox="0 0 100 100">
+                        <svg class="ipd-svg" id="svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
+                            ${this.getVehSVGPaths('cell-' + cId)}
+                        </svg>
+                        ${this.getPedSVGPaths('cell-' + cId)}
                     </svg>
                 </div>
             `;
@@ -214,7 +224,8 @@ class InteractivePhaseDiagram {
                 </div>
                 <div style="width:300px; height:300px; margin: 0 auto; background:#252526; border-radius:4px; border:1px solid #3e3e42;">
                     <svg class="ipd-modal-svg" id="ipd-modal-svg" width="100%" height="100%" viewBox="0 0 100 100">
-                        ${this.getBaseSVGPaths('modal')}
+                        ${this.getVehSVGPaths('modal')}
+                        ${this.getPedSVGPaths('modal')}
                     </svg>
                 </div>
                 <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:8px;">
@@ -301,22 +312,24 @@ class InteractivePhaseDiagram {
     }
 
     renderCell(cellId) {
+        const cellNode = document.getElementById('cell-' + cellId);
+        if (!cellNode) return;
+        
         const svg = document.getElementById('svg-' + cellId);
         if (!svg) return;
         
         const activeMovs = this.activeMovements[cellId] || [];
-        const arrows = svg.querySelectorAll('.ipd-arrow');
+        const arrows = cellNode.querySelectorAll('.ipd-arrow');
         
         const BBOX = {
             'NBL': {x:46, y:60, w:10, h:25}, 'NBL-P': {x:42, y:55, w:10, h:30}, 'NBT': {x:68, y:55, w:0, h:30}, 'NBR': {x:80, y:60, w:10, h:25},
             'SBL': {x:44, y:15, w:10, h:25}, 'SBL-P': {x:48, y:15, w:10, h:30}, 'SBT': {x:32, y:15, w:0, h:30}, 'SBR': {x:10, y:15, w:10, h:25},
             'EBL': {x:15, y:46, w:25, h:10}, 'EBL-P': {x:15, y:46, w:30, h:14}, 'EBT': {x:15, y:68, w:30, h:0}, 'EBR': {x:15, y:80, w:25, h:10},
-            'WBL': {x:60, y:44, w:25, h:10}, 'WBL-P': {x:55, y:40, w:30, h:14}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10},
-            'PED-S': {x:30, y:92, w:40, h:0}, 'PED-N': {x:30, y:8, w:40, h:0}, 'PED-W': {x:8, y:30, w:0, h:40}, 'PED-E': {x:92, y:30, w:0, h:40}
+            'WBL': {x:60, y:44, w:25, h:10}, 'WBL-P': {x:55, y:40, w:30, h:14}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10}
         };
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        let hasActive = false;
+        let hasActiveVeh = false;
 
         arrows.forEach(arrow => {
             const mov = arrow.getAttribute('data-mov');
@@ -329,23 +342,24 @@ class InteractivePhaseDiagram {
         });
 
         activeMovs.forEach(mov => {
+            if (mov.startsWith('PED-')) return;
             const box = BBOX[mov];
             if (box) {
                 minX = Math.min(minX, box.x);
                 minY = Math.min(minY, box.y);
                 maxX = Math.max(maxX, box.x + box.w);
                 maxY = Math.max(maxY, box.y + box.h);
-                hasActive = true;
+                hasActiveVeh = true;
             }
         });
 
-        if (hasActive) {
+        if (hasActiveVeh) {
             const cx = (minX + maxX) / 2;
             const cy = (minY + maxY) / 2;
             const objW = maxX - minX;
             const objH = maxY - minY;
-            const pad = 20;
-            const size = Math.max(objW + 2*pad, objH + 2*pad, 45);
+            const pad = 10;
+            const size = Math.max(objW + 2*pad, objH + 2*pad, 40);
             svg.setAttribute('viewBox', `${cx - size/2} ${cy - size/2} ${size} ${size}`);
         } else {
             svg.setAttribute('viewBox', '0 0 100 100');
