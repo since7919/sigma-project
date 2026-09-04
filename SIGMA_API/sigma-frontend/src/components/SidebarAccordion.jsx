@@ -83,6 +83,7 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
   // 아코디언 상태 관리
   const [tdataOpen, setTdataOpen] = useState(false);
   const [uticOpen, setUticOpen] = useState(false);
+  const [rtiOpen, setRtiOpen] = useState(false);
   const [tdataLimit, setTdataLimit] = useState(100);
 
   const toggleRegion = (reg) => {
@@ -112,6 +113,7 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
             const nextOpen = !tdataOpen;
             setTdataOpen(nextOpen);
             if (nextOpen) {
+              setRtiOpen(false);
               setUticOpen(false);
               setActiveTab('tdata');
             } else {
@@ -262,7 +264,33 @@ export default function SidebarAccordion({ intersections, onNodeClick, activeNod
             </div>
           )}
         </div>
-        
+
+        {/* 3. 행정안전부 전국 실시간 신호 (RTI) */}
+        <div className="acc-group">
+          <div className="acc-header" onClick={() => {
+            const nextOpen = !rtiOpen;
+            setRtiOpen(nextOpen);
+            if (nextOpen) {
+              setTdataOpen(false);
+              setUticOpen(false);
+              setActiveTab('rti');
+            } else {
+              if (activeTab === 'rti') setActiveTab(null);
+            }
+          }} style={{ position: 'relative' }}>
+            <span className="acc-icon">{rtiOpen ? '▼' : '▶'}</span>
+            🚦 행정안전부 실시간 신호 (RTI)
+          </div>
+          {rtiOpen && (
+            <div className="acc-body">
+              <div style={{ padding: '10px', fontSize: '0.8rem', color: '#94a3b8' }}>
+                행정안전부 전국지자체 실시간 신호정보 API 연동 준비 중입니다.<br/>
+                (API 엔드포인트 및 파라미터 구성 후 리스트 표출 예정)
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </>
   );
