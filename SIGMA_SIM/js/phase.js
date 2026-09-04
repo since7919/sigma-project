@@ -158,12 +158,7 @@ function renderRingTables() {
         });
     });
 
-    SigmaUI.renderTable('mov-combined-container', {
-        tableId: 'mov-combined-table',
-        className: 'sigma-table',
-        head: [{label: '구분', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
-        rows: movRows
-    });
+    // movRows is collected here, but we will merge it with finalPhaseRows later.
 
     // ── Phase/Split 테이블 (SigmaUI 사용) ──
 
@@ -248,12 +243,19 @@ function renderRingTables() {
         });
     });
 
-    SigmaUI.renderTable('tod-container', {
-        tableId: 'tod-table',
+    const combinedRows = movRows.concat(finalPhaseRows);
+
+    SigmaUI.renderTable('mov-combined-container', {
+        tableId: 'combined-phase-mg-table',
         className: 'sigma-table',
-        head: [{label: '항목', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
-        rows: finalPhaseRows
+        head: [{label: '구분/항목', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
+        rows: combinedRows
     });
+
+    const todContainer = document.getElementById('tod-container');
+    if (todContainer) {
+        todContainer.innerHTML = '';
+    }
 
     updateCycleDisplay(p, s);
     renderSummaryTable();

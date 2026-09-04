@@ -566,11 +566,43 @@
             <!-- [일반 제어 영역] -->
             <div class="sigma-panel">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3>🚦 현시 정보 (Phase)</h3>
+                    <h3>🚦 현시 정보 및 최소녹색(MG) 설정</h3>
                     <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
                     <div id="signal-map-selector"></div>
+                    
+                    <div class="tod-integrated-bar-v2" style="margin-bottom: 10px;">
+                        <div class="tod-grid-main" style="display:none;">
+                            <div class="tod-info-item">
+                                <span class="tod-label-tag">플랜 선택</span>
+                                <select id="current-plan-idx" class="input-dark" style="width: 100%; height:28px;" onchange="renderRingTables()"></select>
+                            </div>
+                            <div class="tod-info-item">
+                                <span class="tod-label-tag">시작시간</span>
+                                <div id="tod-display-time" class="tod-value-box">--:--</div>
+                            </div>
+                            <div class="tod-info-item">
+                                <span class="tod-label-tag">신호주기(Cycle)</span>
+                                <input type="number" id="tod-inp-cycle" class="input-dark fw-800" style="width:100%; height:20px; color:var(--accent) !important;" onchange="updateTargetCycle(this.value)" disabled>
+                            </div>
+                            <div class="tod-info-item">
+                                <span class="tod-label-tag">연동값(Offset)</span>
+                                <input type="number" id="tod-inp-offset" class="input-dark" style="width:100%; height:20px;" disabled>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; align-items:center;">
+                            <div class="flex-row gap-12">
+                                <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
+                                    <input type="checkbox" id="chk-dual-ring" onchange="renderRingTables()" style="width:14px; height:14px; accent-color:var(--accent);"> Dual(각각입력)
+                                </label>
+                                <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
+                                    <input type="checkbox" id="chk-show-split-details" onchange="renderRingTables()" style="width:14px; height:14px; accent-color:var(--accent);"> Split만 보기
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div id="mov-combined-container"></div>
                     <div class="template-panel">
                         <div class="template-header">📋 현시 템플릿 (Template)</div>
@@ -620,69 +652,21 @@
 
             <div class="sigma-panel" style="margin-top: 0;">
                 <div class="card-title" onclick="toggleSection(this)">
-                    <h3 style="color:var(--accent);">📅 최소녹색(MG) 설정</h3>
-                    <span class="fold-icon">▼</span>
-                </div>
-                <div class="foldable-content">
-                    <!-- 상단 바: 플랜/시간/주기/연동 -->
-                    <div class="tod-integrated-bar-v2">
-                        <div class="tod-grid-main" style="display:none;">
-                            <div class="tod-info-item">
-                                <span class="tod-label-tag">플랜 선택</span>
-                                <select id="current-plan-idx" class="input-dark" style="width: 100%; height:28px;"
-                                    onchange="renderRingTables()"></select>
-                            </div>
-                            <div class="tod-info-item">
-                                <span class="tod-label-tag">시작시간</span>
-                                <div id="tod-display-time" class="tod-value-box">--:--</div>
-                            </div>
-                            <div class="tod-info-item">
-                                <span class="tod-label-tag">신호주기(Cycle)</span>
-                                <input type="number" id="tod-inp-cycle" class="input-dark fw-800"
-                                    style="width:100%; height:20px; color:var(--accent) !important;"
-                                    onchange="updateTargetCycle(this.value)" disabled>
-                            </div>
-                            <div class="tod-info-item">
-                                <span class="tod-label-tag">연동값(Offset)</span>
-                                <input type="number" id="tod-inp-offset" class="input-dark"
-                                    style="width:100%; height:20px;" disabled>
-                            </div>
-                        </div>
-
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center;">
-                            <div id="group-selector" class="flex-row gap-10">
-                                <span class="fs-11 fw-500 text-dim">그룹 ID:</span>
-                                <input type="number" id="inp-group-assign" class="input-dark p-10"
-                                    style="width:45px; padding:3px;" placeholder="0" disabled>
-                                <button class="phase-action-btn phase-btn-cyan" onclick="applyGroupTOD()" id="btn-group-assign" disabled>그룹 지정/적용</button>
-                            </div>
-                            <div class="flex-row gap-12">
-                                <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
-                                    <input type="checkbox" id="chk-dual-ring" onchange="renderRingTables()"
-                                        style="width:14px; height:14px; accent-color:var(--accent);"> Dual(각각입력)
-                                </label>
-                                <label class="flex-row gap-6 fs-12 text-accent" style="cursor:pointer;">
-                                    <input type="checkbox" id="chk-show-split-details" onchange="renderRingTables()"
-                                        style="width:14px; height:14px; accent-color:var(--accent);"> Split만 보기
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 신호시간 테이블 -->
-                    <div id="tod-container"></div>
-                </div>
-            </div>
-
-            <div class="sigma-panel" style="margin-top: 0;">
-                <div class="card-title" onclick="toggleSection(this)">
                     <h3>📅 TOD 상세 정보 일람</h3>
                     <span class="fold-icon">▼</span>
                 </div>
                 <div class="foldable-content">
                     <!-- [신규] 교차로 요일별 TOD 탭 선택 및 복사 기능 -->
                     <div class="box-blue">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                            <div id="group-selector" class="flex-row gap-10">
+                                <span class="fs-11 fw-500 text-dim">그룹 ID:</span>
+                                <input type="number" id="inp-group-assign" class="input-dark p-10"
+                                    style="width:45px; padding:3px;" placeholder="0" disabled>
+                                <button class="phase-action-btn phase-btn-cyan" onclick="applyGroupTOD()" id="btn-group-assign" disabled>그룹 지정/적용</button>
+                            </div>
+                        </div>
+
                         <!-- 1. 주간 일계획표 -->
                         <div id="weekly-plan-container" style="margin-bottom: 6px;"></div>
 
