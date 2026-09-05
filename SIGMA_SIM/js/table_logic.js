@@ -133,37 +133,39 @@ function handleTableInput(el) {
         }
     }
 
-    // Auto-calculate pedA and pedB
-    if (['pedGreenA', 'pedFlashA', 'pedGreenB', 'pedFlashB'].includes(key)) {
+    // Auto-calculate pedA, pedB and MG
+    if (['pedGreenA', 'pedFlashA', 'pedGreenB', 'pedFlashB', 'allredA', 'allredB', 'pedDelayA', 'pedDelayB'].includes(key) || (key.startsWith('split') && !isDual)) {
         if (!sm.pedA) sm.pedA = [0,0,0,0,0,0,0,0];
         if (!sm.pedB) sm.pedB = [0,0,0,0,0,0,0,0];
         
-        if (key.endsWith('A')) {
-            sm.pedA[idx] = (sm.pedGreenA?.[idx] || 0) + (sm.pedFlashA?.[idx] || 0);
-            const pedAEl = document.querySelector(`.sigma-input[data-key="pedA"][data-index="${idx}"]`);
-            if (pedAEl) {
-                pedAEl.value = sm.pedA[idx];
-                pedAEl.classList.toggle('val-zero', sm.pedA[idx] === 0);
-                pedAEl.classList.toggle('val-non-zero', sm.pedA[idx] !== 0);
+        sm.pedA[idx] = (sm.pedGreenA?.[idx] || 0) + (sm.pedFlashA?.[idx] || 0);
+        sm.pedB[idx] = (sm.pedGreenB?.[idx] || 0) + (sm.pedFlashB?.[idx] || 0);
+        
+        const arA = sm.allredA?.[idx] || 0;
+        const dlyA = sm.pedDelayA?.[idx] || 0;
+        const mgA = sm.pedA[idx] > 0 ? sm.pedA[idx] + arA + dlyA : 7 + arA;
+        
+        const arB = sm.allredB?.[idx] || 0;
+        const dlyB = sm.pedDelayB?.[idx] || 0;
+        const mgB = sm.pedB[idx] > 0 ? sm.pedB[idx] + arB + dlyB : 7 + arB;
+        
+        const updateField = (k, v) => {
+            const el = document.querySelector(`.calc-field[data-key="${k}"][data-index="${idx}"]`);
+            if (el) {
+                el.textContent = v;
+                el.style.color = v === 0 ? '#4b5563' : '#10b981';
             }
-
-            if (!isDual && sm.pedB) {
-                sm.pedB[idx] = (sm.pedGreenB?.[idx] || 0) + (sm.pedFlashB?.[idx] || 0);
-                const pedBEl = document.querySelector(`.sigma-input[data-key="pedB"][data-index="${idx}"]`);
-                if (pedBEl) {
-                    pedBEl.value = sm.pedB[idx];
-                    pedBEl.classList.toggle('val-zero', sm.pedB[idx] === 0);
-                    pedBEl.classList.toggle('val-non-zero', sm.pedB[idx] !== 0);
-                }
-            }
-        } else {
-            sm.pedB[idx] = (sm.pedGreenB?.[idx] || 0) + (sm.pedFlashB?.[idx] || 0);
-            const pedBEl = document.querySelector(`.sigma-input[data-key="pedB"][data-index="${idx}"]`);
-            if (pedBEl) {
-                pedBEl.value = sm.pedB[idx];
-                pedBEl.classList.toggle('val-zero', sm.pedB[idx] === 0);
-                pedBEl.classList.toggle('val-non-zero', sm.pedB[idx] !== 0);
-            }
+        };
+        
+        updateField('pedA', sm.pedA[idx]);
+        updateField('minGreenA', mgA);
+        
+        if (isDual || !key.endsWith('A')) {
+            updateField('pedB', sm.pedB[idx]);
+            updateField('minGreenB', mgB);
+        } else if (!isDual && key.endsWith('A')) { // sync B side if dual is off
+            updateField('pedB', sm.pedA[idx]); // B takes A's ped logic
+            updateField('minGreenB', mgA);
         }
     }
 

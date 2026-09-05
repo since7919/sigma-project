@@ -233,11 +233,8 @@ function renderRingTables() {
                 let contentHTML = '';
                 if (calc) {
                     const calcVal = calc(i);
-                    const cCls = calcVal === 0 ? 'val-zero' : 'val-non-zero';
-                    const colorStyle = calcVal === 0 ? '' : 'color:#10b981 !important;';
-                    contentHTML = `<input type="text" class="sigma-input ${cCls}" value="${calcVal}" readonly 
-                        style="${colorStyle} font-weight:bold; cursor:default; border-color:rgba(16,185,129,0.15) !important;" 
-                        title="${cat.calcTitle || ''}">`;
+                    const colorStyle = calcVal === 0 ? 'color:#4b5563;' : 'color:#10b981; font-weight:bold;';
+                    contentHTML = `<div class="calc-field" data-key="${key}" data-index="${i}" style="width:100%; height:26px; line-height:26px; text-align:center; font-size:13px; font-family:'Roboto Mono', monospace; ${colorStyle}" title="${cat.calcTitle || ''}">${calcVal}</div>`;
                 } else {
                     const cCls = val === 0 ? 'val-zero' : 'val-non-zero';
                     contentHTML = `<input type="number" class="sigma-input ${cls} inp-${key} ${cCls}" data-key="${key}" data-index="${i}" value="${val}" style="${extraStyle}" title="${tooltip}" ${isDisabled}>`;
