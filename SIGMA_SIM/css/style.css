@@ -90,16 +90,28 @@
 }
 
 .sigma-input {
-    background: rgba(0, 0, 0, 0.4) !important;
-    border: 1px solid var(--glass-border) !important;
-    color: #fff !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: #d1d5db !important;
     border-radius: 4px;
     padding: 2px;
     text-align: center;
     width: 100%;
     box-sizing: border-box;
     outline: none;
-    transition: border 0.2s;
+    transition: all 0.2s ease;
+}
+
+.sigma-input.val-zero {
+    color: #4b5563 !important;
+    font-weight: 400;
+}
+
+.sigma-input.val-non-zero {
+    color: #f8fafc !important;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .sigma-input:focus {

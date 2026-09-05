@@ -15,6 +15,15 @@ const tableEventInitialized = {
 function initTableEventHandlers() {
     console.log("[TableLogic] Initializing Event Handlers...");
 
+    // 0 값 흐리게 처리 (테마용 클래스 토글)
+    document.addEventListener('input', (e) => {
+        if (e.target.classList.contains('sigma-input') && e.target.type === 'number') {
+            const val = parseFloat(e.target.value) || 0;
+            e.target.classList.toggle('val-zero', val === 0);
+            e.target.classList.toggle('val-non-zero', val !== 0);
+        }
+    });
+
     // 1. Phase/Split 테이블 (Split, AllRed, Yellow 등)
     const todContainer = document.getElementById('tod-container');
     if (todContainer && !tableEventInitialized.tod) {
@@ -109,7 +118,11 @@ function handleTableInput(el) {
         if (target[bKey]) {
             target[bKey][idx] = val;
             const bEl = document.querySelector(`.sigma-input[data-key="${bKey}"][data-index="${idx}"]`);
-            if (bEl) bEl.value = val;
+            if (bEl) {
+                bEl.value = val;
+                bEl.classList.toggle('val-zero', val === 0);
+                bEl.classList.toggle('val-non-zero', val !== 0);
+            }
         }
     }
 
@@ -121,17 +134,29 @@ function handleTableInput(el) {
         if (key.endsWith('A')) {
             sm.pedA[idx] = (sm.pedGreenA?.[idx] || 0) + (sm.pedFlashA?.[idx] || 0);
             const pedAEl = document.querySelector(`.sigma-input[data-key="pedA"][data-index="${idx}"]`);
-            if (pedAEl) pedAEl.value = sm.pedA[idx];
+            if (pedAEl) {
+                pedAEl.value = sm.pedA[idx];
+                pedAEl.classList.toggle('val-zero', sm.pedA[idx] === 0);
+                pedAEl.classList.toggle('val-non-zero', sm.pedA[idx] !== 0);
+            }
 
             if (!isDual && sm.pedB) {
                 sm.pedB[idx] = (sm.pedGreenB?.[idx] || 0) + (sm.pedFlashB?.[idx] || 0);
                 const pedBEl = document.querySelector(`.sigma-input[data-key="pedB"][data-index="${idx}"]`);
-                if (pedBEl) pedBEl.value = sm.pedB[idx];
+                if (pedBEl) {
+                    pedBEl.value = sm.pedB[idx];
+                    pedBEl.classList.toggle('val-zero', sm.pedB[idx] === 0);
+                    pedBEl.classList.toggle('val-non-zero', sm.pedB[idx] !== 0);
+                }
             }
         } else {
             sm.pedB[idx] = (sm.pedGreenB?.[idx] || 0) + (sm.pedFlashB?.[idx] || 0);
             const pedBEl = document.querySelector(`.sigma-input[data-key="pedB"][data-index="${idx}"]`);
-            if (pedBEl) pedBEl.value = sm.pedB[idx];
+            if (pedBEl) {
+                pedBEl.value = sm.pedB[idx];
+                pedBEl.classList.toggle('val-zero', sm.pedB[idx] === 0);
+                pedBEl.classList.toggle('val-non-zero', sm.pedB[idx] !== 0);
+            }
         }
     }
 

@@ -140,12 +140,14 @@ function renderRingTables() {
             } else if (cat.id === 'mov') {
                 cells.push({ content: `${ring}링`, className: 'row-label', style: 'width:40px;' });
                 (sm[movKey] || [0, 0, 0, 0, 0, 0, 0, 0]).forEach((v, i) => {
-                    cells.push({ content: `<input type="number" class="sigma-input inp-${movKey}" data-type="mov" data-key="${movKey}" data-index="${i}" value="${v}">` });
+                    const valCls = v === 0 ? 'val-zero' : 'val-non-zero';
+                    cells.push({ content: `<input type="number" class="sigma-input inp-${movKey} ${valCls}" data-type="mov" data-key="${movKey}" data-index="${i}" value="${v}">` });
                 });
             } else if (cat.id === 'ped') {
                 cells.push({ content: `${ring}링`, className: 'row-label', style: 'width:40px;' });
                 (sm[pedKey] || [0, 0, 0, 0, 0, 0, 0, 0]).forEach((v, i) => {
-                    cells.push({ content: `<input type="number" class="sigma-input inp-${pedKey}" data-type="mov" data-key="${pedKey}" data-index="${i}" value="${v}">` });
+                    const valCls = v === 0 ? 'val-zero' : 'val-non-zero';
+                    cells.push({ content: `<input type="number" class="sigma-input inp-${pedKey} ${valCls}" data-type="mov" data-key="${pedKey}" data-index="${i}" value="${v}">` });
                 });
             } else if (cat.id === 'main') {
                 cells.push({ content: `${ring}링`, className: 'row-label', attr: { title: '최대 2개 선택' }, style: 'width:40px;' });
@@ -228,12 +230,21 @@ function renderRingTables() {
                     }
                 }
 
+                let contentHTML = '';
+                if (calc) {
+                    const calcVal = calc(i);
+                    const cCls = calcVal === 0 ? 'val-zero' : 'val-non-zero';
+                    const colorStyle = calcVal === 0 ? '' : 'color:#10b981 !important;';
+                    contentHTML = `<input type="text" class="sigma-input ${cCls}" value="${calcVal}" readonly 
+                        style="${colorStyle} font-weight:bold; cursor:default; border-color:rgba(16,185,129,0.15) !important;" 
+                        title="${cat.calcTitle || ''}">`;
+                } else {
+                    const cCls = val === 0 ? 'val-zero' : 'val-non-zero';
+                    contentHTML = `<input type="number" class="sigma-input ${cls} inp-${key} ${cCls}" data-key="${key}" data-index="${i}" value="${val}" style="${extraStyle}" title="${tooltip}" ${isDisabled}>`;
+                }
+
                 cells.push({
-                    content: calc
-                        ? `<input type="text" class="sigma-input" value="${calc(i)}" readonly 
-                            style="color:#10b981 !important; font-weight:bold; cursor:default; border-color:rgba(16,185,129,0.15) !important;" 
-                            title="${cat.calcTitle || ''}">`
-                        : `<input type="number" class="sigma-input ${cls} inp-${key}" data-key="${key}" data-index="${i}" value="${val}" style="${extraStyle}" title="${tooltip}" ${isDisabled}>`,
+                    content: contentHTML,
                     className: cls
                 });
             });
