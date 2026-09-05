@@ -34,6 +34,10 @@ class InteractivePhaseDiagram {
             const MAP = {
                 1: ['WBL'], 2: ['EBT'], 3: ['NBL'], 4: ['SBT'],
                 5: ['EBL'], 6: ['WBT'], 7: ['SBL'], 8: ['NBT'],
+                9: ['NEL'], 14: ['NET'],
+                11: ['SEL'], 16: ['SET'],
+                13: ['SWL'], 10: ['SWT'],
+                15: ['NWL'], 12: ['NWT'],
                 102: ['PED-S'], 106: ['PED-N'],
                 104: ['PED-W'], 108: ['PED-E']
             };
@@ -92,6 +96,40 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
             `;
         }
+        if (!filter || filter === 'NESW') {
+            html += `
+            <g transform="rotate(45 50 50)">
+                <!-- SW (From Bottom) -->
+                <path class="ipd-arrow ipd-nbl" id="${prefix}-SWL" data-mov="SWL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-SWL-P" data-mov="SWL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
+                <path class="ipd-arrow ipd-nbt" id="${prefix}-SWT" data-mov="SWT" d="M 68,85 L 68,55" />
+                <path class="ipd-arrow ipd-nbr" id="${prefix}-SWR" data-mov="SWR" d="M 80,85 L 80,70 Q 80,60 90,60" />
+                
+                <!-- NE (From Top) -->
+                <path class="ipd-arrow ipd-sbl" id="${prefix}-NEL" data-mov="NEL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-NEL-P" data-mov="NEL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
+                <path class="ipd-arrow ipd-sbt" id="${prefix}-NET" data-mov="NET" d="M 32,15 L 32,45" />
+                <path class="ipd-arrow ipd-sbr" id="${prefix}-NER" data-mov="NER" d="M 20,15 L 20,30 Q 20,40 10,40" />
+            </g>
+            `;
+        }
+        if (!filter || filter === 'NWSE') {
+            html += `
+            <g transform="rotate(-45 50 50)">
+                <!-- SE (From Bottom) -->
+                <path class="ipd-arrow ipd-nbl" id="${prefix}-SEL" data-mov="SEL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-SEL-P" data-mov="SEL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
+                <path class="ipd-arrow ipd-nbt" id="${prefix}-SET" data-mov="SET" d="M 68,85 L 68,55" />
+                <path class="ipd-arrow ipd-nbr" id="${prefix}-SER" data-mov="SER" d="M 80,85 L 80,70 Q 80,60 90,60" />
+                
+                <!-- NW (From Top) -->
+                <path class="ipd-arrow ipd-sbl" id="${prefix}-NWL" data-mov="NWL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-NWL-P" data-mov="NWL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
+                <path class="ipd-arrow ipd-sbt" id="${prefix}-NWT" data-mov="NWT" d="M 32,15 L 32,45" />
+                <path class="ipd-arrow ipd-sbr" id="${prefix}-NWR" data-mov="NWR" d="M 20,15 L 20,30 Q 20,40 10,40" />
+            </g>
+            `;
+        }
         return html;
     }
 
@@ -109,6 +147,22 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
             `;
         }
+        if (!filter || filter === 'NESW') {
+            html += `
+            <g transform="rotate(45 50 50)">
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-SW" data-mov="PED-SW" d="M 30,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NE" data-mov="PED-NE" d="M 30,8 L 70,8" />
+            </g>
+            `;
+        }
+        if (!filter || filter === 'NWSE') {
+            html += `
+            <g transform="rotate(-45 50 50)">
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-SE" data-mov="PED-SE" d="M 30,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NW" data-mov="PED-NW" d="M 30,8 L 70,8" />
+            </g>
+            `;
+        }
         return html;
     }
 
@@ -118,24 +172,42 @@ class InteractivePhaseDiagram {
         
         if (!filter || filter === 'NS') {
             html += `
-            <text x="56" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">3</text>
-            <text x="68" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">8</text>
-            <text x="44" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">7</text>
-            <text x="32" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">4</text>
+            <text class="ipd-text-label" data-mov="NBL" x="56" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">3</text>
+            <text class="ipd-text-label" data-mov="NBT" x="68" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">8</text>
+            <text class="ipd-text-label" data-mov="SBL" x="44" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">7</text>
+            <text class="ipd-text-label" data-mov="SBT" x="32" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">4</text>
             
-            <text x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">104</text>
-            <text x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">108</text>
+            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
+            <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
             `;
         }
         if (!filter || filter === 'EW') {
             html += `
-            <text x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">5</text>
-            <text x="3" y="68" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">2</text>
-            <text x="97" y="44" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">1</text>
-            <text x="97" y="32" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">6</text>
+            <text class="ipd-text-label" data-mov="EBL" x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">5</text>
+            <text class="ipd-text-label" data-mov="EBT" x="3" y="68" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">2</text>
+            <text class="ipd-text-label" data-mov="WBL" x="97" y="44" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">1</text>
+            <text class="ipd-text-label" data-mov="WBT" x="97" y="32" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">6</text>
             
-            <text x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">102</text>
-            <text x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">106</text>
+            <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
+            <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
+            `;
+        }
+        if (!filter || filter === 'NESW') {
+            html += `
+            <text class="ipd-text-label" data-mov="SWL" x="20" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">13</text>
+            <text class="ipd-text-label" data-mov="SWT" x="28" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">10</text>
+            
+            <text class="ipd-text-label" data-mov="NEL" x="80" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">9</text>
+            <text class="ipd-text-label" data-mov="NET" x="72" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">14</text>
+            `;
+        }
+        if (!filter || filter === 'NWSE') {
+            html += `
+            <text class="ipd-text-label" data-mov="SEL" x="80" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">11</text>
+            <text class="ipd-text-label" data-mov="SET" x="72" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">16</text>
+            
+            <text class="ipd-text-label" data-mov="NWL" x="20" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">15</text>
+            <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
             `;
         }
         
@@ -268,7 +340,12 @@ class InteractivePhaseDiagram {
                     비보호 좌회전은 점선으로 표시되며, <b>하늘색 숫자</b>는 각 이동류 고유 번호입니다.
                 </div>
                 
-                <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
+                    <button class="phase-action-btn phase-btn-cyan" id="ipd-tab-normal" style="min-width: 150px; font-weight:bold;">기본 방향 (N-S, E-W)</button>
+                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-diag" style="min-width: 150px; font-weight:bold;">대각선 방향 (NE-SW, NW-SE)</button>
+                </div>
+                
+                <div id="ipd-content-normal" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
                     <!-- 동서 방향 (E-W) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">동서 방향 (E-W)</div>
@@ -286,6 +363,28 @@ class InteractivePhaseDiagram {
                             ${this.getVehSVGPaths('modal', 'NS')}
                             ${this.getPedSVGPaths('modal', 'NS')}
                             ${this.getLabelSVGPaths('modal', 'NS')}
+                        </svg>
+                    </div>
+                </div>
+
+                <div id="ipd-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                    <!-- 북동-남서 방향 (NE-SW) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">북동-남서 방향 (NE-SW)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal', 'NESW')}
+                            ${this.getPedSVGPaths('modal', 'NESW')}
+                            ${this.getLabelSVGPaths('modal', 'NESW')}
+                        </svg>
+                    </div>
+                    
+                    <!-- 북서-남동 방향 (NW-SE) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">북서-남동 방향 (NW-SE)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal', 'NWSE')}
+                            ${this.getPedSVGPaths('modal', 'NWSE')}
+                            ${this.getLabelSVGPaths('modal', 'NWSE')}
                         </svg>
                     </div>
                 </div>
@@ -340,6 +439,23 @@ class InteractivePhaseDiagram {
             });
         }
 
+        const tabNormal = document.getElementById('ipd-tab-normal');
+        const tabDiag = document.getElementById('ipd-tab-diag');
+        if(tabNormal && tabDiag) {
+            tabNormal.addEventListener('click', () => {
+                document.getElementById('ipd-content-normal').style.display = 'flex';
+                document.getElementById('ipd-content-diag').style.display = 'none';
+                tabNormal.classList.replace('phase-btn-gray', 'phase-btn-cyan');
+                tabDiag.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+            });
+            tabDiag.addEventListener('click', () => {
+                document.getElementById('ipd-content-normal').style.display = 'none';
+                document.getElementById('ipd-content-diag').style.display = 'flex';
+                tabDiag.classList.replace('phase-btn-gray', 'phase-btn-cyan');
+                tabNormal.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+            });
+        }
+
         const modalContainer = document.getElementById('ipd-modal');
         if(modalContainer) {
             const modalArrows = modalContainer.querySelectorAll('.ipd-arrow');
@@ -347,6 +463,19 @@ class InteractivePhaseDiagram {
                 arrow.addEventListener('click', () => {
                     arrow.classList.toggle('ipd-active');
                     this.updateArrowMarker(arrow);
+                });
+            });
+            
+            const modalLabels = modalContainer.querySelectorAll('.ipd-text-label');
+            modalLabels.forEach(label => {
+                label.addEventListener('click', () => {
+                    const mov = label.getAttribute('data-mov');
+                    // Find the arrow with this data-mov in the modal (could be multiple if we have duplicates, but data-mov is unique per palette)
+                    const arrow = modalContainer.querySelector(`.ipd-arrow[data-mov="${mov}"]`);
+                    if (arrow) {
+                        arrow.classList.toggle('ipd-active');
+                        this.updateArrowMarker(arrow);
+                    }
                 });
             });
         }
