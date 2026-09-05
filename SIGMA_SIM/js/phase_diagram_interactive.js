@@ -60,8 +60,10 @@ class InteractivePhaseDiagram {
         }
     }
 
-    getVehSVGPaths(prefix) {
-        return `
+    getVehSVGPaths(prefix, filter = null) {
+        let html = '';
+        if (!filter || filter === 'NS') {
+            html += `
             <!-- NB -->
             <path class="ipd-arrow ipd-nbl" id="${prefix}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
             <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-NBL-P" data-mov="NBL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
@@ -73,7 +75,10 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-SBL-P" data-mov="SBL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
             <path class="ipd-arrow ipd-sbt" id="${prefix}-SBT" data-mov="SBT" d="M 32,15 L 32,45" />
             <path class="ipd-arrow ipd-sbr" id="${prefix}-SBR" data-mov="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" />
-            
+            `;
+        }
+        if (!filter || filter === 'EW') {
+            html += `
             <!-- EB -->
             <path class="ipd-arrow ipd-ebl" id="${prefix}-EBL" data-mov="EBL" d="M 15,56 L 30,56 Q 40,56 40,46" />
             <path class="ipd-arrow ipd-dashed ipd-ebl-p" id="${prefix}-EBL-P" data-mov="EBL-P" d="M 15,60 L 30,60 Q 45,60 45,46" />
@@ -85,42 +90,56 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-dashed ipd-wbl-p" id="${prefix}-WBL-P" data-mov="WBL-P" d="M 85,40 L 70,40 Q 55,40 55,54" />
             <path class="ipd-arrow ipd-wbt" id="${prefix}-WBT" data-mov="WBT" d="M 85,32 L 55,32" />
             <path class="ipd-arrow ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
-        `;
+            `;
+        }
+        return html;
     }
 
-    getPedSVGPaths(prefix) {
-        return `
-            <!-- Peds -->
+    getPedSVGPaths(prefix, filter = null) {
+        let html = '';
+        if (!filter || filter === 'EW') {
+            html += `
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
+            `;
+        }
+        if (!filter || filter === 'NS') {
+            html += `
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,30 L 8,70" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
-        `;
+            `;
+        }
+        return html;
     }
 
-    getLabelSVGPaths(prefix) {
+    getLabelSVGPaths(prefix, filter = null) {
         if (prefix !== 'modal') return '';
+        let html = '';
         
-        return `
-            <!-- NEMA Labels for Modal -->
+        if (!filter || filter === 'NS') {
+            html += `
             <text x="56" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">3</text>
             <text x="68" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">8</text>
-            
             <text x="44" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">7</text>
             <text x="32" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle">4</text>
             
+            <text x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">104</text>
+            <text x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">108</text>
+            `;
+        }
+        if (!filter || filter === 'EW') {
+            html += `
             <text x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">5</text>
             <text x="3" y="68" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">2</text>
-            
             <text x="97" y="44" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">1</text>
             <text x="97" y="32" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">6</text>
             
-            <!-- Ped Labels -->
             <text x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">102</text>
             <text x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">106</text>
-            <text x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">104</text>
-            <text x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">108</text>
-        `;
+            `;
+        }
+        
+        return html;
     }
 
     getSVGDefs() {
@@ -239,7 +258,7 @@ class InteractivePhaseDiagram {
     getModalHTML() {
         return `
         <div id="ipd-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-            <div style="background:#1e1e1e; padding:20px; border-radius:8px; border:1px solid #3e3e42; color:#d4d4d4; width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+            <div style="background:#1e1e1e; padding:20px; border-radius:8px; border:1px solid #3e3e42; color:#d4d4d4; width: 650px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
                 <h3 style="margin-top:0; border-bottom:1px solid #3e3e42; padding-bottom:10px; display:flex; justify-content:space-between; font-size:15px; color:#fff;">
                     <span>🎨 방향 선택 팔레트 - <span id="ipd-modal-title" style="color:#0ea5e9;"></span></span>
                     <button onclick="document.getElementById('ipd-modal').style.display='none'" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
@@ -248,13 +267,29 @@ class InteractivePhaseDiagram {
                     원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.<br>
                     비보호 좌회전은 점선으로 표시되며, <b>하늘색 숫자</b>는 각 이동류 고유 번호입니다.
                 </div>
-                <div style="width:300px; height:300px; margin: 0 auto; background:#252526; border-radius:4px; border:1px solid #3e3e42;">
-                    <svg class="ipd-modal-svg" id="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                        ${this.getVehSVGPaths('modal')}
-                        ${this.getPedSVGPaths('modal')}
-                        ${this.getLabelSVGPaths('modal')}
-                    </svg>
+                
+                <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                    <!-- 동서 방향 (E-W) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">동서 방향 (E-W)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal', 'EW')}
+                            ${this.getPedSVGPaths('modal', 'EW')}
+                            ${this.getLabelSVGPaths('modal', 'EW')}
+                        </svg>
+                    </div>
+                    
+                    <!-- 남북 방향 (N-S) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">남북 방향 (N-S)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal', 'NS')}
+                            ${this.getPedSVGPaths('modal', 'NS')}
+                            ${this.getLabelSVGPaths('modal', 'NS')}
+                        </svg>
+                    </div>
                 </div>
+
                 <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:8px;">
                     <button onclick="document.getElementById('ipd-modal').style.display='none'" class="phase-action-btn phase-btn-gray">취소</button>
                     <button id="ipd-modal-clear" class="phase-action-btn phase-btn-red">초기화</button>
@@ -279,8 +314,8 @@ class InteractivePhaseDiagram {
         const clearBtn = document.getElementById('ipd-modal-clear');
         if(clearBtn) {
             clearBtn.addEventListener('click', () => {
-                const modalSvg = document.getElementById('ipd-modal-svg');
-                const arrows = modalSvg.querySelectorAll('.ipd-arrow');
+                const modalContainer = document.getElementById('ipd-modal');
+                const arrows = modalContainer.querySelectorAll('.ipd-arrow');
                 arrows.forEach(arrow => {
                     arrow.classList.remove('ipd-active');
                     this.updateArrowMarker(arrow);
@@ -291,8 +326,8 @@ class InteractivePhaseDiagram {
         const saveBtn = document.getElementById('ipd-modal-save');
         if(saveBtn) {
             saveBtn.addEventListener('click', () => {
-                const modalSvg = document.getElementById('ipd-modal-svg');
-                const arrows = modalSvg.querySelectorAll('.ipd-arrow');
+                const modalContainer = document.getElementById('ipd-modal');
+                const arrows = modalContainer.querySelectorAll('.ipd-arrow');
                 const selected = [];
                 arrows.forEach(arrow => {
                     if (arrow.classList.contains('ipd-active')) {
@@ -305,9 +340,9 @@ class InteractivePhaseDiagram {
             });
         }
 
-        const modalSvg = document.getElementById('ipd-modal-svg');
-        if(modalSvg) {
-            const modalArrows = modalSvg.querySelectorAll('.ipd-arrow');
+        const modalContainer = document.getElementById('ipd-modal');
+        if(modalContainer) {
+            const modalArrows = modalContainer.querySelectorAll('.ipd-arrow');
             modalArrows.forEach(arrow => {
                 arrow.addEventListener('click', () => {
                     arrow.classList.toggle('ipd-active');
@@ -322,8 +357,8 @@ class InteractivePhaseDiagram {
         document.getElementById('ipd-modal-title').innerText = cellId;
         
         const activeMovs = this.activeMovements[cellId] || [];
-        const modalSvg = document.getElementById('ipd-modal-svg');
-        const arrows = modalSvg.querySelectorAll('.ipd-arrow');
+        const modalContainer = document.getElementById('ipd-modal');
+        const arrows = modalContainer.querySelectorAll('.ipd-arrow');
         
         arrows.forEach(arrow => {
             const mov = arrow.getAttribute('data-mov');
