@@ -586,10 +586,10 @@ function renderSummaryTable() {
                     attr: { onclick: `jumpToTOD(${i})` }
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini ${targetCycle === 0 ? 'val-zero' : 'val-non-zero'}" value="${targetCycle}" style="${cycleWarningStyle}; width: 45px; text-align: center;" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini ${targetCycle === 0 ? 'val-zero' : ''}" value="${targetCycle}" style="${cycleWarningStyle}; width: 45px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini ${p.offset === 0 ? 'val-zero' : 'val-non-zero'}" value="${p.offset}" data-type="offset" style="width: 35px; text-align: center;" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini ${p.offset === 0 ? 'val-zero' : ''}" value="${p.offset}" data-type="offset" style="width: 35px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" data-index="${i}">`
                 },
                 {
                     style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
@@ -598,18 +598,18 @@ function renderSummaryTable() {
                             <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
                             ${ Array.from({length: 8}).map((_, k) => {
                                 const v = p.splitA[k] || 0;
-                                const vCls = v === 0 ? 'val-zero' : 'val-non-zero';
-                                const cStyle = isMatchA ? '' : 'color:#ff4444 !important;';
-                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; font-family:inherit; font-size:11px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`;
+                                const vCls = v === 0 ? 'val-zero' : '';
+                                const cStyle = isMatchA ? 'color:#cbd5e1;' : 'color:#ff4444 !important;';
+                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`;
                             }).join('') }
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">
                             <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
                             ${ Array.from({length: 8}).map((_, k) => {
                                 const v = p.splitB[k] || 0;
-                                const vCls = v === 0 ? 'val-zero' : 'val-non-zero';
-                                const cStyle = isMatchB ? '' : 'color:#ff4444 !important;';
-                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid #333; border-radius:3px; font-family:inherit; font-size:11px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`;
+                                const vCls = v === 0 ? 'val-zero' : '';
+                                const cStyle = isMatchB ? 'color:#cbd5e1;' : 'color:#ff4444 !important;';
+                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`;
                             }).join('') }
                         </div>`
                 }
@@ -913,7 +913,7 @@ function renderWeeklyPlanTable() {
                             <td style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); background: ${isToday ? 'rgba(241,196,15,0.1)' : 'transparent'};">
                                 <input type="number" class="sigma-input inp-weekly-plan" data-index="${idx}" min="1" max="10" 
                                        value="${planNum}" onchange="updateWeeklyPlanData(${idx}, this.value)"
-                                       style="width:100%; height:20px; font-size:11.5px; font-weight:bold; text-align:center; color:${isToday ? 'var(--accent)' : '#fff'}; background:transparent; border:none; padding:0;">
+                                       style="width:100%; height:20px; font-size:12px; font-weight:500; text-align:center; color:${isToday ? 'var(--accent)' : '#cbd5e1'}; background:transparent; border:none; padding:0;">
                             </td>
                         `;
                     }).join('')}
@@ -995,9 +995,9 @@ function renderTodPlanInfoTable() {
                                     idxVal = sc.idx !== undefined ? sc.idx : '';
                                 }
 
-                                const hCls = hVal === '' ? 'val-zero' : 'val-non-zero';
-                                const cycleCls = (cycleVal === '' || cycleVal === 0) ? 'val-zero' : 'val-non-zero';
-                                const idxCls = idxVal === '' ? 'val-zero' : 'val-non-zero';
+                                const hCls = hVal === '' ? 'val-zero' : '';
+                                const cycleCls = (cycleVal === '' || cycleVal === 0) ? 'val-zero' : '';
+                                const idxCls = idxVal === '' ? 'val-zero' : '';
                                 const inputStyle = `background:transparent; border:none; width:100%; text-align:center; font-family:monospace; outline:none; font-size:11px; padding:0; margin:0;`;
 
                                 return `
