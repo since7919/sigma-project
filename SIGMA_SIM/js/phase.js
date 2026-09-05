@@ -315,38 +315,110 @@ function renderSignalMapButtons() {
 
 
 
-/** 현시계획(Signal Map) 데이터 복사 */
-function copySignalMap() {
+/** 데이터 복사 공통 모달 UI */
+function openCopyModal(type) {
     const jid = STATE.activeJid;
     if (!jid || !STATE.junctions[jid]) return;
 
-    const toIdx = STATE.currentSignalMapIdx || 0;
-    const labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
-    
-    let input = prompt(`현재 [${labels[toIdx]}] 화면입니다.\n\n데이터를 덮어쓸 원본 '현시계획 번호(0~5)'를 입력하세요:\n(0: 일반, 1: 시차1, 2: 시차2, 3: 시차3, 4: 시차4, 5: 시차5)`);
-    if (!input) return;
-    
-    const fromIdx = parseInt(input, 10);
-    if (isNaN(fromIdx) || fromIdx < 0 || fromIdx > 5) {
-        alert("올바른 현시계획 번호(0~5)를 입력해주세요.");
-        return;
+    let toIdx, labels, title, desc;
+    if (type === 'map') {
+        toIdx = STATE.currentSignalMapIdx || 0;
+        labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
+        title = "현시계획 복사";
+        desc = `현재 <b>[${labels[toIdx]}]</b> 화면입니다.<br>데이터를 가져올 <b>원본 현시계획</b>을 선택하세요:`;
+    } else {
+        toIdx = STATE.currentJunctionDayTypeIdx;
+        labels = DAY_LABELS; // 전역변수
+        title = "TOD 일계획 복사";
+        desc = `현재 <b>[${labels[toIdx]}]</b> 화면입니다.<br>데이터를 가져올 <b>원본 일계획</b>을 선택하세요:`;
     }
 
-    if (fromIdx === toIdx) { alert("현재 보고 있는 현시계획과 동일합니다."); return; }
-    if (!confirm(`'${labels[fromIdx]}'의 현시 데이터를 '${labels[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(3px);";
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = "background:#1e293b; border:1px solid #334155; border-radius:8px; width:380px; box-shadow:0 10px 25px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif;";
+    
+    let optsHtml = '';
+    labels.forEach((lab, i) => {
+        if (i === toIdx) return; // 현재 보고 있는 화면은 원본에서 제외
+        optsHtml += `<button class="modal-opt-btn" style="flex: 1 1 25%; margin:4px; padding:10px; background:#334155; color:#cbd5e1; border:1px solid #475569; border-radius:6px; cursor:pointer; transition:all 0.2s; font-size:13px;" data-val="${i}">${lab}</button>`;
+    });
 
+    modal.innerHTML = `
+        <div style="background:#0f172a; padding:14px 18px; font-weight:bold; color:#f8fafc; border-bottom:1px solid #334155; font-size:15px; display:flex; align-items:center; gap:6px;">
+            📋 ${title}
+        </div>
+        <div style="padding:20px; color:#94a3b8; font-size:14px; line-height:1.5;">
+            ${desc}
+            <div style="display:flex; flex-wrap:wrap; margin-top:16px;">
+                ${optsHtml}
+            </div>
+        </div>
+        <div style="padding:14px 18px; background:#0f172a; border-top:1px solid #334155; display:flex; justify-content:flex-end; gap:8px;">
+            <button id="modal-btn-cancel" style="padding:8px 16px; background:#334155; color:#cbd5e1; border:none; border-radius:6px; cursor:pointer; font-size:13px;">취소</button>
+            <button id="modal-btn-confirm" style="padding:8px 16px; background:var(--accent, #10b981); color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:13px; opacity:0.5;" disabled>복사 적용</button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    let selectedIdx = null;
+
+    const optBtns = modal.querySelectorAll('.modal-opt-btn');
+    optBtns.forEach(btn => {
+        btn.onclick = () => {
+            optBtns.forEach(b => {
+                b.style.background = '#334155';
+                b.style.borderColor = '#475569';
+                b.style.color = '#cbd5e1';
+                b.style.fontWeight = 'normal';
+            });
+            btn.style.background = 'var(--accent, #10b981)';
+            btn.style.borderColor = 'var(--accent, #10b981)';
+            btn.style.color = '#000';
+            btn.style.fontWeight = 'bold';
+            selectedIdx = parseInt(btn.dataset.val);
+            
+            const confirmBtn = document.getElementById('modal-btn-confirm');
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        };
+    });
+
+    document.getElementById('modal-btn-cancel').onclick = () => document.body.removeChild(overlay);
+
+    document.getElementById('modal-btn-confirm').onclick = () => {
+        if (selectedIdx === null) return;
+        
+        if (!confirm(`'${labels[selectedIdx]}'의 데이터를 '${labels[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
+        
+        document.body.removeChild(overlay);
+        
+        if (type === 'map') executeCopySignalMap(selectedIdx, toIdx);
+        else executeCopyTODDay(selectedIdx, toIdx);
+    };
+}
+
+/** 현시계획(Signal Map) 데이터 복사 진입점 */
+function copySignalMap() {
+    openCopyModal('map');
+}
+
+/** 실제 현시계획 복사 실행 로직 */
+function executeCopySignalMap(fromIdx, toIdx) {
+    const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
     const fromMap = j.signalMaps[fromIdx];
     const toMap = j.signalMaps[toIdx];
 
-    // 주요 현시 데이터 복사 (시간 제외)
     toMap.movA = [...fromMap.movA];
     toMap.movB = [...fromMap.movB];
     toMap.pedMovA = [...fromMap.pedMovA];
     toMap.pedMovB = [...fromMap.pedMovB];
     toMap.mainMovements = [...(fromMap.mainMovements || [])];
 
-    // 0번(일반)으로 복사된 경우 루트 필드도 동기화
     if (toIdx === 0) {
         j.movA = [...toMap.movA];
         j.movB = [...toMap.movB];
@@ -357,7 +429,7 @@ function copySignalMap() {
 
     renderRingTables();
     refreshVisibleArrows();
-    alert(`복사가 완료되었습니다. '변경사항 적용'을 눌러 저장하세요.`);
+    alert(`복사가 완료되었습니다. '변경사항 적용'을 눌러 확정하세요.`);
 }
 
 /* ══════════════════════════════════════════
@@ -777,41 +849,30 @@ function changeSignalMap(idx) {
     refreshVisibleArrows();
 }
 
+/** TOD 일계획 복사 진입점 */
 function copyJunctionTODDay() {
+    openCopyModal('tod');
+}
+
+/** 실제 TOD 일계획 복사 실행 로직 */
+function executeCopyTODDay(fromIdx, toIdx) {
     const jid = STATE.activeJid;
-    if (!jid || !STATE.junctions[jid]) return;
-    const toIdx = STATE.currentJunctionDayTypeIdx;
-    
-    let input = prompt(`현재 [${DAY_LABELS[toIdx]}] 화면입니다.\n\n데이터를 덮어쓸 원본 '일계획 번호(1~10)'를 입력하세요:`);
-    if (!input) return;
-    
-    const fromIdx = parseInt(input, 10) - 1;
-    if (isNaN(fromIdx) || fromIdx < 0 || fromIdx > 9) {
-        alert("올바른 일계획 번호(1~10)를 입력해주세요.");
-        return;
-    }
-
-    if (fromIdx === toIdx) { alert("현재 보고 있는 일계획과 같은 번호입니다."); return; }
-    if (!confirm(`'${DAY_LABELS[fromIdx]}'의 모든 TOD 데이터(시작시간, 주기, 연동, 스플릿)를 '${DAY_LABELS[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
-
     const j = STATE.junctions[jid];
 
-    // 1. DayPlans 복사 (연동/스플릿 등)
+    // 1. DayPlans 복사 (연동/스플릿 등 깊은 복사)
     j.dayPlans[toIdx] = JSON.parse(JSON.stringify(j.dayPlans[fromIdx]));
 
-    // 2. Schedules 복사 (시작시간/주기)
+    // 2. Schedules 복사 (시작시간/주기 깊은 복사)
     if (j.group && STATE.groups[j.group]) {
-        // 그룹인 경우 그룹 스케줄 데이터 복사
         const groupScheds = STATE.groups[j.group].schedules;
         groupScheds[toIdx] = JSON.parse(JSON.stringify(groupScheds[fromIdx]));
     } else {
-        // 단독인 경우 로컬 스케줄 데이터 복사
         j.schedules[toIdx] = JSON.parse(JSON.stringify(j.schedules[fromIdx]));
     }
 
     renderRingTables();
     renderSummaryTable();
-    alert("복사 완료되었습니다.");
+    alert(`복사가 완료되었습니다. '변경사항 적용'을 눌러 확정하세요.`);
 }
 
 function updateJunctionDayUI() {
