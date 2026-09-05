@@ -490,7 +490,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     let pLSU = -1;
                     const checkPedActive = (l) => stepsInPhase.some(st => {
                         const p = st.sigsP[l];
-                        return (p === 1 || p === 5 || p === 10 || p === 50);
+                        return [1, 10, 2, 20, 4, 40, 5, 50].includes(p);
                     });
                     
                     for (let l = 0; l < 4; l++) { if (checkPedActive(l)) { pLSU = l; break; } }
@@ -504,7 +504,9 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             if (pCode === 1 || pCode === 10) {
                                 if (!foundFirstGreen) { phaseData[pIdx].delay = currentPhaseTime; foundFirstGreen = true; }
                                 phaseData[pIdx].g += st.min;
-                            } else if (pCode === 5 || pCode === 50) { phaseData[pIdx].f += st.min; }
+                            } else if ([2, 20, 4, 40, 5, 50].includes(pCode)) { 
+                                phaseData[pIdx].f += st.min; 
+                            }
                             currentPhaseTime += st.min;
                         });
                         if (phaseData[pIdx].g > 0 || phaseData[pIdx].f > 0) {
