@@ -165,7 +165,6 @@ function renderRingTables() {
     // ── Phase/Split 테이블: B링 숨김은 Split 계열에만 적용 ──
     // 현시계획(Map)의 Yellow/AllRed/Ped 등은 항상 A/B 모두 표시
     const phaseCategories = [
-        { id: 'split', label: 'Split', keyA: 'splitA', keyB: 'splitB', clsA: '', clsB: '', isDetail: false },
         { id: 'mg', label: 'MG (최소녹색)', keyA: 'minGreenA', keyB: 'minGreenB', clsA: 'c-green', clsB: 'c-green', isDetail: true,
           calcA: (i) => { const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0; return pA > 0 ? pA + arA + dlyA : 7 + arA; },
           calcB: (i) => { const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0; return pB > 0 ? pB + arB + dlyB : 7 + arB; },
