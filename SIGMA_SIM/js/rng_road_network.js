@@ -989,6 +989,13 @@ window.RoadManager = new RoadNetworkManager();
 /**
  * 선 굵기 업데이트
  */
+function updateNetworkWeight(val) {
+    const weight = parseFloat(val);
+    window.RoadManager.baseWeight = weight;
+    document.getElementById('txt-network-weight').textContent = weight.toFixed(1) + 'px';
+    if (window.RoadManager.isActive) {
+        window.RoadManager.render();
+    }
 }
 
 /**
