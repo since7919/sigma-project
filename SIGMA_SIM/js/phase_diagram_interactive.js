@@ -61,7 +61,24 @@ class InteractivePhaseDiagram {
     }
 
     getVehSVGPaths(prefix) {
+        const isModal = prefix === 'modal';
+        const labels = isModal ? `
+            <!-- NEMA Labels for Modal -->
+            <text x="56" y="93" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">3</text>
+            <text x="68" y="93" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">8</text>
+            
+            <text x="44" y="9" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">7</text>
+            <text x="32" y="9" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle">4</text>
+            
+            <text x="9" y="56" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">5</text>
+            <text x="9" y="68" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">2</text>
+            
+            <text x="91" y="44" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">1</text>
+            <text x="91" y="32" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle">6</text>
+        ` : '';
+
         return `
+            ${labels}
             <!-- NB -->
             <path class="ipd-arrow ipd-nbl" id="${prefix}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
             <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-NBL-P" data-mov="NBL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
@@ -89,7 +106,16 @@ class InteractivePhaseDiagram {
     }
 
     getPedSVGPaths(prefix) {
+        const isModal = prefix === 'modal';
+        const labels = isModal ? `
+            <text x="50" y="97" fill="#0ea5e9" font-size="4" font-weight="bold" text-anchor="middle">102</text>
+            <text x="50" y="5" fill="#0ea5e9" font-size="4" font-weight="bold" text-anchor="middle">106</text>
+            <text x="3" y="50" fill="#0ea5e9" font-size="4" font-weight="bold" text-anchor="middle" dominant-baseline="middle">104</text>
+            <text x="97" y="50" fill="#0ea5e9" font-size="4" font-weight="bold" text-anchor="middle" dominant-baseline="middle">108</text>
+        ` : '';
+
         return `
+            ${labels}
             <!-- Peds -->
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
@@ -219,8 +245,9 @@ class InteractivePhaseDiagram {
                     <span>🎨 방향 선택 팔레트 - <span id="ipd-modal-title" style="color:#0ea5e9;"></span></span>
                     <button onclick="document.getElementById('ipd-modal').style.display='none'" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
                 </h3>
-                <div style="text-align:center; font-size:12px; color:#888; margin-bottom:15px;">
-                    원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.<br>비보호 좌회전은 점선으로 표시됩니다.
+                <div style="text-align:center; font-size:12px; color:#888; margin-bottom:15px; line-height: 1.4;">
+                    원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.<br>
+                    비보호 좌회전은 점선으로 표시되며, <b>하늘색 숫자</b>는 각 이동류 고유 번호입니다.
                 </div>
                 <div style="width:300px; height:300px; margin: 0 auto; background:#252526; border-radius:4px; border:1px solid #3e3e42;">
                     <svg class="ipd-modal-svg" id="ipd-modal-svg" width="100%" height="100%" viewBox="0 0 100 100">
