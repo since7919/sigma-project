@@ -17,10 +17,17 @@ function initTableEventHandlers() {
 
     // 0 값 흐리게 처리 (테마용 클래스 토글)
     document.addEventListener('input', (e) => {
-        if (e.target.classList.contains('sigma-input') && e.target.type === 'number') {
-            const val = parseFloat(e.target.value) || 0;
-            e.target.classList.toggle('val-zero', val === 0);
-            e.target.classList.toggle('val-non-zero', val !== 0);
+        if (e.target.classList.contains('sigma-input')) {
+            let isZeroOrEmpty = false;
+            if (e.target.type === 'number') {
+                isZeroOrEmpty = (parseFloat(e.target.value) || 0) === 0;
+            } else if (e.target.type === 'text') {
+                isZeroOrEmpty = e.target.value.trim() === '' || e.target.value === '0';
+            } else {
+                return;
+            }
+            e.target.classList.toggle('val-zero', isZeroOrEmpty);
+            e.target.classList.toggle('val-non-zero', !isZeroOrEmpty);
         }
     });
 
