@@ -287,8 +287,8 @@ function renderSignalMapButtons() {
             </div>
         </div>`;
 
-    // 본문: 3열 그리드 배치
-    html += '<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:5px;">';
+    // 본문: 6열 그리드 배치
+    html += '<div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:5px;">';
     labels.forEach((lab, i) => {
         const isActive = (STATE.currentSignalMapIdx === i);
 
