@@ -80,6 +80,7 @@ function App() {
     return () => clearInterval(pingInterval);
   }, []);
   const [intersections, setIntersections] = useState([]);
+  const [rtiIntersections, setRtiIntersections] = useState([]);
   const [mainPhases, setMainPhases] = useState({}); // 주현시 상태
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟

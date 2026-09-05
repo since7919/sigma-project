@@ -598,13 +598,15 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const promises = [];
-            for (let p = 0; p < totalPages; p++) {
-              promises.push(supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
-            }
-            const results = await Promise.all(promises);
-            results.forEach(({data, error}) => {
-              if (error || !data) return;
+            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            for (let i = 0; i < totalPages; i += CONCURRENCY) {
+              const promises = [];
+              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
+                promises.push(supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
+              }
+              const results = await Promise.all(promises);
+              results.forEach(({data, error}) => {
+                if (error || !data) return;
             
             if (!data || data.length === 0) return;
             
@@ -652,7 +654,10 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            });
+              });
+              // Force garbage collection in V8 if possible, or just let event loop clear memory
+              await new Promise(r => setTimeout(r, 10)); 
+            }
           }
           return res.end();
         }
@@ -669,13 +674,15 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const promises = [];
-            for (let p = 0; p < totalPages; p++) {
-              promises.push(supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
-            }
-            const results = await Promise.all(promises);
-            results.forEach(({data, error}) => {
-              if (error || !data) return;
+            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            for (let i = 0; i < totalPages; i += CONCURRENCY) {
+              const promises = [];
+              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
+                promises.push(supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
+              }
+              const results = await Promise.all(promises);
+              results.forEach(({data, error}) => {
+                if (error || !data) return;
             
             if (!data || data.length === 0) return;
             
@@ -707,7 +714,10 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            });
+              });
+              // Force garbage collection in V8 if possible, or just let event loop clear memory
+              await new Promise(r => setTimeout(r, 10)); 
+            }
           }
           return res.end();
         }
@@ -725,13 +735,15 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id').order('day_plan');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const promises = [];
-            for (let p = 0; p < totalPages; p++) {
-              promises.push(supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
-            }
-            const results = await Promise.all(promises);
-            results.forEach(({data, error}) => {
-              if (error || !data) return;
+            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            for (let i = 0; i < totalPages; i += CONCURRENCY) {
+              const promises = [];
+              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
+                promises.push(supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
+              }
+              const results = await Promise.all(promises);
+              results.forEach(({data, error}) => {
+                if (error || !data) return;
             
             if (!data || data.length === 0) return;
             
@@ -759,7 +771,10 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            });
+              });
+              // Force garbage collection in V8 if possible, or just let event loop clear memory
+              await new Promise(r => setTimeout(r, 10)); 
+            }
           }
           return res.end();
         }

@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive, mainPhases }) {
+export default function SidebarAccordion({ rtiIntersections, setRtiIntersections, intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive, mainPhases }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
