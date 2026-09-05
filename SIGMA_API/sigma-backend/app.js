@@ -594,14 +594,19 @@ app.get('/api/sim/data', async (req, res) => {
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
           res.write("\ufeff" + headers.join(",") + "\n");
           
-          let page = 0;
-          const pageSize = 500;
-          let hasMore = true;
-          
-          while (hasMore) {
-            const { data, error } = await supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
+          const pageSize = 1000;
+          const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
+          if (!countErr && count > 0) {
+            const totalPages = Math.ceil(count / pageSize);
+            const promises = [];
+            for (let p = 0; p < totalPages; p++) {
+              promises.push(supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
+            }
+            const results = await Promise.all(promises);
+            results.forEach(({data, error}) => {
+              if (error || !data) return;
             
-            if (!data || data.length === 0) break;
+            if (!data || data.length === 0) return;
             
             let chunk = "";
             data.forEach(r => {
@@ -647,8 +652,7 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            if (data.length < pageSize) hasMore = false;
-            page++;
+            });
           }
           return res.end();
         }
@@ -661,14 +665,19 @@ app.get('/api/sim/data', async (req, res) => {
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
           res.write("\ufeff" + headers.join(",") + "\n");
           
-          let page = 0;
-          const pageSize = 500;
-          let hasMore = true;
-          
-          while (hasMore) {
-            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(page * pageSize, (page + 1) * pageSize - 1);
+          const pageSize = 1000;
+          const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id');
+          if (!countErr && count > 0) {
+            const totalPages = Math.ceil(count / pageSize);
+            const promises = [];
+            for (let p = 0; p < totalPages; p++) {
+              promises.push(supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
+            }
+            const results = await Promise.all(promises);
+            results.forEach(({data, error}) => {
+              if (error || !data) return;
             
-            if (!data || data.length === 0) break;
+            if (!data || data.length === 0) return;
             
             let chunk = "";
             data.forEach(r => {
@@ -698,8 +707,7 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            if (data.length < pageSize) hasMore = false;
-            page++;
+            });
           }
           return res.end();
         }
@@ -713,14 +721,19 @@ app.get('/api/sim/data', async (req, res) => {
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
           res.write("\ufeff" + headers.join(",") + "\n");
           
-          let page = 0;
-          const pageSize = 500;
-          let hasMore = true;
-          
-          while (hasMore) {
-            const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(page * pageSize, (page + 1) * pageSize - 1);
+          const pageSize = 1000;
+          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id').order('day_plan');
+          if (!countErr && count > 0) {
+            const totalPages = Math.ceil(count / pageSize);
+            const promises = [];
+            for (let p = 0; p < totalPages; p++) {
+              promises.push(supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
+            }
+            const results = await Promise.all(promises);
+            results.forEach(({data, error}) => {
+              if (error || !data) return;
             
-            if (!data || data.length === 0) break;
+            if (!data || data.length === 0) return;
             
             let chunk = "";
             data.forEach(r => {
@@ -746,8 +759,7 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             res.write(chunk);
-            if (data.length < pageSize) hasMore = false;
-            page++;
+            });
           }
           return res.end();
         }
