@@ -30,7 +30,7 @@
 .box-blue { background: rgba(52, 152, 219, 0.05); border: 1px solid rgba(52, 152, 219, 0.2); padding: 8px; border-radius: 8px; margin-bottom: 12px; }
 .box-red { background: rgba(231, 76, 60, 0.05); padding: 8px; border-radius: 10px; border: 1px solid rgba(231, 76, 60, 0.2); }
 .box-cyan { background: rgba(0, 212, 255, 0.05); padding: 8px; border-radius: 10px; border: 1px solid rgba(0, 212, 255, 0.2); }
-.box-green { background: rgba(46, 204, 113, 0.05); padding: 12px; border-radius: 12px; border: 1px solid rgba(46, 204, 113, 0.15); }
+.box-green { background: rgba(46, 204, 113, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(46, 204, 113, 0.15); }
 .box-yellow { background: rgba(241, 196, 15, 0.05); border: 1px solid rgba(241, 196, 15, 0.2); padding: 8px; border-radius: 10px; margin-bottom: 8px; }
 .box-dark { padding: 12px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
 
@@ -51,8 +51,8 @@
     background: #252526;
     border: 1px solid #3e3e42;
     border-radius: 4px;
-    padding: 16px;
-    margin-bottom: 12px;
+    padding: 10px;
+    margin-bottom: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: border-color 0.2s ease, background 0.2s ease;
     position: relative;

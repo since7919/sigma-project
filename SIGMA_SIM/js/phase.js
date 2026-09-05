@@ -286,11 +286,11 @@ function renderSignalMapButtons() {
     const j = jid ? STATE.junctions[jid] : null;
     const labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
 
-    let html = '<div style="background:rgba(0,0,0,0.2); padding:6px 8px; border-radius:10px; border:1px solid rgba(255,255,255,0.08); margin-bottom:12px;">';
+    let html = '<div style="margin-bottom:8px;">';
 
     // 헤더: 타이틀 + 복사 UI 통합 (높이 축소)
     html += `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <span style="font-size:12px; font-weight:bold; color:var(--accent);">🚦 현시계획(Map) 설정</span>
             <div style="display:flex; align-items:center; gap:4px;">
                 <button class="phase-action-btn phase-btn-purple" onclick="copySignalMap()" title="다른 현시계획 데이터 복사해오기">📋 가져오기</button>

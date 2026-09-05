@@ -781,11 +781,10 @@ h4 {
 
 /* Phase Template Utility Styles */
 .template-panel {
-    margin: 10px 0;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 10px;
-    border: 1px solid var(--glass-border);
+    margin: 6px 0 10px 0;
+    padding: 0;
+    background: transparent;
+    border: none;
 }
 
 .template-header {
