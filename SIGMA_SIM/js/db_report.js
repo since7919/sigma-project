@@ -42,7 +42,7 @@ function openDbReportOverlay(jid) {
     // Formatting helper
     const fmt = (arr1, arr2) => {
         if(!arr1 || !arr2) return '-<br>-';
-        return `${arr1.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}<br>${arr2.slice(4,8).map(v=>String(v).padStart(2,'0')).join(':')}`;
+        return `${arr1.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}<br>${arr2.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}`;
     };
     
     // Build HTML
@@ -67,7 +67,7 @@ function openDbReportOverlay(jid) {
                 <tr>
                     <td colspan="8" style="padding: 0; background: #fff;">
                         <!-- Mount point for Interactive Phase Diagram -->
-                        <div id="db-ipd-mount"></div>
+                        <div id="db-ipd-mount" style="pointer-events: none;"></div>
                     </td>
                 </tr>
             </table>
@@ -120,7 +120,7 @@ function openDbReportOverlay(jid) {
                             <td>${tp.offset || 0}</td>
                             <td>
                                 ${splitsA.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}<br>
-                                ${splitsB.slice(4,8).map(v=>String(v).padStart(2,'0')).join(':')}
+                                ${splitsB.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}
                             </td>
                         </tr>
                         `;
@@ -145,15 +145,9 @@ function openDbReportOverlay(jid) {
         const dbIpd = new InteractivePhaseDiagram('db-ipd-mount');
         dbIpd.loadFromSignalMap(sm);
         
-        // Remove click event listeners from cells so it's view-only in DB report
+        // Remove border for print friendly output
         const mount = document.getElementById('db-ipd-mount');
         if (mount) {
-            const cells = mount.querySelectorAll('.ipd-cell');
-            cells.forEach(c => {
-                const clone = c.cloneNode(true);
-                c.parentNode.replaceChild(clone, c);
-            });
-            // Tweak background colors for print friendly output
             mount.style.border = 'none';
         }
     }
