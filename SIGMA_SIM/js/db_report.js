@@ -49,6 +49,16 @@ function openDbReportOverlay(jid) {
     
     // Build HTML
     const html = `
+        <svg width="0" height="0" style="position:absolute; pointer-events:none;">
+            <defs>
+                <marker id="db-ah-black" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#000" />
+                </marker>
+                <marker id="db-ah-black-rev" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 10 0 L 0 5 L 10 10 z" fill="#000" />
+                </marker>
+            </defs>
+        </svg>
         <div class="db-report-wrapper">
             <div class="db-report-header">
                 <h2>표준신호제어기데이터베이스(SEC-N9400)</h2>
@@ -63,9 +73,8 @@ function openDbReportOverlay(jid) {
             <table class="db-table db-table-bordered">
                 <tr>
                     <td rowspan="2" style="width:200px; padding:0; height: 100px;">${mapHtml}</td>
-                    <th colspan="2">교차로번호: ${jid.replace('L01-','')}</th>
-                    <th colspan="2">교차로명: ${j.name || ''}</th>
-                    <th colspan="2">시행일: ${new Date().toLocaleDateString()}</th>
+                    <th colspan="3">교차로번호: ${jid.replace('L01-','')}</th>
+                    <th colspan="5">교차로명: ${j.name || ''}</th>
                 </tr>
                 <tr>
                     ${[1,2,3,4,5,6,7,8].map(p => `
@@ -109,20 +118,22 @@ function openDbReportOverlay(jid) {
             
             <div style="margin-top:10px; display:flex; gap:10px;">
                 <table class="db-table db-table-bordered" style="flex:1;">
-                    <tr><th>일계획</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
-                    ${[0,1,2,3].map(rowI => {
-                        const dp = dayPlans[rowI] || [];
-                        const splitsA = dp[0]?.splitA || [0,0,0,0,0,0,0,0];
-                        const splitsB = dp[0]?.splitB || [0,0,0,0,0,0,0,0];
+                    <tr><th>번호</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
+                    ${(dayPlans[0] || []).map((tp, rowI) => {
+                        const splitsA = tp?.splitA || [0,0,0,0,0,0,0,0];
+                        const splitsB = tp?.splitB || [0,0,0,0,0,0,0,0];
+                        if (!tp || (splitsA.every(v=>v===0) && splitsB.every(v=>v===0) && tp.cycle === 100)) {
+                            return `<tr><td>${rowI+1}</td><td></td><td></td><td></td><td><br></td></tr>`;
+                        }
                         return `
                         <tr>
-                            <td>일계획 ${rowI+1}</td>
-                            <td>${dp[0]?.cycle || 0}</td>
                             <td>${rowI+1}</td>
-                            <td>${dp[0]?.offset || 0}</td>
+                            <td>${tp.cycle || 0}</td>
+                            <td>${rowI+1}</td>
+                            <td>${tp.offset || 0}</td>
                             <td>
-                                ${splitsA.slice(0,4).join(':')}<br>
-                                ${splitsB.slice(4,8).join(':')}
+                                ${splitsA.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}<br>
+                                ${splitsB.slice(4,8).map(v=>String(v).padStart(2,'0')).join(':')}
                             </td>
                         </tr>
                         `;
@@ -171,6 +182,12 @@ function openDbReportOverlay(jid) {
                         if(arr) {
                             arr.style.display = 'block';
                             arr.style.stroke = '#000'; // Make it black for printing
+                            if (arr.classList.contains('ipd-ped')) {
+                                arr.setAttribute('marker-start', 'url(#db-ah-black-rev)');
+                                arr.setAttribute('marker-end', 'url(#db-ah-black)');
+                            } else {
+                                arr.setAttribute('marker-end', 'url(#db-ah-black)');
+                            }
                         }
                     });
                 }, 50);
