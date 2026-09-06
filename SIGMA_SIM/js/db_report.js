@@ -24,7 +24,7 @@ function openDbReportOverlay(jid) {
                 <thead><tr><th>번호</th><th>시각</th><th>주기</th><th>패턴</th></tr></thead>
                 <tbody>
                     ${Array.from({length:16}).map((_, i) => {
-                        const plan = (j.tod && j.tod.schedules && j.tod.schedules[idx-1] && j.tod.schedules[idx-1][i]) || null;
+                        const plan = (j.schedules && j.schedules[idx-1] && j.schedules[idx-1][i]) || null;
                         if (plan && plan.h !== -1) {
                             return `<tr><td>${i+1}</td><td>${String(plan.h).padStart(2,'0')}:${String(plan.m).padStart(2,'0')}</td><td>${plan.cycle}</td><td>${plan.idx}</td></tr>`;
                         } else {
@@ -38,19 +38,14 @@ function openDbReportOverlay(jid) {
 
     // Phase splits table
     let splitRows = '';
-    const dayPlans = j.tod ? j.tod.dayPlans : [];
-    const usedPlans = new Set();
-    if(j.tod && j.tod.schedules) {
-        j.tod.schedules.forEach(sch => sch.forEach(p => { if(p.h !== -1) usedPlans.add(p.idx); }));
-    }
-    const sortedPlans = Array.from(usedPlans).sort((a,b)=>a-b).slice(0, 4); // Show up to 4
+    const dayPlans = j.dayPlans || [];
+    const sm = (j.signalMaps && j.signalMaps[0]) ? j.signalMaps[0] : {};
     
     // Formatting helper
     const fmt = (arr1, arr2) => {
         if(!arr1 || !arr2) return '-<br>-';
         return `${arr1.slice(0,4).map(v=>String(v).padStart(2,'0')).join(':')}<br>${arr2.slice(4,8).map(v=>String(v).padStart(2,'0')).join(':')}`;
     };
-    const sm = j.sm || {};
     
     // Build HTML
     const html = `
@@ -73,9 +68,9 @@ function openDbReportOverlay(jid) {
                     <th colspan="2">시행일: ${new Date().toLocaleDateString()}</th>
                 </tr>
                 <tr>
-                    ${[1,2,3,4,5,6].map(p => `
-                    <td style="text-align:center; vertical-align:top; width:60px;">
-                        <div style="border-bottom:1px solid #ccc; margin-bottom:2px;">${p}현시</div>
+                    ${[1,2,3,4,5,6,7,8].map(p => `
+                    <td style="text-align:center; vertical-align:top; width:50px;">
+                        <div style="border-bottom:1px solid #ccc; margin-bottom:2px; font-size:10px;">${p}현시</div>
                         <div id="db-svg-container-${p}"></div>
                     </td>`).join('')}
                 </tr>
@@ -114,16 +109,16 @@ function openDbReportOverlay(jid) {
             
             <div style="margin-top:10px; display:flex; gap:10px;">
                 <table class="db-table db-table-bordered" style="flex:1;">
-                    <tr><th>번호</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
-                    ${sortedPlans.map((pidx, rowI) => {
-                        const dp = dayPlans[pidx-1] || [];
+                    <tr><th>일계획</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
+                    ${[0,1,2,3].map(rowI => {
+                        const dp = dayPlans[rowI] || [];
                         const splitsA = dp[0]?.splitA || [0,0,0,0,0,0,0,0];
                         const splitsB = dp[0]?.splitB || [0,0,0,0,0,0,0,0];
                         return `
                         <tr>
-                            <td>${rowI+1}</td>
+                            <td>일계획 ${rowI+1}</td>
                             <td>${dp[0]?.cycle || 0}</td>
-                            <td>${pidx}</td>
+                            <td>${rowI+1}</td>
                             <td>${dp[0]?.offset || 0}</td>
                             <td>
                                 ${splitsA.slice(0,4).join(':')}<br>
@@ -148,10 +143,10 @@ function openDbReportOverlay(jid) {
     container.style.display = 'block';
     
     // Draw real SVGs using existing logic!
-    if (j.sm && typeof InteractivePhaseDiagram !== 'undefined') {
+    if (sm && typeof InteractivePhaseDiagram !== 'undefined') {
         const dummyIPD = new InteractivePhaseDiagram('dummy-id-not-used');
-        dummyIPD.loadFromSignalMap(j.sm);
-        for(let p=1; p<=6; p++) {
+        dummyIPD.loadFromSignalMap(sm);
+        for(let p=1; p<=8; p++) {
             const svgCont = document.getElementById(`db-svg-container-${p}`);
             if(svgCont) {
                 const mlist = [...(dummyIPD.activeMovements['P'+p+'-A']||[]), ...(dummyIPD.activeMovements['P'+p+'-B']||[])];
