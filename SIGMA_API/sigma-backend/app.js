@@ -548,6 +548,20 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
   }
 });
 
+global.SIGMA_DB_VERSION = Date.now();
+
+// 모든 POST 요청(업데이트) 발생 시 DB 버전 갱신
+app.use('/api/sim/', (req, res, next) => {
+  if (req.method === 'POST') {
+    global.SIGMA_DB_VERSION = Date.now();
+  }
+  next();
+});
+
+app.get('/api/sim/db-version', (req, res) => {
+  res.json({ version: global.SIGMA_DB_VERSION });
+});
+
 // 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
 app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;

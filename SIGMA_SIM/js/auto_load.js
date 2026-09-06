@@ -20,12 +20,44 @@ async function autoLoadFiles() {
     const regionSelect = document.getElementById('api-region-select');
     const regionCode = regionSelect ? regionSelect.value : 'L01';
 
-    // Helper function to load a single file
-    async function fetchAndProcess(url, type, processFunc, label, isGroup = false) {
+    let dbVersion = Date.now();
+    try {
+        const vRes = await fetch('/api/sim/db-version');
+        if (vRes.ok) {
+            const vData = await vRes.json();
+            if (vData.version) dbVersion = vData.version;
+        }
+    } catch(e) {
+        console.warn('Failed to fetch DB version, bypassing cache.');
+    }
+
+    // Helper function to load a single file with Cache API
+    async function fetchAndProcess(baseUrl, type, processFunc, label, isGroup = false) {
         try {
             if (!processFunc) return null;
             const ft0 = performance.now();
-            const res = await fetch(url);
+            
+            // 캐시 버스터로 dbVersion 사용 (버전이 바뀌면 새 URL로 인식하여 새로 다운로드)
+            const url = `${baseUrl}&v=${dbVersion}`;
+            
+            let res;
+            let fromCache = false;
+            
+            if ('caches' in window) {
+                const cache = await caches.open('sigma-data-cache');
+                res = await cache.match(url);
+                if (res) {
+                    fromCache = true;
+                } else {
+                    res = await fetch(url);
+                    if (res.ok) {
+                        cache.put(url, res.clone());
+                    }
+                }
+            } else {
+                res = await fetch(url);
+            }
+            
             if (!res.ok) {
                 console.warn(`[Auto-load] ${label} file not found (${url}).`);
                 return null;
@@ -43,18 +75,18 @@ async function autoLoadFiles() {
                 }
                 const pt1 = performance.now();
                 STATE.loadedFiles[type] = url;
-                console.log(`[Auto-load] ✅ ${label} Processed. Fetch: ${(ft1-ft0).toFixed(1)}ms, Parse: ${(pt1-pt0).toFixed(1)}ms`);
+                console.log(`[Auto-load] ✅ ${label} Processed (Cache: ${fromCache ? 'HIT' : 'MISS'}). Fetch: ${(ft1-ft0).toFixed(1)}ms, Parse: ${(pt1-pt0).toFixed(1)}ms`);
             }
         } catch (e) {
-            console.error(`[Auto-load] Error loading ${label} (${url}):`, e);
+            console.error(`[Auto-load] Error loading ${label} (${baseUrl}):`, e);
         }
     }
 
     // [Step 1] 최우선 순위: 교차로마스터, 신호맵데이터, 운영계획 (병렬 로딩)
     const priority1 = [
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv&t=${Date.now()}`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv&t=${Date.now()}`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv&t=${Date.now()}`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
     ];
     await Promise.all(priority1);
     
@@ -62,7 +94,7 @@ async function autoLoadFiles() {
     console.log(`[Perf] Step 1 (DB Fetch & Parse) completed in ${(t1-t0).toFixed(1)}ms`);
 
     // [Step 2] 그 다음: 그룹정보 마스터 (완료 후 교차로 목록 렌더링)
-    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv&t=${Date.now()}`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
+    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
     
     const t2 = performance.now();
     
@@ -102,10 +134,10 @@ async function autoLoadFiles() {
 
     // 백그라운드 병렬 로딩
     const priority3 = [
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson&t=${Date.now()}`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson&t=${Date.now()}`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv&t=${Date.now()}`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv&t=${Date.now()}`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
     ];
     
     await Promise.all(priority3);
