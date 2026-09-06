@@ -557,26 +557,6 @@ app.get('/api/sim/data', async (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
 
-  if (CSV_CACHE[file]) {
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      return res.send(CSV_CACHE[file]);
-  }
-
-  let cacheBuffer = "";
-  const originalWrite = res.write.bind(res);
-  const originalEnd = res.end.bind(res);
-
-  res.write = function(chunk) {
-      cacheBuffer += chunk;
-      return originalWrite(chunk);
-  };
-
-  res.end = function(chunk) {
-      if (chunk) cacheBuffer += chunk;
-      CSV_CACHE[file] = cacheBuffer;
-      return originalEnd(chunk);
-  };
-
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
     if (file.startsWith('db_') && file.endsWith('.csv')) {
