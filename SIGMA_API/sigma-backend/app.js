@@ -548,7 +548,7 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
   }
 });
 
-global.SIGMA_DB_VERSION = Date.now();
+global.SIGMA_DB_VERSION = null;
 
 // 모든 POST 요청(업데이트) 발생 시 DB 버전 갱신
 app.use('/api/sim/', (req, res, next) => {
@@ -558,7 +558,25 @@ app.use('/api/sim/', (req, res, next) => {
   next();
 });
 
-app.get('/api/sim/db-version', (req, res) => {
+app.get('/api/sim/db-version', async (req, res) => {
+  if (!global.SIGMA_DB_VERSION) {
+    try {
+      const [jRes, sRes, tRes] = await Promise.all([
+        supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1),
+        supabase.from('signal_maps').select('updated_at').order('updated_at', { ascending: false }).limit(1),
+        supabase.from('tod_plans').select('updated_at').order('updated_at', { ascending: false }).limit(1)
+      ]);
+      const dates = [
+        jRes.data?.[0]?.updated_at,
+        sRes.data?.[0]?.updated_at,
+        tRes.data?.[0]?.updated_at
+      ].filter(d => d).map(d => new Date(d).getTime());
+      
+      global.SIGMA_DB_VERSION = dates.length > 0 ? Math.max(...dates) : Date.now();
+    } catch (e) {
+      global.SIGMA_DB_VERSION = Date.now();
+    }
+  }
   res.json({ version: global.SIGMA_DB_VERSION });
 });
 
