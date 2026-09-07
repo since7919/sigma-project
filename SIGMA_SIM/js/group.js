@@ -787,6 +787,7 @@ function applyGroupToMembers() {
         Object.values(STATE.junctions).forEach(j => {
             if (String(j.group) === String(currentEditingGroup)) {
                 j.schedules = JSON.parse(JSON.stringify(groupSchedules));
+                j.weeklyPlan = STATE.groups[currentEditingGroup].weeklyPlan || "1;1;1;1;1;2;3";
                 
                 // [Fix] 그룹 TOD에서 수정한 cycle이 j.dayPlans 에도 동기화되어야 DB 반영 시 옛날 cycle로 덮어쓰여 불일치가 발생하는 것을 방지
                 if (j.dayPlans) {
