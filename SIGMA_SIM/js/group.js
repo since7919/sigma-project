@@ -144,11 +144,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
     const group = STATE.groups[gid];
 
     // [사용자 요청] 일계획 별칭 UI 동기화
-    if (!group.planAliases) group.planAliases = Array(10).fill("");
-    document.querySelectorAll('.inp-plan-alias').forEach(inp => {
-        const d = parseInt(inp.getAttribute('data-day'));
-        inp.value = group.planAliases[d] || "";
-    });
+    autoGeneratePlanAliases(group);
     
     // [사용자 규칙] db_groups.csv는 별도 관리되므로 교차로 정보를 통해 그룹 스케줄을 자동으로 채우지 않음
     if (!group.schedules) {
@@ -224,7 +220,13 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
         if (members.length > 1) {
             statusEl.style.display = 'block';
             
-            const normalize = (sched) => sched ? sched.map(day => day.map(s => s.h === -1 ? { h: -1, m: 0 } : s)) : null;
+            const normalize = (sched) => {
+                if (!sched) return null;
+                return sched.map(day => day.map(s => {
+                    if (s.h === -1) return { h: -1, m: 0, cycle: 0, idx: 0 };
+                    return { h: s.h, m: s.m, cycle: s.cycle, idx: s.idx };
+                }));
+            };
             const baseSched = JSON.stringify(normalize(members[0].schedules));
             
             let mismatchCount = 0;
@@ -1070,5 +1072,47 @@ function updateGroupTsdConfig(setIdx) {
     const checkEl = document.getElementById(`tsd-set-enable-${setIdx}`);
     if (checkEl && group.tsdConfigs[setIdx]) {
         group.tsdConfigs[setIdx].enabled = checkEl.checked ? 1 : 0;
+    }
+}
+\n
+function autoGeneratePlanAliases(groupObj) {
+    if (!groupObj || !groupObj.weeklyPlan) return;
+    const parts = groupObj.weeklyPlan.split(';');
+    const days = ["월", "화", "수", "목", "금", "토", "일"];
+    const aliases = Array(10).fill("");
+    
+    const planToDays = {};
+    parts.forEach((p, idx) => {
+        const planIdx = parseInt(p) - 1;
+        if (planIdx >= 0 && planIdx < 10) {
+            if (!planToDays[planIdx]) planToDays[planIdx] = [];
+            planToDays[planIdx].push(days[idx]);
+        }
+    });
+
+    for (let i = 0; i < 10; i++) {
+        if (planToDays[i]) {
+            aliases[i] = planToDays[i].join(', ');
+        }
+    }
+    
+    groupObj.planAliases = aliases;
+    
+    document.querySelectorAll('.inp-plan-alias').forEach(inp => {
+        const d = parseInt(inp.getAttribute('data-day'));
+        inp.value = groupObj.planAliases[d] || "";
+    });
+    
+    // UI 업데이트
+    const chartContainer = document.getElementById('group-chart-day-selector');
+    if (chartContainer) {
+        let chartHtml = '<select class="phase-select" style="width:90px;" onchange="setChartGroupDay(parseInt(this.value))">';
+        for (let i = 0; i < 10; i++) {
+            const alias = groupObj.planAliases[i] || "";
+            const lab = "일계획 " + (i + 1);
+            chartHtml += '<option value="' + i + '" ' + (STATE.currentGroupDayTypeIdx === i ? 'selected' : '') + '>' + (alias ? alias : lab) + '</option>';
+        }
+        chartHtml += '</select>';
+        chartContainer.innerHTML = chartHtml;
     }
 }
