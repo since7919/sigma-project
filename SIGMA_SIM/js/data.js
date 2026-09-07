@@ -954,13 +954,13 @@ async function updateGroupToDB() {
         });
         if (!resGroup.ok) throw new Error("그룹 데이터 업로드 실패");
 
+        // 3. Upload Member Junctions Data (TOD ONLY)
         if (members.length > 0) {
             const chunks = members.map(jid => {
                 const payload = exportSingleJunctionCSV(jid);
                 return {
                     jid,
-                    interCsvLine: payload.interCsvLine,
-                    mapCsvLines: payload.mapCsvLines,
+                    // interCsvLine, mapCsvLines 전송 생략 -> DB의 교차로/맵 설정은 덮어쓰지 않고 TOD만 안전하게 반영
                     todCsvLines: payload.todCsvLines
                 };
             });
