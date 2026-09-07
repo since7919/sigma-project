@@ -1074,7 +1074,8 @@ function updateGroupTsdConfig(setIdx) {
         group.tsdConfigs[setIdx].enabled = checkEl.checked ? 1 : 0;
     }
 }
-\n
+
+
 function autoGeneratePlanAliases(groupObj) {
     if (!groupObj || !groupObj.weeklyPlan) return;
     const parts = groupObj.weeklyPlan.split(';');

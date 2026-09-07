@@ -961,7 +961,8 @@ async function updateGroupToDB() {
                 return {
                     jid,
                     // interCsvLine, mapCsvLines 전송 생략 -> DB의 교차로/맵 설정은 덮어쓰지 않고 TOD만 안전하게 반영
-                    interCsvLine: payload.interCsvLine,\ntodCsvLines: payload.todCsvLines
+                    interCsvLine: payload.interCsvLine,
+todCsvLines: payload.todCsvLines
                 };
             });
             const resJunctions = await fetch('/api/sim/batch-update-junctions', {
