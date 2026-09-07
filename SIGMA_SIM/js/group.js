@@ -770,6 +770,20 @@ function applyGroupToMembers() {
         Object.values(STATE.junctions).forEach(j => {
             if (String(j.group) === String(currentEditingGroup)) {
                 j.schedules = JSON.parse(JSON.stringify(groupSchedules));
+                
+                // [Fix] 그룹 TOD에서 수정한 cycle이 j.dayPlans 에도 동기화되어야 DB 반영 시 옛날 cycle로 덮어쓰여 불일치가 발생하는 것을 방지
+                if (j.dayPlans) {
+                    for (let d = 0; d < 10; d++) {
+                        if (groupSchedules[d] && j.dayPlans[d]) {
+                            for (let s = 0; s < 16; s++) {
+                                if (groupSchedules[d][s] && groupSchedules[d][s].cycle) {
+                                    j.dayPlans[d][s].cycle = groupSchedules[d][s].cycle;
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 count++;
             }
         });
