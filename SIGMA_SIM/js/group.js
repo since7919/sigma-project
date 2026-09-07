@@ -393,6 +393,15 @@ function viewJunctionTODInGroup(jid) {
 /* ══════════════════════════════════════════
  *  그룹 요일 선택 UI
  * ══════════════════════════════════════════ */
+
+window.toggleGroupTodPlanGroup = function(group) {
+    if (typeof STATE !== 'undefined') {
+        STATE._groupTodPlanGroup = group;
+        renderGroupTODTable();
+        updateGroupDayUI();
+    }
+};
+
 function updateGroupDayUI() {
     const editContainer = document.getElementById('group-day-selector');
     const chartContainer = document.getElementById('group-chart-day-selector');
