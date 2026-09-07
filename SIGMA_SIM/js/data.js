@@ -901,3 +901,82 @@ async function fetchJunctionDetail(jid) {
         console.error(`Error loading details for ${jid}:`, err);
     }
 }
+
+
+/** 🔄 현재 선택된 그룹의 TOD 설정을 DB에 반영 */
+async function updateGroupToDB() {
+    const gid = typeof currentEditingGroup !== 'undefined' ? currentEditingGroup : null;
+    if (!gid || !STATE.groups[gid]) {
+        alert("선택된 그룹이 없습니다.");
+        return;
+    }
+    const gName = STATE.groups[gid].name || `그룹 ${gid}`;
+    if (!confirm(`그룹 [${gName}] 및 소속 교차로들의 TOD 설정을 데이터베이스(Supabase)에 반영하시겠습니까?`)) {
+        return;
+    }
+
+    const pwd = prompt("DB 반영을 위해 관리자 비밀번호를 입력하세요.");
+    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+        alert("비밀번호가 일치하지 않습니다. DB 반영이 취소되었습니다.");
+        return;
+    }
+
+    showLoading(`그룹 [${gName}] DB 저장 중...`);
+    try {
+        let groupCsv = "GroupID,Region,GroupName,Weekday,Friday,Saturday,Sunday,Special,Flextime1,Flextime2,Flextime3,Flextime4,Flextime5,TSD_SET1,TSD_SET2,TSD_SET3,PlanAliases\n";
+        const group = STATE.groups[gid];
+        let region = group.region;
+        const members = Object.keys(STATE.junctions).filter(j => String(STATE.junctions[j].group) === String(gid));
+        if (!region && members.length > 0) {
+            const member = STATE.junctions[members[0]];
+            region = member.region || (member.id.startsWith("L02-") ? "L02" : "L01");
+        } else if (!region) {
+            region = "L01";
+        }
+        const schedStrs = Array.from({ length: 10 }, (_, d) => {
+            const sched = (group.schedules && group.schedules[d]) ? group.schedules[d] : [];
+            return sched.map(s => {
+                const timePart = s.h === -1 ? "-1" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
+                return `${timePart}|${s.cycle || 100}|${s.idx || 1}`;
+            }).join(';');
+        });
+        const tsdSets = Array.from({ length: 3 }, (_, i) => {
+            const config = (group.tsdConfigs && group.tsdConfigs[i]) ? group.tsdConfigs[i] : { enabled: 0, order: [], distances: [] };
+            return `${config.enabled}|${(config.order || []).join(';')}|${(config.distances || []).join(';')}`;
+        });
+        const aliases = group.planAliases ? (Array.isArray(group.planAliases) ? group.planAliases.join(';') : group.planAliases) : "";
+        groupCsv += [gid, region, gName.replace(/,/g, ' '), ...schedStrs, ...tsdSets, aliases].join(',') + "\n";
+
+        const resGroup = await fetch('/api/sim/batch-update-groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupCsvLines: groupCsv })
+        });
+        if (!resGroup.ok) throw new Error("그룹 데이터 업로드 실패");
+
+        if (members.length > 0) {
+            const chunks = members.map(jid => {
+                const payload = exportSingleJunctionCSV(jid);
+                return {
+                    jid,
+                    interCsvLine: payload.interCsvLine,
+                    mapCsvLines: payload.mapCsvLines,
+                    todCsvLines: payload.todCsvLines
+                };
+            });
+            const resJunctions = await fetch('/api/sim/batch-update-junctions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chunks })
+            });
+            if (!resJunctions.ok) throw new Error("소속 교차로 데이터 업데이트 실패");
+        }
+
+        hideLoading();
+        alert(`그룹 [${gName}] 및 소속 교차로 ${members.length}개의 설정이 DB에 반영되었습니다.`);
+        if (typeof refreshDBStats === 'function') refreshDBStats();
+    } catch (e) {
+        hideLoading();
+        alert("DB 저장 실패: " + e.message);
+    }
+}
