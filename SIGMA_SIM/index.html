@@ -1245,9 +1245,14 @@
                     <!-- [이동됨] 그룹 TOD 설정 테이블 -->
                     <div class="mb-5">
                         <div id="group-weekly-plan-container" style="margin-bottom: 15px;"></div>
-                        <div class="op-row-between mb-5" style="border-bottom: 1px solid #333; padding-bottom: 4px;">
+                        <div id="group-weekly-plan-container" style="margin-bottom: 15px;"></div>
+<div class="op-row-between mb-5" style="border-bottom: 1px solid #333; padding-bottom: 4px;">
                             <h5 class="m-0 flex-row gap-6 text-accent">📅 그룹 TOD 설정 (시간/주기)</h5>
                             <div class="flex-row gap-10">
+<div style="display: flex; gap: 5px; align-items: center; margin-right: 10px;">
+<button onclick="toggleGroupTodPlanGroup(1)" id="btn-gtod-group-1" style="background: #0ea5e9; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11.5px; cursor: pointer; font-weight: bold;">일반맵 (1~5)</button>
+<button onclick="toggleGroupTodPlanGroup(2)" id="btn-gtod-group-2" style="background: #334155; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11.5px; cursor: pointer; font-weight: bold;">시차맵 (6~10)</button>
+</div>
                                 <div class="flex-row gap-8 p-4-10 chart-box-bg" style="background: rgba(0,0,0,0.2);">
                                     <span class="fs-11 text-dim">데이터 복사:</span>
                                     <select id="copy-from-day" class="phase-select" style="width: 75px;">
@@ -1273,74 +1278,64 @@
                                 <thead id="group-tod-thead" class="gtod-thead">
                                     <tr class="gtod-tr-top">
                                         <th class="gtod-th-sa">#</th>
-                                        <th colspan="3" id="day-header-0" class="gtod-th-day" onclick="setEditGroupDay(0)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-0" class="gtod-th-day" onclick="setEditGroupDay(0)" style="cursor:pointer;" onclick="setEditGroupDay(0)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 1</span>
-                                                <input type="text" class="inp-plan-alias" data-day="0" placeholder="명칭"
-                                                    onchange="updatePlanAlias(0, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="0" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(0, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-1" class="gtod-th-day" onclick="setEditGroupDay(1)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-1" class="gtod-th-day" onclick="setEditGroupDay(1)" style="cursor:pointer;" onclick="setEditGroupDay(1)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 2</span>
-                                                <input type="text" class="inp-plan-alias" data-day="1" placeholder="명칭"
-                                                    onchange="updatePlanAlias(1, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="1" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(1, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-2" class="gtod-th-day" onclick="setEditGroupDay(2)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-2" class="gtod-th-day" onclick="setEditGroupDay(2)" style="cursor:pointer;" onclick="setEditGroupDay(2)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 3</span>
-                                                <input type="text" class="inp-plan-alias" data-day="2" placeholder="명칭"
-                                                    onchange="updatePlanAlias(2, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="2" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(2, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-3" class="gtod-th-day" onclick="setEditGroupDay(3)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-3" class="gtod-th-day" onclick="setEditGroupDay(3)" style="cursor:pointer;" onclick="setEditGroupDay(3)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 4</span>
-                                                <input type="text" class="inp-plan-alias" data-day="3" placeholder="명칭"
-                                                    onchange="updatePlanAlias(3, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="3" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(3, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-4" class="gtod-th-day" onclick="setEditGroupDay(4)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-4" class="gtod-th-day" onclick="setEditGroupDay(4)" style="cursor:pointer;" onclick="setEditGroupDay(4)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 5</span>
-                                                <input type="text" class="inp-plan-alias" data-day="4" placeholder="명칭"
-                                                    onchange="updatePlanAlias(4, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="4" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(4, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-5" class="gtod-th-day" onclick="setEditGroupDay(5)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-5" class="gtod-th-day" onclick="setEditGroupDay(5)" style="cursor:pointer;" onclick="setEditGroupDay(5)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 6</span>
-                                                <input type="text" class="inp-plan-alias" data-day="5" placeholder="명칭"
-                                                    onchange="updatePlanAlias(5, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="5" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(5, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-6" class="gtod-th-day" onclick="setEditGroupDay(6)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-6" class="gtod-th-day" onclick="setEditGroupDay(6)" style="cursor:pointer;" onclick="setEditGroupDay(6)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 7</span>
-                                                <input type="text" class="inp-plan-alias" data-day="6" placeholder="명칭"
-                                                    onchange="updatePlanAlias(6, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="6" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(6, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-7" class="gtod-th-day" onclick="setEditGroupDay(7)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-7" class="gtod-th-day" onclick="setEditGroupDay(7)" style="cursor:pointer;" onclick="setEditGroupDay(7)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 8</span>
-                                                <input type="text" class="inp-plan-alias" data-day="7" placeholder="명칭"
-                                                    onchange="updatePlanAlias(7, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="7" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(7, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-8" class="gtod-th-day" onclick="setEditGroupDay(8)" style="cursor: pointer; transition: background 0.2s;">
+                                        <th colspan="3" id="day-header-8" class="gtod-th-day" onclick="setEditGroupDay(8)" style="cursor:pointer;" onclick="setEditGroupDay(8)" style="cursor: pointer; transition: background 0.2s;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 9</span>
-                                                <input type="text" class="inp-plan-alias" data-day="8" placeholder="명칭"
-                                                    onchange="updatePlanAlias(8, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="8" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(8, this.value)">
                                             </div>
                                         </th>
-                                        <th colspan="3" id="day-header-9" class="gtod-th-day-last">
+                                        <th colspan="3" id="day-header-9" class="gtod-th-day-last" onclick="setEditGroupDay(9)" style="cursor:pointer;">
                                             <div class="plan-header-cell">
                                                 <span>일계획 10</span>
-                                                <input type="text" class="inp-plan-alias" data-day="9" placeholder="명칭"
-                                                    onchange="updatePlanAlias(9, this.value)">
+                                                <input type="text" class="inp-plan-alias" data-day="9" placeholder="명칭" onclick="event.stopPropagation()" onchange="updatePlanAlias(9, this.value)">
                                             </div>
                                         </th>
                                     </tr>
