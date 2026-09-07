@@ -583,7 +583,7 @@ function renderGroupTODTable() {
         }
         html += `</tr>`;
     }
-    document.getElementById('group-tod-body').innerHTML = html;
+    document.getElementById('group-tod-body').innerHTML = html;\n    if(typeof updateGroupDayUI === 'function') updateGroupDayUI();
     updateGroupDayUI();
 }
 
@@ -1116,4 +1116,82 @@ function autoGeneratePlanAliases(groupObj) {
         chartHtml += '</select>';
         chartContainer.innerHTML = chartHtml;
     }
+}
+
+
+function toggleGroupTodPlanGroup(idx) {
+    STATE._groupTodPlanGroup = idx;
+    
+    // Update button styles
+    const btn1 = document.getElementById('btn-gtod-group-1');
+    const btn2 = document.getElementById('btn-gtod-group-2');
+    
+    if (btn1) {
+        if (idx === 1) {
+            btn1.style.background = '#0ea5e9';
+        } else {
+            btn1.style.background = '#334155';
+        }
+    }
+    if (btn2) {
+        if (idx === 2) {
+            btn2.style.background = '#0ea5e9';
+        } else {
+            btn2.style.background = '#334155';
+        }
+    }
+    
+    // Show/hide columns
+    updateGroupDayUI();
+}
+
+// Override updateGroupDayUI to show/hide the correct days based on STATE._groupTodPlanGroup
+const originalUpdateGroupDayUI = typeof updateGroupDayUI === 'function' ? updateGroupDayUI : null;
+window.updateGroupDayUI = function() {
+    if (originalUpdateGroupDayUI) originalUpdateGroupDayUI();
+    
+    // Hide headers and sub-headers not in the current group
+    const grp = STATE._groupTodPlanGroup || 1;
+    const startIdx = (grp - 1) * 5;
+    const endIdx = startIdx + 4;
+    
+    for (let i = 0; i < 10; i++) {
+        const th = document.getElementById('day-header-' + i);
+        if (th) {
+            th.style.display = (i >= startIdx && i <= endIdx) ? '' : 'none';
+        }
+    }
+    
+    // The sub-headers (Time, Cyc, Idx) are inside class="gtod-tr-sub"
+    const subHeaderRow = document.querySelector('.gtod-tr-sub');
+    if (subHeaderRow) {
+        const subHeaders = subHeaderRow.querySelectorAll('th');
+        // There are 30 subheaders (3 per day)
+        for (let i = 0; i < subHeaders.length; i++) {
+            const dayIdx = Math.floor(i / 3);
+            subHeaders[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
+        }
+    }
+    
+    // The body cells are in #group-tod-body rows
+    const tbody = document.getElementById('group-tod-body');
+    if (tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(tr => {
+            // First td is row index (1~16)
+            // Then 3 tds per day (30 total)
+            const tds = tr.querySelectorAll('td');
+            if (tds.length === 31) {
+                for (let i = 1; i <= 30; i++) {
+                    const dayIdx = Math.floor((i - 1) / 3);
+                    tds[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
+                }
+            }
+        });
+    }
+};
+
+// Initialize group UI properly
+if (typeof STATE._groupTodPlanGroup === 'undefined') {
+    STATE._groupTodPlanGroup = 1;
 }

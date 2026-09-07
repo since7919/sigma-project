@@ -1882,6 +1882,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
         }
       }
 
+      global.SIGMA_DB_VERSION = Date.now();
       return { success: true, counts: { junctions: junctionsPayload.length, maps: mapsPayload.length, tods: todPayload.length } };
     });
 

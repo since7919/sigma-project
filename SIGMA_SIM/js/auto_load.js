@@ -43,9 +43,22 @@ async function autoLoadFiles() {
             let res;
             let fromCache = false;
             
+            
             if ('caches' in window) {
                 const cache = await caches.open('sigma-data-cache');
+                
+                // --- ADDED: Cache Cleanup ---
+                const keys = await cache.keys();
+                for (let req of keys) {
+                    if (req.url.includes(baseUrl.split('?')[0]) && !req.url.includes('v=' + dbVersion)) {
+                        await cache.delete(req);
+                        console.log('[Cache] Deleted old cache:', req.url);
+                    }
+                }
+                // -----------------------------
+                
                 res = await cache.match(url);
+
                 if (res) {
                     fromCache = true;
                 } else {
