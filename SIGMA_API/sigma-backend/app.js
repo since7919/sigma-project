@@ -772,7 +772,7 @@ app.get('/api/sim/data', async (req, res) => {
               for (let i = 1; i <= 16; i++) {
                 const tp = tpMap[i];
                 if (tp) {
-                  const timeStr = `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
+                  const timeStr = tp.h === -1 ? "-1" : `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
                   line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
                 } else {
                   line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");

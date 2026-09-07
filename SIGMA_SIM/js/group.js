@@ -223,10 +223,13 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
     if (statusEl) {
         if (members.length > 1) {
             statusEl.style.display = 'block';
-            const baseSched = JSON.stringify(members[0].schedules);
+            
+            const normalize = (sched) => sched ? sched.map(day => day.map(s => s.h === -1 ? { h: -1, m: 0 } : s)) : null;
+            const baseSched = JSON.stringify(normalize(members[0].schedules));
+            
             let mismatchCount = 0;
             members.forEach((m, idx) => {
-                const mSched = JSON.stringify(m.schedules);
+                const mSched = JSON.stringify(normalize(m.schedules));
                 if (mSched !== baseSched) {
                     mismatchCount++;
                     m._todMismatch = true; // 플래그 설정
@@ -685,7 +688,12 @@ function renderGroupList() {
         if (!groupMeta[g]) groupMeta[g] = { count: 0, firstSched: null, hasMismatch: false };
         
         groupMeta[g].count++;
-        const currentSched = JSON.stringify(j.schedules);
+        
+        // 사용하지 않는 슬롯(h === -1)의 background 데이터(cycle, idx 등) 무시하도록 정규화
+        const normalizedSched = j.schedules ? j.schedules.map(day => 
+            day.map(slot => slot.h === -1 ? { h: -1, m: 0 } : slot)
+        ) : null;
+        const currentSched = JSON.stringify(normalizedSched);
         
         if (groupMeta[g].firstSched === null) {
             groupMeta[g].firstSched = currentSched;
