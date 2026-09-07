@@ -90,6 +90,12 @@ async function autoLoadFiles() {
     ];
     await Promise.all(priority1);
     
+    // DB 로드 완료 시 모든 교차로의 상세 정보가 로드된 것으로 간주하여
+    // 이후 UI 클릭 시 서버에서 데이터를 덮어쓰지 않도록 _detailLoaded 플래그 설정
+    Object.values(STATE.junctions).forEach(j => {
+        j._detailLoaded = true;
+    });
+
     const t1 = performance.now();
     console.log(`[Perf] Step 1 (DB Fetch & Parse) completed in ${(t1-t0).toFixed(1)}ms`);
 

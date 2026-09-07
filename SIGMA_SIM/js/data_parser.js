@@ -190,6 +190,7 @@ function processTodPlanCSV(csv) {
         const dIdx = d_plan - 1;
         
         STATE.junctions[jid].dayPlanMapIds[dIdx] = parseInt(cols[sigMapIdx]) || 0;
+        STATE.junctions[jid]._detailLoaded = true; // DB에서 읽었으므로 클릭시 서버 재요청 방지
         
         for (let sIdx = 0; sIdx < 16; sIdx++) {
             const slotIdx = tpIndices[sIdx];
