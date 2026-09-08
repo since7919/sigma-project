@@ -158,6 +158,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
 
     // 1. 테이블 즉시 렌더링 (지연 시간 없이)
     renderGroupTODTable();
+    renderGroupWeeklyPlanTable();
 
     // 2. 소속 교차로 목록 갱신
     // [사용자 요청] 교차로 목록 및 순서/거리 자동 계산
@@ -1093,75 +1094,17 @@ function autoGeneratePlanAliases(groupObj) {
     });
 
     for (let i = 0; i < 10; i++) {
-        if (planToDays[i]) {
-            aliases[i] = planToDays[i].join(', ');
-        }
-    }
-    
-    groupObj.planAliases = aliases;
-    
-    document.querySelectorAll('.inp-plan-alias').forEach(inp => {
-        const d = parseInt(inp.getAttribute('data-day'));
-        inp.value = groupObj.planAliases[d] || "";
-    });
-    
-    // UI 업데이트
-    const chartContainer = document.getElementById('group-chart-day-selector');
-    if (chartContainer) {
-        let chartHtml = '<select class="phase-select" style="width:90px;" onchange="setChartGroupDay(parseInt(this.value))">';
-        for (let i = 0; i < 10; i++) {
-            const alias = groupObj.planAliases[i] || "";
-            const lab = "일계획 " + (i + 1);
-            chartHtml += '<option value="' + i + '" ' + (STATE.currentGroupDayTypeIdx === i ? 'selected' : '') + '>' + (alias ? alias : lab) + '</option>';
-        }
-        chartHtml += '</select>';
-        chartContainer.innerHTML = chartHtml;
-    }
-}
-
-
-function toggleGroupTodPlanGroup(idx) {
-    STATE._groupTodPlanGroup = idx;
-    
-    // Update button styles
-    const btn1 = document.getElementById('btn-gtod-group-1');
-    const btn2 = document.getElementById('btn-gtod-group-2');
-    
-    if (btn1) {
-        if (idx === 1) {
-            btn1.style.background = '#0ea5e9';
-        } else {
-            btn1.style.background = '#334155';
-        }
-    }
-    if (btn2) {
-        if (idx === 2) {
-            btn2.style.background = '#0ea5e9';
-        } else {
-            btn2.style.background = '#334155';
-        }
-    }
-    
-    // Show/hide columns
-    updateGroupDayUI();
-}
-
-// Override updateGroupDayUI to show/hide the correct days based on STATE._groupTodPlanGroup
-const originalUpdateGroupDayUI = typeof updateGroupDayUI === 'function' ? updateGroupDayUI : null;
-window.updateGroupDayUI = function() {
-    if (originalUpdateGroupDayUI) originalUpdateGroupDayUI();
-    
-    // Hide headers and sub-headers not in the current group
-    const grp = STATE._groupTodPlanGroup || 1;
-    const startIdx = (grp - 1) * 5;
-    const endIdx = startIdx + 4;
-    
-    for (let i = 0; i < 10; i++) {
         const th = document.getElementById('day-header-' + i);
         if (th) {
             th.style.display = (i >= startIdx && i <= endIdx) ? '' : 'none';
         }
     }
+    
+    // Sync button colors
+    const btn1 = document.getElementById('btn-gtod-group-1');
+    const btn2 = document.getElementById('btn-gtod-group-2');
+    if (btn1) btn1.style.backgroundColor = (grp === 1) ? '#0ea5e9' : '#334155';
+    if (btn2) btn2.style.backgroundColor = (grp === 2) ? '#0ea5e9' : '#334155';
     
     // The sub-headers (Time, Cyc, Idx) are inside class="gtod-tr-sub"
     const subHeaderRow = document.querySelector('.gtod-tr-sub');
@@ -1195,4 +1138,61 @@ window.updateGroupDayUI = function() {
 // Initialize group UI properly
 if (typeof STATE._groupTodPlanGroup === 'undefined') {
     STATE._groupTodPlanGroup = 1;
+}
+
+
+// ----------------------------------------------------
+// Group Weekly Plan rendering
+// ----------------------------------------------------
+function renderGroupWeeklyPlanTable() {
+    const container = document.getElementById('group-weekly-plan-container');
+    if (!container) return;
+
+    const gid = currentEditingGroup;
+    const group = gid ? STATE.groups[gid] : null;
+    const weeklyPlan = (group && group.weeklyPlan) ? group.weeklyPlan.split(';') : ["1", "1", "1", "1", "1", "2", "3"];
+    const weekLabels = ["월", "화", "수", "목", "금", "토", "일"];
+    
+    let html = `
+        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 일계획표</div>
+        <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; border: 1px solid rgba(255,255,255,0.08);">
+            <thead>
+                <tr style="background: rgba(255,255,255,0.05);">
+                    ${weekLabels.map((w, idx) => {
+                        return `<th style="padding: 6px; color: #94a3b8; border: 1px solid rgba(255,255,255,0.08);">${w}</th>`;
+                    }).join('')}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    ${weekLabels.map((w, idx) => {
+                        const planNum = parseInt(weeklyPlan[idx] || 1);
+                        return `
+                            <td style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); background: transparent;">
+                                <input type="number" class="sigma-input inp-weekly-plan" data-index="${idx}" min="1" max="10" 
+                                       value="${planNum}" onchange="updateGroupWeeklyPlanData(${idx}, this.value)"
+                                       style="width:100%; height:20px; font-size:12px; font-weight:500; text-align:center; color:#cbd5e1; background:transparent; border:none; padding:0;">
+                            </td>
+                        `;
+                    }).join('')}
+                </tr>
+            </tbody>
+        </table>
+    `;
+    container.innerHTML = html;
+}
+
+function updateGroupWeeklyPlanData(idx, val) {
+    const gid = currentEditingGroup;
+    if (!gid || !STATE.groups[gid]) return;
+    
+    let parts = (STATE.groups[gid].weeklyPlan || "1;1;1;1;1;2;3").split(';');
+    val = parseInt(val);
+    if(isNaN(val) || val < 1 || val > 10) val = 1;
+    parts[idx] = val;
+    STATE.groups[gid].weeklyPlan = parts.join(';');
+    
+    if (typeof autoGeneratePlanAliases === 'function') {
+        autoGeneratePlanAliases(STATE.groups[gid]);
+    }
 }
