@@ -1078,6 +1078,7 @@ function updateGroupTsdConfig(setIdx) {
 }
 
 
+
 function autoGeneratePlanAliases(groupObj) {
     if (!groupObj || !groupObj.weeklyPlan) return;
     const parts = groupObj.weeklyPlan.split(';');
@@ -1094,47 +1095,31 @@ function autoGeneratePlanAliases(groupObj) {
     });
 
     for (let i = 0; i < 10; i++) {
-        const th = document.getElementById('day-header-' + i);
-        if (th) {
-            th.style.display = (i >= startIdx && i <= endIdx) ? '' : 'none';
+        if (planToDays[i]) {
+            aliases[i] = planToDays[i].join(', ');
         }
     }
     
-    // Sync button colors
-    const btn1 = document.getElementById('btn-gtod-group-1');
-    const btn2 = document.getElementById('btn-gtod-group-2');
-    if (btn1) btn1.style.backgroundColor = (grp === 1) ? '#0ea5e9' : '#334155';
-    if (btn2) btn2.style.backgroundColor = (grp === 2) ? '#0ea5e9' : '#334155';
+    groupObj.planAliases = aliases;
     
-    // The sub-headers (Time, Cyc, Idx) are inside class="gtod-tr-sub"
-    const subHeaderRow = document.querySelector('.gtod-tr-sub');
-    if (subHeaderRow) {
-        const subHeaders = subHeaderRow.querySelectorAll('th');
-        // There are 30 subheaders (3 per day)
-        for (let i = 0; i < subHeaders.length; i++) {
-            const dayIdx = Math.floor(i / 3);
-            subHeaders[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
+    document.querySelectorAll('.inp-plan-alias').forEach(inp => {
+        const d = parseInt(inp.getAttribute('data-day'));
+        inp.value = groupObj.planAliases[d] || "";
+    });
+    
+    // UI 업데이트
+    const chartContainer = document.getElementById('group-chart-day-selector');
+    if (chartContainer) {
+        let chartHtml = '<select class="phase-select" style="width:90px;" onchange="setChartGroupDay(parseInt(this.value))">';
+        for (let i = 0; i < 10; i++) {
+            const alias = groupObj.planAliases[i] || "";
+            const lab = "일계획 " + (i + 1);
+            chartHtml += '<option value="' + i + '" ' + (STATE.currentGroupDayTypeIdx === i ? 'selected' : '') + '>' + (alias ? alias : lab) + '</option>';
         }
+        chartHtml += '</select>';
+        chartContainer.innerHTML = chartHtml;
     }
-    
-    // The body cells are in #group-tod-body rows
-    const tbody = document.getElementById('group-tod-body');
-    if (tbody) {
-        const rows = tbody.querySelectorAll('tr');
-        rows.forEach(tr => {
-            // First td is row index (1~16)
-            // Then 3 tds per day (30 total)
-            const tds = tr.querySelectorAll('td');
-            if (tds.length === 31) {
-                for (let i = 1; i <= 30; i++) {
-                    const dayIdx = Math.floor((i - 1) / 3);
-                    tds[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
-                }
-            }
-        });
-    }
-};
-
+}
 // Initialize group UI properly
 if (typeof STATE._groupTodPlanGroup === 'undefined') {
     STATE._groupTodPlanGroup = 1;
@@ -1196,3 +1181,50 @@ function updateGroupWeeklyPlanData(idx, val) {
         autoGeneratePlanAliases(STATE.groups[gid]);
     }
 }
+
+
+window.toggleGroupTodPlanGroup = function(idx) {
+    STATE._groupTodPlanGroup = idx;
+    if(typeof window.updateGroupDayUI === 'function') window.updateGroupDayUI();
+};
+
+window.updateGroupDayUI = function() {
+    const grp = STATE._groupTodPlanGroup || 1;
+    const startIdx = (grp - 1) * 5;
+    const endIdx = startIdx + 4;
+    
+    for (let i = 0; i < 10; i++) {
+        const th = document.getElementById('day-header-' + i);
+        if (th) {
+            th.style.display = (i >= startIdx && i <= endIdx) ? '' : 'none';
+        }
+    }
+    
+    const subHeaderRow = document.querySelector('.gtod-tr-sub');
+    if (subHeaderRow) {
+        const subHeaders = subHeaderRow.querySelectorAll('th');
+        for (let i = 0; i < subHeaders.length; i++) {
+            const dayIdx = Math.floor(i / 3);
+            subHeaders[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
+        }
+    }
+    
+    const tbody = document.getElementById('group-tod-body');
+    if (tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(tr => {
+            const tds = tr.querySelectorAll('td');
+            if (tds.length === 31) {
+                for (let i = 1; i <= 30; i++) {
+                    const dayIdx = Math.floor((i - 1) / 3);
+                    tds[i].style.display = (dayIdx >= startIdx && dayIdx <= endIdx) ? '' : 'none';
+                }
+            }
+        });
+    }
+
+    const btn1 = document.getElementById('btn-gtod-group-1');
+    const btn2 = document.getElementById('btn-gtod-group-2');
+    if (btn1) btn1.style.backgroundColor = (grp === 1) ? '#0ea5e9' : '#334155';
+    if (btn2) btn2.style.backgroundColor = (grp === 2) ? '#0ea5e9' : '#334155';
+};
