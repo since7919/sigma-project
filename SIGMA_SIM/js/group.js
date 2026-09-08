@@ -583,7 +583,8 @@ function renderGroupTODTable() {
         }
         html += `</tr>`;
     }
-    document.getElementById('group-tod-body').innerHTML = html;\n    if(typeof updateGroupDayUI === 'function') updateGroupDayUI();
+    document.getElementById('group-tod-body').innerHTML = html;
+    if(typeof updateGroupDayUI === 'function') updateGroupDayUI();
     updateGroupDayUI();
 }
 
