@@ -97,7 +97,20 @@ function openDbReportOverlay(jid) {
                     <table class="db-table db-table-small">
                         <thead><tr><th>번호</th><th>DAY</th><th>TOD</th></tr></thead>
                         <tbody>
-                            ${Array.from({length:16}).map((_, i) => `<tr><td>${i+1}</td><td></td><td></td></tr>`).join('')}
+                            ${Array.from({length:16}).map((_, i) => {
+                                const holidays = [
+                                    {name:"신정", d:"1.1"}, {name:"설날", d:"2.16"}, {name:"설날", d:"2.17"}, {name:"설날", d:"2.18"},
+                                    {name:"삼일절", d:"3.1"}, {name:"어린이날", d:"5.5"}, {name:"석가탄신일", d:"5.24"}, {name:"현충일", d:"6.6"},
+                                    {name:"광복절", d:"8.15"}, {name:"추석", d:"9.24"}, {name:"추석", d:"9.25"}, {name:"추석", d:"9.26"},
+                                    {name:"개천절", d:"10.3"}, {name:"한글날", d:"10.9"}, {name:"성탄절", d:"12.25"}
+                                ];
+                                const h = holidays[i];
+                                if (h) {
+                                    return `<tr><td>${i+1}</td><td>${h.name} ${h.d}</td><td>4</td></tr>`;
+                                } else {
+                                    return `<tr><td>${i+1}</td><td></td><td></td></tr>`;
+                                }
+                            }).join('')}
                         </tbody>
                     </table>
                 </div>
