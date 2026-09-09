@@ -21,7 +21,15 @@ const CSV_CACHE = {};
 // 캐시 무효화 미들웨어: 데이터 변경(POST/PUT/DELETE) 시 캐시를 날림
 app.use('/api', (req, res, next) => {
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
-        Object.keys(CSV_CACHE).forEach(k => delete CSV_CACHE[k]);
+        const scratchDir = path.join(__dirname, 'scratch');
+        if (fs.existsSync(scratchDir)) {
+            const files = fs.readdirSync(scratchDir);
+            files.forEach(f => {
+                if (f.startsWith('cache_')) {
+                    try { fs.unlinkSync(path.join(scratchDir, f)); } catch(e) {}
+                }
+            });
+        }
         console.log(`[Cache] Cleared due to ${req.method} ${req.url}`);
     }
     next();
@@ -588,13 +596,14 @@ app.get('/api/sim/data', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  
 
-  if (CSV_CACHE[file]) {
+  const cacheFilePath = path.join(__dirname, 'scratch', 'cache_' + file);
+  if (fs.existsSync(cacheFilePath)) {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    return res.send(CSV_CACHE[file]);
+    const stat = fs.statSync(cacheFilePath);
+    res.setHeader('Content-Length', stat.size);
+    return fs.createReadStream(cacheFilePath).pipe(res);
   }
-
 
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
@@ -608,8 +617,13 @@ app.get('/api/sim/data', async (req, res) => {
         // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
         if (type === 'intersections') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Transfer-Encoding', 'chunked');
+          const cacheStream = fs.createWriteStream(cacheFilePath);
+          
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
-          let csvString = "\ufeff" + headers.join(",") + "\n";
+          const headerStr = "\ufeff" + headers.join(",") + "\n";
+          cacheStream.write(headerStr);
+          res.write(headerStr);
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
@@ -670,22 +684,27 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            csvString += chunk;
+            cacheStream.write(chunk);
+                res.write(chunk);
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
+          cacheStream.end();
+          return res.end();
         }
         
         // B. 신호 현시계획 (signal_maps 테이블 쿼리 및 CSV 재가공)
         if (type === 'signal_maps') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          
+          res.setHeader('Transfer-Encoding', 'chunked');
+          const cacheStream = fs.createWriteStream(cacheFilePath);
           
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
-          let csvString = "\ufeff" + headers.join(",") + "\n";
+          const headerStr = "\ufeff" + headers.join(",") + "\n";
+          cacheStream.write(headerStr);
+          res.write(headerStr);
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id');
@@ -730,23 +749,28 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            csvString += chunk;
+            cacheStream.write(chunk);
+                res.write(chunk);
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
+          cacheStream.end();
+          return res.end();
         }
         
         // C. TOD 운영계획 (tod_plans 테이블 쿼리 및 CSV 재가공)
         if (type === 'tod_plans') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          
+          res.setHeader('Transfer-Encoding', 'chunked');
+          const cacheStream = fs.createWriteStream(cacheFilePath);
           
           const headers = ["ID", "Seq", "SignalMap", "GroupID", "Day_plan"];
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
-          let csvString = "\ufeff" + headers.join(",") + "\n";
+          const headerStr = "\ufeff" + headers.join(",") + "\n";
+          cacheStream.write(headerStr);
+          res.write(headerStr);
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id').order('day_plan');
@@ -787,23 +811,28 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            csvString += chunk;
+            cacheStream.write(chunk);
+                res.write(chunk);
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
+          cacheStream.end();
+          return res.end();
         }
         
         // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
         if (type === 'groups') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          
+          res.setHeader('Transfer-Encoding', 'chunked');
+          const cacheStream = fs.createWriteStream(cacheFilePath);
           
           const headers = ["GroupID", "Region", "Name"];
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
-          let csvString = "\ufeff" + headers.join(",") + "\n";
+          const headerStr = "\ufeff" + headers.join(",") + "\n";
+          cacheStream.write(headerStr);
+          res.write(headerStr);
           
           let page = 0;
           const pageSize = 500;
@@ -832,11 +861,13 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            csvString += chunk;
+            cacheStream.write(chunk);
+                res.write(chunk);
             if (data.length < pageSize) hasMore = false;
             page++;
           }
-          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
+          cacheStream.end();
+          return res.end();
         }
       }
     }
