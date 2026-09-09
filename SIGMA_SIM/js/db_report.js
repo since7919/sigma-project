@@ -14,7 +14,7 @@ function openDbReportOverlay(jid) {
     // Build Google Maps static iframe or URL
     const lat = j.lat || 37.5665;
     const lng = j.lng || 126.9780;
-    const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&output=embed" allowfullscreen></iframe>`;
+    const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&t=h&output=embed" allowfullscreen></iframe>`;
     
     // TOD Plans
     const plansHTML = [1,2,3,4].map(idx => `
@@ -176,12 +176,12 @@ function openDbReportOverlay(jid) {
                 background: white; color: black; z-index: 10000; overflow-y: auto; padding: 20px; box-sizing: border-box;
                 font-family: "Malgun Gothic", sans-serif;
             }
-            .db-report-wrapper { max-width: 900px; margin: 0 auto; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .db-report-wrapper { color: #000; max-width: 900px; margin: 0 auto; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
             .db-report-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px; }
             .db-report-header h2 { margin: 0; font-size: 20px; font-weight: bold; }
             .db-report-sub { text-align: right; margin-top: -25px; margin-bottom: 5px; font-size: 12px; }
-            .db-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 9px; line-height: 1.1; }
-            .db-table th, .db-table td { border: 1px solid #000; padding: 2px; }
+            .db-table { color: #000; font-weight: 500; width: 100%; border-collapse: collapse; text-align: center; font-size: 9px; line-height: 1.1; }
+            .db-table th, .db-table td { color: #000; border: 1px solid #000; padding: 2px; }
             .db-table-small th, .db-table-small td { padding: 1px; font-size: 8.5px; }
             .db-tod-title { text-align: center; font-weight: bold; font-size: 9px; margin-bottom: 1px; border: 1px solid #000; border-bottom: none; padding: 1px; }
             .db-tod-table { width: 19%; }
@@ -202,7 +202,7 @@ function openDbReportOverlay(jid) {
                 body * { visibility: hidden; }
                 #db-report-container, #db-report-container * { visibility: visible; }
                 #db-report-container { position: absolute; left: 0; top: 0; padding: 0; margin: 0; overflow: visible; width: 100%; box-shadow: none; border: none; }
-                .db-report-wrapper { padding: 0; margin: 0; max-width: 100%; border: none; box-shadow: none; }
+                .db-report-wrapper { color: #000; padding: 0; margin: 0; max-width: 100%; border: none; box-shadow: none; }
                 .no-print { display: none !important; }
             }
         `;

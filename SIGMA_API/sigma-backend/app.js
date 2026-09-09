@@ -588,6 +588,13 @@ app.get('/api/sim/data', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  
+
+  if (CSV_CACHE[file]) {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    return res.send(CSV_CACHE[file]);
+  }
+
 
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
@@ -601,10 +608,8 @@ app.get('/api/sim/data', async (req, res) => {
         // A. 교차로 마스터 (junctions 테이블 쿼리 및 CSV 재가공)
         if (type === 'intersections') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          res.setHeader('Transfer-Encoding', 'chunked');
-          
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
-          res.write("\ufeff" + headers.join(",") + "\n");
+          let csvString = "\ufeff" + headers.join(",") + "\n";
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
@@ -665,22 +670,22 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            res.write(chunk);
+            csvString += chunk;
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          return res.end();
+          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
         }
         
         // B. 신호 현시계획 (signal_maps 테이블 쿼리 및 CSV 재가공)
         if (type === 'signal_maps') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          res.setHeader('Transfer-Encoding', 'chunked');
+          
           
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
-          res.write("\ufeff" + headers.join(",") + "\n");
+          let csvString = "\ufeff" + headers.join(",") + "\n";
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id');
@@ -725,23 +730,23 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            res.write(chunk);
+            csvString += chunk;
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          return res.end();
+          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
         }
         
         // C. TOD 운영계획 (tod_plans 테이블 쿼리 및 CSV 재가공)
         if (type === 'tod_plans') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          res.setHeader('Transfer-Encoding', 'chunked');
+          
           
           const headers = ["ID", "Seq", "SignalMap", "GroupID", "Day_plan"];
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
-          res.write("\ufeff" + headers.join(",") + "\n");
+          let csvString = "\ufeff" + headers.join(",") + "\n";
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id').order('day_plan');
@@ -782,23 +787,23 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            res.write(chunk);
+            csvString += chunk;
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          return res.end();
+          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
         }
         
         // D. 제어 그룹마스터 (groups 테이블 쿼리 및 CSV 재가공)
         if (type === 'groups') {
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-          res.setHeader('Transfer-Encoding', 'chunked');
+          
           
           const headers = ["GroupID", "Region", "Name"];
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
-          res.write("\ufeff" + headers.join(",") + "\n");
+          let csvString = "\ufeff" + headers.join(",") + "\n";
           
           let page = 0;
           const pageSize = 500;
@@ -827,11 +832,11 @@ app.get('/api/sim/data', async (req, res) => {
               chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
             });
             
-            res.write(chunk);
+            csvString += chunk;
             if (data.length < pageSize) hasMore = false;
             page++;
           }
-          return res.end();
+          CSV_CACHE[file] = csvString; res.setHeader("Content-Type", "text/csv; charset=utf-8"); return res.send(csvString);
         }
       }
     }
