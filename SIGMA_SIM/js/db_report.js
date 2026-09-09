@@ -171,22 +171,22 @@ function openDbReportOverlay(jid) {
         style = document.createElement('style');
         style.id = 'db-report-style';
         style.innerHTML = `
-            #db-report-container {
+            #db-report-container { border-radius: 0 !important;
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: white; color: black; z-index: 10000; overflow-y: auto; padding: 20px; box-sizing: border-box;
                 font-family: "Malgun Gothic", sans-serif;
             }
-            .db-report-wrapper { color: #000; max-width: 900px; margin: 0 auto; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .db-report-wrapper { border-radius: 0 !important; color: #000; max-width: 900px; margin: 0 auto; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
             .db-report-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px; }
             .db-report-header h2 { margin: 0; font-size: 20px; font-weight: bold; }
             .db-report-sub { text-align: right; margin-top: -25px; margin-bottom: 5px; font-size: 12px; }
-            .db-table { color: #000; font-weight: 500; width: 100%; border-collapse: collapse; text-align: center; font-size: 9px; line-height: 1.1; }
+            .db-table { border-radius: 0 !important; color: #000; font-weight: 500; width: 100%; border-collapse: collapse; text-align: center; font-size: 9px; line-height: 1.1; }
             .db-table th, .db-table td { color: #000; border: 1px solid #000; padding: 2px; }
             .db-table-small th, .db-table-small td { padding: 1px; font-size: 8.5px; }
             .db-tod-title { text-align: center; font-weight: bold; font-size: 9px; margin-bottom: 1px; border: 1px solid #000; border-bottom: none; padding: 1px; }
             .db-tod-table { width: 19%; }
-            .btn-primary { background: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight:bold; }
-            .btn-secondary { background: #95a5a6; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; font-weight:bold; }
+            .btn-primary { background: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 0 !important; font-weight:bold; }
+            .btn-secondary { background: #95a5a6; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 0 !important; font-weight:bold; }
             
             /* Overrides for IPD inside print view */
             #db-ipd-mount .ipd-grid { background: white !important; border-bottom: none !important; }
@@ -201,8 +201,8 @@ function openDbReportOverlay(jid) {
                 @page { margin: 10mm; size: A4 portrait; }
                 body * { visibility: hidden; }
                 #db-report-container, #db-report-container * { visibility: visible; }
-                #db-report-container { position: absolute; left: 0; top: 0; padding: 0; margin: 0; overflow: visible; width: 100%; box-shadow: none; border: none; }
-                .db-report-wrapper { color: #000; padding: 0; margin: 0; max-width: 100%; border: none; box-shadow: none; }
+                #db-report-container { border-radius: 0 !important; position: absolute; left: 0; top: 0; padding: 0; margin: 0; overflow: visible; width: 100%; box-shadow: none; border: none; }
+                .db-report-wrapper { border-radius: 0 !important; color: #000; padding: 0; margin: 0; max-width: 100%; border: none; box-shadow: none; }
                 .no-print { display: none !important; }
             }
         `;
