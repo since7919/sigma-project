@@ -247,12 +247,12 @@ class InteractivePhaseDiagram {
             const cId = 'P' + i + '-A';
             const br = (i === 8) ? '' : 'border-right:1px solid #3e3e42;';
             gridHtml += `
-                <div class="ipd-cell" id="cell-${cId}" data-cell="${cId}" style="${br} border-bottom:1px solid #3e3e42;">
+                <div class="ipd-cell" id="${this.containerId}-cell-${cId}" data-cell="${cId}" style="${br} border-bottom:1px solid #3e3e42;">
                     <svg class="ipd-svg-main" width="100%" height="100%" viewBox="0 0 100 100">
-                        <svg class="ipd-svg" id="svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
-                            ${this.getVehSVGPaths('cell-' + cId)}
+                        <svg class="ipd-svg" id="${this.containerId}-svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
+                            ${this.getVehSVGPaths(this.containerId + "-cell-" + cId)}
                         </svg>
-                        ${this.getPedSVGPaths('cell-' + cId)}
+                        ${this.getPedSVGPaths(this.containerId + "-cell-" + cId)}
                     </svg>
                 </div>
             `;
@@ -263,12 +263,12 @@ class InteractivePhaseDiagram {
             const cId = 'P' + i + '-B';
             const br = (i === 8) ? '' : 'border-right:1px solid #3e3e42;';
             gridHtml += `
-                <div class="ipd-cell" id="cell-${cId}" data-cell="${cId}" style="${br}">
+                <div class="ipd-cell" id="${this.containerId}-cell-${cId}" data-cell="${cId}" style="${br}">
                     <svg class="ipd-svg-main" width="100%" height="100%" viewBox="0 0 100 100">
-                        <svg class="ipd-svg" id="svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
-                            ${this.getVehSVGPaths('cell-' + cId)}
+                        <svg class="ipd-svg" id="${this.containerId}-svg-${cId}" x="15" y="15" width="70" height="70" viewBox="0 0 100 100">
+                            ${this.getVehSVGPaths(this.containerId + "-cell-" + cId)}
                         </svg>
-                        ${this.getPedSVGPaths('cell-' + cId)}
+                        ${this.getPedSVGPaths(this.containerId + "-cell-" + cId)}
                     </svg>
                 </div>
             `;
@@ -503,10 +503,10 @@ class InteractivePhaseDiagram {
     }
 
     renderCell(cellId) {
-        const cellNode = document.getElementById('cell-' + cellId);
+        const cellNode = document.getElementById(this.containerId + '-cell-' + cellId);
         if (!cellNode) return;
         
-        const svg = document.getElementById('svg-' + cellId);
+        const svg = document.getElementById(this.containerId + '-svg-' + cellId);
         if (!svg) return;
         
         const activeMovs = this.activeMovements[cellId] || [];

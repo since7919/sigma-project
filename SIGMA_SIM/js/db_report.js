@@ -49,7 +49,7 @@ function openDbReportOverlay(jid) {
     const html = `
         <div class="db-report-wrapper">
             <div class="db-report-header">
-                <h2>표준신호제어기데이터베이스(SEC-N9400)</h2>
+                <h2>표준신호제어기데이터베이스(${j.controller || "알수없음"})</h2>
                 <div class="db-report-actions no-print">
                     <button class="btn-primary" onclick="window.print()">PDF로 저장 (Print)</button>
                     <button class="btn-secondary" onclick="closeDbReportOverlay()">닫기</button>

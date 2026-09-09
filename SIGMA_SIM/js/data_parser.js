@@ -44,6 +44,7 @@ function processIntersectionCSV(csv, isAppend = false) {
         office: getColIdx(["Office", "관리청"]),
         group: getColIdx(["GroupID", "그룹ID"]),
         weeklyPlan: getColIdx(["Weekly_plan"]),
+        controller: getColIdx(["Controller", "제어기"]),
         diagramOrder: getColIdx(["DiagramOrder", "Order"])
     };
 
@@ -66,6 +67,7 @@ function processIntersectionCSV(csv, isAppend = false) {
             lat: parseFloat(getCol(cols, colIdx.lat)) || 37.5, lng: parseFloat(getCol(cols, colIdx.lng)) || 127.0,
             seq: getCol(cols, colIdx.seq), police: getCol(cols, colIdx.police) || "", office: getCol(cols, colIdx.office) || "",
             group: parseInt(getCol(cols, colIdx.group)) || 0, weeklyPlan: getCol(cols, colIdx.weeklyPlan) || "1;1;1;1;1;2;3",
+            controller: getCol(cols, colIdx.controller) || "",
             apiIntNo: isNaN(apiIntNo) ? null : apiIntNo,
             signalMaps: Array.from({ length: 6 }, () => createEmptySignalMap()), dayPlans: Array.from({ length: 10 }, () => createEmptyPlans()),
             schedules: Array.from({ length: 10 }, () => createEmptySched()), dayPlanMapIds: new Array(10).fill(0), extra: {}
