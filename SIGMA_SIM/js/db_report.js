@@ -180,7 +180,7 @@ function openDbReportOverlay(jid) {
             .db-report-sub { text-align: right; margin-top: -25px; margin-bottom: 5px; font-size: 12px; }
             .db-table { border-radius: 0 !important; color: #000; font-weight: 600; width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; line-height: 1.2; }
             .db-table th, .db-table td { color: #000; border: 1px solid #000; padding: 2px; }
-            .db-table-small th, .db-table-small td { padding: 2px; font-size: 10.5px; }
+            .db-table-small th, .db-table-small td { padding: 0 2px; font-size: 10.5px; line-height: 1.05; }
             .db-tod-title { text-align: center; font-weight: bold; font-size: 11.5px; margin-bottom: 1px; border: 1px solid #000; border-bottom: none; padding: 1px; }
             .db-tod-table { width: 19%; }
             .btn-primary { background: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 0 !important; font-weight:bold; }
