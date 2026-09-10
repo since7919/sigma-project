@@ -218,16 +218,16 @@ class InteractivePhaseDiagram {
         return `
             <svg width="0" height="0" style="position:absolute;">
                 <defs>
-                    <marker id="ah-gray" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                    <marker id="${this.containerId}-ah-gray" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="0 0, 3 1.5, 0 3" fill="#444" />
                     </marker>
-                    <marker id="ah-blue" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                    <marker id="${this.containerId}-ah-blue" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="0 0, 3 1.5, 0 3" fill="#0ea5e9" />
                     </marker>
-                    <marker id="ah-gray-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                    <marker id="${this.containerId}-ah-gray-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="3 0, 0 1.5, 3 3" fill="#444" />
                     </marker>
-                    <marker id="ah-blue-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
+                    <marker id="${this.containerId}-ah-blue-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="3 0, 0 1.5, 3 3" fill="#0ea5e9" />
                     </marker>
                 </defs>
@@ -308,15 +308,15 @@ class InteractivePhaseDiagram {
             
             <div class="ipd-legend">
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" marker-end="url(#${this.containerId}-ah-blue)"/></svg>
                     <span>Protected (직/좌/우)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M0,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-end="url(#${this.containerId}-ah-blue)"/></svg>
                     <span>Permissive (비보호 좌회전)</span>
                 </div>
                 <div class="ipd-legend-item">
-                    <svg width="30" height="10" style="overflow:visible;"><path d="M8,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#ah-blue-rev)" marker-end="url(#ah-blue)"/></svg>
+                    <svg width="30" height="10" style="overflow:visible;"><path d="M8,5 L22,5" stroke="#0ea5e9" stroke-width="4.5" stroke-dasharray="5 4" marker-start="url(#${this.containerId}-ah-blue-rev)" marker-end="url(#${this.containerId}-ah-blue)"/></svg>
                     <span>Pedestrian (보행자)</span>
                 </div>
                 <div style="font-size:11px; color:#666; font-weight:normal; margin-left: auto; display: flex; align-items: center;">
@@ -562,10 +562,10 @@ class InteractivePhaseDiagram {
         const color = isActive ? 'blue' : 'gray';
         
         if (arrow.classList.contains('ipd-ped')) {
-            arrow.setAttribute('marker-start', `url(#ah-${color}-rev)`);
-            arrow.setAttribute('marker-end', `url(#ah-${color})`);
+            arrow.setAttribute('marker-start', `url(#${this.containerId}-ah-${color}-rev)`);
+            arrow.setAttribute('marker-end', `url(#${this.containerId}-ah-${color})`);
         } else {
-            arrow.setAttribute('marker-end', `url(#ah-${color})`);
+            arrow.setAttribute('marker-end', `url(#${this.containerId}-ah-${color})`);
         }
     }
 }

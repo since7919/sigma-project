@@ -119,6 +119,20 @@ function renderRingTables() {
     ];
 
     categories.forEach(cat => {
+        
+        if (cat.id === 'main') {
+            const mainMovs = sm.mainMovements || [];
+            const cells = [];
+            cells.push({ content: cat.label, className: 'row-label', style: 'vertical-align:middle; text-align:center; font-weight:bold; background:rgba(0,0,0,0.2); width:40px;' });
+            cells.push({ content: '<span style="font-size:10px;">(통합)</span>', className: 'row-label', attr: { title: '최대 2개 선택' }, style: 'width:40px;' });
+            [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
+                const isChecked = mainMovs.includes('A' + i) || mainMovs.includes('B' + i);
+                cells.push({ content: `<input type="checkbox" class="inp-main-mov" value="A${i}" ${isChecked ? 'checked' : ''} onchange="limitCheck(this)">` });
+            });
+            movRows.push({ cells });
+            return;
+        }
+
         ['A', 'B'].forEach((ring, idx) => {
             const movs = idx === 0 ? sm.movA : sm.movB;
             const movKey = idx === 0 ? 'movA' : 'movB';
@@ -501,10 +515,20 @@ function executeCopySignalMap(fromIdx, toIdx) {
  *  주현시 제한 체크
  * ══════════════════════════════════════════ */
 function limitCheck(el) {
-    const checked = document.querySelectorAll('.inp-main-mov:checked');
+    let checked = document.querySelectorAll('.inp-main-mov:checked');
     if (checked.length > 2) {
         el.checked = false;
         alert("주현시는 최대 2개 이동류까지 선택할 수 있습니다.");
+        checked = document.querySelectorAll('.inp-main-mov:checked');
+    }
+    
+    // Auto-save to STATE
+    const jid = STATE.activeJid;
+    if (!jid) return;
+    const j = STATE.junctions[jid];
+    const smIdx = STATE.currentSignalMapIdx || 0;
+    if (j && j.signalMaps && j.signalMaps[smIdx]) {
+        j.signalMaps[smIdx].mainMovements = Array.from(checked).map(c => c.value);
     }
 }
 
