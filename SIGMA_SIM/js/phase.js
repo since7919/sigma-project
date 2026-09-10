@@ -124,7 +124,7 @@ function renderRingTables() {
             const mainMovs = sm.mainMovements || [];
             const cells = [];
             cells.push({ content: cat.label, className: 'row-label', style: 'vertical-align:middle; text-align:center; font-weight:bold; background:rgba(0,0,0,0.2); width:40px;' });
-            cells.push({ content: '<span style="font-size:10px;">(통합)</span>', className: 'row-label', attr: { title: '최대 2개 선택' }, style: 'width:40px;' });
+            cells.push({ content: '<span style="font-size:10px;">(통합)</span>', className: 'row-label', attr: { title: '1개 선택' }, style: 'width:40px;' });
             [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
                 const isChecked = mainMovs.includes('A' + i) || mainMovs.includes('B' + i);
                 cells.push({ content: `<input type="checkbox" class="inp-main-mov" value="A${i}" ${isChecked ? 'checked' : ''} onchange="limitCheck(this)">` });
@@ -164,7 +164,7 @@ function renderRingTables() {
                     cells.push({ content: `<input type="number" class="sigma-input inp-${pedKey} ${valCls}" data-type="mov" data-key="${pedKey}" data-index="${i}" value="${v}">` });
                 });
             } else if (cat.id === 'main') {
-                cells.push({ content: `${ring}링`, className: 'row-label', attr: { title: '최대 2개 선택' }, style: 'width:40px;' });
+                cells.push({ content: `${ring}링`, className: 'row-label', attr: { title: '1개 선택' }, style: 'width:40px;' });
                 [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
                     cells.push({ content: `<input type="checkbox" class="inp-main-mov" value="${ring}${i}" ${mainMovs.includes(ring + i) ? 'checked' : ''} onchange="limitCheck(this)">` });
                 });
@@ -516,9 +516,9 @@ function executeCopySignalMap(fromIdx, toIdx) {
  * ══════════════════════════════════════════ */
 function limitCheck(el) {
     let checked = document.querySelectorAll('.inp-main-mov:checked');
-    if (checked.length > 2) {
+    if (checked.length > 1) {
         el.checked = false;
-        alert("주현시는 최대 2개 이동류까지 선택할 수 있습니다.");
+        alert("주현시는 1개의 현시만 선택할 수 있습니다.");
         checked = document.querySelectorAll('.inp-main-mov:checked');
     }
     
