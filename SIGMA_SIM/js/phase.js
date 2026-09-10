@@ -45,16 +45,16 @@ function renderRingTables() {
         schedules: JSON.parse(JSON.stringify(DEFAULT_PLAN_CACHE.schedules))
     };
 
-    const sIdx = parseInt(UI.planIdx?.value) || 0;
+    const pIdx = parseInt(UI.planIdx?.value) || 0;
     
-    let s = { h: 0, m: 0, cycle: 100, idx: sIdx + 1 };
-    if (jid && j.schedules) {
-        s = j.schedules[dayIdx]?.[sIdx] || s; // 개별 스케줄 데이터 우선 참조
+    // Find a schedule that uses this pattern (for display purposes like targetCycle)
+    let s = { h: -1, m: 0, cycle: 100, idx: pIdx + 1 };
+    if (jid && j.schedules && j.schedules[dayIdx]) {
+        const found = j.schedules[dayIdx].find(sch => sch && sch.idx === (pIdx + 1) && sch.h !== -1);
+        if (found) s = found;
     }
     
-    // 현재 타임 슬롯이 가리키는 패턴 번호 (1~16)를 이용해 패턴(dayPlans)을 조회
-    const patternIdx = s.idx || 1;
-    const p = j.dayPlans ? j.dayPlans[dayIdx][patternIdx - 1] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
+    const p = j.dayPlans ? j.dayPlans[dayIdx][pIdx] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
 
     UI.todDisplayTime.innerText = s.h === -1 ? "M/F (미사용)" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
     UI.todInpCycle.value = s.cycle || 100;
@@ -546,7 +546,7 @@ function renderSummaryTable() {
     const plans = j.dayPlans[dayIdx];
     const schedules = j.schedules ? j.schedules[dayIdx] : null;
 
-    const selectedPatternIdx = (schedules && schedules[cur]) ? (schedules[cur].idx || 1) : 1;
+    const selectedPatternIdx = cur + 1;
 
     const generateTableHTML = (startIdx, endIdx) => {
         const rows = [];
@@ -729,17 +729,22 @@ function updateSched(idx, f, v) {
     const j = STATE.junctions[STATE.activeJid];
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     j.schedules[dayIdx][idx][f] = parseInt(v) || 0;
-    if (idx === parseInt(UI.planIdx.value)) renderRingTables();
+    // UI.planIdx is pattern index, so we must check if the edited schedule points to current pattern
+    const curPIdx = parseInt(UI.planIdx.value) || 0;
+    if (j.schedules[dayIdx][idx].idx === (curPIdx + 1)) renderRingTables();
     renderSummaryTable();
     if (document.getElementById('tab-stats').classList.contains('active')) renderStats();
 }
 
 function updateTargetCycle(v) {
     const j = STATE.junctions[STATE.activeJid];
-    const idx = parseInt(UI.planIdx.value);
+    const pIdx = parseInt(UI.planIdx.value);
     const dayIdx = STATE.currentJunctionDayTypeIdx;
-    j.schedules[dayIdx][idx].cycle = parseInt(v) || 0;
+    if(j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][pIdx]) {
+        j.dayPlans[dayIdx][pIdx].cycle = parseInt(v) || 0;
+    }
     renderRingTables();
+    renderSummaryTable();
     if (document.getElementById('tab-stats').classList.contains('active')) renderStats();
 }
 

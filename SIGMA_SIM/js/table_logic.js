@@ -220,10 +220,8 @@ function handlePatternCycleInput(el) {
     
     // 만약 현재 다이어그램(Ring Table)이 이 패턴을 보여주고 있다면 업데이트
     if (typeof UI !== 'undefined' && UI.planIdx) {
-        // UI.planIdx.value는 선택된 "타임 슬롯" 인덱스
-        const sIdx = parseInt(UI.planIdx.value) || 0;
-        const s = j.schedules && j.schedules[dayIdx] ? j.schedules[dayIdx][sIdx] : null;
-        if (s && s.idx === (idx + 1)) {
+        const pIdx = parseInt(UI.planIdx.value) || 0;
+        if (pIdx === idx) {
             debounceUpdateRingTables();
         }
     }
@@ -423,7 +421,7 @@ function updateCycleDisplayLocally(p) {
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const pIdx = parseInt(UI.planIdx?.value) || 0;
     const s = (j && j.schedules) ? (getLinkedSchedule(j, dayIdx)?.[pIdx] || { cycle: 100 }) : { cycle: 100 };
-    const target = s.cycle || 100;
+    const target = p.cycle || 100;
 
     const isMatch = (sA === target && sB === target);
     const cycInp = document.getElementById('tod-inp-cycle');
