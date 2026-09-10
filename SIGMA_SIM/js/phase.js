@@ -616,9 +616,9 @@ function renderSummaryTable() {
                     content: `<input type="number" class="sigma-input input-mini ${p.offset === 0 ? 'val-zero' : ''}" value="${p.offset}" data-type="offset" style="width: 35px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" data-index="${i}">`
                 },
                 {
-                    style: "text-align:left; padding:5px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
+                    style: "text-align:left; padding:1px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
                     content: `
-                        <div style="display:flex; align-items:center; margin-bottom:2px; gap:4px;">
+                        <div style="display:flex; align-items:center; margin-bottom:0px; gap:4px;">
                             <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
                             ${ Array.from({length: 8}).map((_, k) => {
                                 const v = p.splitA[k] || 0;
@@ -650,11 +650,11 @@ function renderSummaryTable() {
                 <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05);">
-                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
-                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
-                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>` : ''}</th>
-                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
-                            <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>` : ''}</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -986,9 +986,9 @@ function renderTodPlanInfoTable() {
             <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                 <thead>
                     <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 30px; color: #94a3b8;">#</th>
+                        <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 30px; color: #94a3b8;">#</th>
                         ${dayPlanIndices.map(idx => `
-                            <th colspan="3" onclick="changeJunctionDayType(${idx})" style="padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.08); color: ${dayIdx === idx ? 'var(--accent)' : '#94a3b8'}; cursor: pointer; font-weight: bold; background: ${dayIdx === idx ? 'rgba(241,196,15,0.05)' : 'transparent'};">
+                            <th colspan="3" onclick="changeJunctionDayType(${idx})" style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.08); color: ${dayIdx === idx ? 'var(--accent)' : '#94a3b8'}; cursor: pointer; font-weight: bold; background: ${dayIdx === idx ? 'rgba(241,196,15,0.05)' : 'transparent'};">
                                 ${DAY_LABELS[idx]}
                             </th>
                         `).join('')}
