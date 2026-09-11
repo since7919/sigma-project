@@ -105,9 +105,9 @@ async function fetchAndDrawSafetyZones() {
         safetyZoneLayer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
             style: function(feature) {
                 return {
-                    color: '#e74c3c',
+                    color: '#f1c40f',
                     weight: 2,
-                    fillColor: '#f39c12',
+                    fillColor: '#f4d03f',
                     fillOpacity: 0.3, interactive: true
                 };
             },
@@ -116,7 +116,7 @@ async function fetchAndDrawSafetyZones() {
                     radius: 8,
                     color: '#fff',
                     weight: 2,
-                    fillColor: '#f39c12',
+                    fillColor: '#f1c40f',
                     fillOpacity: 0.8,
                     interactive: true,
                     pane: 'markerPane'
