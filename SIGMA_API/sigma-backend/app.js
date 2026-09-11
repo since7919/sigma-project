@@ -2465,17 +2465,17 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
 
 
 // --- 보호구역 API Proxy ---
-let safetyZoneCache = null;
-let safetyZoneCacheTime = 0;
+let simSafetyZoneCache = null;
+let simSafetyZoneCacheTime = 0;
 
 app.get('/api/sim/safetyzone', async (req, res) => {
   try {
-        const data = await fetchAllSupabase(() => supabase.from('safety_zones').select('*'));
+    if (simSafetyZoneCache && (Date.now() - simSafetyZoneCacheTime < 3600000)) {
+        return res.json({ success: true, items: simSafetyZoneCache, source: 'supabase_cache' });
+    }
     
-
+    const data = await fetchAllSupabase(() => supabase.from('safety_zones').select('*'));
     
-    
-    // 프론트엔드 호환성을 위해 geojson 키 유지
     const items = data.map(row => ({
       ptznMngNo: row.ptznmngno,
       trgtFcltNm: row.name,
@@ -2483,6 +2483,9 @@ app.get('/api/sim/safetyzone', async (req, res) => {
       fcltTypeCd: row.type,
       geojson: row.geojson
     }));
+
+    simSafetyZoneCache = items;
+    simSafetyZoneCacheTime = Date.now();
 
     res.json({ success: true, items: items, source: 'supabase' });
   } catch (err) {
