@@ -42,7 +42,45 @@ async function fetchAndDrawSafetyZones() {
             throw new Error("API 서버에서 올바른 JSON 데이터를 반환하지 않았습니다.");
         }
         
+        
         let items = data.items || (Array.isArray(data) ? data : [data]);
+        
+        // --- 지역 아코디언 필터링 로직 추가 ---
+        if (typeof _openAccordions !== 'undefined') {
+            const prefixMap = {
+                'L01': '11', // 서울특별시
+                'L02': '28', // 인천광역시
+                '161': '26', // 부산광역시
+                '155': '27', // 대구광역시
+                '131': '30', // 대전광역시
+                '142': '31'  // 울산광역시
+            };
+            
+            let activePrefixes = [];
+            Object.keys(_openAccordions).forEach(k => {
+                if (_openAccordions[k] && prefixMap[k]) {
+                    activePrefixes.push(prefixMap[k]);
+                }
+            });
+
+            if (activePrefixes.length === 0) {
+                alert("좌측 교차로 목록에서 지역(예: 서울특별시) 메뉴를 열어주세요.\n선택된 지역의 보호구역만 로드됩니다.");
+                if (typeof hideLoading === 'function') hideLoading();
+                const btn = document.getElementById('btn-safety-zone');
+                if(btn) btn.classList.remove('active');
+                isSafetyZoneVisible = false;
+                return;
+            }
+
+            // 필터링 실행
+            items = items.filter(item => {
+                if (!item || !item.sggCd) return false;
+                const sgg = String(item.sggCd);
+                return activePrefixes.some(prefix => sgg.startsWith(prefix));
+            });
+        }
+        // -------------------------------------
+
         
         if (items.length === 0 || items[0] == null) {
             alert("조회된 보호구역 데이터가 없습니다.");
