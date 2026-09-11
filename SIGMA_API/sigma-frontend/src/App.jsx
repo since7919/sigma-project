@@ -756,7 +756,7 @@ function App() {
             <MapPanner intersections={filteredIntersections} targetId={activeNodeId} />
             <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}" maxZoom={22} maxNativeZoom={16} />
             
-            <SafetyZoneOverlay isVisible={isSafetyZoneOn} intersections={filteredIntersections} />
+            <SafetyZoneOverlay isVisible={isSafetyZoneOn} intersections={filteredIntersections} uticOpenRegions={uticOpenRegions} activeTab={activeTab} />
             
             <IntersectionMarkers 
               intersections={filteredIntersections} 

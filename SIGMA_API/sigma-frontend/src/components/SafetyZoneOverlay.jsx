@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-export default function SafetyZoneOverlay({ isVisible, intersections }) {
+export default function SafetyZoneOverlay({ isVisible, intersections, uticOpenRegions, activeTab }) {
   const map = useMap();
   const [safetyZoneLayer, setSafetyZoneLayer] = useState(null);
   const layerRef = useRef(null);
@@ -13,8 +13,26 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
 
   // Detect which region we are looking at
   const updateRegion = () => {
-    if (!intersections || intersections.length === 0) return;
+    // 1. Sidebar tab priority
+    if (activeTab === 'tdata') {
+      if (currentRegion !== 'L01') setCurrentRegion('L01');
+      return;
+    }
+    
+    // 2. Sidebar UTIC accordion priority
+    if (uticOpenRegions && uticOpenRegions.length > 0) {
+      const preferred = uticOpenRegions[0];
+      if (currentRegion !== preferred) setCurrentRegion(preferred);
+      return;
+    }
+
+    // 3. Fallback to Map Bounds logic
     const bounds = map.getBounds();
+    if (!intersections || intersections.length === 0) {
+      if (currentRegion !== null) setCurrentRegion(null);
+      return;
+    }
+    
     let regionCount = {};
     let maxRegion = currentRegion;
     let maxCount = 0;
@@ -31,6 +49,23 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
       }
     }
     
+    if (maxCount === 0) {
+      let globalCount = {};
+      let globalMaxCount = 0;
+      let globalMaxRegion = null;
+      for (const item of intersections) {
+        const r = item.region_cd || 'L01';
+        globalCount[r] = (globalCount[r] || 0) + 1;
+        if (globalCount[r] > globalMaxCount) {
+          globalMaxCount = globalCount[r];
+          globalMaxRegion = r;
+        }
+      }
+      if (globalMaxRegion) {
+        maxRegion = globalMaxRegion;
+      }
+    }
+    
     if (maxRegion !== currentRegion) {
       setCurrentRegion(maxRegion);
     }
@@ -43,12 +78,20 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
 
   useEffect(() => {
     updateRegion();
-  }, [intersections]);
+  }, [intersections, uticOpenRegions, activeTab]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchAndDraw = async () => {
       try {
+        if (!currentRegion) {
+          if (layerRef.current) {
+            map.removeLayer(layerRef.current);
+            layerRef.current = null;
+          }
+          setSafetyZoneLayer(null);
+          return;
+        }
         const res = await axios.get(`${API_BASE}/api/safetyzone?regionCode=${currentRegion}`);
         const data = res.data;
         
@@ -77,13 +120,13 @@ export default function SafetyZoneOverlay({ isVisible, intersections }) {
         };
 
         const geoLayer = L.geoJSON(featureCollection, {
-            style: { color: '#e74c3c', weight: 2, fillColor: '#f39c12', fillOpacity: 0.2 },
+            style: { color: '#f1c40f', weight: 2, fillColor: '#f4d03f', fillOpacity: 0.3, interactive: true },
             pointToLayer: function (feature, latlng) {
               return L.circleMarker(latlng, {
                   radius: 8,
-                  color: '#e74c3c',
+                  color: '#fff',
                   weight: 2,
-                  fillColor: '#f39c12',
+                  fillColor: '#f1c40f',
                   fillOpacity: 0.8
               });
             },
