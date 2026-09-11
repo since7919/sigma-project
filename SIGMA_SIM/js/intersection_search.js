@@ -41,6 +41,27 @@ const REGION_MAP = {
     '178': '제주특별자치도'
 };
 
+
+const REGION_ORDER = [
+    'L01', // 서울
+    'L02', // 인천
+    '170', // 경기
+    '161', // 부산
+    '155', // 대구
+    '144', // 광주
+    '131', // 대전
+    '142', // 울산
+    '169', // 세종
+    '171', // 강원
+    '172', // 충북
+    '173', // 충남
+    '174', // 전북
+    '175', // 전남
+    '176', // 경북
+    '177', // 경남
+    '178'  // 제주
+];
+
 let _openAccordions = { 'L01': true };
 
 window.toggleAccordion = function(regionCode) {
@@ -115,7 +136,7 @@ function buildVirtualListData() {
     const regionCodes = [];
     
     // 강제로 모든 기본 지역 추가 (검색 중이 아닐 때만, 또는 검색어와 무관하게 표시를 원하므로)
-    Object.keys(REGION_MAP).forEach(code => {
+    REGION_ORDER.forEach(code => {
         grouped[code] = [];
         regionCodes.push(code);
     });

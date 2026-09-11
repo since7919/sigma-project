@@ -1,12 +1,13 @@
 let safetyZoneLayer = null;
 let isSafetyZoneVisible = false;
 
+let cachedSafetyItems = null;
+
 async function toggleSafetyZone() {
     isSafetyZoneVisible = !isSafetyZoneVisible;
     const btn = document.getElementById('btn-safety-zone');
     
     if (!isSafetyZoneVisible) {
-        // btn.innerHTML = '🚸 보호구역';
         btn.classList.remove('active');
         if (safetyZoneLayer && window.map) {
             window.map.removeLayer(safetyZoneLayer);
@@ -14,36 +15,36 @@ async function toggleSafetyZone() {
         return;
     }
     
-    // btn.innerHTML = '🚸 보호구역 ...';
     btn.classList.add('active');
     
-    if (!safetyZoneLayer) {
-        await fetchAndDrawSafetyZones();
-    } else {
-        if (window.map) {
-            safetyZoneLayer.addTo(window.map);
-        }
+    // 강제 리렌더링을 위해 기존 레이어 삭제
+    if (safetyZoneLayer && window.map) {
+        window.map.removeLayer(safetyZoneLayer);
     }
+    await fetchAndDrawSafetyZones();
 }
 
 async function fetchAndDrawSafetyZones() {
     if (typeof showLoading === 'function') showLoading("보호구역 데이터 로딩 중 (최적화 모드)...");
     
+    
     try {
-        const response = await fetch('/api/sim/safetyzone');
-        if (!response.ok) throw new Error("API 요청 실패: " + response.status);
-        
-        const text = await response.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            console.error("JSON 파싱 오류:", text);
-            throw new Error("API 서버에서 올바른 JSON 데이터를 반환하지 않았습니다.");
+        if (!cachedSafetyItems) {
+            const response = await fetch('/api/sim/safetyzone');
+            if (!response.ok) throw new Error("API 요청 실패: " + response.status);
+            
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("JSON 파싱 오류:", text);
+                throw new Error("API 서버에서 올바른 JSON 데이터를 반환하지 않았습니다.");
+            }
+            cachedSafetyItems = data.items || (Array.isArray(data) ? data : [data]);
         }
         
-        
-        let items = data.items || (Array.isArray(data) ? data : [data]);
+        let items = [...cachedSafetyItems];
         
         // --- 지역 아코디언 필터링 로직 추가 ---
         if (typeof _openAccordions !== 'undefined') {
