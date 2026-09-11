@@ -24,10 +24,21 @@ function toggleLeftSidebar() {
 const REGION_MAP = {
     'L01': '서울특별시',
     'L02': '인천광역시',
+    '161': '부산광역시',
     '155': '대구광역시',
     '131': '대전광역시',
     '142': '울산광역시',
-    '161': '부산광역시'
+    '144': '광주광역시',
+    '169': '세종특별자치시',
+    '170': '경기도',
+    '171': '강원특별자치도',
+    '172': '충청북도',
+    '173': '충청남도',
+    '174': '전북특별자치도',
+    '175': '전라남도',
+    '176': '경상북도',
+    '177': '경상남도',
+    '178': '제주특별자치도'
 };
 
 let _openAccordions = { 'L01': true };
@@ -96,12 +107,18 @@ function buildVirtualListData() {
         if (filtered.length === 0) hasSearchResult = false;
     }
 
-    if (filtered.length === 0) {
+    if (filtered.length === 0 && query) {
         return hasSearchResult;
     }
 
     const grouped = {};
     const regionCodes = [];
+    
+    // 강제로 모든 기본 지역 추가 (검색 중이 아닐 때만, 또는 검색어와 무관하게 표시를 원하므로)
+    Object.keys(REGION_MAP).forEach(code => {
+        grouped[code] = [];
+        regionCodes.push(code);
+    });
     
     filtered.forEach(j => {
         const rCode = getJunctionRegion(j);
@@ -111,6 +128,17 @@ function buildVirtualListData() {
         }
         grouped[rCode].push(j);
     });
+    
+    // 검색 중이고, 그룹에 아이템이 하나도 없다면 빈 그룹은 숨기기 (원래 동작 유지)
+    // 하지만 "교차로 목록이 없더라도 지역목록만 추가해"라는 요구사항을 반영하기 위해,
+    // 검색어가 없을 때는 무조건 빈 그룹도 보여준다.
+    if (query) {
+        for (let i = regionCodes.length - 1; i >= 0; i--) {
+            if (grouped[regionCodes[i]].length === 0) {
+                regionCodes.splice(i, 1);
+            }
+        }
+    }
 
     let currentTop = 0;
     
