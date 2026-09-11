@@ -6,14 +6,16 @@ async function toggleSafetyZone() {
     const btn = document.getElementById('btn-safety-zone');
     
     if (!isSafetyZoneVisible) {
-        btn.innerHTML = '🚸 보호구역';
+        // btn.innerHTML = '🚸 보호구역';
+        btn.classList.remove('active');
         if (safetyZoneLayer && window.map) {
             window.map.removeLayer(safetyZoneLayer);
         }
         return;
     }
     
-    btn.innerHTML = '🚸 보호구역 <span style="color:#10b981; font-weight:bold;">● On</span>';
+    // btn.innerHTML = '🚸 보호구역 ...';
+    btn.classList.add('active');
     
     if (!safetyZoneLayer) {
         await fetchAndDrawSafetyZones();

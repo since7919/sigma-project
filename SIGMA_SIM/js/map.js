@@ -32,18 +32,14 @@ function toggleMapTheme() {
         googleSatLayer.addTo(map);
         STATE.currentTheme = 'satellite';
         if (UI.btnMapTheme) {
-            UI.btnMapTheme.innerHTML = '🗺️ 기본지도';
-            UI.btnMapTheme.classList.add('on');
-            UI.btnMapTheme.style.borderColor = 'var(--accent)';
+            UI.btnMapTheme.classList.add('active');
         }
     } else {
         map.removeLayer(googleSatLayer);
         darkLayer.addTo(map);
         STATE.currentTheme = 'dark';
         if (UI.btnMapTheme) {
-            UI.btnMapTheme.innerHTML = '🗺️ 위성지도';
-            UI.btnMapTheme.classList.remove('on');
-            UI.btnMapTheme.style.borderColor = 'rgba(255,255,255,0.1)';
+            UI.btnMapTheme.classList.remove('active');
         }
     }
     updateGeoJsonStyle();
