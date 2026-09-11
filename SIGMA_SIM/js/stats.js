@@ -993,43 +993,37 @@ function renderAdvancedInsights(junctions) {
 
     let html = '';
 
-    // 1. 간선/교차도로 간 통행 우선권 분석 (Main vs Side Split Ratio)
-    let totalMainSplit = 0;
-    let totalCycle = 0;
-    let mainPhaseCount = 0;
+    // --- 통계 집계 변수 ---
+    const totalJunctions = junctions.length;
     
-    // 2. 이동류 및 현시 복잡도 (Movement Complexity)
-    let totalPhases = 0;
-    let maxPhases = 0;
-    let ptPhaseCount = 0; // 비보호 좌회전 적용 교차로 수
-    let hasSignalMapCount = 0;
+    // 심층 통계
+    let totalMainSplit = 0, totalCycle = 0, mainPhaseCount = 0;
+    let totalPhases = 0, maxPhases = 0, ptPhaseCount = 0, hasSignalMapCount = 0;
+    let maxPedWaitTime = 0, sumPedWaitTime = 0, pedWaitJunctionCount = 0;
+    let shortYellowCount = 0, longAllRedCount = 0;
 
-    // 3. 보행자 대기시간 및 친화도 지표
-    let maxPedWaitTime = 0;
-    let sumPedWaitTime = 0;
-    let pedWaitJunctionCount = 0;
-
-    // 4. 연동 그룹 건전성 (주기 이탈률)
-    let coordinatedCount = 0;
-    let brokenCoordinationCount = 0;
-
-    // 5. 황색/전적색 시간 이상치 (Clearance Intervals)
-    let shortYellowCount = 0; // 황색 3초 미만
-    let longAllRedCount = 0; // 전적색 3초 이상
-
-    // 데이터 집계
-    const selectedDays = Array.from(document.querySelectorAll('.stat-day-chk:checked')).map(cb => parseInt(cb.value));
-    if (selectedDays.length === 0) selectedDays.push(0);
-
-    // 연동 그룹 건전성 (선택된 일계획 기준 그룹 내 주기 비교)
-    let groupCycles = {}; // { groupId: { dayIdx: { cycle: count } } }
-    let junctionTargetCycles = {};
+    // 거시 지표
+    let coordinatedJunctions = 0;
+    let groupCounts = {}; // { groupId: count }
+    let cycleCounts = {}; // { cycle: count }
 
     junctions.forEach(j => {
-        // --- 1. 통행 우선권 (주현시 비율) ---
+        const g = parseInt(j.group);
+        if (g > 0) {
+            coordinatedJunctions++;
+            groupCounts[g] = (groupCounts[g] || 0) + 1;
+        }
+
         if (j.dayPlans && j.dayPlans[0] && j.signalMaps && j.signalMaps[0]) {
-            const dPlan = j.dayPlans[0][0]; // 기본 패턴(패턴 1) 기준
+            const dPlan = j.dayPlans[0][0];
             const sm = j.signalMaps[0];
+            
+            // 주기 집계 (거시 지표용)
+            if (dPlan.cycle > 0) {
+                cycleCounts[dPlan.cycle] = (cycleCounts[dPlan.cycle] || 0) + 1;
+            }
+
+            // 통행 우선권
             const mainMovements = sm.mainMovements || [];
             if (mainMovements.length > 0 && dPlan.cycle > 0) {
                 let mSplit = 0;
@@ -1043,17 +1037,14 @@ function renderAdvancedInsights(junctions) {
                 mainPhaseCount++;
             }
 
-            // --- 2. 현시 복잡도 및 비보호(PT) ---
+            // 현시 복잡도
             let activePhases = 0;
             let hasPT = false;
             for(let i=0; i<8; i++) {
                 if (dPlan.splitA[i] > 0) activePhases++;
                 if (dPlan.splitB[i] > 0) activePhases++;
                 
-                // 비보호 좌회전 코드 (7, 21, 23, 등... 시스템 내 코드 규칙상 20번대, 혹은 7번 등)
-                // 단순히 직진+좌회전 동시신호도 비보호가 아닐 수 있으므로 이동류 번호로 추측
-                const mA = sm.movA[i];
-                const mB = sm.movB[i];
+                const mA = sm.movA[i], mB = sm.movB[i];
                 if ([7, 8, 9, 20, 21, 22, 23].includes(mA) || [7, 8, 9, 20, 21, 22, 23].includes(mB)) {
                     hasPT = true;
                 }
@@ -1065,7 +1056,7 @@ function renderAdvancedInsights(junctions) {
             }
             if (hasPT) ptPhaseCount++;
 
-            // --- 3. 보행자 대기시간 ---
+            // 보행자 대기시간
             let maxPedTime = 0;
             for(let i=0; i<8; i++) {
                 if (sm.pedMovA && sm.pedMovA[i] > 0) maxPedTime = Math.max(maxPedTime, dPlan.splitA[i]);
@@ -1078,7 +1069,7 @@ function renderAdvancedInsights(junctions) {
                 pedWaitJunctionCount++;
             }
 
-            // --- 5. 안전/소거 시간 이상치 ---
+            // 소거 시간 이상치
             for(let i=0; i<8; i++) {
                 if (dPlan.splitA[i] > 0) {
                     if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) shortYellowCount++;
@@ -1090,50 +1081,32 @@ function renderAdvancedInsights(junctions) {
                 }
             }
         }
-
-        // --- 4. 연동 그룹 건전성 ---
-        const g = parseInt(j.group);
-        if (g > 0) {
-            if (!groupCycles[g]) groupCycles[g] = {};
-            selectedDays.forEach(dIdx => {
-                if (!groupCycles[g][dIdx]) groupCycles[g][dIdx] = {};
-                // 첫번째 타임슬롯 기준
-                if (j.schedules && j.schedules[dIdx] && j.schedules[dIdx][0] && j.schedules[dIdx][0].h !== -1) {
-                    const c = j.schedules[dIdx][0].cycle;
-                    if (c > 0) {
-                        groupCycles[g][dIdx][c] = (groupCycles[g][dIdx][c] || 0) + 1;
-                        if (!junctionTargetCycles[j.id]) junctionTargetCycles[j.id] = {};
-                        junctionTargetCycles[j.id][dIdx] = c;
-                    }
-                }
-            });
-        }
     });
 
-    // 그룹 내 이탈률 계산
-    junctions.forEach(j => {
-        const g = parseInt(j.group);
-        if (g > 0 && junctionTargetCycles[j.id]) {
-            selectedDays.forEach(dIdx => {
-                const myC = junctionTargetCycles[j.id][dIdx];
-                if (myC && groupCycles[g] && groupCycles[g][dIdx]) {
-                    coordinatedCount++;
-                    const counts = groupCycles[g][dIdx];
-                    const majorCycle = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
-                    if (String(myC) !== String(majorCycle)) {
-                        brokenCoordinationCount++;
-                    }
-                }
-            });
+    // --- 거시 지표 계산 ---
+    const coordRate = totalJunctions > 0 ? ((coordinatedJunctions / totalJunctions) * 100).toFixed(1) : 0;
+    const groupIds = Object.keys(groupCounts);
+    const numGroups = groupIds.length;
+    const avgGroupScale = numGroups > 0 ? (coordinatedJunctions / numGroups).toFixed(1) : 0;
+
+    let baseCycle = 0, baseCycleCount = 0;
+    Object.entries(cycleCounts).forEach(([c, cnt]) => {
+        if (cnt > baseCycleCount) {
+            baseCycle = c;
+            baseCycleCount = cnt;
         }
     });
+    const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
 
-    // 지표 생성
+    const sortedGroups = Object.values(groupCounts).sort((a,b) => b - a);
+    const top5Sum = sortedGroups.slice(0, 5).reduce((a,b) => a+b, 0);
+    const top5Rate = totalJunctions > 0 ? ((top5Sum / totalJunctions) * 100).toFixed(1) : 0;
+
+    // --- 심층 지표 계산 ---
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
     const avgPhases = (hasSignalMapCount > 0) ? (totalPhases / hasSignalMapCount).toFixed(1) : 0;
     const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
     const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
-    const brokenRatio = (coordinatedCount > 0) ? ((brokenCoordinationCount / coordinatedCount) * 100).toFixed(1) : 0;
     
     // 컴포넌트 생성 유틸
     const InsightBox = (title, mainVal, subText, desc, icon, color) => `
@@ -1150,40 +1123,39 @@ function renderAdvancedInsights(junctions) {
         </div>
     `;
 
-    html += InsightBox(
-        "주간선 vs 부간선 스플릿 비율",
-        `${mainRatio}%`, "주현시 녹색시간 비율",
-        "비율이 높을수록 간선도로 통과 위주의 '주간선 축'이며, 50%에 가까울수록 교차도로 교통량 간섭이 심한 '혼잡 교차로'입니다.",
-        "🛣️", "#1abc9c"
-    );
+    // 거시 지표 헤더
+    html += `<div style="grid-column: 1 / -1; margin-top: 5px; margin-bottom: -5px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #3498db; font-size: 13px; font-weight: 700;">🌐 도시 거시 지표 (Metropolis Macro Index)</span>
+    </div>`;
 
-    html += InsightBox(
-        "현시 복잡도 및 비보호(PT)",
-        `${avgPhases}현시`, `(최대 ${maxPhases}현시 / 비보호 ${ptRatio}% 적용)`,
-        "운영 현시가 많을수록 대기시간이 길어집니다. 비보호 좌회전 적용률을 통해 효율성 제고 운영 기조를 엿볼 수 있습니다.",
-        "🔄", "#3498db"
-    );
+    html += InsightBox("전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, 
+        "전체 중 고립되지 않고 연동 그룹에 속한 비율. 수치가 높을수록 도시 전체가 고도로 동기화되어 소통을 극대화합니다.", "🌐", "#3498db");
+    
+    html += InsightBox("평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, 
+        "1개 연동 그룹당 묶여있는 교차로 수. 클수록 '거대 간선도로' 위주이며, 작을수록 블록이 잘게 쪼개진 구도심을 뜻합니다.", "📏", "#9b59b6");
+    
+    html += InsightBox("도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, 
+        "가장 많이 사용되는 최빈값 주기. 막대한 교통량을 한 번에 처리하기 위한 거시적 통행 스케일을 보여줍니다.", "⏱️", "#e67e22");
 
-    html += InsightBox(
-        "보행자 최대 대기시간 (체감)",
-        `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
-        "(주기 - 보행녹색시간) 산출값입니다. 값이 클수록 차량 소통 중심, 작을수록 보행자 친화적 운영을 의미합니다.",
-        "🚶", "#f1c40f"
-    );
+    html += InsightBox("상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, 
+        "상위 5개 거대 간선축이 전체 네트워크에서 차지하는 비중으로, 중앙집중화된 도로망 통제력을 시사합니다.", "🎯", "#e74c3c");
 
-    html += InsightBox(
-        "연동 그룹 주기 이탈률",
-        `${brokenRatio}%`, `(연동 파괴 ${brokenCoordinationCount}건)`,
-        "연동 그룹 내에서 주기가 이탈된 교차로 비율입니다. 이 비율이 높은 그룹은 연동 재설계가 시급한 구간입니다.",
-        "🔗", "#e74c3c"
-    );
+    // 심층 지표 헤더
+    html += `<div style="grid-column: 1 / -1; margin-top: 15px; margin-bottom: -5px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">🚥 신호운영 미시 통계 (Micro Operation Insights)</span>
+    </div>`;
 
-    html += InsightBox(
-        "소거 시간(황색/전적색) 이상치",
-        `${shortYellowCount + longAllRedCount}건`, `(황색 부족 ${shortYellowCount}건, 전적색 과다 ${longAllRedCount}건)`,
-        "비정상적으로 긴 전적색 시간은 교차로 면적이 매우 넓은 험지임을, 짧은 황색 시간은 사고 위험 지점임을 시사합니다.",
-        "⚠️", "#e67e22"
-    );
+    html += InsightBox("주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율",
+        "비율이 높을수록 통과 위주의 '주간선'이며, 50%에 가까울수록 측면 간섭이 심한 '혼잡 교차로'입니다.", "🛣️", "#1abc9c");
+
+    html += InsightBox("현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`,
+        "운영 현시가 많을수록 대기시간이 길어집니다. 비보호 좌회전 적용률을 통해 효율화 기조를 엿볼 수 있습니다.", "🔄", "#34495e");
+
+    html += InsightBox("보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
+        "(주기 - 보행녹색시간). 값이 클수록 차량 통행 중심, 작을수록 보행자 친화적 운영을 의미합니다.", "🚶", "#f1c40f");
+
+    html += InsightBox("소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(황색부족 ${shortYellowCount}, 전적색과다 ${longAllRedCount})`,
+        "긴 전적색은 교차로가 넓은 험지임을, 짧은 황색은 통과 사고 위험이 높은 지점임을 데이터로 유추합니다.", "⚠️", "#95a5a6");
 
     container.innerHTML = html;
 }
