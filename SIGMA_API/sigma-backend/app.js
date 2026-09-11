@@ -195,6 +195,7 @@ async function syncUticIntersections(regionCode) {
 }
 
 // 1-0. 보호구역 데이터 로드 (Supabase 페이징 우회)
+const safetyZoneCache = {};
 app.get('/api/safetyzone', async (req, res) => {
   try {
     const { regionCode } = req.query;
