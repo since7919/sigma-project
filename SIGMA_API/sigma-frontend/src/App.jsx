@@ -85,7 +85,23 @@ function App() {
   const [detailIntersection, setDetailIntersection] = useState(null); // 상세보기(모달) 타겟
   const [dualSelection, setDualSelection] = useState([]); // 듀얼 모니터링 타겟
   const [activeNodeId, setActiveNodeId] = useState(null); // 트리뷰 및 지도 포커스 타겟
-  const [activeTab, setActiveTab] = useState(null); // null(모두 숨김) | 'tdata' | 'utic'
+    const [activeTab, setActiveTab] = useState(null); // null(모두 접힘) | 'tdata' | 'utic'
+  const [safetyZoneSummary, setSafetyZoneSummary] = useState({});
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/safetyzone/summary`);
+        if (res.data.success) {
+          setSafetyZoneSummary(res.data.data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch safety zone summary:', e);
+      }
+    };
+    fetchSummary();
+  }, []);
+
   const [uticOpenRegions, setUticOpenRegions] = useState({}); // 현재 열려있는 UTIC 지역 목록
   const [seoulActiveIds, setSeoulActiveIds] = useState([]); // 서울 활성 ID 목록
   const [uticUpdateTick, setUticUpdateTick] = useState(0); // UTIC 수신 리렌더 트리거
