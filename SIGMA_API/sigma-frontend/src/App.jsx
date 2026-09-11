@@ -535,7 +535,7 @@ function App() {
           <h1 onClick={() => window.location.href = window.location.pathname} style={{ cursor: 'pointer', margin: 0 }}>🚦 SIGMA API</h1>
         </header>
         {/* 트리뷰 컴포넌트 연결 */}
-        <SidebarAccordion 
+        <SidebarAccordion safetyZoneSummary={safetyZoneSummary} 
           intersections={filteredIntersections} 
           onNodeClick={handleNodeClick} 
           activeNodeId={activeNodeId} 

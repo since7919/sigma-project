@@ -14,7 +14,7 @@ const REGION_MAP = {
   'L30': '대전시', 'L31': '광주광역시', 'L37': '포항시'
 };
 
-export default function SidebarAccordion({ rtiIntersections, setRtiIntersections, intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive, mainPhases }) {
+export default function SidebarAccordion({ safetyZoneSummary, rtiIntersections, setRtiIntersections, intersections, onNodeClick, activeNodeId, onRefresh, uticUpdateTick, activeTab, setActiveTab, seoulActiveIds, activeMapSignalIds, onMapSignalToggle, uticOpenRegions, setUticOpenRegions, filterSeoulActive, setFilterSeoulActive, mainPhases }) {
   const [localSearchKeyword, setLocalSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
 
@@ -228,6 +228,9 @@ export default function SidebarAccordion({ rtiIntersections, setRtiIntersections
                   <div className="acc-sub-header" onClick={() => toggleRegion(region)}>
                     <span className="acc-icon">{uticOpenRegions[region] ? '▼' : '▶'}</span>
                     {region} <span className="acc-count">({list.length})</span>
+                    {safetyZoneSummary && safetyZoneSummary[region.substring(0,3)] && (
+                      <span title="어린이 보호구역 데이터 보유 지역" style={{ marginLeft: '6px', fontSize: '13px' }}>🟡</span>
+                    )}
                   </div>
                   {uticOpenRegions[region] && (
                     <div className="acc-sub-body">
