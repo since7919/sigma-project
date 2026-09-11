@@ -624,7 +624,7 @@ function renderSummaryTable() {
                                 const v = p.splitA[k] || 0;
                                 const vCls = v === 0 ? 'val-zero' : '';
                                 const cStyle = isMatchA ? 'color:#cbd5e1;' : 'color:#ff4444 !important;';
-                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`;
+                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="A" data-index="${i}" data-col="${k}">`;
                             }).join('') }
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">
@@ -633,7 +633,7 @@ function renderSummaryTable() {
                                 const v = p.splitB[k] || 0;
                                 const vCls = v === 0 ? 'val-zero' : '';
                                 const cStyle = isMatchB ? 'color:#cbd5e1;' : 'color:#ff4444 !important;';
-                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:2px 0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`;
+                                return `<input type="text" class="sigma-input ${vCls}" style="width:20px; text-align:center; background:transparent; border:none; font-weight:500; font-family:inherit; font-size:11.5px; padding:0; ${cStyle}" value="${v}" data-type="split-cell" data-ring="B" data-index="${i}" data-col="${k}">`;
                             }).join('') }
                         </div>`
                 }
@@ -663,7 +663,7 @@ function renderSummaryTable() {
         rows.forEach(r => {
             html += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.03); ${r.style}">`;
             r.cells.forEach(c => {
-                html += `<td style="padding: 2px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
+                html += `<td style="padding: 0 2px; ${c.style || ''}" ${c.attr ? Object.entries(c.attr).map(([k,v])=>`${k}="${v}"`).join(' ') : ''}>${c.content}</td>`;
             });
             html += `</tr>`;
         });

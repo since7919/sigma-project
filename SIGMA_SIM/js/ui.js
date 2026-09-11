@@ -109,7 +109,18 @@ function openTab(evt, tabName) {
 
     if (tabName === 'tab-home') { if (typeof renderHomeDashboard === 'function') renderHomeDashboard(); }
     if (tabName === 'tab-stats') renderStats();
-    if (tabName === 'tab-group') { loadGroupInfo(); }
+    if (tabName === 'tab-group') { 
+        if (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+            const jGroup = parseInt(STATE.junctions[STATE.activeJid].group);
+            if (!isNaN(jGroup)) {
+                loadGroupInfo(true, jGroup);
+            } else {
+                loadGroupInfo();
+            }
+        } else {
+            loadGroupInfo(); 
+        }
+    }
     if (tabName === 'tab-sigmap') {
         if (typeof renderSignalMapTab === 'function') renderSignalMapTab();
     }
