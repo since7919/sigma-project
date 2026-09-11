@@ -365,6 +365,9 @@ function renderStats() {
 
     if (document.getElementById('stat-total-groups')) 
         document.getElementById('stat-total-groups').innerText = totalGroups.toLocaleString();
+    
+    // [신규] 심층 통계 렌더링 호출
+    renderAdvancedInsights(junctions);
     if (document.getElementById('stat-avg-complexity')) 
         document.getElementById('stat-avg-complexity').innerText = avgComplexity;
     if (document.getElementById('stat-civil-count')) 
@@ -975,3 +978,212 @@ function generateSingleJunctionStatsCSV(jid) {
 window.generateStatsCSV = generateStatsCSV;
 window.generateSingleJunctionStatsCSV = generateSingleJunctionStatsCSV;
 window.processStatsCSV = _loadStatsCsv; // 통합 DB 로더 연동용 노출
+
+
+/* ══════════════════════════════════════════
+ *  심층 통계 및 인사이트 (Advanced Insights)
+ * ══════════════════════════════════════════ */
+function renderAdvancedInsights(junctions) {
+    const container = document.getElementById('stat-advanced-insights');
+    if (!container) return;
+    if (!junctions || junctions.length === 0) {
+        container.innerHTML = '<div class="text-dim text-center p-20" style="grid-column: 1 / -1;">데이터가 없습니다.</div>';
+        return;
+    }
+
+    let html = '';
+
+    // 1. 간선/교차도로 간 통행 우선권 분석 (Main vs Side Split Ratio)
+    let totalMainSplit = 0;
+    let totalCycle = 0;
+    let mainPhaseCount = 0;
+    
+    // 2. 이동류 및 현시 복잡도 (Movement Complexity)
+    let totalPhases = 0;
+    let maxPhases = 0;
+    let ptPhaseCount = 0; // 비보호 좌회전 적용 교차로 수
+    let hasSignalMapCount = 0;
+
+    // 3. 보행자 대기시간 및 친화도 지표
+    let maxPedWaitTime = 0;
+    let sumPedWaitTime = 0;
+    let pedWaitJunctionCount = 0;
+
+    // 4. 연동 그룹 건전성 (주기 이탈률)
+    let coordinatedCount = 0;
+    let brokenCoordinationCount = 0;
+
+    // 5. 황색/전적색 시간 이상치 (Clearance Intervals)
+    let shortYellowCount = 0; // 황색 3초 미만
+    let longAllRedCount = 0; // 전적색 3초 이상
+
+    // 데이터 집계
+    const selectedDays = Array.from(document.querySelectorAll('.stat-day-chk:checked')).map(cb => parseInt(cb.value));
+    if (selectedDays.length === 0) selectedDays.push(0);
+
+    // 연동 그룹 건전성 (선택된 일계획 기준 그룹 내 주기 비교)
+    let groupCycles = {}; // { groupId: { dayIdx: { cycle: count } } }
+    let junctionTargetCycles = {};
+
+    junctions.forEach(j => {
+        // --- 1. 통행 우선권 (주현시 비율) ---
+        if (j.dayPlans && j.dayPlans[0] && j.signalMaps && j.signalMaps[0]) {
+            const dPlan = j.dayPlans[0][0]; // 기본 패턴(패턴 1) 기준
+            const sm = j.signalMaps[0];
+            const mainMovements = sm.mainMovements || [];
+            if (mainMovements.length > 0 && dPlan.cycle > 0) {
+                let mSplit = 0;
+                mainMovements.forEach(m => {
+                    const isA = m < 8;
+                    const ringIndex = isA ? m : m - 8;
+                    mSplit += isA ? (dPlan.splitA[ringIndex] || 0) : (dPlan.splitB[ringIndex] || 0);
+                });
+                totalMainSplit += mSplit;
+                totalCycle += dPlan.cycle;
+                mainPhaseCount++;
+            }
+
+            // --- 2. 현시 복잡도 및 비보호(PT) ---
+            let activePhases = 0;
+            let hasPT = false;
+            for(let i=0; i<8; i++) {
+                if (dPlan.splitA[i] > 0) activePhases++;
+                if (dPlan.splitB[i] > 0) activePhases++;
+                
+                // 비보호 좌회전 코드 (7, 21, 23, 등... 시스템 내 코드 규칙상 20번대, 혹은 7번 등)
+                // 단순히 직진+좌회전 동시신호도 비보호가 아닐 수 있으므로 이동류 번호로 추측
+                const mA = sm.movA[i];
+                const mB = sm.movB[i];
+                if ([7, 8, 9, 20, 21, 22, 23].includes(mA) || [7, 8, 9, 20, 21, 22, 23].includes(mB)) {
+                    hasPT = true;
+                }
+            }
+            if (activePhases > 0) {
+                hasSignalMapCount++;
+                totalPhases += activePhases;
+                if (activePhases > maxPhases) maxPhases = activePhases;
+            }
+            if (hasPT) ptPhaseCount++;
+
+            // --- 3. 보행자 대기시간 ---
+            let maxPedTime = 0;
+            for(let i=0; i<8; i++) {
+                if (sm.pedMovA && sm.pedMovA[i] > 0) maxPedTime = Math.max(maxPedTime, dPlan.splitA[i]);
+                if (sm.pedMovB && sm.pedMovB[i] > 0) maxPedTime = Math.max(maxPedTime, dPlan.splitB[i]);
+            }
+            if (maxPedTime > 0 && dPlan.cycle > 0) {
+                const waitTime = dPlan.cycle - maxPedTime;
+                sumPedWaitTime += waitTime;
+                maxPedWaitTime = Math.max(maxPedWaitTime, waitTime);
+                pedWaitJunctionCount++;
+            }
+
+            // --- 5. 안전/소거 시간 이상치 ---
+            for(let i=0; i<8; i++) {
+                if (dPlan.splitA[i] > 0) {
+                    if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) shortYellowCount++;
+                    if (sm.allredA && sm.allredA[i] > 0 && sm.allredA[i] >= 3) longAllRedCount++;
+                }
+                if (dPlan.splitB[i] > 0) {
+                    if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) shortYellowCount++;
+                    if (sm.allredB && sm.allredB[i] > 0 && sm.allredB[i] >= 3) longAllRedCount++;
+                }
+            }
+        }
+
+        // --- 4. 연동 그룹 건전성 ---
+        const g = parseInt(j.group);
+        if (g > 0) {
+            if (!groupCycles[g]) groupCycles[g] = {};
+            selectedDays.forEach(dIdx => {
+                if (!groupCycles[g][dIdx]) groupCycles[g][dIdx] = {};
+                // 첫번째 타임슬롯 기준
+                if (j.schedules && j.schedules[dIdx] && j.schedules[dIdx][0] && j.schedules[dIdx][0].h !== -1) {
+                    const c = j.schedules[dIdx][0].cycle;
+                    if (c > 0) {
+                        groupCycles[g][dIdx][c] = (groupCycles[g][dIdx][c] || 0) + 1;
+                        if (!junctionTargetCycles[j.id]) junctionTargetCycles[j.id] = {};
+                        junctionTargetCycles[j.id][dIdx] = c;
+                    }
+                }
+            });
+        }
+    });
+
+    // 그룹 내 이탈률 계산
+    junctions.forEach(j => {
+        const g = parseInt(j.group);
+        if (g > 0 && junctionTargetCycles[j.id]) {
+            selectedDays.forEach(dIdx => {
+                const myC = junctionTargetCycles[j.id][dIdx];
+                if (myC && groupCycles[g] && groupCycles[g][dIdx]) {
+                    coordinatedCount++;
+                    const counts = groupCycles[g][dIdx];
+                    const majorCycle = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+                    if (String(myC) !== String(majorCycle)) {
+                        brokenCoordinationCount++;
+                    }
+                }
+            });
+        }
+    });
+
+    // 지표 생성
+    const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
+    const avgPhases = (hasSignalMapCount > 0) ? (totalPhases / hasSignalMapCount).toFixed(1) : 0;
+    const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
+    const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
+    const brokenRatio = (coordinatedCount > 0) ? ((brokenCoordinationCount / coordinatedCount) * 100).toFixed(1) : 0;
+    
+    // 컴포넌트 생성 유틸
+    const InsightBox = (title, mainVal, subText, desc, icon, color) => `
+        <div class="sigma-panel" style="padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px;">
+            <div class="flex-row gap-10 align-center mb-8">
+                <span style="font-size: 20px;">${icon}</span>
+                <span class="fs-12 fw-800 text-white">${title}</span>
+            </div>
+            <div class="flex-row gap-8 align-end mb-8">
+                <span class="fw-900" style="font-size: 24px; color: ${color}; line-height: 1;">${mainVal}</span>
+                <span class="fs-11 text-dim" style="line-height: 1.4;">${subText}</span>
+            </div>
+            <div class="fs-11" style="color: #999; line-height: 1.4;">${desc}</div>
+        </div>
+    `;
+
+    html += InsightBox(
+        "주간선 vs 부간선 스플릿 비율",
+        `${mainRatio}%`, "주현시 녹색시간 비율",
+        "비율이 높을수록 간선도로 통과 위주의 '주간선 축'이며, 50%에 가까울수록 교차도로 교통량 간섭이 심한 '혼잡 교차로'입니다.",
+        "🛣️", "#1abc9c"
+    );
+
+    html += InsightBox(
+        "현시 복잡도 및 비보호(PT)",
+        `${avgPhases}현시`, `(최대 ${maxPhases}현시 / 비보호 ${ptRatio}% 적용)`,
+        "운영 현시가 많을수록 대기시간이 길어집니다. 비보호 좌회전 적용률을 통해 효율성 제고 운영 기조를 엿볼 수 있습니다.",
+        "🔄", "#3498db"
+    );
+
+    html += InsightBox(
+        "보행자 최대 대기시간 (체감)",
+        `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
+        "(주기 - 보행녹색시간) 산출값입니다. 값이 클수록 차량 소통 중심, 작을수록 보행자 친화적 운영을 의미합니다.",
+        "🚶", "#f1c40f"
+    );
+
+    html += InsightBox(
+        "연동 그룹 주기 이탈률",
+        `${brokenRatio}%`, `(연동 파괴 ${brokenCoordinationCount}건)`,
+        "연동 그룹 내에서 주기가 이탈된 교차로 비율입니다. 이 비율이 높은 그룹은 연동 재설계가 시급한 구간입니다.",
+        "🔗", "#e74c3c"
+    );
+
+    html += InsightBox(
+        "소거 시간(황색/전적색) 이상치",
+        `${shortYellowCount + longAllRedCount}건`, `(황색 부족 ${shortYellowCount}건, 전적색 과다 ${longAllRedCount}건)`,
+        "비정상적으로 긴 전적색 시간은 교차로 면적이 매우 넓은 험지임을, 짧은 황색 시간은 사고 위험 지점임을 시사합니다.",
+        "⚠️", "#e67e22"
+    );
+
+    container.innerHTML = html;
+}
