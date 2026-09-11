@@ -195,9 +195,9 @@ async function syncUticIntersections(regionCode) {
 }
 
 
-let safetyZoneSummaryCache = { data: null, timestamp: 0 };
+let safetyZoneSummaryCache = { data: null, timestamp: 0, version: 2 };
 app.get('/api/safetyzone/summary', async (req, res) => {
-  if (safetyZoneSummaryCache.data && Date.now() - safetyZoneSummaryCache.timestamp < 3600000) {
+  if (safetyZoneSummaryCache.data && safetyZoneSummaryCache.version === 2 && Date.now() - safetyZoneSummaryCache.timestamp < 3600000) {
     return res.json({ success: true, data: safetyZoneSummaryCache.data });
   }
 
@@ -212,7 +212,7 @@ app.get('/api/safetyzone/summary', async (req, res) => {
   const result = {};
   try {
     const promises = Object.entries(SGG_MAP).map(async ([regionCode, prefix]) => {
-      const { data, error } = await supabase.from('safety_zones').select('id').like('sggcd', prefix + '%').limit(1);
+      const { data, error } = await supabase.from('safety_zones').select('ptznmngno').like('sggcd', prefix + '%').limit(1);
       if (!error && data && data.length > 0) {
         result[regionCode] = true;
       } else {
