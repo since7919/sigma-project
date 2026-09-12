@@ -163,6 +163,12 @@ class InteractivePhaseDiagram {
             </g>
             `;
         }
+        if (!filter || filter === 'SCRAMBLE') {
+            html += `
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NESW" data-mov="PED-NESW" d="M 80,20 L 20,80" />
+            `;
+        }
         return html;
     }
 
@@ -208,6 +214,12 @@ class InteractivePhaseDiagram {
             
             <text class="ipd-text-label" data-mov="NWL" x="20" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">15</text>
             <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
+            `;
+        }
+        if (!filter || filter === 'SCRAMBLE') {
+            html += `
+            <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">D1</text>
+            <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">D2</text>
             `;
         }
         
@@ -340,9 +352,11 @@ class InteractivePhaseDiagram {
                     비보호 좌회전은 점선으로 표시되며, <b>하늘색 숫자</b>는 각 이동류 고유 번호입니다.
                 </div>
                 
-                <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
-                    <button class="phase-action-btn phase-btn-cyan" id="ipd-tab-normal" style="min-width: 150px; font-weight:bold;">기본 방향 (N-S, E-W)</button>
-                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-diag" style="min-width: 150px; font-weight:bold;">대각선 방향 (NE-SW, NW-SE)</button>
+                <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                    <button class="phase-action-btn phase-btn-cyan" id="ipd-tab-normal" style="min-width: 130px; font-weight:bold;">기본 방향</button>
+                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-diag" style="min-width: 130px; font-weight:bold;">대각선 방향</button>
+                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-scramble" style="min-width: 130px; font-weight:bold;">대각선 횡단보도</button>
+                    <button class="phase-action-btn phase-btn-purple" id="ipd-btn-scramble-all" style="min-width: 130px; font-weight:bold;">대각선 모두 선택</button>
                 </div>
                 
                 <div id="ipd-content-normal" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
@@ -389,6 +403,17 @@ class InteractivePhaseDiagram {
                     </div>
                 </div>
 
+                
+                <div id="ipd-content-scramble" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                    <!-- 대각선 횡단보도 (SCRAMBLE) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">대각선 횡단보도 (Scramble)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getPedSVGPaths('modal', 'SCRAMBLE')}
+                            ${this.getLabelSVGPaths('modal', 'SCRAMBLE')}
+                        </svg>
+                    </div>
+                </div>
                 <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:8px;">
                     <button onclick="document.getElementById('ipd-modal').style.display='none'" class="phase-action-btn phase-btn-gray">취소</button>
                     <button id="ipd-modal-clear" class="phase-action-btn phase-btn-red">초기화</button>
@@ -451,8 +476,58 @@ class InteractivePhaseDiagram {
             tabDiag.addEventListener('click', () => {
                 document.getElementById('ipd-content-normal').style.display = 'none';
                 document.getElementById('ipd-content-diag').style.display = 'flex';
+                document.getElementById('ipd-content-scramble').style.display = 'none';
                 tabDiag.classList.replace('phase-btn-gray', 'phase-btn-cyan');
                 tabNormal.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+                if(document.getElementById('ipd-tab-scramble')) document.getElementById('ipd-tab-scramble').classList.replace('phase-btn-cyan', 'phase-btn-gray');
+            });
+        }
+        
+        const tabScramble = document.getElementById('ipd-tab-scramble');
+        if(tabScramble) {
+            tabScramble.addEventListener('click', () => {
+                document.getElementById('ipd-content-normal').style.display = 'none';
+                document.getElementById('ipd-content-diag').style.display = 'none';
+                document.getElementById('ipd-content-scramble').style.display = 'flex';
+                tabScramble.classList.replace('phase-btn-gray', 'phase-btn-cyan');
+                if(tabNormal) tabNormal.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+                if(tabDiag) tabDiag.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+            });
+        }
+        
+        // Add listener to Normal tab to clear scramble
+        if(tabNormal) {
+            const origNormal = tabNormal.onclick;
+            tabNormal.addEventListener('click', () => {
+                document.getElementById('ipd-content-scramble').style.display = 'none';
+                if(tabScramble) tabScramble.classList.replace('phase-btn-cyan', 'phase-btn-gray');
+            });
+        }
+
+        const btnScrambleAll = document.getElementById('ipd-btn-scramble-all');
+        if(btnScrambleAll) {
+            btnScrambleAll.addEventListener('click', () => {
+                const modalContainer = document.getElementById('ipd-modal');
+                const pedNWSE = modalContainer.querySelector('[data-mov="PED-NWSE"]');
+                const pedNESW = modalContainer.querySelector('[data-mov="PED-NESW"]');
+                
+                // If both are active, deselect both. Otherwise, select both.
+                const bothActive = (pedNWSE && pedNWSE.classList.contains('ipd-active')) && 
+                                   (pedNESW && pedNESW.classList.contains('ipd-active'));
+                                   
+                if (bothActive) {
+                    if (pedNWSE) pedNWSE.classList.remove('ipd-active');
+                    if (pedNESW) pedNESW.classList.remove('ipd-active');
+                } else {
+                    if (pedNWSE) pedNWSE.classList.add('ipd-active');
+                    if (pedNESW) pedNESW.classList.add('ipd-active');
+                }
+                
+                if (pedNWSE) this.updateArrowMarker(pedNWSE);
+                if (pedNESW) this.updateArrowMarker(pedNESW);
+                
+                // Open the scramble tab to show the result
+                if(tabScramble) tabScramble.click();
             });
         }
 
