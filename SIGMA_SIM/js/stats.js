@@ -984,7 +984,7 @@ window.processStatsCSV = _loadStatsCsv; // 통합 DB 로더 연동용 노출
  *  심층 통계 및 인사이트 (Advanced Insights)
  * ══════════════════════════════════════════ */
 function renderAdvancedInsights(junctions) {
-    const container = document.getElementById('stat-advanced-insights');
+    const container = document.getElementById('stat-unified-dashboard');
     if (!container) return;
     if (!junctions || junctions.length === 0) {
         container.innerHTML = '<div class="text-dim text-center p-20" style="grid-column: 1 / -1;">데이터가 없습니다.</div>';
@@ -1004,35 +1004,61 @@ function renderAdvancedInsights(junctions) {
 
     // 거시 지표
     let coordinatedJunctions = 0;
-    let groupCounts = {}; // { groupId: count }
-    let cycleCounts = {}; // { cycle: count }
+    const groupCounts = {};
+    const cycleCounts = {};
+
+    // 기본 지표 (이전의 stat-summary-grid 대체용)
+    let activePlansCount = 0;
+    let specialZoneCount = 0;
+    let totalComplexity = 0;
+    let complexCount = 0;
 
     junctions.forEach(j => {
-        const g = parseInt(j.group);
-        if (g > 0) {
-            coordinatedJunctions++;
-            groupCounts[g] = (groupCounts[g] || 0) + 1;
+        // 기본 지표: 활성 일계획
+        if (j.schedules) {
+            j.schedules.forEach(sched => {
+                if (sched && sched[0] && sched[0].h >= 0) activePlansCount++;
+            });
+        }
+        
+        // 기본 지표: 특수 보호구역
+        if (j.optimizerState && j.optimizerState.summary) {
+            const s = j.optimizerState.summary;
+            if (s['zone-child'] || s['zone-old'] || s['zone-disabled']) {
+                specialZoneCount++;
+            }
+        }
+        
+        // 기본 지표: 교차로 복잡도
+        if (j.signalMaps && j.signalMaps[0]) {
+            const m = j.signalMaps[0];
+            const movements = (m.movA ? m.movA.filter(v => v > 0).length : 0) + 
+                            (m.movB ? m.movB.filter(v => v > 0).length : 0);
+            totalComplexity += (movements / 4);
+            complexCount++;
         }
 
-        if (j.dayPlans && j.dayPlans[0] && j.signalMaps && j.signalMaps[0]) {
-            const dPlan = j.dayPlans[0][0];
-            const sm = j.signalMaps[0];
-            
-            // 주기 집계 (거시 지표용)
+        // 거시 지표: 연동 그룹 및 연동화율
+        if (j.group && j.group !== 0) {
+            coordinatedJunctions++;
+            groupCounts[j.group] = (groupCounts[j.group] || 0) + 1;
+        }
+
+        // 심층 지표: 1일계획(기본) 기준 분석
+        const dPlan = j.schedules && j.schedules[0] ? j.schedules[0][0] : null;
+        const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
+
+        if (dPlan && sm) {
+            // 주기 분포
             if (dPlan.cycle > 0) {
                 cycleCounts[dPlan.cycle] = (cycleCounts[dPlan.cycle] || 0) + 1;
             }
 
-            // 통행 우선권
-            const mainMovements = sm.mainMovements || [];
-            if (mainMovements.length > 0 && dPlan.cycle > 0) {
-                let mSplit = 0;
-                mainMovements.forEach(m => {
-                    const isA = m < 8;
-                    const ringIndex = isA ? m : m - 8;
-                    mSplit += isA ? (dPlan.splitA[ringIndex] || 0) : (dPlan.splitB[ringIndex] || 0);
-                });
-                totalMainSplit += mSplit;
+            // 주간선 비율 (현시 1번, 2번 기준)
+            const mainA = dPlan.splitA[0] || 0;
+            const mainB = dPlan.splitA[1] || 0; 
+            if (mainA > 0 || mainB > 0) {
+                totalMainSplit += (mainA + mainB);
                 totalCycle += dPlan.cycle;
                 mainPhaseCount++;
             }
@@ -1108,9 +1134,13 @@ function renderAdvancedInsights(junctions) {
     const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
     const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
     
+    // --- 기본 지표 계산 ---
+    const totalPlans = totalJunctions * 10;
+    const avgComplexityFinal = complexCount > 0 ? (totalComplexity / complexCount).toFixed(1) : "0.0";
+
     // 컴포넌트 생성 유틸
     const InsightBox = (id, title, mainVal, subText, desc, icon, color) => `
-        <div class="sigma-panel insight-box" onclick="showInsightDetail('${id}')" style="cursor: pointer; padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px; transition: background 0.2s;">
+        <div class="sigma-panel insight-box" ${id ? `onclick="showInsightDetail('${id}')" style="cursor: pointer;"` : 'style="cursor: default;"'} style="padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px; transition: background 0.2s;">
             <div class="flex-row gap-10 align-center mb-8">
                 <span style="font-size: 20px;">${icon}</span>
                 <span class="fs-12 fw-800 text-white">${title}</span>
@@ -1125,44 +1155,60 @@ function renderAdvancedInsights(junctions) {
         </div>
     `;
 
-    // 거시 지표 헤더
-    html += `<div style="grid-column: 1 / -1; margin-top: 5px; margin-bottom: -5px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <span style="color: #3498db; font-size: 13px; font-weight: 700;">🌐 도시 거시 지표 (Metropolis Macro Index)</span>
-    </div>`;
-
-    html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, 
-        "전체 중 고립되지 않고 연동 그룹에 속한 비율. 수치가 높을수록 도시 전체가 고도로 동기화되어 소통을 극대화합니다.", "🌐", "#3498db");
+    // 1. 헤더 (현황 조회 스케일)
+    const officeFilter = document.getElementById('stat-office-filter')?.value || 'ALL';
+    const policeFilter = document.getElementById('stat-police-filter')?.value || 'ALL';
+    const isFiltered = officeFilter !== 'ALL' || policeFilter !== 'ALL';
+    const scaleText = isFiltered ? "📍 선택 지역 (Regional)" : "🏙️ 도시 전체 (Metropolis)";
     
-    html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, 
-        "1개 연동 그룹당 묶여있는 교차로 수. 클수록 '거대 간선도로' 위주이며, 작을수록 블록이 잘게 쪼개진 구도심을 뜻합니다.", "📏", "#9b59b6");
-    
-    html += InsightBox("macro_cycle", "도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, 
-        "가장 많이 사용되는 최빈값 주기. 막대한 교통량을 한 번에 처리하기 위한 거시적 통행 스케일을 보여줍니다.", "⏱️", "#e67e22");
+    html += `
+        <div class="sigma-panel mb-20" style="background: rgba(52, 152, 219, 0.05); border-left: 4px solid #3498db; display: flex; justify-content: space-between; align-items: center; padding: 12px 15px;">
+            <div>
+                <div style="color: #3498db; font-weight: 700; font-size: 13px; margin-bottom: 4px;">🌍 현황 조회 스케일 (Data Scale)</div>
+                <div class="fs-12 text-dim">현재 통계는 <b class="text-white">${scaleText}</b> 기준으로 실시간 집계되었습니다.</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="fs-11 text-dim mb-4">교차로별 상세 통계 (Intersection)</div>
+                <div class="fs-11 text-white" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">지도에서 교차로 클릭 후 <b>[운영통계]</b> 탭 확인</div>
+            </div>
+        </div>
+    `;
 
-    html += InsightBox("macro_arterial", "상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, 
-        "상위 5개 거대 간선축이 전체 네트워크에서 차지하는 비중으로, 중앙집중화된 도로망 통제력을 시사합니다.", "🎯", "#e74c3c");
-
-    // 심층 지표 헤더
-    html += `<div style="grid-column: 1 / -1; margin-top: 15px; margin-bottom: -5px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">🚥 신호운영 미시 통계 (Micro Operation Insights)</span>
+    // 2. 카테고리 1: 기본 통계 및 주기
+    html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">⏱️ 기본 통계 및 주기 (Basic & Cycle)</span>
     </div>`;
+    html += `<div class="grid-3col gap-15 mb-25">`;
+    html += InsightBox(null, "총 교차로 수", `${totalJunctions.toLocaleString()}`, "개소", "데이터베이스 내 교차로 총합", "📊", "var(--accent)");
+    html += InsightBox(null, "사용 중인 일계획 수", `${activePlansCount.toLocaleString()}`, `/ ${totalPlans.toLocaleString()} 개`, "운영이 스케줄링된 활성 일계획 수", "📅", "#f1c40f");
+    html += InsightBox("macro_cycle", "도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 최빈값 주기", "⏱️", "#f39c12");
+    html += `</div>`;
 
-    html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율",
-        "비율이 높을수록 통과 위주의 '주간선'이며, 50%에 가까울수록 측면 간섭이 심한 '혼잡 교차로'입니다.", "🛣️", "#1abc9c");
+    // 3. 카테고리 2: 연동 및 현시
+    html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #9b59b6; font-size: 13px; font-weight: 700;">🔗 연동 및 현시 (Coordination & Phase)</span>
+    </div>`;
+    html += `<div class="grid-2col gap-15 mb-25">`;
+    html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, "네트워크 내 연동 그룹 소속 비율", "🌐", "#3498db");
+    html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, "1개 연동 그룹당 묶여있는 교차로 수", "📏", "#9b59b6");
+    html += InsightBox("macro_arterial", "상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, "거대 간선축의 도로망 통제력 지수", "🎯", "#e74c3c");
+    html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
+    html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
+    html += InsightBox(null, "평균 교차로 복잡도", `${avgComplexityFinal}`, "현시당 평균 이동류 수", "기하구조 및 신호 이동류의 복잡성", "🧩", "#8e44ad");
+    html += `</div>`;
 
-    html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`,
-        "운영 현시가 많을수록 대기시간이 길어집니다. 비보호 좌회전 적용률을 통해 효율화 기조를 엿볼 수 있습니다.", "🔄", "#34495e");
-
-    html += InsightBox("micro_ped", "보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
-        "(주기 - 보행녹색시간). 값이 클수록 차량 통행 중심, 작을수록 보행자 친화적 운영을 의미합니다.", "🚶", "#f1c40f");
-
-    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(황색부족 ${shortYellowCount}, 전적색과다 ${longAllRedCount})`,
-        "긴 전적색은 교차로가 넓은 험지임을, 짧은 황색은 통과 사고 위험이 높은 지점임을 데이터로 유추합니다.", "⚠️", "#95a5a6");
+    // 4. 카테고리 3: 보행, 소거시간 및 특수
+    html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #e74c3c; font-size: 13px; font-weight: 700;">🚶 보행, 소거 및 특수 (Pedestrian & Clearance)</span>
+    </div>`;
+    html += `<div class="grid-2col gap-15 mb-25">`;
+    html += InsightBox("micro_ped", "보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`, "보행자 친화적 운영 수준 지표", "🚶", "#f1c40f");
+    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(짧은황색 ${shortYellowCount}, 긴전적색 ${longAllRedCount})`, "딜레마존 악화 및 침지형 위험 구간 건수", "⚠️", "#e67e22");
+    html += InsightBox(null, "특수 보호구역", `${specialZoneCount.toLocaleString()}개`, "어린이, 노인, 장애인 보호구역", "통행속도 제한 및 특수 신호체계 적용 지점", "🚸", "#e74c3c");
+    html += `</div>`;
 
     container.innerHTML = html;
 }
-
-
 
 /* ══════════════════════════════════════════
  *  지표 상세 모달 (Insight Details)
