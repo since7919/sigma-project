@@ -1243,8 +1243,8 @@ function renderAdvancedInsights(junctions) {
     html += InsightBox(null, "총 교차로 수", `${totalJunctions.toLocaleString()}`, "개소", "데이터베이스 내 교차로 총합", "📊", "var(--accent)");
     html += InsightBox(null, "사용 중인 일계획 수", `${activePlansCount.toLocaleString()}`, `/ ${totalPlans.toLocaleString()} 개`, "운영이 스케줄링된 활성 일계획 수", "📅", "#f1c40f");
     html += InsightBox("macro_cycle", "최빈 신호주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 신호주기 최빈값", "⏱️", "#f39c12");
-    html += InsightBox(null, "평균 신호주기", `${avgCycle}초`, "", "전체 교차로의 평균 신호주기", "⏳", "#e67e22");
-    html += InsightBox(null, "최대 신호주기", `${maxCycle}초`, "", "네트워크 내 가장 긴 신호주기", "📈", "#d35400");
+    html += InsightBox("macro_avg_cycle", "평균 신호주기", `${avgCycle}초`, "", "전체 교차로의 평균 신호주기", "⏳", "#e67e22");
+    html += InsightBox("macro_max_cycle", "최대 신호주기", `${maxCycle}초`, "", "네트워크 내 가장 긴 신호주기", "📈", "#d35400");
     html += `</div>`;
 
     // 3. 카테고리 2: 연동 및 현시
@@ -1294,6 +1294,18 @@ const INSIGHT_DETAILS = {
         def: "해당 지역에서 가장 많은 교차로가 채택하여 사용 중인 신호 주기(최빈값)입니다.",
         calc: "전체 교차로의 주기(Cycle Length) 데이터를 집계하여 가장 빈도수가 높은 주기를 도출합니다.",
         meaning: "보통 140초 이상의 긴 주기는 교차로가 넓고 통행량이 많은 대도시형 간선도로망을 의미하며, 100초 이하의 짧은 주기는 보행자 친화적이거나 차량 소통량이 적은 지역임을 시사합니다."
+    },
+    "macro_avg_cycle": {
+        title: "⏳ 평균 신호주기 (Average Cycle)",
+        def: "해당 지역 내 모든 교차로에서 하루(24시간) 동안 실제로 운영되는 일계획(TOD) 상의 신호주기 평균입니다.",
+        calc: "전체 교차로의 24시간 일계획(TOD) 스케줄을 순회하며, 적용된 신호주기를 시간 가중 평균하여 산출합니다.",
+        meaning: "네트워크 전체의 평균적인 신호 대기 및 통행 템포를 파악할 수 있으며, 최빈 신호주기와의 차이를 통해 특정 시간대나 교차로에 예외적으로 긴 주기가 얼마나 분포하는지 유추할 수 있습니다."
+    },
+    "macro_max_cycle": {
+        title: "📈 최대 신호주기 (Maximum Cycle)",
+        def: "해당 지역 내에서 하루(24시간) 동안 실제로 운영되는 일계획(TOD) 중 가장 긴 신호주기입니다.",
+        calc: "전체 교차로의 일계획(TOD) 스케줄을 검사하여, 단 1시간이라도 실제 운영되도록 스케줄링된 주기 중 가장 큰 값을 추출합니다.",
+        meaning: "지역 내에서 교통량이 가장 폭증하는 시간대나 교차로의 처리 한계를 보여줍니다. 이 수치가 지나치게 높다면 해당 교차로 주변의 심각한 혼잡이나 보행자의 과도한 대기시간을 암시합니다."
     },
     "macro_max_scale": {
         title: "🛣️ 최대 연동축 규모 (Max Coordination Scale)",
@@ -1345,21 +1357,21 @@ window.showInsightDetail = function(id) {
     
     modal.innerHTML = `
         <div style="background:#1e1e1e; padding:18px 24px; border-bottom:1px solid #3e3e42; display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#ffffff; font-weight:700; font-size:17px;">\${data.title}</span>
+            <span style="color:#ffffff; font-weight:700; font-size:17px;">${data.title}</span>
             <span id="insight-modal-close" style="color:#858585; font-size:24px; cursor:pointer; line-height:1;">&times;</span>
         </div>
         <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
             <div>
                 <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#38bdf8;">📌</span> 지표 정의</div>
-                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">\${data.def}</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">${data.def}</div>
             </div>
             <div>
                 <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#a78bfa;">🧮</span> 계산 방식</div>
-                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333; font-family:monospace;">\${data.calc}</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333; font-family:monospace;">${data.calc}</div>
             </div>
             <div>
                 <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
-                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">\${data.meaning}</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">${data.meaning}</div>
             </div>
             <div id="insight-dynamic-content" style="display:none;">
                 <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#fbbf24;">📊</span> 통계 분석 상세 (모수 및 이상치)</div>
