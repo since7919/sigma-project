@@ -473,7 +473,7 @@ function renderStats() {
     }, { yMin: 0, yStep: 10, legend: { display: selectedDayIndices.length > 1 } });
 
     // 4. 지표 계산
-    let totalMovs = 0, totalPhases = 0, balanceScore = 0, offsetDev = 0;
+    let totalMovs = 0, totalPhases = 0, validIntegrityCount = 0, totalIntegrityCount = 0, offsetDev = 0;
     junctions.forEach(j => {
         const plan = (j.dayPlans && j.dayPlans[primaryDayIdx]) ? j.dayPlans[primaryDayIdx][pIdx] : null;
         if (!plan) return;
@@ -483,7 +483,10 @@ function renderStats() {
         totalMovs += activeMovs;
         const sumA = plan.splitA.reduce((a, b) => a + b, 0);
         const sumB = plan.splitB.reduce((a, b) => a + b, 0);
-        if (sumA > 0) balanceScore += (1 - Math.abs(sumA - sumB) / sumA);
+        if (sumA > 0) {
+            totalIntegrityCount++;
+            if (sumB === 0 || sumA === sumB) validIntegrityCount++;
+        }
         offsetDev += plan.offset;
     });
 
@@ -491,7 +494,7 @@ function renderStats() {
     document.getElementById('insight-complexity').innerText = avgCompVal;
     if (document.getElementById('stat-avg-complexity')) document.getElementById('stat-avg-complexity').innerText = avgCompVal;
     
-    document.getElementById('insight-balance').innerText = ((balanceScore / (jids.length || 1)) * 100).toFixed(1) + "%";
+    document.getElementById('insight-balance').innerText = totalIntegrityCount > 0 ? ((validIntegrityCount / totalIntegrityCount) * 100).toFixed(1) + "%" : "0.0%";
     document.getElementById('insight-diversity').innerText = "보통 (72%)";
     document.getElementById('insight-offset').innerText = (offsetDev / (jids.length || 1)).toFixed(1) + "s";
 
@@ -1028,7 +1031,7 @@ function renderAdvancedInsights(junctions) {
 
     // 기본 지표 (이전의 stat-summary-grid 대체용)
     let activePlansCount = 0;
-    let balanceScore = 0;
+    let validIntegrityCount = 0, totalIntegrityCount = 0;
 
     junctions.forEach(j => {
         // 기본 지표: 활성 일계획
@@ -1081,13 +1084,16 @@ function renderAdvancedInsights(junctions) {
                 mainPhaseCount++;
             }
             
-            // 링 밸런스 점수 (A/B링 주기 분할 일치도)
+            // A/B링 분할 합계 무결성 확인
             const sumA = dPlan.splitA ? dPlan.splitA.reduce((a,b)=>a+b, 0) : 0;
             const sumB = dPlan.splitB ? dPlan.splitB.reduce((a,b)=>a+b, 0) : 0;
             if (sumA > 0) {
-                const bScore = (1 - Math.abs(sumA - sumB) / sumA);
-                balanceScore += bScore;
-                window.LATEST_INSIGHT_DYNAMIC.balanceWorst.push({ name: j.name || j.id, val: bScore * 100 });
+                totalIntegrityCount++;
+                if (sumB === 0 || sumA === sumB) {
+                    validIntegrityCount++;
+                } else {
+                    window.LATEST_INSIGHT_DYNAMIC.balanceWorst.push({ name: j.name || j.id, sumA, sumB });
+                }
             }
 
             // 현시 복잡도
@@ -1156,7 +1162,7 @@ function renderAdvancedInsights(junctions) {
     window.LATEST_INSIGHT_DYNAMIC.pedWaitJunctionCount = pedWaitJunctionCount;
     
     window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.sort((a,b) => b.val - a.val);
-    window.LATEST_INSIGHT_DYNAMIC.balanceWorst.sort((a,b) => a.val - b.val);
+    window.LATEST_INSIGHT_DYNAMIC.balanceWorst.sort((a,b) => Math.abs(b.sumA - b.sumB) - Math.abs(a.sumA - a.sumB));
     
     window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions = window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.slice(0, 5);
     window.LATEST_INSIGHT_DYNAMIC.balanceWorst = window.LATEST_INSIGHT_DYNAMIC.balanceWorst.slice(0, 5);
@@ -1206,7 +1212,7 @@ function renderAdvancedInsights(junctions) {
     else if (avgPedWait > 45) pedLos = 'D';
     else if (avgPedWait > 30) pedLos = 'C';
     else if (avgPedWait >= 15) pedLos = 'B';
-    const finalBalance = hasSignalMapCount > 0 ? ((balanceScore / hasSignalMapCount) * 100).toFixed(1) : 0;
+    const finalBalance = totalIntegrityCount > 0 ? ((validIntegrityCount / totalIntegrityCount) * 100).toFixed(1) : 0;
     
     // --- 기본 지표 계산 ---
     const totalPlans = totalJunctions * 10;
@@ -1270,7 +1276,7 @@ function renderAdvancedInsights(junctions) {
     html += InsightBox("macro_max_scale", "최대 연동축 규모", `${maxGroupScale}개`, "(단일 그룹 최대 교차로 수)", "가장 길게 끊기지 않고 연동되는 거대 간선도로의 규모", "🛣️", "#e74c3c");
     html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
     html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
-    html += InsightBox("micro_balance", "A/B링 밸런스 점수", `${finalBalance}%`, "주·부방향 신호 분할 일치도", "NEMA 방식 듀얼 링(Dual-Ring)의 운영 효율성 및 배분 균형성", "⚖️", "#8e44ad");
+    html += InsightBox("micro_balance", "A/B링 길이 무결성", `${finalBalance}%`, "듀얼 링(Dual-Ring) 분할 합계 일치율", "시간 계획 상의 물리적/구조적 오류 부재 비율", "⚖️", "#8e44ad");
     html += `</div>`;
 
     // 4. 카테고리 3: 보행, 소거시간 및 특수
@@ -1351,10 +1357,10 @@ const INSIGHT_DETAILS = {
         meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 꼬리물기나 급제동 사고를 유발하며, 지나치게 긴 전적색은 교차로 면적이 비정상적으로 넓거나 기하구조가 복잡한 침지형 교차로임을 암시합니다."
     },
     "micro_balance": {
-        title: "⚖️ A/B링 밸런스 점수 (Dual-Ring Balance Score)",
-        def: "NEMA 듀얼 링(Dual-Ring) 신호체계에서 A링(통상 주방향)과 B링(통상 부방향)에 배분된 신호 시간(Split)의 물리적 불균형 정도를 평가한 점수입니다.",
-        calc: "100% - (|A링 시간 합 - B링 시간 합| / A링 시간 합) (교차로별 평균)",
-        meaning: "100%에 가까울수록 A링과 B링이 완전히 꽉 차서 낭비되는 시간이 없고 양방향 소통이 대칭적입니다. 반대로 수치가 낮으면 한쪽 링의 유휴 시간이 많거나 심하게 기형적인 교차로 구조(예: T자형, 다지형)를 가졌을 확률이 높습니다."
+        title: "⚖️ A/B링 길이 무결성 (Dual-Ring Split Integrity)",
+        def: "NEMA 듀얼 링(Dual-Ring) 신호체계에서 A링과 B링에 배분된 총 신호 시간(Split)의 합이 정확히 일치하는지(무결성)를 검증한 비율입니다.",
+        calc: "(A링 총 시간과 B링 총 시간이 동일한 교차로 수 / 듀얼 링 교차로 수) × 100",
+        meaning: "듀얼 링 구조에서 A링과 B링의 합계는 항상 신호주기(Cycle)와 동일해야 합니다. 이 수치가 100%가 아니라면, 시간 계획 상의 물리적 오류나 구조적 결함(DB 입력 오류 등)이 존재하는 교차로가 있음을 의미합니다."
     }
 };
 
@@ -1409,8 +1415,8 @@ window.showInsightDetail = function(id) {
         else if (id === 'micro_ratio') dynHtml = `<b>분석 모수:</b> 시차맵 데이터가 있는 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
         else if (id === 'micro_phase') dynHtml = `<b>분석 모수:</b> 시차맵이 적용된 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
         else if (id === 'micro_balance') {
-            const list = dyn.balanceWorst.map(x => `<li>${x.name} (${x.val.toFixed(1)}%)</li>`).join('');
-            dynHtml = `<b>분석 모수:</b> ${dyn.hasSignalMapCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 불균형 심화 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+            const list = dyn.balanceWorst.map(x => `<li>${x.name} (A링: ${x.sumA}초, B링: ${x.sumB}초)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 듀얼 링 데이터가 존재하는 교차로<br><br><b style="color:#ef4444;">⚠️ A/B링 길이 불일치 (구조적 오류) 교차로:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>발견된 오류 없음 (100% 무결성)</li>'}</ul>`;
         } else if (id === 'micro_ped') {
             const list = dyn.worstPedJunctions.map(x => `<li>${x.name} (${x.val.toFixed(1)}초)</li>`).join('');
             dynHtml = `<b>분석 모수:</b> 보행 신호가 존재하는 ${dyn.pedWaitJunctionCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 보행자 지체 최악 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
