@@ -1332,6 +1332,10 @@ window.showInsightDetail = function(id) {
                 <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
                 <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px;">${data.meaning}</div>
             </div>
+                    <div id="insight-dynamic-content" style="display:none;">
+                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#fbbf24;">📊</span> 통계 분석 상세 (모수 및 이상치)</div>
+                <div id="insight-dynamic-text" style="color:#e2e8f0; font-size:13px; line-height:1.6; background:rgba(251,191,36,0.05); padding:10px 15px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);"></div>
+            </div>
         </div>
         <div style="padding:16px 20px; background:#0f172a; border-top:1px solid #334155; text-align:right;">
             <button id="insight-modal-btn-close" style="padding:8px 24px; background:#3b82f6; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:13px; transition:background 0.2s;">확인</button>
