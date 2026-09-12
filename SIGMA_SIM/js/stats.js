@@ -991,6 +991,18 @@ function renderAdvancedInsights(junctions) {
         return;
     }
 
+    
+    window.LATEST_INSIGHT_DYNAMIC = {
+        totalJunctions: junctions ? junctions.length : 0,
+        coordinatedJunctions: 0,
+        numGroups: 0,
+        hasSignalMapCount: 0,
+        pedWaitJunctionCount: 0,
+        maxGroupNodes: 0,
+        clearanceAnomalies: [],
+        worstPedJunctions: [],
+        balanceWorst: []
+    };
     let html = '';
 
     // --- 통계 집계 변수 ---
@@ -1050,7 +1062,9 @@ function renderAdvancedInsights(junctions) {
             const sumA = dPlan.splitA ? dPlan.splitA.reduce((a,b)=>a+b, 0) : 0;
             const sumB = dPlan.splitB ? dPlan.splitB.reduce((a,b)=>a+b, 0) : 0;
             if (sumA > 0) {
-                balanceScore += (1 - Math.abs(sumA - sumB) / sumA);
+                const bScore = (1 - Math.abs(sumA - sumB) / sumA);
+                balanceScore += bScore;
+                window.LATEST_INSIGHT_DYNAMIC.balanceWorst.push({ name: j.name || j.id, val: bScore * 100 });
             }
 
             // 현시 복잡도
@@ -1093,6 +1107,7 @@ function renderAdvancedInsights(junctions) {
                 sumPedWaitTime += avgDp;
                 maxPedWaitTime = Math.max(maxPedWaitTime, avgDp);
                 pedWaitJunctionCount++;
+                window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.push({ name: j.name || j.id, val: avgDp });
             }
 
             // 소거 시간 이상치
@@ -1109,6 +1124,17 @@ function renderAdvancedInsights(junctions) {
         }
     });
 
+        
+    window.LATEST_INSIGHT_DYNAMIC.coordinatedJunctions = coordinatedJunctions;
+    window.LATEST_INSIGHT_DYNAMIC.hasSignalMapCount = hasSignalMapCount;
+    window.LATEST_INSIGHT_DYNAMIC.pedWaitJunctionCount = pedWaitJunctionCount;
+    
+    window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.sort((a,b) => b.val - a.val);
+    window.LATEST_INSIGHT_DYNAMIC.balanceWorst.sort((a,b) => a.val - b.val);
+    
+    window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions = window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.slice(0, 5);
+    window.LATEST_INSIGHT_DYNAMIC.balanceWorst = window.LATEST_INSIGHT_DYNAMIC.balanceWorst.slice(0, 5);
+    
     // --- 거시 지표 계산 ---
     const coordRate = totalJunctions > 0 ? ((coordinatedJunctions / totalJunctions) * 100).toFixed(1) : 0;
     const groupIds = Object.keys(groupCounts);
@@ -1125,7 +1151,7 @@ function renderAdvancedInsights(junctions) {
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
 
     // 최대 연동축 규모
-    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;
+    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;\n    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
 
     // --- 심층 지표 계산 ---
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
@@ -1309,6 +1335,37 @@ window.showInsightDetail = function(id) {
             <button id="insight-modal-btn-close" style="padding:8px 24px; background:#3b82f6; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:13px; transition:background 0.2s;">확인</button>
         </div>
     `;
+    
+
+    const dyn = window.LATEST_INSIGHT_DYNAMIC;
+    if (dyn) {
+        let dynHtml = '';
+        if (id === 'macro_coord') dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로 중 연동 교차로 ${dyn.coordinatedJunctions.toLocaleString()}개`;
+        else if (id === 'macro_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹`;
+        else if (id === 'macro_max_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹<br><b>최대 연동축 교차로 수:</b> ${dyn.maxGroupNodes}개`;
+        else if (id === 'micro_ratio') dynHtml = `<b>분석 모수:</b> 시차맵 데이터가 있는 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
+        else if (id === 'micro_phase') dynHtml = `<b>분석 모수:</b> 시차맵이 적용된 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
+        else if (id === 'micro_balance') {
+            const list = dyn.balanceWorst.map(x => `<li>${x.name} (${x.val.toFixed(1)}%)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> ${dyn.hasSignalMapCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 불균형 심화 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        } else if (id === 'micro_ped') {
+            const list = dyn.worstPedJunctions.map(x => `<li>${x.name} (${x.val.toFixed(1)}초)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 보행 신호가 존재하는 ${dyn.pedWaitJunctionCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 보행자 지체 최악 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        } else if (id === 'micro_clearance') {
+            const list = dyn.clearanceAnomalies.slice(0, 5).map(x => `<li>${x}</li>`).join('');
+            let extra = dyn.clearanceAnomalies.length > 5 ? `<li>...외 ${dyn.clearanceAnomalies.length - 5}건</li>` : '';
+            dynHtml = `<b>분석 모수:</b> ${dyn.hasSignalMapCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 이상치 검출 교차로:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>발견된 이상치 없음</li>'}${extra}</ul>`;
+        }
+        
+        if (dynHtml) {
+            const dc = modal.querySelector('#insight-dynamic-content');
+            const dt = modal.querySelector('#insight-dynamic-text');
+            if (dc && dt) {
+                dc.style.display = 'block';
+                dt.innerHTML = dynHtml;
+            }
+        }
+    }
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
