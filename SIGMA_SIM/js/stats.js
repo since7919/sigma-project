@@ -1045,7 +1045,7 @@ function renderAdvancedInsights(junctions) {
         }
 
         // 심층 지표: 1일계획(기본) 기준 분석
-        const dPlan = j.schedules && j.schedules[0] ? j.schedules[0][0] : null;
+        const dPlan = j.dayPlans && j.dayPlans[0] ? j.dayPlans[0][0] : null;
         const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
 
         if (dPlan && sm) {
