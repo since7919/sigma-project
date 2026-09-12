@@ -37,12 +37,11 @@ function generateGroupCSV() {
 }
 
 function processGroupCSV(csvString, isAutoLoad = false) {
-    showLoading("그룹 데이터 분석 중...");
+    if (!isAutoLoad) showLoading("그룹 데이터 분석 중...");
     setTimeout(() => {
         const lines = csvString.trim().split(/\r?\n/);
         if (lines.length < 2) { 
-            alert("불러오기 실패: 파일이 비어있습니다."); 
-            hideLoading(); 
+            if (!isAutoLoad) { alert("불러오기 실패: 파일이 비어있습니다."); hideLoading(); } 
             return; 
         }
 
@@ -56,7 +55,7 @@ function processGroupCSV(csvString, isAutoLoad = false) {
             // [B] 기존 규격: sigma_group.csv (그룹당 1행)
             handleLegacyGroupCSV(lines, isAutoLoad);
         }
-        hideLoading();
+        if (!isAutoLoad) hideLoading();
     }, 10);
 }
 
