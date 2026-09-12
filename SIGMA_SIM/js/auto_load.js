@@ -25,7 +25,7 @@ async function autoLoadFiles() {
         const vRes = await fetch('/api/sim/db-version');
         if (vRes.ok) {
             const vData = await vRes.json();
-            if (vData.version) dbVersion = vData.version;
+            if (vData.version) dbVersion = "v2_" + vData.version;
         }
     } catch(e) {
         console.warn('Failed to fetch DB version, bypassing cache.');
