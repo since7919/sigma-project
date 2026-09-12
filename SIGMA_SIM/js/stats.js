@@ -1004,6 +1004,8 @@ function renderAdvancedInsights(junctions) {
         hasSignalMapCount: 0,
         pedWaitJunctionCount: 0,
         maxGroupNodes: 0,
+        maxGroupName: '',
+        top5Groups: [],
         clearanceAnomalies: [],
         worstPedJunctions: [],
         balanceWorst: []
@@ -1183,9 +1185,15 @@ function renderAdvancedInsights(junctions) {
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / (totalJunctions * 24)) * 100).toFixed(1) : 0;
 
     // 최대 연동축 규모
-    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;
-    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
-    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
+    const sortedGroups = Object.entries(groupCounts).sort((a, b) => b[1] - a[1]);
+    const maxGroupScale = sortedGroups.length > 0 ? sortedGroups[0][1] : 0;
+    const maxGroupName = sortedGroups.length > 0 ? sortedGroups[0][0] : '';
+    const top5Groups = sortedGroups.slice(0, 5);
+    
+    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; 
+    window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
+    window.LATEST_INSIGHT_DYNAMIC.maxGroupName = maxGroupName;
+    window.LATEST_INSIGHT_DYNAMIC.top5Groups = top5Groups;
 
     // --- 심층 지표 계산 ---
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
@@ -1394,7 +1402,10 @@ window.showInsightDetail = function(id) {
         let dynHtml = '';
         if (id === 'macro_coord') dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로 중 연동 교차로 ${dyn.coordinatedJunctions.toLocaleString()}개`;
         else if (id === 'macro_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹`;
-        else if (id === 'macro_max_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹<br><b>최대 연동축 교차로 수:</b> ${dyn.maxGroupNodes}개`;
+        else if (id === 'macro_max_scale') {
+            const list = (dyn.top5Groups || []).map((g, i) => `<li>${i+1}위: ${g[0]} (${g[1]}개)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹<br><b>최대 연동축:</b> ${dyn.maxGroupName} (${dyn.maxGroupNodes}개 교차로)<br><br><b style="color:#f1c40f;">🏆 대규모 연동축 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        }
         else if (id === 'micro_ratio') dynHtml = `<b>분석 모수:</b> 시차맵 데이터가 있는 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
         else if (id === 'micro_phase') dynHtml = `<b>분석 모수:</b> 시차맵이 적용된 ${dyn.hasSignalMapCount.toLocaleString()}개 교차로`;
         else if (id === 'micro_balance') {
