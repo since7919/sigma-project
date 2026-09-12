@@ -1242,14 +1242,15 @@ function renderAdvancedInsights(junctions) {
     const scaleText = isFiltered ? "📍 선택 지역 (Regional)" : "🏙️ 도시 전체 (Metropolis)";
     
     html += `
-        <div class="sigma-panel mb-20" style="background: rgba(52, 152, 219, 0.05); border-left: 4px solid #3498db; display: flex; justify-content: space-between; align-items: center; padding: 12px 15px;">
-            <div>
-                <div style="color: #3498db; font-weight: 700; font-size: 13px; margin-bottom: 4px;">🌍 현황 조회 스케일 (Data Scale)</div>
-                <div class="fs-12 text-dim">현재 통계는 <b class="text-white">${scaleText}</b> 기준으로 실시간 집계되었습니다.</div>
+        <div class="sigma-panel mb-20" style="background: rgba(52, 152, 219, 0.05); border: 1px solid rgba(52, 152, 219, 0.2); border-left: 4px solid #3498db; padding: 15px; display: flex; flex-direction: column; gap: 10px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">🌍</span>
+                <span style="color: #3498db; font-weight: 700; font-size: 14px; letter-spacing: 0.5px;">현황 조회 스케일 (Data Scale)</span>
             </div>
-            <div style="text-align: right;">
-                <div class="fs-11 text-dim mb-4">교차로별 상세 통계 (Intersection)</div>
-                <div class="fs-11 text-white" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">지도에서 교차로 클릭 후 <b>[운영통계]</b> 탭 확인</div>
+            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6; word-break: keep-all;">
+                현재 분석 데이터는 <b style="color: #fff; background: rgba(52, 152, 219, 0.15); padding: 2px 6px; border-radius: 4px; margin: 0 2px;">${scaleText}</b> 단위로 실시간 통합 집계되고 있습니다.
+                <br>
+                <span style="color: #94a3b8; font-size: 12px;">※ 개별 교차로의 상세 통계는 지도에서 마커를 클릭한 후 <b>[운영통계]</b> 탭에서 확인하실 수 있습니다.</span>
             </div>
         </div>
     `;
