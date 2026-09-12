@@ -1109,8 +1109,8 @@ function renderAdvancedInsights(junctions) {
     const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
     
     // 컴포넌트 생성 유틸
-    const InsightBox = (title, mainVal, subText, desc, icon, color) => `
-        <div class="sigma-panel" style="padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px;">
+    const InsightBox = (id, title, mainVal, subText, desc, icon, color) => `
+        <div class="sigma-panel insight-box" onclick="showInsightDetail('${id}')" style="cursor: pointer; padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px; transition: background 0.2s;">
             <div class="flex-row gap-10 align-center mb-8">
                 <span style="font-size: 20px;">${icon}</span>
                 <span class="fs-12 fw-800 text-white">${title}</span>
@@ -1119,7 +1119,10 @@ function renderAdvancedInsights(junctions) {
                 <span class="fw-900" style="font-size: 24px; color: ${color}; line-height: 1;">${mainVal}</span>
                 <span class="fs-11 text-dim" style="line-height: 1.4;">${subText}</span>
             </div>
-            <div class="fs-11" style="color: #999; line-height: 1.4;">${desc}</div>
+            <div class="fs-11 flex-row-between" style="color: #999; line-height: 1.4;">
+                <span style="flex:1;">${desc}</span>
+                <span style="color:${color}; font-size:10px; margin-left:10px; white-space:nowrap; text-decoration:underline;">상세보기</span>
+            </div>
         </div>
     `;
 
@@ -1128,16 +1131,16 @@ function renderAdvancedInsights(junctions) {
         <span style="color: #3498db; font-size: 13px; font-weight: 700;">🌐 도시 거시 지표 (Metropolis Macro Index)</span>
     </div>`;
 
-    html += InsightBox("전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, 
+    html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, 
         "전체 중 고립되지 않고 연동 그룹에 속한 비율. 수치가 높을수록 도시 전체가 고도로 동기화되어 소통을 극대화합니다.", "🌐", "#3498db");
     
-    html += InsightBox("평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, 
+    html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, 
         "1개 연동 그룹당 묶여있는 교차로 수. 클수록 '거대 간선도로' 위주이며, 작을수록 블록이 잘게 쪼개진 구도심을 뜻합니다.", "📏", "#9b59b6");
     
-    html += InsightBox("도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, 
+    html += InsightBox("macro_cycle", "도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, 
         "가장 많이 사용되는 최빈값 주기. 막대한 교통량을 한 번에 처리하기 위한 거시적 통행 스케일을 보여줍니다.", "⏱️", "#e67e22");
 
-    html += InsightBox("상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, 
+    html += InsightBox("macro_arterial", "상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, 
         "상위 5개 거대 간선축이 전체 네트워크에서 차지하는 비중으로, 중앙집중화된 도로망 통제력을 시사합니다.", "🎯", "#e74c3c");
 
     // 심층 지표 헤더
@@ -1145,17 +1148,116 @@ function renderAdvancedInsights(junctions) {
         <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">🚥 신호운영 미시 통계 (Micro Operation Insights)</span>
     </div>`;
 
-    html += InsightBox("주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율",
+    html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율",
         "비율이 높을수록 통과 위주의 '주간선'이며, 50%에 가까울수록 측면 간섭이 심한 '혼잡 교차로'입니다.", "🛣️", "#1abc9c");
 
-    html += InsightBox("현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`,
+    html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`,
         "운영 현시가 많을수록 대기시간이 길어집니다. 비보호 좌회전 적용률을 통해 효율화 기조를 엿볼 수 있습니다.", "🔄", "#34495e");
 
-    html += InsightBox("보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
+    html += InsightBox("micro_ped", "보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`,
         "(주기 - 보행녹색시간). 값이 클수록 차량 통행 중심, 작을수록 보행자 친화적 운영을 의미합니다.", "🚶", "#f1c40f");
 
-    html += InsightBox("소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(황색부족 ${shortYellowCount}, 전적색과다 ${longAllRedCount})`,
+    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(황색부족 ${shortYellowCount}, 전적색과다 ${longAllRedCount})`,
         "긴 전적색은 교차로가 넓은 험지임을, 짧은 황색은 통과 사고 위험이 높은 지점임을 데이터로 유추합니다.", "⚠️", "#95a5a6");
 
     container.innerHTML = html;
 }
+
+
+
+/* ══════════════════════════════════════════
+ *  지표 상세 모달 (Insight Details)
+ * ══════════════════════════════════════════ */
+const INSIGHT_DETAILS = {
+    "macro_coord": {
+        title: "🌐 전체 망 연동화율 (Network Coordination Rate)",
+        def: "도시 또는 특정 지역 내 전체 신호교차로 중, 단독(고립) 제어가 아닌 연동 그룹에 속하여 인접 교차로와 신호 주기가 동기화된 교차로의 비율입니다.",
+        calc: "(연동 그룹에 속한 교차로 수 / 전체 교차로 수) × 100",
+        meaning: "이 수치가 높을수록 간선도로를 통과하는 차량이 연속적으로 녹색신호를 받을 확률이 높아지며, 도시 전체의 교통 흐름이 고도로 통제되고 있음을 뜻합니다."
+    },
+    "macro_scale": {
+        title: "📏 평균 연동 규모 (Average Coordination Scale)",
+        def: "구성된 1개의 연동 그룹당 평균적으로 몇 개의 교차로가 묶여 있는지를 나타냅니다.",
+        calc: "연동 그룹에 속한 전체 교차로 수 / 총 연동 그룹 수",
+        meaning: "수치가 클수록 하나로 길게 뻗은 '거대 간선도로'가 잘 구축된 신도시 형태이며, 수치가 작을수록 교차로 간격이 좁고 블록이 잘게 쪼개진 구도심 형태일 가능성이 높습니다."
+    },
+    "macro_cycle": {
+        title: "⏱️ 도시 지배 주기 (Metropolis Base Cycle)",
+        def: "해당 도시에서 가장 많은 교차로가 채택하여 사용 중인 신호 주기(최빈값)입니다.",
+        calc: "전체 교차로의 주기(Cycle Length) 데이터를 집계하여 가장 빈도수가 높은 주기를 도출합니다.",
+        meaning: "보통 140초 이상의 긴 주기는 교차로가 넓고 통행량이 많은 대도시형 간선도로망을 의미하며, 100초 이하의 짧은 주기는 보행자 친화적이거나 차량 소통량이 적은 지역임을 시사합니다."
+    },
+    "macro_arterial": {
+        title: "🎯 상위 간선 집중도 (Arterial Concentration Index)",
+        def: "도시 내 가장 규모가 큰 상위 5개의 거대 연동축(간선도로)이 전체 도로망에서 차지하는 비중입니다.",
+        calc: "(가장 큰 5개 연동 그룹의 교차로 수 합 / 전체 교차로 수) × 100",
+        meaning: "수치가 높을수록 특정 몇몇 핵심 간선도로에 교통량과 신호 통제력이 중앙집중화되어 있음을 나타냅니다."
+    },
+    "micro_ratio": {
+        title: "🚕 주간선 vs 부간선 비율 (Main vs Sub Split Ratio)",
+        def: "교차로의 전체 신호 주기(Cycle) 중 주현시(가장 통행량이 많은 주방향)에 할당된 녹색시간의 비율입니다.",
+        calc: "(주현시 녹색시간의 합 / 전체 신호 주기) × 100",
+        meaning: "이 비율이 60~70% 이상으로 유독 높다면 주방향 직진 통행량이 압도적으로 많은 통과 위주의 간선도로 교차로이며, 비율이 50%에 가까울수록 직진과 좌회전 등 측면 간섭이 심한 혼잡 교차로(예: 로터리형, 다지형)를 의미합니다."
+    },
+    "micro_phase": {
+        title: "🔄 현시 복잡도 및 비보호 (Phase Complexity & PT Ratio)",
+        def: "교차로 1주기를 구성하는 총 현시(Phase)의 평균 개수 및 그 중 비보호 좌회전이 적용된 비율입니다.",
+        calc: "평균 현시: (총 현시 수 / 전체 교차로 수)\n비보호 비율: (비보호 교차로 / 전체 교차로) × 100",
+        meaning: "현시 개수가 4현시, 5현시 등으로 잘게 쪼개질수록 차량의 대기시간이 비례하여 늘어납니다. 반면 비보호(PT) 좌회전을 적극 적용하면 현시수를 2~3개로 줄여 교차로 통과 효율을 극대화할 수 있습니다."
+    },
+    "micro_ped": {
+        title: "🚶 보행자 최대 대기시간 (Max Ped Wait Time)",
+        def: "보행자가 횡단보도 녹색신호를 놓쳤을 때, 다음 녹색신호가 켜질 때까지 기다려야 하는 최대 대기시간입니다.",
+        calc: "교차로 주기(Cycle) - 가장 긴 보행자 녹색시간 (단순 추정치)",
+        meaning: "이 대기시간이 100초를 초과하면 보행자의 무단횡단 심리가 급격히 증가합니다. 차량 통행 중심의 넒은 도로일수록 이 값이 크게 나타납니다."
+    },
+    "micro_clearance": {
+        title: "⚠️ 소거시간 이상치 (Clearance Interval Anomaly)",
+        def: "황색신호가 3초 미만이거나, 전적색(All-Red) 신호가 3초 이상으로 비정상적으로 길게 설정된 위험 구간의 건수입니다.",
+        calc: "황색 < 3초 (짧은 황색), 전적색 >= 3초 (긴 전적색) 인 교차로 개수 합산",
+        meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 꼬리물기나 급제동 사고를 유발하며, 지나치게 긴 전적색은 교차로 면적이 비정상적으로 넓거나 기하구조가 복잡한 침지형 교차로임을 암시합니다."
+    }
+};
+
+window.showInsightDetail = function(id) {
+    const data = INSIGHT_DETAILS[id];
+    if (!data) return;
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px);";
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = "background:#1e293b; border:1px solid #334155; border-radius:12px; width:450px; max-width:90%; box-shadow:0 10px 35px rgba(0,0,0,0.8); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif;";
+    
+    modal.innerHTML = `
+        <div style="background:#0f172a; padding:16px 20px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#fff; font-weight:700; font-size:16px;">${data.title}</span>
+            <span id="insight-modal-close" style="color:#94a3b8; font-size:20px; cursor:pointer; line-height:1;">&times;</span>
+        </div>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:20px;">
+            <div>
+                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#38bdf8;">📌</span> 지표 정의</div>
+                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px;">${data.def}</div>
+            </div>
+            <div>
+                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#a78bfa;">🧮</span> 계산 방식</div>
+                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; font-family:monospace; color:#e2e8f0;">${data.calc}</div>
+            </div>
+            <div>
+                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
+                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px;">${data.meaning}</div>
+            </div>
+        </div>
+        <div style="padding:16px 20px; background:#0f172a; border-top:1px solid #334155; text-align:right;">
+            <button id="insight-modal-btn-close" style="padding:8px 24px; background:#3b82f6; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:13px; transition:background 0.2s;">확인</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const closeFn = () => document.body.removeChild(overlay);
+    document.getElementById('insight-modal-close').onclick = closeFn;
+    document.getElementById('insight-modal-btn-close').onclick = closeFn;
+    overlay.onclick = (e) => { if(e.target === overlay) closeFn(); };
+};
