@@ -326,7 +326,7 @@ function renderStats() {
     if (document.getElementById('stat-no-data')) document.getElementById('stat-no-data').style.display = 'none';
     if (document.getElementById('stat-content')) document.getElementById('stat-content').style.display = 'block';
     
-    document.getElementById('stat-total-count').innerText = jids.length.toLocaleString();
+    if (document.getElementById('stat-total-count')) document.getElementById('stat-total-count').innerText = jids.length.toLocaleString();
 
     const totalPlans = jids.length * 10;
     let activePlansCount = 0;
