@@ -1205,7 +1205,7 @@ function renderAdvancedInsights(junctions) {
     html += `<div class="grid-2col gap-15 mb-25">`;
     html += InsightBox("micro_ped", "보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`, "보행자 친화적 운영 수준 지표", "🚶", "#f1c40f");
     html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(짧은황색 ${shortYellowCount}, 긴전적색 ${longAllRedCount})`, "딜레마존 악화 및 침지형 위험 구간 건수", "⚠️", "#e67e22");
-    html += InsightBox(null, "특수 보호구역", `${specialZoneCount.toLocaleString()}개`, "어린이, 노인, 장애인 보호구역", "통행속도 제한 및 특수 신호체계 적용 지점", "🚸", "#e74c3c");
+
     html += `</div>`;
 
     container.innerHTML = html;
