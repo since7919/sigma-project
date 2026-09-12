@@ -339,17 +339,17 @@
 
         <div class="tabs">
             <div class="tab" onclick="openTab(event, 'tab-db')">📂 DB Center</div>
-            <div class="tab active" onclick="openTab(event, 'tab-info')">Node/Link</div>
+            <div class="tab" onclick="openTab(event, 'tab-info')">Node/Link</div>
             <div class="tab" onclick="openTab(event, 'tab-phase')">Phase/Split</div>
             <div class="tab" onclick="openTab(event, 'tab-group')">Group TOD</div>
 
-            <div class="tab" onclick="openTab(event, 'tab-stats')">Stats View</div>
+            <div class="tab active" onclick="openTab(event, 'tab-stats')">Stats View</div>
             <div class="tab" onclick="openTab(event, 'tab-civil')">Yearbook</div>
         </div>
 
 
 
-        <div id="tab-info" class="tab-content active">
+        <div id="tab-info" class="tab-content">
             <!-- 1. [교차로 & 신호등 편집] -->
             <div class="sigma-panel">
                 <div class="card-title">
@@ -1563,7 +1563,7 @@
 
 
 
-        <div id="tab-stats" class="tab-content">
+        <div id="tab-stats" class="tab-content active">
             <div class="sigma-panel">
                 <div class="card-title">
                     <span style="font-weight: 700; letter-spacing: 0.5px;">📊 데이터 뷰 & 거시/미시 통찰 (Data & Insights)</span>
@@ -1571,7 +1571,6 @@
                 <div class="foldable-content">
                     <div id="stat-no-data" class="text-center p-50" style="color:#555;">데이터를 먼저 불러와주세요.</div>
                     <div id="stat-content" style="display:none;">
-                        <div id="stat-unified-dashboard" class="mb-30"></div>
 <!-- [신규] 통계 필터 (구청/경찰서) -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
                             <div class="flex-row gap-20">
@@ -1590,6 +1589,7 @@
                             </div>
                         </div>
 
+                        <div id="stat-unified-dashboard" class="mb-30"></div>
                         <!-- [신규] 일계획 다중 선택바 -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
                             <div class="text-dim fs-11 mb-8">📊 비교 분석 일계획 선택 (다중 선택 가능)</div>
