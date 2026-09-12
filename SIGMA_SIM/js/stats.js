@@ -1009,9 +1009,7 @@ function renderAdvancedInsights(junctions) {
 
     // 기본 지표 (이전의 stat-summary-grid 대체용)
     let activePlansCount = 0;
-    let specialZoneCount = 0;
-    let totalComplexity = 0;
-    let complexCount = 0;
+    let balanceScore = 0;
 
     junctions.forEach(j => {
         // 기본 지표: 활성 일계획
@@ -1021,22 +1019,7 @@ function renderAdvancedInsights(junctions) {
             });
         }
         
-        // 기본 지표: 특수 보호구역
-        if (j.optimizerState && j.optimizerState.summary) {
-            const s = j.optimizerState.summary;
-            if (s['zone-child'] || s['zone-old'] || s['zone-disabled']) {
-                specialZoneCount++;
-            }
-        }
         
-        // 기본 지표: 교차로 복잡도
-        if (j.signalMaps && j.signalMaps[0]) {
-            const m = j.signalMaps[0];
-            const movements = (m.movA ? m.movA.filter(v => v > 0).length : 0) + 
-                            (m.movB ? m.movB.filter(v => v > 0).length : 0);
-            totalComplexity += (movements / 4);
-            complexCount++;
-        }
 
         // 거시 지표: 연동 그룹 및 연동화율
         if (j.group && j.group !== 0) {
@@ -1061,6 +1044,13 @@ function renderAdvancedInsights(junctions) {
                 totalMainSplit += (mainA + mainB);
                 totalCycle += dPlan.cycle || 0;
                 mainPhaseCount++;
+            }
+            
+            // 링 밸런스 점수 (A/B링 주기 분할 일치도)
+            const sumA = dPlan.splitA ? dPlan.splitA.reduce((a,b)=>a+b, 0) : 0;
+            const sumB = dPlan.splitB ? dPlan.splitB.reduce((a,b)=>a+b, 0) : 0;
+            if (sumA > 0) {
+                balanceScore += (1 - Math.abs(sumA - sumB) / sumA);
             }
 
             // 현시 복잡도
@@ -1125,19 +1115,19 @@ function renderAdvancedInsights(junctions) {
     });
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
 
-    const sortedGroups = Object.values(groupCounts).sort((a,b) => b - a);
-    const top5Sum = sortedGroups.slice(0, 5).reduce((a,b) => a+b, 0);
-    const top5Rate = totalJunctions > 0 ? ((top5Sum / totalJunctions) * 100).toFixed(1) : 0;
+    // 최대 연동축 규모
+    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;
 
     // --- 심층 지표 계산 ---
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
     const avgPhases = (hasSignalMapCount > 0) ? (totalPhases / hasSignalMapCount).toFixed(1) : 0;
     const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
     const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
+    const finalBalance = hasSignalMapCount > 0 ? ((balanceScore / hasSignalMapCount) * 100).toFixed(1) : 0;
     
     // --- 기본 지표 계산 ---
     const totalPlans = totalJunctions * 10;
-    const avgComplexityFinal = complexCount > 0 ? (totalComplexity / complexCount).toFixed(1) : "0.0";
+    
 
     // 컴포넌트 생성 유틸
     const InsightBox = (id, title, mainVal, subText, desc, icon, color) => `
@@ -1192,10 +1182,10 @@ function renderAdvancedInsights(junctions) {
     html += `<div class="grid-2col gap-15 mb-25">`;
     html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, "네트워크 내 연동 그룹 소속 비율", "🌐", "#3498db");
     html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, "1개 연동 그룹당 묶여있는 교차로 수", "📏", "#9b59b6");
-    html += InsightBox("macro_arterial", "상위 간선 집중도", `${top5Rate}%`, `(상위 5대 연동축 비중)`, "거대 간선축의 도로망 통제력 지수", "🎯", "#e74c3c");
+    html += InsightBox("macro_max_scale", "최대 연동축 규모", `${maxGroupScale}개`, "(단일 그룹 최대 교차로 수)", "가장 길게 끊기지 않고 연동되는 거대 간선도로의 규모", "🛣️", "#e74c3c");
     html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
     html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
-    html += InsightBox(null, "평균 교차로 복잡도", `${avgComplexityFinal}`, "현시당 평균 이동류 수", "기하구조 및 신호 이동류의 복잡성", "🧩", "#8e44ad");
+    html += InsightBox("micro_balance", "A/B링 밸런스 점수", `${finalBalance}%`, "주·부방향 신호 분할 일치도", "NEMA 방식 듀얼 링(Dual-Ring)의 운영 효율성 및 배분 균형성", "⚖️", "#8e44ad");
     html += `</div>`;
 
     // 4. 카테고리 3: 보행, 소거시간 및 특수
@@ -1233,11 +1223,11 @@ const INSIGHT_DETAILS = {
         calc: "전체 교차로의 주기(Cycle Length) 데이터를 집계하여 가장 빈도수가 높은 주기를 도출합니다.",
         meaning: "보통 140초 이상의 긴 주기는 교차로가 넓고 통행량이 많은 대도시형 간선도로망을 의미하며, 100초 이하의 짧은 주기는 보행자 친화적이거나 차량 소통량이 적은 지역임을 시사합니다."
     },
-    "macro_arterial": {
-        title: "🎯 상위 간선 집중도 (Arterial Concentration Index)",
-        def: "도시 내 가장 규모가 큰 상위 5개의 거대 연동축(간선도로)이 전체 도로망에서 차지하는 비중입니다.",
-        calc: "(가장 큰 5개 연동 그룹의 교차로 수 합 / 전체 교차로 수) × 100",
-        meaning: "수치가 높을수록 특정 몇몇 핵심 간선도로에 교통량과 신호 통제력이 중앙집중화되어 있음을 나타냅니다."
+    "macro_max_scale": {
+        title: "🛣️ 최대 연동축 규모 (Max Coordination Scale)",
+        def: "분석 대상 네트워크(도시 전체 또는 특정 지역) 내에서 단일 연동 그룹으로 묶여있는 교차로 개수의 최댓값입니다.",
+        calc: "연동 그룹(Group ID)별로 속한 교차로 수를 집계하여 가장 큰 값을 추출합니다.",
+        meaning: "이 수치는 해당 도시에서 가장 길게 끊기지 않고 통행할 수 있는 주간선도로의 길이를 대변합니다. 수치가 클수록 대규모 관통 도로가 존재하며, 거시적인 소통 축이 뚜렷함을 의미합니다."
     },
     "micro_ratio": {
         title: "🚕 주간선 vs 부간선 비율 (Main vs Sub Split Ratio)",
@@ -1262,6 +1252,12 @@ const INSIGHT_DETAILS = {
         def: "황색신호가 3초 미만이거나, 전적색(All-Red) 신호가 3초 이상으로 비정상적으로 길게 설정된 위험 구간의 건수입니다.",
         calc: "황색 < 3초 (짧은 황색), 전적색 >= 3초 (긴 전적색) 인 교차로 개수 합산",
         meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 꼬리물기나 급제동 사고를 유발하며, 지나치게 긴 전적색은 교차로 면적이 비정상적으로 넓거나 기하구조가 복잡한 침지형 교차로임을 암시합니다."
+    },
+    "micro_balance": {
+        title: "⚖️ A/B링 밸런스 점수 (Dual-Ring Balance Score)",
+        def: "NEMA 듀얼 링(Dual-Ring) 신호체계에서 A링(통상 주방향)과 B링(통상 부방향)에 배분된 신호 시간(Split)의 물리적 불균형 정도를 평가한 점수입니다.",
+        calc: "100% - (|A링 시간 합 - B링 시간 합| / A링 시간 합) (교차로별 평균)",
+        meaning: "100%에 가까울수록 A링과 B링이 완전히 꽉 차서 낭비되는 시간이 없고 양방향 소통이 대칭적입니다. 반대로 수치가 낮으면 한쪽 링의 유휴 시간이 많거나 심하게 기형적인 교차로 구조(예: T자형, 다지형)를 가졌을 확률이 높습니다."
     }
 };
 
