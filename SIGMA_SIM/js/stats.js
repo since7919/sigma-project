@@ -1043,11 +1043,27 @@ function renderAdvancedInsights(junctions) {
         const dPlan = j.dayPlans && j.dayPlans[0] ? j.dayPlans[0][0] : null;
         const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
 
-        if (dPlan && sm) {
-            // 주기 분포
-            if (dPlan.cycle > 0) {
-                cycleCounts[dPlan.cycle] = (cycleCounts[dPlan.cycle] || 0) + 1;
+        const sched = j.schedules && j.schedules[0] ? j.schedules[0] : null;
+        if (sched) {
+            for (let h = 0; h < 24; h++) {
+                const sec = h * 3600;
+                let activeIdx = 0;
+                for (let i = 0; i < sched.length; i++) {
+                    if (sched[i].h < 0) continue;
+                    if (sched[i].h * 3600 + (sched[i].m || 0) * 60 <= sec) {
+                        activeIdx = i;
+                    } else {
+                        break;
+                    }
+                }
+                const activeSched = sched[activeIdx];
+                if (activeSched && activeSched.cycle > 0) {
+                    cycleCounts[activeSched.cycle] = (cycleCounts[activeSched.cycle] || 0) + 1;
+                }
             }
+        }
+        
+        if (dPlan && sm) {
 
             // 주간선 비율 (현시 1번, 2번 기준)
             const mainA = (dPlan.splitA && dPlan.splitA[0]) || 0;
@@ -1159,7 +1175,7 @@ function renderAdvancedInsights(junctions) {
         }
     });
     const avgCycle = totalCycleCount > 0 ? (sumCycle / totalCycleCount).toFixed(1) : 0;
-    const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
+    const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / (totalJunctions * 24)) * 100).toFixed(1) : 0;
 
     // 최대 연동축 규모
     const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;
@@ -1325,33 +1341,33 @@ window.showInsightDetail = function(id) {
     overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px);";
     
     const modal = document.createElement('div');
-    modal.style.cssText = "background:#1e293b; border:1px solid #334155; border-radius:12px; width:450px; max-width:90%; box-shadow:0 10px 35px rgba(0,0,0,0.8); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif;";
+    modal.style.cssText = "background:#252526; border:1px solid #3e3e42; border-radius:12px; width:450px; max-width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.9); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif;";
     
     modal.innerHTML = `
-        <div style="background:#0f172a; padding:16px 20px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
-            <span style="color:#fff; font-weight:700; font-size:16px;">${data.title}</span>
-            <span id="insight-modal-close" style="color:#94a3b8; font-size:20px; cursor:pointer; line-height:1;">&times;</span>
+        <div style="background:#1e1e1e; padding:18px 24px; border-bottom:1px solid #3e3e42; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#ffffff; font-weight:700; font-size:17px;">\${data.title}</span>
+            <span id="insight-modal-close" style="color:#858585; font-size:24px; cursor:pointer; line-height:1;">&times;</span>
         </div>
-        <div style="padding:20px; display:flex; flex-direction:column; gap:20px;">
+        <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
             <div>
-                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#38bdf8;">📌</span> 지표 정의</div>
-                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px;">${data.def}</div>
+                <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#38bdf8;">📌</span> 지표 정의</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">\${data.def}</div>
             </div>
             <div>
-                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#a78bfa;">🧮</span> 계산 방식</div>
-                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; font-family:monospace; color:#e2e8f0;">${data.calc}</div>
+                <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#a78bfa;">🧮</span> 계산 방식</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333; font-family:monospace;">\${data.calc}</div>
             </div>
             <div>
-                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
-                <div style="color:#94a3b8; font-size:13px; line-height:1.5; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px;">${data.meaning}</div>
+                <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
+                <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">\${data.meaning}</div>
             </div>
-                    <div id="insight-dynamic-content" style="display:none;">
-                <div style="color:#cbd5e1; font-weight:600; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;"><span style="color:#fbbf24;">📊</span> 통계 분석 상세 (모수 및 이상치)</div>
-                <div id="insight-dynamic-text" style="color:#e2e8f0; font-size:13px; line-height:1.6; background:rgba(251,191,36,0.05); padding:10px 15px; border-radius:6px; border:1px solid rgba(251,191,36,0.3);"></div>
+            <div id="insight-dynamic-content" style="display:none;">
+                <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#fbbf24;">📊</span> 통계 분석 상세 (모수 및 이상치)</div>
+                <div id="insight-dynamic-text" style="color:#e2e8f0; font-size:14px; line-height:1.6; background:rgba(251,191,36,0.1); padding:12px 16px; border-radius:8px; border:1px solid rgba(251,191,36,0.4);"></div>
             </div>
         </div>
-        <div style="padding:16px 20px; background:#0f172a; border-top:1px solid #334155; text-align:right;">
-            <button id="insight-modal-btn-close" style="padding:8px 24px; background:#3b82f6; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:13px; transition:background 0.2s;">확인</button>
+        <div style="padding:16px 24px; background:#1e1e1e; border-top:1px solid #3e3e42; text-align:right;">
+            <button id="insight-modal-btn-close" style="padding:10px 28px; background:#007acc; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:14px; transition:background 0.2s;">확인</button>
         </div>
     `;
     
