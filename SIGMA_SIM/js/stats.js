@@ -1111,16 +1111,19 @@ function renderAdvancedInsights(junctions) {
             }
 
             // 소거 시간 이상치
+            let hasAnomaly = false;
+            let aStr = [];
             for(let i=0; i<8; i++) {
                 if (dPlan.splitA && dPlan.splitA[i] > 0) {
-                    if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) shortYellowCount++;
-                    if (sm.allredA && sm.allredA[i] > 0 && sm.allredA[i] >= 3) longAllRedCount++;
+                    if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) { shortYellowCount++; aStr.push('A황색단락'); hasAnomaly=true; }
+                    if (sm.allredA && sm.allredA[i] > 0 && sm.allredA[i] >= 3) { longAllRedCount++; aStr.push('A긴전적색'); hasAnomaly=true; }
                 }
                 if (dPlan.splitB && dPlan.splitB[i] > 0) {
-                    if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) shortYellowCount++;
-                    if (sm.allredB && sm.allredB[i] > 0 && sm.allredB[i] >= 3) longAllRedCount++;
+                    if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) { shortYellowCount++; aStr.push('B황색단락'); hasAnomaly=true; }
+                    if (sm.allredB && sm.allredB[i] > 0 && sm.allredB[i] >= 3) { longAllRedCount++; aStr.push('B긴전적색'); hasAnomaly=true; }
                 }
             }
+            if (hasAnomaly) window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
         }
     });
 
