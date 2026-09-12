@@ -1073,16 +1073,25 @@ function renderAdvancedInsights(junctions) {
             }
             if (hasPT) ptPhaseCount++;
 
-            // 보행자 대기시간
-            let maxPedTime = 0;
+            // 보행자 지체 (KHCM)
+            let dpSum = 0;
+            let pedPhaseCount = 0;
             for(let i=0; i<8; i++) {
-                if (sm.pedMovA && sm.pedMovA[i] > 0 && dPlan.splitA) maxPedTime = Math.max(maxPedTime, dPlan.splitA[i] || 0);
-                if (sm.pedMovB && sm.pedMovB[i] > 0 && dPlan.splitB) maxPedTime = Math.max(maxPedTime, dPlan.splitB[i] || 0);
+                if (sm.pedMovA && sm.pedMovA[i] > 0 && dPlan.splitA && dPlan.splitA[i] > 0) {
+                    const g = dPlan.splitA[i];
+                    if (dPlan.cycle > 0) dpSum += Math.pow(dPlan.cycle - g, 2) / (2 * dPlan.cycle);
+                    pedPhaseCount++;
+                }
+                if (sm.pedMovB && sm.pedMovB[i] > 0 && dPlan.splitB && dPlan.splitB[i] > 0) {
+                    const g = dPlan.splitB[i];
+                    if (dPlan.cycle > 0) dpSum += Math.pow(dPlan.cycle - g, 2) / (2 * dPlan.cycle);
+                    pedPhaseCount++;
+                }
             }
-            if (maxPedTime > 0 && dPlan.cycle > 0) {
-                const waitTime = dPlan.cycle - maxPedTime;
-                sumPedWaitTime += waitTime;
-                maxPedWaitTime = Math.max(maxPedWaitTime, waitTime);
+            if (pedPhaseCount > 0 && dPlan.cycle > 0) {
+                const avgDp = dpSum / pedPhaseCount;
+                sumPedWaitTime += avgDp;
+                maxPedWaitTime = Math.max(maxPedWaitTime, avgDp);
                 pedWaitJunctionCount++;
             }
 
@@ -1122,7 +1131,13 @@ function renderAdvancedInsights(junctions) {
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
     const avgPhases = (hasSignalMapCount > 0) ? (totalPhases / hasSignalMapCount).toFixed(1) : 0;
     const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
-    const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(0) : 0;
+    const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(1) : 0;
+    let pedLos = 'A';
+    if (avgPedWait > 90) pedLos = 'F';
+    else if (avgPedWait > 60) pedLos = 'E';
+    else if (avgPedWait > 45) pedLos = 'D';
+    else if (avgPedWait > 30) pedLos = 'C';
+    else if (avgPedWait >= 15) pedLos = 'B';
     const finalBalance = hasSignalMapCount > 0 ? ((balanceScore / hasSignalMapCount) * 100).toFixed(1) : 0;
     
     // --- 기본 지표 계산 ---
@@ -1193,7 +1208,7 @@ function renderAdvancedInsights(junctions) {
         <span style="color: #e74c3c; font-size: 13px; font-weight: 700;">🚶 보행, 소거 및 특수 (Pedestrian & Clearance)</span>
     </div>`;
     html += `<div class="grid-2col gap-15 mb-25">`;
-    html += InsightBox("micro_ped", "보행자 최대 대기시간", `평균 ${avgPedWait}초`, `(최대 ${maxPedWaitTime}초)`, "보행자 친화적 운영 수준 지표", "🚶", "#f1c40f");
+    html += InsightBox("micro_ped", "평균 보행자 지체 (LOS)", `${avgPedWait}초 (LOS ${pedLos})`, `최악 교차로: ${maxPedWaitTime.toFixed(1)}초`, "도로용량편람(KHCM) 기준 보행자 평균 지체시간", "🚶", "#f1c40f");
     html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(짧은황색 ${shortYellowCount}, 긴전적색 ${longAllRedCount})`, "딜레마존 악화 및 침지형 위험 구간 건수", "⚠️", "#e67e22");
 
     html += `</div>`;
@@ -1242,10 +1257,10 @@ const INSIGHT_DETAILS = {
         meaning: "현시 개수가 4현시, 5현시 등으로 잘게 쪼개질수록 차량의 대기시간이 비례하여 늘어납니다. 반면 비보호(PT) 좌회전을 적극 적용하면 현시수를 2~3개로 줄여 교차로 통과 효율을 극대화할 수 있습니다."
     },
     "micro_ped": {
-        title: "🚶 보행자 최대 대기시간 (Max Ped Wait Time)",
-        def: "보행자가 횡단보도 녹색신호를 놓쳤을 때, 다음 녹색신호가 켜질 때까지 기다려야 하는 최대 대기시간입니다.",
-        calc: "교차로 주기(Cycle) - 가장 긴 보행자 녹색시간 (단순 추정치)",
-        meaning: "이 대기시간이 100초를 초과하면 보행자의 무단횡단 심리가 급격히 증가합니다. 차량 통행 중심의 넒은 도로일수록 이 값이 크게 나타납니다."
+        title: "🚶 평균 보행자 지체 및 서비스수준 (Pedestrian Delay & LOS)",
+        def: "한국도로용량편람(KHCM)의 신호횡단보도 분석 절차에 따라 산출한 보행자 1인당 평균 지체시간과 그에 따른 서비스수준(LOS)입니다.",
+        calc: "보행자 지체(d) = (C - g)² / 2C (C: 주기, g: 유효녹색시간)",
+        meaning: "서비스수준은 A(15초 미만)부터 F(90초 초과)까지로 분류되며, 지체시간이 길어질수록 보행자의 대기 피로도가 증가하고 무단횡단 등의 위험이 높아집니다."
     },
     "micro_clearance": {
         title: "⚠️ 소거시간 이상치 (Clearance Interval Anomaly)",
