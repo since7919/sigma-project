@@ -307,8 +307,10 @@ function updateStatFilters() {
  *  전체 통계 렌더링
  * ══════════════════════════════════════════ */
 function renderStats() {
-    // [추가] 필터 업데이트 (최초 로드 시나 데이터 변경 시 대응)
-    updateStatFilters();
+    console.log("[Stats] renderStats called");
+    try {
+        // [추가] 필터 업데이트 (최초 로드 시나 데이터 변경 시 대응)
+        updateStatFilters();
 
     let junctions = Object.values(STATE.junctions);
     
@@ -618,6 +620,9 @@ function renderStats() {
     // 대시보드 동기화 (오버레이가 열려 있는 경우)
     if (typeof updateDashboardStats === 'function') {
         updateDashboardStats();
+    }
+    } catch (error) {
+        console.error("[Stats] renderStats error:", error);
     }
 }
 
