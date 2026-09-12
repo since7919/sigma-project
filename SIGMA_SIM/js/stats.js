@@ -1121,7 +1121,6 @@ function renderAdvancedInsights(junctions) {
             </div>
             <div class="fs-11 flex-row-between" style="color: #999; line-height: 1.4;">
                 <span style="flex:1;">${desc}</span>
-                <span style="color:${color}; font-size:10px; margin-left:10px; white-space:nowrap; text-decoration:underline;">상세보기</span>
             </div>
         </div>
     `;
