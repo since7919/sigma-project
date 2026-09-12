@@ -1145,12 +1145,20 @@ function renderAdvancedInsights(junctions) {
     const avgGroupScale = numGroups > 0 ? (coordinatedJunctions / numGroups).toFixed(1) : 0;
 
     let baseCycle = 0, baseCycleCount = 0;
+    let maxCycle = 0, sumCycle = 0, totalCycleCount = 0;
     Object.entries(cycleCounts).forEach(([c, cnt]) => {
+        let cycleNum = parseInt(c, 10);
+        if (cycleNum > 0) {
+            if (cycleNum > maxCycle) maxCycle = cycleNum;
+            sumCycle += (cycleNum * cnt);
+            totalCycleCount += cnt;
+        }
         if (cnt > baseCycleCount) {
             baseCycle = c;
             baseCycleCount = cnt;
         }
     });
+    const avgCycle = totalCycleCount > 0 ? (sumCycle / totalCycleCount).toFixed(1) : 0;
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
 
     // 최대 연동축 규모
@@ -1218,7 +1226,9 @@ function renderAdvancedInsights(junctions) {
     html += `<div class="grid-3col gap-15 mb-25">`;
     html += InsightBox(null, "총 교차로 수", `${totalJunctions.toLocaleString()}`, "개소", "데이터베이스 내 교차로 총합", "📊", "var(--accent)");
     html += InsightBox(null, "사용 중인 일계획 수", `${activePlansCount.toLocaleString()}`, `/ ${totalPlans.toLocaleString()} 개`, "운영이 스케줄링된 활성 일계획 수", "📅", "#f1c40f");
-    html += InsightBox("macro_cycle", "도시 지배 주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 최빈값 주기", "⏱️", "#f39c12");
+    html += InsightBox("macro_cycle", "최빈 신호주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 신호주기 최빈값", "⏱️", "#f39c12");
+    html += InsightBox(null, "평균 신호주기", `${avgCycle}초`, "", "전체 교차로의 평균 신호주기", "⏳", "#e67e22");
+    html += InsightBox(null, "최대 신호주기", `${maxCycle}초`, "", "네트워크 내 가장 긴 신호주기", "📈", "#d35400");
     html += `</div>`;
 
     // 3. 카테고리 2: 연동 및 현시
@@ -1264,8 +1274,8 @@ const INSIGHT_DETAILS = {
         meaning: "수치가 클수록 하나로 길게 뻗은 '거대 간선도로'가 잘 구축된 신도시 형태이며, 수치가 작을수록 교차로 간격이 좁고 블록이 잘게 쪼개진 구도심 형태일 가능성이 높습니다."
     },
     "macro_cycle": {
-        title: "⏱️ 도시 지배 주기 (Metropolis Base Cycle)",
-        def: "해당 도시에서 가장 많은 교차로가 채택하여 사용 중인 신호 주기(최빈값)입니다.",
+        title: "⏱️ 최빈 신호주기 (Most Frequent Cycle)",
+        def: "해당 지역에서 가장 많은 교차로가 채택하여 사용 중인 신호 주기(최빈값)입니다.",
         calc: "전체 교차로의 주기(Cycle Length) 데이터를 집계하여 가장 빈도수가 높은 주기를 도출합니다.",
         meaning: "보통 140초 이상의 긴 주기는 교차로가 넓고 통행량이 많은 대도시형 간선도로망을 의미하며, 100초 이하의 짧은 주기는 보행자 친화적이거나 차량 소통량이 적은 지역임을 시사합니다."
     },
