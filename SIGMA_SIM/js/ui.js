@@ -748,6 +748,7 @@ function goHome() {
     if (typeof renderRingTables === 'function') renderRingTables();
     if (typeof renderSummaryTable === 'function') renderSummaryTable();
     if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
+    if (typeof renderStats === 'function') renderStats();
     
     // 7. 지도 객체(마커/툴팁/화살표) 갱신
     if (typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips();
