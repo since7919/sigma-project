@@ -1034,8 +1034,8 @@ function renderAdvancedInsights(junctions) {
     let validIntegrityCount = 0, totalIntegrityCount = 0;
 
     junctions.forEach(j => {
-        // 기본 지표: 활성 일계획
-        if (j.schedules) {
+        // 기본 지표: 활성 일계획 (유효한 데이터가 있는 경우만 합산)
+        if (j.schedules && j.signalMaps && j.signalMaps[0] && j.signalMaps[0].id) {
             j.schedules.forEach(sched => {
                 if (sched && sched[0] && sched[0].h >= 0) activePlansCount++;
             });
@@ -1054,7 +1054,7 @@ function renderAdvancedInsights(junctions) {
         const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
 
         const sched = j.schedules && j.schedules[0] ? j.schedules[0] : null;
-        if (sched) {
+        if (sched && dPlan && sm) {
             for (let h = 0; h < 24; h++) {
                 const sec = h * 3600;
                 let activeIdx = 0;

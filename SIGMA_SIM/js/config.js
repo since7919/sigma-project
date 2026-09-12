@@ -202,7 +202,7 @@ function createEmptyPlans() {
 /** 16개 빈 스케줄 배열 생성 */
 function createEmptySched() {
     return Array.from({ length: 16 }, (_, k) => ({
-        h: k === 0 ? 0 : -1, m: 0, cycle: 100
+        h: k === 0 ? 0 : -1, m: 0, cycle: 0
     }));
 }
 
