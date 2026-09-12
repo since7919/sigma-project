@@ -1055,11 +1055,11 @@ function renderAdvancedInsights(junctions) {
             }
 
             // 주간선 비율 (현시 1번, 2번 기준)
-            const mainA = dPlan.splitA[0] || 0;
-            const mainB = dPlan.splitA[1] || 0; 
+            const mainA = (dPlan.splitA && dPlan.splitA[0]) || 0;
+            const mainB = (dPlan.splitB && dPlan.splitB[0]) || (dPlan.splitA && dPlan.splitA[1]) || 0; 
             if (mainA > 0 || mainB > 0) {
                 totalMainSplit += (mainA + mainB);
-                totalCycle += dPlan.cycle;
+                totalCycle += dPlan.cycle || 0;
                 mainPhaseCount++;
             }
 
@@ -1067,10 +1067,11 @@ function renderAdvancedInsights(junctions) {
             let activePhases = 0;
             let hasPT = false;
             for(let i=0; i<8; i++) {
-                if (dPlan.splitA[i] > 0) activePhases++;
-                if (dPlan.splitB[i] > 0) activePhases++;
+                if (dPlan.splitA && dPlan.splitA[i] > 0) activePhases++;
+                if (dPlan.splitB && dPlan.splitB[i] > 0) activePhases++;
                 
-                const mA = sm.movA[i], mB = sm.movB[i];
+                const mA = sm.movA ? sm.movA[i] : null;
+                const mB = sm.movB ? sm.movB[i] : null;
                 if ([7, 8, 9, 20, 21, 22, 23].includes(mA) || [7, 8, 9, 20, 21, 22, 23].includes(mB)) {
                     hasPT = true;
                 }
@@ -1085,8 +1086,8 @@ function renderAdvancedInsights(junctions) {
             // 보행자 대기시간
             let maxPedTime = 0;
             for(let i=0; i<8; i++) {
-                if (sm.pedMovA && sm.pedMovA[i] > 0) maxPedTime = Math.max(maxPedTime, dPlan.splitA[i]);
-                if (sm.pedMovB && sm.pedMovB[i] > 0) maxPedTime = Math.max(maxPedTime, dPlan.splitB[i]);
+                if (sm.pedMovA && sm.pedMovA[i] > 0 && dPlan.splitA) maxPedTime = Math.max(maxPedTime, dPlan.splitA[i] || 0);
+                if (sm.pedMovB && sm.pedMovB[i] > 0 && dPlan.splitB) maxPedTime = Math.max(maxPedTime, dPlan.splitB[i] || 0);
             }
             if (maxPedTime > 0 && dPlan.cycle > 0) {
                 const waitTime = dPlan.cycle - maxPedTime;
@@ -1097,11 +1098,11 @@ function renderAdvancedInsights(junctions) {
 
             // 소거 시간 이상치
             for(let i=0; i<8; i++) {
-                if (dPlan.splitA[i] > 0) {
+                if (dPlan.splitA && dPlan.splitA[i] > 0) {
                     if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) shortYellowCount++;
                     if (sm.allredA && sm.allredA[i] > 0 && sm.allredA[i] >= 3) longAllRedCount++;
                 }
-                if (dPlan.splitB[i] > 0) {
+                if (dPlan.splitB && dPlan.splitB[i] > 0) {
                     if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) shortYellowCount++;
                     if (sm.allredB && sm.allredB[i] > 0 && sm.allredB[i] >= 3) longAllRedCount++;
                 }
