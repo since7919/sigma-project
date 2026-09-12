@@ -1151,7 +1151,9 @@ function renderAdvancedInsights(junctions) {
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / totalJunctions) * 100).toFixed(1) : 0;
 
     // 최대 연동축 규모
-    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;\n    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
+    const maxGroupScale = numGroups > 0 ? Math.max(...Object.values(groupCounts)) : 0;
+    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
+    window.LATEST_INSIGHT_DYNAMIC.numGroups = numGroups; window.LATEST_INSIGHT_DYNAMIC.maxGroupNodes = maxGroupScale;
 
     // --- 심층 지표 계산 ---
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
