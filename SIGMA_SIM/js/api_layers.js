@@ -91,7 +91,8 @@ const ApiLayers = {
             console.log(`[ApiLayers] Loaded ${this.layers.utic.getLayers().length} UTIC markers.`);
         } catch (err) {
             console.error('[ApiLayers] Error loading API data:', err);
-            alert('외부 교차로 데이터를 불러오는 중 오류가 발생했습니다.');
+            alert('외부 교차로 데이터를 불러오는 중 오류가 발생했습니다.\n(초기 연동 시 시간이 다소 소요될 수 있습니다. 잠시 후 다시 시도해주세요.)');
+            this.loadedRegion = null;
         }
     },
 
