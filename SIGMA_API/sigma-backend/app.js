@@ -40,7 +40,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../index.html'));
 });
 app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets')));
-app.use('/sim', express.static(path.join(__dirname, '../../SIGMA_SIM')));
+app.use('/sim', express.static(path.join(__dirname, '../../SIGMA_SIM'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
