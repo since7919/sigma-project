@@ -1028,6 +1028,7 @@ function renderAdvancedInsights(junctions) {
     let coordinatedJunctions = 0;
     const groupCounts = {};
     const cycleCounts = {};
+    const junctionMaxCycles = [];
 
     // 기본 지표 (이전의 stat-summary-grid 대체용)
     let activePlansCount = 0;
@@ -1192,6 +1193,9 @@ function renderAdvancedInsights(junctions) {
     const avgCycle = totalCycleCount > 0 ? (sumCycle / totalCycleCount).toFixed(1) : 0;
     const baseCycleRate = totalJunctions > 0 ? ((baseCycleCount / (totalJunctions * 24)) * 100).toFixed(1) : 0;
 
+    junctionMaxCycles.sort((a, b) => b.cycle - a.cycle);
+    window.LATEST_INSIGHT_DYNAMIC.top5MaxCycles = junctionMaxCycles.slice(0, 5);
+    
     // 최대 연동축 규모
     const sortedGroups = Object.entries(groupCounts).sort((a, b) => b[1] - a[1]);
     const maxGroupScale = sortedGroups.length > 0 ? sortedGroups[0][1] : 0;
@@ -1261,12 +1265,14 @@ function renderAdvancedInsights(junctions) {
     html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
         <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">⏱️ 기본 통계 및 주기 (Basic & Cycle)</span>
     </div>`;
-    html += `<div class="grid-3col gap-15 mb-25">`;
+    html += `<div class="grid-2col gap-15 mb-15">`;
     html += InsightBox(null, "총 교차로 수", `${totalJunctions.toLocaleString()}`, "개소", "데이터베이스 내 교차로 총합", "📊", "var(--accent)");
     html += InsightBox(null, "사용 중인 일계획 수", `${activePlansCount.toLocaleString()}`, `/ ${totalPlans.toLocaleString()} 개`, "운영이 스케줄링된 활성 일계획 수", "📅", "#f1c40f");
-    html += InsightBox("macro_cycle", "최빈 신호주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 신호주기 최빈값", "⏱️", "#f39c12");
+    html += `</div>`;
+    html += `<div class="grid-3col gap-15 mb-25">`;
     html += InsightBox("macro_avg_cycle", "평균 신호주기", `${avgCycle}초`, "", "전체 교차로의 평균 신호주기", "⏳", "#e67e22");
     html += InsightBox("macro_max_cycle", "최대 신호주기", `${maxCycle}초`, "", "네트워크 내 가장 긴 신호주기", "📈", "#d35400");
+    html += InsightBox("macro_cycle", "최빈 신호주기", `${baseCycle}초`, `(점유율 ${baseCycleRate}%)`, "가장 많이 사용되는 신호주기 최빈값", "⏱️", "#f39c12");
     html += `</div>`;
 
     // 3. 카테고리 2: 연동 및 현시
@@ -1409,7 +1415,11 @@ window.showInsightDetail = function(id) {
     const dyn = window.LATEST_INSIGHT_DYNAMIC;
     if (dyn) {
         let dynHtml = '';
-        if (id === 'macro_coord') dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로 중 연동 교차로 ${dyn.coordinatedJunctions.toLocaleString()}개`;
+        if (id === 'macro_max_cycle') {
+            const list = (dyn.top5MaxCycles || []).map((j, i) => `<li>${i+1}위: ${j.name} (${j.cycle}초)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로<br><br><b style="color:#d35400;">📈 주기가 가장 긴 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        }
+        else if (id === 'macro_coord') dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로 중 연동 교차로 ${dyn.coordinatedJunctions.toLocaleString()}개`;
         else if (id === 'macro_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹`;
         else if (id === 'macro_max_scale') {
             const list = (dyn.top5Groups || []).map((g, i) => `<li>${i+1}위: ${g[0]} (${g[1]}개)</li>`).join('');
