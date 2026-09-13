@@ -21,6 +21,8 @@ window.addEventListener("keyup", (e) => {
 
 // 공통 루프 중단 확인
 function isOverlayHidden() {
+    const standalone = document.getElementById('minigame-standalone-modal');
+    if (standalone && standalone.style.display !== 'none') return false;
     const overlay = document.getElementById('loading-overlay');
     return (overlay && overlay.style.display === 'none');
 }
@@ -464,3 +466,52 @@ if (document.readyState === "loading") {
 } else {
     initMiniGameMaster();
 }
+
+
+window.playStandaloneMiniGame = function() {
+    let modal = document.getElementById('minigame-standalone-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'minigame-standalone-modal';
+        modal.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999999; display:flex; align-items:center; justify-content:center; flex-direction:column; backdrop-filter:blur(5px);";
+        
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = "❌ 닫기";
+        closeBtn.style.cssText = "position:absolute; top:20px; right:30px; color:#fff; font-size:24px; cursor:pointer; font-weight:bold;";
+        closeBtn.onclick = () => {
+            modal.style.display = 'none';
+        };
+        modal.appendChild(closeBtn);
+        
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
+    
+    let container = document.getElementById("minigame-container");
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'minigame-container';
+        container.style.cssText = "background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); width: 400px; text-align: center; margin-top: 20px;";
+        container.innerHTML = `
+            <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 14px;">🎮 휴식 타임 미니게임</h4>
+            <canvas id="minigameCanvas" width="360" height="200" style="background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);"></canvas>
+            <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
+            <p style="color: #888; font-size: 11px; margin: 5px 0 0 0;">방향키(스페이스바)를 사용하여 플레이하세요!</p>
+        `;
+    }
+    
+    modal.appendChild(container);
+    
+    // 텍스트 업데이트
+    const title = container.querySelector("h4");
+    if (title) title.innerHTML = "🎮 휴식 타임 미니게임";
+    const p = container.querySelector("p");
+    if (p) p.innerHTML = "방향키를 사용하여 플레이하세요!";
+    
+    const canvas = document.getElementById("minigameCanvas");
+    if (canvas) {
+        canvas.focus(); // 캔버스에 포커스 (방향키 작동을 위해)
+    }
+
+    initMiniGameMaster();
+};
