@@ -1057,6 +1057,7 @@ function renderAdvancedInsights(junctions) {
         const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
 
         const sched = j.schedules && j.schedules[0] ? j.schedules[0] : null;
+        let maxCycleForJ = 0;
         if (sched && hasValidPlan && sm) {
             for (let h = 0; h < 24; h++) {
                 const sec = h * 3600;
@@ -1072,9 +1073,12 @@ function renderAdvancedInsights(junctions) {
                 const activeSched = sched[activeIdx];
                 if (activeSched && activeSched.cycle > 0) {
                     cycleCounts[activeSched.cycle] = (cycleCounts[activeSched.cycle] || 0) + 1;
+                    if (Number(activeSched.cycle) > maxCycleForJ) maxCycleForJ = Number(activeSched.cycle);
                 }
             }
         }
+        
+        if (maxCycleForJ > 0) junctionMaxCycles.push({ name: j.node_name, cycle: maxCycleForJ });
         
         if (dPlan && sm) {
 
@@ -1148,11 +1152,11 @@ function renderAdvancedInsights(junctions) {
             for(let i=0; i<8; i++) {
                 if (dPlan.splitA && dPlan.splitA[i] > 0) {
                     if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) { shortYellowCount++; aStr.push('A황색단락'); hasAnomaly=true; }
-                    if (sm.allredA && sm.allredA[i] > 0 && sm.allredA[i] >= 3) { longAllRedCount++; aStr.push('A긴전적색'); hasAnomaly=true; }
+                    // removed longAllRedCount A
                 }
                 if (dPlan.splitB && dPlan.splitB[i] > 0) {
                     if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) { shortYellowCount++; aStr.push('B황색단락'); hasAnomaly=true; }
-                    if (sm.allredB && sm.allredB[i] > 0 && sm.allredB[i] >= 3) { longAllRedCount++; aStr.push('B긴전적색'); hasAnomaly=true; }
+                    // removed longAllRedCount B
                 }
             }
             if (hasAnomaly) window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
@@ -1294,7 +1298,7 @@ function renderAdvancedInsights(junctions) {
     </div>`;
     html += `<div class="grid-2col gap-15 mb-25">`;
     html += InsightBox("micro_ped", "평균 보행자 지체 (LOS)", `${avgPedWait}초 (LOS ${pedLos})`, `최악 교차로: ${maxPedWaitTime.toFixed(1)}초`, "도로용량편람(KHCM) 기준 보행자 평균 지체시간", "🚶", "#f1c40f");
-    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount + longAllRedCount}건`, `(짧은황색 ${shortYellowCount}, 긴전적색 ${longAllRedCount})`, "딜레마존 악화 및 침지형 위험 구간 건수", "⚠️", "#e67e22");
+    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount}건`, `(짧은황색 < 3초)`, "딜레마존 악화를 유발하는 비정상적으로 짧은 황색신호 건수", "⚠️", "#e67e22");
 
     html += `</div>`;
 
@@ -1362,7 +1366,7 @@ const INSIGHT_DETAILS = {
     "micro_clearance": {
         title: "⚠️ 소거시간 이상치 (Clearance Interval Anomaly)",
         def: "황색신호가 3초 미만이거나, 전적색(All-Red) 신호가 3초 이상으로 비정상적으로 길게 설정된 위험 구간의 건수입니다.",
-        calc: "황색 < 3초 (짧은 황색), 전적색 >= 3초 (긴 전적색) 인 교차로 개수 합산",
+        calc: "황색 < 3초 (짧은 황색) 로 설정된 교차로 개수 합산",
         meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 꼬리물기나 급제동 사고를 유발하며, 지나치게 긴 전적색은 교차로 면적이 비정상적으로 넓거나 기하구조가 복잡한 침지형 교차로임을 암시합니다."
     },
     "micro_balance": {
