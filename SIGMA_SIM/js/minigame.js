@@ -40,8 +40,8 @@ function isOverlayHidden() {
 // 1. 신호등 받기 (과일 먹기 응용)
 // ----------------------------------------------------
 function initFruitCatch(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
-    titleDisplay.innerHTML = "🎮 미니게임 1: 신호등 받기";
-    descDisplay.innerHTML = "방향키(<strong>←, →</strong>)로 신호등(🚦)을 먹고, 장애물(🚧)을 피하세요!";
+    titleDisplay.innerHTML = "🎮 미니게임 1: 토끼의 과일 받기";
+    descDisplay.innerHTML = "방향키(<strong>←, →</strong>)로 과일을 먹고, 폭탄(💣)을 피하세요!";
     
     let score = 0, isGameOver = false, playerX = 160, playerY = 165;
     let items = [], timer = 0;
@@ -60,10 +60,11 @@ function initFruitCatch(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
 
         timer++;
         if (timer % 40 === 0) {
-            const isObstacle = Math.random() < 0.3;
+            const isObstacle = Math.random() < 0.25;
+            const fruits = ['🍎', '🍓', '🍇', '🥕', '🍊', '🍉'];
             items.push({
                 x: Math.random() * (canvas.width - 30) + 15, y: -20,
-                symbol: isObstacle ? '🚧' : '🚦', type: isObstacle ? 'bad' : 'good',
+                symbol: isObstacle ? '💣' : fruits[Math.floor(Math.random() * fruits.length)], type: isObstacle ? 'bad' : 'good',
                 speed: Math.random() * 2 + 1.5
             });
         }
@@ -84,7 +85,7 @@ function initFruitCatch(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.font = "28px sans-serif";
-        ctx.fillText("🚔", playerX, playerY + 20);
+        ctx.fillText("🐰", playerX, playerY + 20);
         for (let item of items) ctx.fillText(item.symbol, item.x, item.y);
         
         if (isGameOver) drawGameOver(ctx, canvas, score);
