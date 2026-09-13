@@ -71,9 +71,15 @@ window.toggleAccordion = function(regionCode) {
         _openAccordions = {};
         _openAccordions[regionCode] = true;
         
-        if (typeof STATE !== 'undefined') {
+        if (typeof STATE !== 'undefined' && STATE.junctions) {
+            Object.values(STATE.junctions).forEach(j => {
+                if (j.marker && window.map) {
+                    window.map.removeLayer(j.marker);
+                }
+            });
             STATE.junctions = {};
-            STATE.loadedFiles = {}; STATE.sortedJunctions = null; // Clear loaded files so we can load the new region!
+            STATE.sortedJunctions = null;
+            STATE.loadedFiles = {};
         }
         if (window.markers) window.markers.clearLayers();
         if (window.roadNetworkLayer) window.roadNetworkLayer.clearLayers();

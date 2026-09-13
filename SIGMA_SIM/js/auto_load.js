@@ -78,6 +78,10 @@ async function autoLoadFiles() {
             const buf = await res.arrayBuffer();
             const ft1 = performance.now();
             const content = decodeBuffer(buf);
+            if (content.trim().toLowerCase().startsWith('<!doctype html') || content.trim().toLowerCase().startsWith('<html')) {
+                console.warn(`[Auto-load] Warning: ${baseUrl} returned HTML. Assuming file not found on server.`);
+                return null;
+            }
             
             if (content && content.length > 5) {
                 const pt0 = performance.now();
