@@ -703,11 +703,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
     if(canvas) canvas.focus();
 }
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => initMiniGameMaster(-1));
-} else {
-    initMiniGameMaster(-1);
-}
+initMiniGameMaster(-1);
 
 
 window.playStandaloneMiniGame = function() {
