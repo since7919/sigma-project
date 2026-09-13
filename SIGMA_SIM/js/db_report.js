@@ -14,7 +14,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
     // Build Google Maps static iframe or URL
     const lat = j.lat || 37.5665;
     const lng = j.lng || 126.9780;
-    const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&t=k&output=embed" allowfullscreen></iframe>`;
+    const mapHtml = `<div id="db-report-map-mount" style="width: 100%; height: 100%; min-height: 140px; background:#333;"></div>`;
     
     // TOD Plans
     const plansHTML = [1,2,3,4].map(idx => {
@@ -110,7 +110,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                 <div class="db-tod-table">
                     <div class="db-tod-title">특수일</div>
                     <table class="db-table db-table-small">
-                        <thead><tr><th>번호</th><th>DAY</th><th>TOD</th></tr></thead>
+                        <thead><tr><th>번호</th><th style="text-align:left; padding-left:5px;">DAY</th><th>TOD</th></tr></thead>
                         <tbody>
                             ${Array.from({length:16}).map((_, i) => {
                                 const holidays = [
@@ -121,7 +121,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                                 ];
                                 const h = holidays[i];
                                 if (h) {
-                                    return `<tr><td>${i+1}</td><td>${h.name} ${h.d}</td><td>4</td></tr>`;
+                                    return `<tr><td>${i+1}</td><td style="text-align:left; padding-left:5px;">${h.name} ${h.d}</td><td>4</td></tr>`;
                                 } else {
                                     return `<tr><td>${i+1}</td><td></td><td></td></tr>`;
                                 }
@@ -131,8 +131,8 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                 </div>
             </div>
             
-            <div style="margin-top:5px; display:flex; gap:10px;">
-                <table class="db-table db-table-bordered" style="flex:1;">
+            <div style="margin-top:5px; display:flex; justify-content:space-between;">
+                <table class="db-table db-table-bordered" style="width: 59.5%;">
                     <tr><th>번호</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
                     ${(dayPlans[mapIdx * 5] || []).map((tp, rowI) => {
                         const splitsA = tp?.splitA || [0,0,0,0,0,0,0,0];
@@ -154,7 +154,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                         `;
                     }).join('')}
                 </table>
-                <div style="flex:1; border:1px solid #000; padding:10px; font-size:11px;">
+                <div style="width: 39.25%; border:1px solid #000; padding:10px; font-size:11px; box-sizing:border-box;">
                     <b>참고(295G)</b><br>
                     ○ 루프검지기 설치현황<br>
                     ○ 앞막힘검지기 2개 / 대기검지기 4개<br>
@@ -167,6 +167,23 @@ function openDbReportOverlay(jid, mapIdx = 0) {
     
     container.innerHTML = html;
     container.style.display = 'block';
+
+    const mapMount = document.getElementById('db-report-map-mount');
+    if (mapMount && typeof L !== 'undefined') {
+        const miniMap = L.map(mapMount, {
+            center: [lat, lng],
+            zoom: 17,
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false
+        });
+        L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, maxNativeZoom: 20 }).addTo(miniMap);
+        L.circleMarker([lat, lng], { color: '#ff4444', radius: 5, fillOpacity: 1, stroke: true, weight: 2, color: '#fff' }).addTo(miniMap);
+        setTimeout(() => miniMap.invalidateSize(), 10);
+    }
+
     
     // Mount original IPD exactly as-is!
     if (sm && typeof InteractivePhaseDiagram !== 'undefined') {
@@ -195,7 +212,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
             .db-report-sub { text-align: right; margin-top: -25px; margin-bottom: 5px; font-size: 12px; }
             .db-table { border-radius: 0 !important; color: #000; font-weight: 600; width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; line-height: 1.2; }
             .db-table th, .db-table td { color: #000; border: 1px solid #000; padding: 2px; }
-            .db-table-small th, .db-table-small td { padding: 0 2px; font-size: 10.5px; line-height: 1.05; }
+            .db-table-small th, .db-table-small td { padding: 2px; font-size: 10.5px; line-height: 1.15; }
             .db-tod-title { text-align: center; font-weight: bold; font-size: 11.5px; margin-bottom: 1px; border: 1px solid #000; border-bottom: none; padding: 1px; }
             .db-tod-table { width: 19%; }
             .btn-primary { background: #3498db; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 0 !important; font-weight:bold; }
