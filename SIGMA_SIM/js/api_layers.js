@@ -38,7 +38,7 @@ const ApiLayers = {
             }
         }
 
-        const currentRegion = document.getElementById('api-region-select').value;
+        const currentRegion = window.CURRENT_REGION_CODE || 'L01';
 
         if (isEnabled) {
             // 다른 지역이 로드된 상태이거나 처음 로드하는 경우 데이터 새로고침

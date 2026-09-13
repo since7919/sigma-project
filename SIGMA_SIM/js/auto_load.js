@@ -18,8 +18,7 @@ async function autoLoadFiles() {
 
     if (!STATE.loadedFiles) STATE.loadedFiles = {};
 
-    const regionSelect = document.getElementById('api-region-select');
-    const regionCode = regionSelect ? regionSelect.value : 'L01';
+    const regionCode = window.CURRENT_REGION_CODE || 'L01';
 
     let dbVersion = Date.now();
     try {

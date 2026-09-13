@@ -51,7 +51,7 @@ window.toggleSignalSource = function() {
 };
 
 window.onRegionChange = async function() {
-    const regionCode = document.getElementById('api-region-select').value;
+    const regionCode = (window.CURRENT_REGION_CODE || 'L01');
     console.log(`[Region] 지역 변경: ${regionCode}`);
     
     // 외부 교차로 API 레이어 초기화
@@ -105,7 +105,7 @@ async function fetchRealtimeSignals() {
         const itstNm = encodeURIComponent(j.name);
         
         // 선택된 지역코드 또는 저장된 지역코드 사용
-        let regionCode = j.region || j.regionCode || document.getElementById('api-region-select').value || 'L01';
+        let regionCode = j.region || j.regionCode || (window.CURRENT_REGION_CODE || 'L01') || 'L01';
         
         // 정확한 필터링 파라미터 적용 (srchCTId, srchCRNm) 및 SigMap API 사용
         const originalUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?srchCTId=${regionCode}&srchCRNm=${itstNm}&type=json`;
@@ -838,7 +838,7 @@ function renderDetailedAPIPanel(j, steps, t) {
     if (!tableBody || steps.length === 0) return;
 
     // 타이틀 및 기본 스탯 업데이트
-    const regionName = document.getElementById('api-region-select').options[document.getElementById('api-region-select').selectedIndex].text;
+    const regionName = (window.REGION_MAP && window.REGION_MAP[window.CURRENT_REGION_CODE || 'L01']) || '서울특별시';
     titleText.innerText = `[${regionName}] ${j.name || j.id}`;
     statIntNo.innerText = j.id;
     
@@ -923,7 +923,7 @@ window.selectApiJunction = function(id, name, lat, lng) {
     }
     
     // 2. STATE.junctions에 임시 등록 (기존에 없으면)
-    const regionCode = document.getElementById('api-region-select').value;
+    const regionCode = (window.CURRENT_REGION_CODE || 'L01');
     if (!STATE.junctions[id]) {
         STATE.junctions[id] = {
             id: id,

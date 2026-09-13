@@ -21,7 +21,7 @@ function toggleLeftSidebar() {
 /**
  * 지역 필터 함수 (공통)
  */
-const REGION_MAP = {
+window.REGION_MAP = {
     'L01': '서울특별시',
     'L02': '인천광역시',
     '161': '부산광역시',
@@ -42,7 +42,7 @@ const REGION_MAP = {
 };
 
 
-const REGION_ORDER = [
+window.REGION_ORDER = [
     'L01', // 서울
     'L02', // 인천
     '170', // 경기
@@ -64,9 +64,33 @@ const REGION_ORDER = [
 
 let _openAccordions = { 'L01': true };
 
+window.CURRENT_REGION_CODE = 'L01';
 window.toggleAccordion = function(regionCode) {
-    _openAccordions[regionCode] = !_openAccordions[regionCode];
-    renderJunctionList();
+    if (window.CURRENT_REGION_CODE !== regionCode) {
+        window.CURRENT_REGION_CODE = regionCode;
+        _openAccordions = {};
+        _openAccordions[regionCode] = true;
+        
+        if (typeof STATE !== 'undefined') {
+            STATE.junctions = {};
+            STATE.loadedFiles = {}; STATE.sortedJunctions = null; // Clear loaded files so we can load the new region!
+        }
+        if (window.markers) window.markers.clearLayers();
+        if (window.roadNetworkLayer) window.roadNetworkLayer.clearLayers();
+        if (typeof renderDashboard === 'function') {
+            const dbContainer = document.getElementById('dashboard-container');
+            if (dbContainer) dbContainer.innerHTML = ''; 
+        }
+
+        renderJunctionList();
+        
+        if (typeof autoLoadFiles === 'function') {
+            autoLoadFiles();
+        }
+    } else {
+        _openAccordions[regionCode] = !_openAccordions[regionCode];
+        renderJunctionList();
+    }
 };
 
 /**
@@ -77,7 +101,7 @@ function getJunctionRegion(j) {
     const jid = String(j.id);
     if (jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-')) return 'L01';
     if (jid.startsWith('L02-') || jid === '1001') return 'L02';
-    for (const code of Object.keys(REGION_MAP)) {
+    for (const code of Object.keys(window.REGION_MAP)) {
         if (jid.startsWith(`${code}-`)) return code;
     }
     return 'UNKNOWN';
@@ -112,8 +136,8 @@ function buildVirtualListData() {
         s.sortedJunctions = Object.values(junctions).sort((a, b) => {
             const rA = getJunctionRegion(a);
             const rB = getJunctionRegion(b);
-            const rNameA = REGION_MAP[rA] || rA;
-            const rNameB = REGION_MAP[rB] || rB;
+            const rNameA = window.REGION_MAP[rA] || rA;
+            const rNameB = window.REGION_MAP[rB] || rB;
             const regionCompare = rNameA.localeCompare(rNameB, 'ko');
             if (regionCompare !== 0) return regionCompare;
             return (a.name || '').localeCompare(b.name || '', 'ko');
@@ -136,7 +160,7 @@ function buildVirtualListData() {
     const regionCodes = [];
     
     // 강제로 모든 기본 지역 추가 (검색 중이 아닐 때만, 또는 검색어와 무관하게 표시를 원하므로)
-    REGION_ORDER.forEach(code => {
+    window.REGION_ORDER.forEach(code => {
         grouped[code] = [];
         regionCodes.push(code);
     });
@@ -164,7 +188,7 @@ function buildVirtualListData() {
     let currentTop = 0;
     
     regionCodes.forEach(rCode => {
-        const rName = REGION_MAP[rCode] || rCode;
+        const rName = window.REGION_MAP[rCode] || rCode;
         const items = grouped[rCode]; // already sorted!
         const isOpen = query ? true : !!_openAccordions[rCode];
         
@@ -447,7 +471,7 @@ function handlePhaseSearch(query, isForceSelect = false) {
     const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
     if (!s || !s.junctions) return;
 
-    const regionSelect = document.getElementById('api-region-select');
+    const regionSelect = { value: window.CURRENT_REGION_CODE || 'L01' };
     const regionCode = regionSelect ? regionSelect.value : '110';
 
     // 통합 검색 필터링 (ID, 명칭, 연등번호 포함, 그리고 지역 선택 반영)
