@@ -434,6 +434,179 @@ function drawGameOver(ctx, canvas, scoreStr) {
 // ----------------------------------------------------
 // 메인 초기화 (5종 중 1개 랜덤 선택)
 // ----------------------------------------------------
+
+// ----------------------------------------------------
+// 6. 2048 게임
+// ----------------------------------------------------
+function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
+    titleDisplay.innerHTML = "🎮 미니게임 6: 2048";
+    descDisplay.innerHTML = "방향키(<strong>↑↓←→</strong>)로 같은 숫자를 합쳐 2048을 만드세요!";
+    
+    let score = 0, isGameOver = false;
+    let grid = [];
+    let keyLocked = { up: false, down: false, left: false, right: false };
+
+    function addRandomTile() {
+        let emptyCells = [];
+        for (let r=0; r<4; r++) {
+            for (let c=0; c<4; c++) {
+                if (grid[r][c] === 0) emptyCells.push({r, c});
+            }
+        }
+        if (emptyCells.length > 0) {
+            let {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+        }
+    }
+
+    const game = {
+        get isGameOver() { return isGameOver; },
+        reset: () => {
+            score = 0; isGameOver = false;
+            grid = Array(4).fill().map(() => Array(4).fill(0));
+            addRandomTile();
+            addRandomTile();
+            loop();
+        }
+    };
+
+    function slide(row) {
+        let arr = row.filter(val => val);
+        let missing = 4 - arr.length;
+        return arr.concat(Array(missing).fill(0));
+    }
+    
+    function combine(row) {
+        for (let i = 0; i < 3; i++) {
+            if (row[i] !== 0 && row[i] === row[i+1]) {
+                row[i] *= 2;
+                score += row[i];
+                row[i+1] = 0;
+            }
+        }
+        return row;
+    }
+    
+    function operate(row) {
+        return slide(combine(slide(row)));
+    }
+
+    function moveLeft() {
+        let moved = false;
+        for (let r=0; r<4; r++) {
+            let oldRow = [...grid[r]];
+            grid[r] = operate(grid[r]);
+            if (oldRow.join(',') !== grid[r].join(',')) moved = true;
+        }
+        return moved;
+    }
+    
+    function moveRight() {
+        let moved = false;
+        for (let r=0; r<4; r++) {
+            let oldRow = [...grid[r]];
+            grid[r] = operate(grid[r].reverse()).reverse();
+            if (oldRow.join(',') !== grid[r].join(',')) moved = true;
+        }
+        return moved;
+    }
+    
+    function moveUp() {
+        let moved = false;
+        for (let c=0; c<4; c++) {
+            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+            let oldCol = [...col];
+            let newCol = operate(col);
+            for (let r=0; r<4; r++) grid[r][c] = newCol[r];
+            if (oldCol.join(',') !== newCol.join(',')) moved = true;
+        }
+        return moved;
+    }
+    
+    function moveDown() {
+        let moved = false;
+        for (let c=0; c<4; c++) {
+            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+            let oldCol = [...col];
+            let newCol = operate(col.reverse()).reverse();
+            for (let r=0; r<4; r++) grid[r][c] = newCol[r];
+            if (oldCol.join(',') !== newCol.join(',')) moved = true;
+        }
+        return moved;
+    }
+
+    function checkGameOver() {
+        for (let r=0; r<4; r++) {
+            for (let c=0; c<4; c++) {
+                if (grid[r][c] === 0) return;
+                if (c < 3 && grid[r][c] === grid[r][c+1]) return;
+                if (r < 3 && grid[r][c] === grid[r+1][c]) return;
+            }
+        }
+        isGameOver = true;
+    }
+
+    function update() {
+        if (isGameOver) return;
+        
+        let moved = false;
+        if (mg_keys["ArrowUp"]) { if (!keyLocked.up) { moved = moveUp(); keyLocked.up = true; } } else keyLocked.up = false;
+        if (mg_keys["ArrowDown"]) { if (!keyLocked.down) { moved = moveDown(); keyLocked.down = true; } } else keyLocked.down = false;
+        if (mg_keys["ArrowLeft"]) { if (!keyLocked.left) { moved = moveLeft(); keyLocked.left = true; } } else keyLocked.left = false;
+        if (mg_keys["ArrowRight"]) { if (!keyLocked.right) { moved = moveRight(); keyLocked.right = true; } } else keyLocked.right = false;
+
+        if (moved) {
+            addRandomTile();
+            checkGameOver();
+            scoreDisplay.textContent = "점수: " + score;
+        }
+    }
+
+    const colors = {
+        0: "#cdc1b4", 2: "#eee4da", 4: "#ede0c8", 8: "#f2b179",
+        16: "#f59563", 32: "#f67c5f", 64: "#f65e3b", 128: "#edcf72",
+        256: "#edcc61", 512: "#edc850", 1024: "#edc53f", 2048: "#edc22e"
+    };
+
+    function draw() {
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "#bbada0";
+        ctx.fillRect(85, 5, 190, 190);
+        
+        for (let r=0; r<4; r++) {
+            for (let c=0; c<4; c++) {
+                let val = grid[r][c];
+                let cx = 85 + 6 + c * 46;
+                let cy = 5 + 6 + r * 46;
+                
+                ctx.fillStyle = colors[val] || "#3c3a32";
+                ctx.fillRect(cx, cy, 40, 40);
+                
+                if (val > 0) {
+                    ctx.fillStyle = val <= 4 ? "#776e65" : "#f9f6f2";
+                    ctx.font = val > 100 ? "bold 13px sans-serif" : "bold 18px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(val, cx + 20, cy + 20);
+                }
+            }
+        }
+        
+        if (isGameOver) drawGameOver(ctx, canvas, score);
+    }
+
+    function loop() {
+        if (isOverlayHidden()) return;
+        update();
+        draw();
+        if (!isGameOver) mg_animationId = requestAnimationFrame(loop);
+    }
+    
+    return game;
+}
+
 function initMiniGameMaster() {
     let container = document.getElementById("minigame-container");
     if (!container) {
@@ -459,7 +632,7 @@ function initMiniGameMaster() {
     const titleDisplay = document.querySelector("#minigame-container h4");
     const descDisplay = document.querySelector("#minigame-container p");
 
-    const games = [initFruitCatch, initDodger, initPacman, initDinoJump, initReaction];
+    const games = [initFruitCatch, initDodger, initPacman, initDinoJump, initReaction, init2048];
     const selectedGame = games[Math.floor(Math.random() * games.length)];
     
     if (mg_animationId) cancelAnimationFrame(mg_animationId);
