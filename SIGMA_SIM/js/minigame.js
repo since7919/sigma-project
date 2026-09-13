@@ -649,6 +649,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
     // 선택된 게임 실행
     currentGame = selectedGame(ctx, canvas, scoreDisplay, titleDisplay, descDisplay);
     currentGame.reset();
+    if(canvas) canvas.focus();
 }
 
 if (document.readyState === "loading") {
