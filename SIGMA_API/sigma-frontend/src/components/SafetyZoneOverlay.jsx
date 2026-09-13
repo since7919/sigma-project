@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
@@ -30,48 +30,10 @@ export default function SafetyZoneOverlay({ isVisible, intersections, uticOpenRe
       }
     }
 
-    // 3. Fallback to Map Bounds logic
-    const bounds = map.getBounds();
-    if (!intersections || intersections.length === 0) {
-      if (currentRegion !== null) setCurrentRegion(null);
-      return;
-    }
-    
-    let regionCount = {};
-    let maxRegion = currentRegion;
-    let maxCount = 0;
-    
-    for (const item of intersections) {
-      if (!item.y_coord || !item.x_coord) continue;
-      if (bounds.contains([item.y_coord, item.x_coord])) {
-        const r = item.region_cd || 'L01';
-        regionCount[r] = (regionCount[r] || 0) + 1;
-        if (regionCount[r] > maxCount) {
-          maxCount = regionCount[r];
-          maxRegion = r;
-        }
-      }
-    }
-    
-    if (maxCount === 0) {
-      let globalCount = {};
-      let globalMaxCount = 0;
-      let globalMaxRegion = null;
-      for (const item of intersections) {
-        const r = item.region_cd || 'L01';
-        globalCount[r] = (globalCount[r] || 0) + 1;
-        if (globalCount[r] > globalMaxCount) {
-          globalMaxCount = globalCount[r];
-          globalMaxRegion = r;
-        }
-      }
-      if (globalMaxRegion) {
-        maxRegion = globalMaxRegion;
-      }
-    }
-    
-    if (maxRegion !== currentRegion) {
-      setCurrentRegion(maxRegion);
+    // If no regions are explicitly open in UTIC tab, we should clear the safety zones.
+    // The map-bounds fallback logic has been removed because it incorrectly defaults to Incheon.
+    if (currentRegion !== null) {
+      setCurrentRegion(null);
     }
   };
 
