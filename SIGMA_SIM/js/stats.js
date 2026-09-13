@@ -1078,7 +1078,7 @@ function renderAdvancedInsights(junctions) {
             }
         }
         
-        if (maxCycleForJ > 0) junctionMaxCycles.push({ name: j.node_name, cycle: maxCycleForJ });
+        if (maxCycleForJ > 0) junctionMaxCycles.push({ name: j.name || j.id, cycle: maxCycleForJ });
         
         if (dPlan && sm) {
 
