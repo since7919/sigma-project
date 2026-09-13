@@ -8,7 +8,15 @@ let currentGame = null;
 // 공통 키보드 핸들러
 window.addEventListener("keydown", (e) => {
     const overlay = document.getElementById('loading-overlay');
-    if (overlay && overlay.style.display !== 'none') {
+    const standalone = document.getElementById('minigame-standalone-modal');
+    const isOverlayActive = (overlay && overlay.style.display !== 'none');
+    const isStandaloneActive = (standalone && standalone.style.display !== 'none');
+    
+    if (isOverlayActive || isStandaloneActive) {
+        // 방향키 또는 스페이스바 누를 때 스크롤 방지
+        if(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+            e.preventDefault();
+        }
         mg_keys[e.code] = true;
         if (currentGame && currentGame.isGameOver && e.code === "Space") {
             currentGame.reset();
