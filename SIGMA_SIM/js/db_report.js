@@ -17,14 +17,17 @@ function openDbReportOverlay(jid, mapIdx = 0) {
     const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&t=k&output=embed" allowfullscreen></iframe>`;
     
     // TOD Plans
-    const plansHTML = [1,2,3,4].map(idx => `
+    const plansHTML = [1,2,3,4].map(idx => {
+        const todNum = idx + (mapIdx * 5);
+        const schedIdx = (idx - 1) + (mapIdx * 5);
+        return `
         <div class="db-tod-table">
-            <div class="db-tod-title">TOD PLAN ${idx} ${idx===1?'(평일)':idx===2?'(토요일)':idx===3?'(일요일)':'(특수일)'}</div>
+            <div class="db-tod-title">TOD PLAN ${todNum} ${idx===1?'(평일)':idx===2?'(토요일)':idx===3?'(일요일)':'(특수일)'}</div>
             <table class="db-table db-table-small">
                 <thead><tr><th>번호</th><th>시각</th><th>주기</th><th>패턴</th></tr></thead>
                 <tbody>
                     ${Array.from({length:16}).map((_, i) => {
-                        const plan = (j.schedules && j.schedules[idx-1] && j.schedules[idx-1][i]) || null;
+                        const plan = (j.schedules && j.schedules[schedIdx] && j.schedules[schedIdx][i]) || null;
                         if (plan && plan.h !== -1) {
                             return `<tr><td>${i+1}</td><td>${String(plan.h).padStart(2,'0')}:${String(plan.m).padStart(2,'0')}</td><td>${plan.cycle}</td><td>${plan.idx}</td></tr>`;
                         } else {
@@ -34,7 +37,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                 </tbody>
             </table>
         </div>
-    `).join('');
+    `}).join('');
 
     const dayPlans = j.dayPlans || [];
     const sm = (j.signalMaps && j.signalMaps[mapIdx]) ? j.signalMaps[mapIdx] : {};
@@ -47,20 +50,22 @@ function openDbReportOverlay(jid, mapIdx = 0) {
     
     // Build HTML
     const html = `
+        <div class="db-report-tabs no-print" style="max-width: 900px; margin: 0 auto 10px auto; display: flex; gap: 5px; justify-content: flex-start; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
+            ${[0,1,2,3,4,5].map(i => {
+                const labels = ['일반', '시차1', '시차2', '시차3', '시차4', '시차5'];
+                const isExists = j.signalMaps && j.signalMaps[i];
+                if (i > 0 && !isExists) return '';
+                const bg = i === mapIdx ? '#0078D7' : '#444';
+                const color = i === mapIdx ? '#fff' : '#ddd';
+                const border = i === mapIdx ? '#0078D7' : '#666';
+                return `<button style="background:${bg}; color:${color}; border:1px solid ${border}; border-radius:3px; padding:5px 15px; cursor:pointer; font-size:14px; font-weight:bold;" onclick="openDbReportOverlay('${jid}', ${i})">${labels[i]}</button>`;
+            }).join('')}
+        </div>
         <div class="db-report-wrapper">
             <div class="db-report-header">
                 <h2>표준신호제어기데이터베이스(${j.controller || "알수없음"})</h2>
                 <div class="db-report-actions no-print">
-                    <div style="display:inline-flex; gap:5px; margin-right:15px; border-right:1px solid #ddd; padding-right:15px;">
-                        ${[0,1,2,3,4,5].map(i => {
-                            const labels = ['일반', '시차1', '시차2', '시차3', '시차4', '시차5'];
-                            const isExists = j.signalMaps && j.signalMaps[i];
-                            if (i > 0 && !isExists) return '';
-                            const bg = i === mapIdx ? '#0078D7' : '#f0f0f0';
-                            const color = i === mapIdx ? '#fff' : '#333';
-                            return `<button style="background:${bg}; color:${color}; border:1px solid #ccc; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:12px;" onclick="openDbReportOverlay('${jid}', ${i})">${labels[i]}</button>`;
-                        }).join('')}
-                    </div>
+                    
                     <button class="btn-primary" onclick="window.print()">PDF로 저장 (Print)</button>
                     <button class="btn-secondary" onclick="closeDbReportOverlay()">닫기</button>
                 </div>
@@ -129,7 +134,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
             <div style="margin-top:5px; display:flex; gap:10px;">
                 <table class="db-table db-table-bordered" style="flex:1;">
                     <tr><th>번호</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
-                    ${(dayPlans[0] || []).map((tp, rowI) => {
+                    ${(dayPlans[mapIdx * 5] || []).map((tp, rowI) => {
                         const splitsA = tp?.splitA || [0,0,0,0,0,0,0,0];
                         const splitsB = tp?.splitB || [0,0,0,0,0,0,0,0];
                         if (!tp || (splitsA.every(v=>v===0) && splitsB.every(v=>v===0) && tp.cycle === 100)) {
