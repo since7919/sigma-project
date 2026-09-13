@@ -425,6 +425,23 @@ function drawGameOver(ctx, canvas, scoreStr) {
 // 메인 초기화 (5종 중 1개 랜덤 선택)
 // ----------------------------------------------------
 function initMiniGameMaster() {
+    let container = document.getElementById("minigame-container");
+    if (!container) {
+        const overlay = document.getElementById('loading-overlay');
+        if (!overlay) return; // 로딩 오버레이 자체가 없으면 포기
+        
+        container = document.createElement('div');
+        container.id = 'minigame-container';
+        container.style.cssText = "background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); width: 400px; text-align: center; margin-top: 20px;";
+        container.innerHTML = `
+            <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 14px;">🎮 로딩 대기 미니게임</h4>
+            <canvas id="minigameCanvas" width="360" height="200" style="background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);"></canvas>
+            <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
+            <p style="color: #888; font-size: 11px; margin: 5px 0 0 0;">로딩 중입니다...</p>
+        `;
+        overlay.appendChild(container);
+    }
+
     const canvas = document.getElementById("minigameCanvas");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -442,6 +459,8 @@ function initMiniGameMaster() {
     currentGame.reset();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMiniGameMaster);
+} else {
     initMiniGameMaster();
-});
+}
