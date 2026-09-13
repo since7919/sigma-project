@@ -272,7 +272,7 @@ function initDinoJump(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
     descDisplay.innerHTML = "<strong>스페이스바</strong>를 눌러 방지턱(🚧)을 뛰어넘으세요!";
     
     let score = 0, isGameOver = false, frameCount = 0;
-    let player = { x: 50, y: 150, size: 20, vy: 0, gravity: 0.6, jump: -10, grounded: true };
+    let player = { x: 50, y: 150, size: 20, vy: 0, gravity: 0.4, jump: -8.5, grounded: true };
     let obstacles = [];
 
     const game = {
@@ -302,8 +302,8 @@ function initDinoJump(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
             player.grounded = true;
         }
 
-        if (frameCount % Math.floor(Math.random() * 60 + 60) === 0) {
-            obstacles.push({ x: canvas.width, y: 155, w: 15, h: 15, speed: 5 });
+        if (frameCount % Math.floor(Math.random() * 80 + 80) === 0) {
+            obstacles.push({ x: canvas.width, y: 155, w: 15, h: 15, speed: 3.5 });
         }
 
         for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -673,7 +673,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
                 <button onclick="initMiniGameMaster(0)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">과일</button>
                 <button onclick="initMiniGameMaster(1)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">회피</button>
                 <button onclick="initMiniGameMaster(2)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">팩맨</button>
-                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">공룡</button>
+                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">점프</button>
                 <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
                 <button onclick="initMiniGameMaster(5)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
             </div>
@@ -739,7 +739,7 @@ window.playStandaloneMiniGame = function() {
                 <button onclick="initMiniGameMaster(0)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">과일</button>
                 <button onclick="initMiniGameMaster(1)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">회피</button>
                 <button onclick="initMiniGameMaster(2)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">팩맨</button>
-                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">공룡</button>
+                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">점프</button>
                 <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
                 <button onclick="initMiniGameMaster(5)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
             </div>
