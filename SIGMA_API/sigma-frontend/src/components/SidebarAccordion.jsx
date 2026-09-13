@@ -229,7 +229,7 @@ export default function SidebarAccordion({ safetyZoneSummary, rtiIntersections, 
                     <span className="acc-icon">{uticOpenRegions[region] ? '▼' : '▶'}</span>
                     {region} <span className="acc-count">({list.length})</span>
                     {safetyZoneSummary && safetyZoneSummary[region.substring(0,3)] && (
-                      <span title="어린이 보호구역 데이터 보유 지역" style={{ marginLeft: '6px', fontSize: '13px' }}>🟡</span>
+                      <span title="통합보호구역(어린이/노인/장애인) 데이터 보유 지역" style={{ marginLeft: '6px', fontSize: '13px' }}>🟡</span>
                     )}
                   </div>
                   {uticOpenRegions[region] && (
