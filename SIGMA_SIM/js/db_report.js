@@ -1,5 +1,5 @@
 // js/db_report.js
-function openDbReportOverlay(jid) {
+function openDbReportOverlay(jid, mapIdx = 0) {
     const j = STATE.junctions[jid];
     if (!j) return alert("교차로 데이터를 찾을 수 없습니다.");
     
@@ -37,7 +37,7 @@ function openDbReportOverlay(jid) {
     `).join('');
 
     const dayPlans = j.dayPlans || [];
-    const sm = (j.signalMaps && j.signalMaps[0]) ? j.signalMaps[0] : {};
+    const sm = (j.signalMaps && j.signalMaps[mapIdx]) ? j.signalMaps[mapIdx] : {};
     
     // Formatting helper
     const fmt = (arr1, arr2) => {
@@ -51,6 +51,16 @@ function openDbReportOverlay(jid) {
             <div class="db-report-header">
                 <h2>표준신호제어기데이터베이스(${j.controller || "알수없음"})</h2>
                 <div class="db-report-actions no-print">
+                    <div style="display:inline-flex; gap:5px; margin-right:15px; border-right:1px solid #ddd; padding-right:15px;">
+                        ${[0,1,2,3,4,5].map(i => {
+                            const labels = ['일반', '시차1', '시차2', '시차3', '시차4', '시차5'];
+                            const isExists = j.signalMaps && j.signalMaps[i];
+                            if (i > 0 && !isExists) return '';
+                            const bg = i === mapIdx ? '#0078D7' : '#f0f0f0';
+                            const color = i === mapIdx ? '#fff' : '#333';
+                            return `<button style="background:${bg}; color:${color}; border:1px solid #ccc; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:12px;" onclick="openDbReportOverlay('${jid}', ${i})">${labels[i]}</button>`;
+                        }).join('')}
+                    </div>
                     <button class="btn-primary" onclick="window.print()">PDF로 저장 (Print)</button>
                     <button class="btn-secondary" onclick="closeDbReportOverlay()">닫기</button>
                 </div>
