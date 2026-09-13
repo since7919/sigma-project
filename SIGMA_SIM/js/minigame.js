@@ -437,26 +437,31 @@ function drawGameOver(ctx, canvas, scoreStr) {
 // ----------------------------------------------------
 
 // ----------------------------------------------------
-// 6. 2048 게임
+
+// ----------------------------------------------------
+// 6. 2048 게임 (애니메이션 지원)
 // ----------------------------------------------------
 function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
     titleDisplay.innerHTML = "🎮 미니게임 6: 2048";
     descDisplay.innerHTML = "방향키(<strong>↑↓←→</strong>)로 같은 숫자를 합쳐 2048을 만드세요!";
     
     let score = 0, isGameOver = false;
-    let grid = [];
+    let tiles = []; 
+    let tileId = 0;
     let keyLocked = { up: false, down: false, left: false, right: false };
+    let animProgress = 1; // 1 means no animation running
 
     function addRandomTile() {
-        let emptyCells = [];
+        let empty = [];
         for (let r=0; r<4; r++) {
             for (let c=0; c<4; c++) {
-                if (grid[r][c] === 0) emptyCells.push({r, c});
+                if (!tiles.find(t => t.r === r && t.c === c && !t.mergedTo)) empty.push({r, c});
             }
         }
-        if (emptyCells.length > 0) {
-            let {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-            grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+        if (empty.length > 0) {
+            let {r, c} = empty[Math.floor(Math.random() * empty.length)];
+            let val = Math.random() < 0.9 ? 2 : 4;
+            tiles.push({ id: tileId++, r, c, prevR: r, prevC: c, val, isNew: true });
         }
     }
 
@@ -464,103 +469,116 @@ function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
         get isGameOver() { return isGameOver; },
         reset: () => {
             score = 0; isGameOver = false;
-            grid = Array(4).fill().map(() => Array(4).fill(0));
+            tiles = []; tileId = 0; animProgress = 1;
             addRandomTile();
             addRandomTile();
             loop();
         }
     };
 
-    function slide(row) {
-        let arr = row.filter(val => val);
-        let missing = 4 - arr.length;
-        return arr.concat(Array(missing).fill(0));
-    }
-    
-    function combine(row) {
-        for (let i = 0; i < 3; i++) {
-            if (row[i] !== 0 && row[i] === row[i+1]) {
-                row[i] *= 2;
-                score += row[i];
-                row[i+1] = 0;
-            }
-        }
-        return row;
-    }
-    
-    function operate(row) {
-        return slide(combine(slide(row)));
-    }
+    function move(dr, dc) {
+        if (animProgress < 1) return false; // 애니메이션 도중 입력 무시
+        
+        // 이동할 타일들을 방향에 맞게 정렬
+        let sortedTiles = [...tiles].filter(t => !t.mergedTo);
+        sortedTiles.sort((a, b) => {
+            if (dr !== 0) return dr > 0 ? b.r - a.r : a.r - b.r;
+            return dc > 0 ? b.c - a.c : a.c - b.c;
+        });
 
-    function moveLeft() {
         let moved = false;
-        for (let r=0; r<4; r++) {
-            let oldRow = [...grid[r]];
-            grid[r] = operate(grid[r]);
-            if (oldRow.join(',') !== grid[r].join(',')) moved = true;
-        }
-        return moved;
-    }
-    
-    function moveRight() {
-        let moved = false;
-        for (let r=0; r<4; r++) {
-            let oldRow = [...grid[r]];
-            grid[r] = operate(grid[r].reverse()).reverse();
-            if (oldRow.join(',') !== grid[r].join(',')) moved = true;
-        }
-        return moved;
-    }
-    
-    function moveUp() {
-        let moved = false;
-        for (let c=0; c<4; c++) {
-            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
-            let oldCol = [...col];
-            let newCol = operate(col);
-            for (let r=0; r<4; r++) grid[r][c] = newCol[r];
-            if (oldCol.join(',') !== newCol.join(',')) moved = true;
-        }
-        return moved;
-    }
-    
-    function moveDown() {
-        let moved = false;
-        for (let c=0; c<4; c++) {
-            let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
-            let oldCol = [...col];
-            let newCol = operate(col.reverse()).reverse();
-            for (let r=0; r<4; r++) grid[r][c] = newCol[r];
-            if (oldCol.join(',') !== newCol.join(',')) moved = true;
+        let grid = Array(4).fill().map(() => Array(4).fill(null));
+        sortedTiles.forEach(t => { grid[t.r][t.c] = t; });
+
+        sortedTiles.forEach(t => {
+            t.isNew = false;
+            let currR = t.r, currC = t.c;
+            grid[currR][currC] = null;
+            
+            while (true) {
+                let nextR = currR + dr, nextC = currC + dc;
+                if (nextR < 0 || nextR > 3 || nextC < 0 || nextC > 3) break;
+                
+                let target = grid[nextR][nextC];
+                if (target == null) {
+                    currR = nextR; currC = nextC;
+                } else if (target.val === t.val && !target.justMerged) {
+                    currR = nextR; currC = nextC;
+                    t.mergedTo = target;
+                    break;
+                } else {
+                    break;
+                }
+            }
+            
+            if (t.mergedTo) {
+                // 병합되는 타일의 최종 위치 업데이트
+                t.prevR = t.r; t.prevC = t.c;
+                t.r = currR; t.c = currC;
+                t.mergedTo.justMerged = true;
+                moved = true;
+            } else {
+                if (t.r !== currR || t.c !== currC) {
+                    t.prevR = t.r; t.prevC = t.c;
+                    t.r = currR; t.c = currC;
+                    moved = true;
+                }
+                grid[currR][currC] = t;
+            }
+        });
+
+        if (moved) {
+            animProgress = 0;
         }
         return moved;
     }
 
     function checkGameOver() {
+        let empty = 0;
+        let canMerge = false;
+        let grid = Array(4).fill().map(() => Array(4).fill(0));
+        tiles.filter(t => !t.mergedTo).forEach(t => grid[t.r][t.c] = t.val);
+        
         for (let r=0; r<4; r++) {
             for (let c=0; c<4; c++) {
-                if (grid[r][c] === 0) return;
-                if (c < 3 && grid[r][c] === grid[r][c+1]) return;
-                if (r < 3 && grid[r][c] === grid[r+1][c]) return;
+                if (grid[r][c] === 0) empty++;
+                if (c < 3 && grid[r][c] === grid[r][c+1]) canMerge = true;
+                if (r < 3 && grid[r][c] === grid[r+1][c]) canMerge = true;
             }
         }
-        isGameOver = true;
+        if (empty === 0 && !canMerge) isGameOver = true;
     }
 
     function update() {
         if (isGameOver) return;
+
+        if (animProgress < 1) {
+            animProgress += 0.2; // 5프레임 (약 0.08초) 동안 애니메이션
+            if (animProgress >= 1) {
+                animProgress = 1;
+                // 병합 처리 완료
+                tiles.forEach(t => {
+                    if (t.justMerged) {
+                        t.val *= 2;
+                        score += t.val;
+                        t.justMerged = false;
+                    }
+                    t.prevR = t.r; t.prevC = t.c;
+                });
+                tiles = tiles.filter(t => !t.mergedTo); // 사라진 타일 제거
+                
+                addRandomTile();
+                checkGameOver();
+                scoreDisplay.textContent = "점수: " + score;
+            }
+            return;
+        }
         
         let moved = false;
-        if (mg_keys["ArrowUp"]) { if (!keyLocked.up) { moved = moveUp(); keyLocked.up = true; } } else keyLocked.up = false;
-        if (mg_keys["ArrowDown"]) { if (!keyLocked.down) { moved = moveDown(); keyLocked.down = true; } } else keyLocked.down = false;
-        if (mg_keys["ArrowLeft"]) { if (!keyLocked.left) { moved = moveLeft(); keyLocked.left = true; } } else keyLocked.left = false;
-        if (mg_keys["ArrowRight"]) { if (!keyLocked.right) { moved = moveRight(); keyLocked.right = true; } } else keyLocked.right = false;
-
-        if (moved) {
-            addRandomTile();
-            checkGameOver();
-            scoreDisplay.textContent = "점수: " + score;
-        }
+        if (mg_keys["ArrowUp"]) { if (!keyLocked.up) { moved = move(-1, 0); keyLocked.up = true; } } else keyLocked.up = false;
+        if (mg_keys["ArrowDown"]) { if (!keyLocked.down) { moved = move(1, 0); keyLocked.down = true; } } else keyLocked.down = false;
+        if (mg_keys["ArrowLeft"]) { if (!keyLocked.left) { moved = move(0, -1); keyLocked.left = true; } } else keyLocked.left = false;
+        if (mg_keys["ArrowRight"]) { if (!keyLocked.right) { moved = move(0, 1); keyLocked.right = true; } } else keyLocked.right = false;
     }
 
     const colors = {
@@ -569,31 +587,64 @@ function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
         256: "#edcc61", 512: "#edc850", 1024: "#edc53f", 2048: "#edc22e"
     };
 
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
     function draw() {
         ctx.fillStyle = "#111";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
+        // 배경 판
         ctx.fillStyle = "#bbada0";
         ctx.fillRect(85, 5, 190, 190);
         
+        // 빈 셀 그리기
         for (let r=0; r<4; r++) {
             for (let c=0; c<4; c++) {
-                let val = grid[r][c];
-                let cx = 85 + 6 + c * 46;
-                let cy = 5 + 6 + r * 46;
-                
-                ctx.fillStyle = colors[val] || "#3c3a32";
-                ctx.fillRect(cx, cy, 40, 40);
-                
-                if (val > 0) {
-                    ctx.fillStyle = val <= 4 ? "#776e65" : "#f9f6f2";
-                    ctx.font = val > 100 ? "bold 13px sans-serif" : "bold 18px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.fillText(val, cx + 20, cy + 20);
-                }
+                ctx.fillStyle = colors[0];
+                ctx.fillRect(85 + 6 + c * 46, 5 + 6 + r * 46, 40, 40);
             }
         }
+        
+        // 애니메이션 진행률에 따라 이징 적용 (Ease-out)
+        let t = animProgress;
+        let easeT = t * (2 - t);
+
+        // 실제 타일 그리기 (사라질 타일을 먼저 그림)
+        let drawOrder = [...tiles].sort((a, b) => (a.mergedTo ? -1 : 1));
+
+        drawOrder.forEach(tile => {
+            let cx, cy, scale = 1;
+            
+            if (tile.isNew) {
+                cx = 85 + 6 + tile.c * 46;
+                cy = 5 + 6 + tile.r * 46;
+                scale = easeT; // 팝업 애니메이션
+            } else {
+                let startX = 85 + 6 + tile.prevC * 46;
+                let startY = 5 + 6 + tile.prevR * 46;
+                let endX = 85 + 6 + tile.c * 46;
+                let endY = 5 + 6 + tile.r * 46;
+                
+                cx = lerp(startX, endX, easeT);
+                cy = lerp(startY, endY, easeT);
+                
+                if (tile.justMerged && animProgress >= 1) {
+                    scale = 1.1; // 병합 완료 후 약간 커지는 효과
+                }
+            }
+            
+            let drawSize = 40 * scale;
+            let offset = (40 - drawSize) / 2;
+            
+            ctx.fillStyle = colors[tile.val] || "#3c3a32";
+            ctx.fillRect(cx + offset, cy + offset, drawSize, drawSize);
+            
+            ctx.fillStyle = tile.val <= 4 ? "#776e65" : "#f9f6f2";
+            ctx.font = tile.val > 100 ? "bold " + Math.floor(13*scale) + "px sans-serif" : "bold " + Math.floor(18*scale) + "px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(tile.val, cx + 20, cy + 20);
+        });
         
         if (isGameOver) drawGameOver(ctx, canvas, score);
     }
@@ -607,7 +658,6 @@ function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
     
     return game;
 }
-
 function initMiniGameMaster(forceGameIndex = -1) {
     let container = document.getElementById("minigame-container");
     if (!container) {
