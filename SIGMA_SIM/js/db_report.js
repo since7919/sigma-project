@@ -14,7 +14,7 @@ function openDbReportOverlay(jid) {
     // Build Google Maps static iframe or URL
     const lat = j.lat || 37.5665;
     const lng = j.lng || 126.9780;
-    const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&t=h&output=embed" allowfullscreen></iframe>`;
+    const mapHtml = `<iframe width="100%" height="100%" frameborder="0" style="border:0; pointer-events:none; min-height: 120px;" src="https://maps.google.com/maps?q=${lat},${lng}&hl=ko&z=17&t=k&output=embed" allowfullscreen></iframe>`;
     
     // TOD Plans
     const plansHTML = [1,2,3,4].map(idx => `
@@ -56,7 +56,7 @@ function openDbReportOverlay(jid) {
                 </div>
             </div>
             
-            <div class="db-report-sub">(${j.name || '알수없음'})</div>
+            
             
             <table class="db-table db-table-bordered">
                 <tr>
