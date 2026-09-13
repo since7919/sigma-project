@@ -107,13 +107,13 @@ export default function SafetyZoneOverlay({ isVisible, intersections, uticOpenRe
           
           let geometry = item.geojson;
           if (geometry.type === 'Feature') {
-             geometry.properties = { ...geometry.properties, name: item.trgtFcltNm || "보호구역" };
+             geometry.properties = { ...geometry.properties, type: item.fcltTypeCd || "1", name: item.trgtFcltNm || "보호구역" };
              features.push(geometry);
           } else {
              features.push({
                  type: 'Feature',
                  geometry: geometry,
-                 properties: { name: item.trgtFcltNm || "보호구역" }
+                 properties: { type: item.fcltTypeCd || "1", name: item.trgtFcltNm || "보호구역" }
              });
           }
         });
@@ -124,13 +124,24 @@ export default function SafetyZoneOverlay({ isVisible, intersections, uticOpenRe
         };
 
         const geoLayer = L.geoJSON(featureCollection, {
-            style: { color: '#f1c40f', weight: 2, fillColor: '#f4d03f', fillOpacity: 0.3, interactive: true },
+            style: function(feature) {
+                const type = feature.properties ? feature.properties.type : '1';
+                let color = '#f1c40f';
+                let fillColor = '#f4d03f';
+                if (type === '2') { color = '#d4ac0d'; fillColor = '#f1c40f'; }
+                else if (type === '3') { color = '#f7dc6f'; fillColor = '#fcf3cf'; }
+                return { color: color, weight: 2, fillColor: fillColor, fillOpacity: 0.3, interactive: true };
+            },
             pointToLayer: function (feature, latlng) {
+              const type = feature.properties ? feature.properties.type : '1';
+              let fillColor = '#f1c40f';
+              if (type === '2') fillColor = '#d4ac0d';
+              else if (type === '3') fillColor = '#f7dc6f';
               return L.circleMarker(latlng, {
                   radius: 8,
                   color: '#fff',
                   weight: 2,
-                  fillColor: '#f1c40f',
+                  fillColor: fillColor,
                   fillOpacity: 0.8
               });
             },
