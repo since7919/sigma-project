@@ -14,7 +14,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
     // Build Google Maps static iframe or URL
     const lat = j.lat || 37.5665;
     const lng = j.lng || 126.9780;
-    const mapHtml = `<div id="db-report-map-mount" style="width: 100%; height: 100%; min-height: 140px; background:#333;"></div>`;
+    const mapHtml = `<div id="db-report-map-mount" style="position:absolute; top:0; left:0; right:0; bottom:0; background:#333;"></div>`;
     
     // TOD Plans
     const plansHTML = [1,2,3,4].map(idx => {
@@ -75,7 +75,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
             
             <table class="db-table db-table-bordered">
                 <tr>
-                    <td rowspan="2" style="width:250px; padding:0;">${mapHtml}</td>
+                    <td rowspan="2" style="width:250px; padding:0; position:relative; vertical-align:top;">${mapHtml}</td>
                     <th colspan="4">교차로번호: ${jid.replace('L01-','')}</th>
                     <th colspan="4">교차로명: ${j.name || ''}</th>
                 </tr>
@@ -182,6 +182,12 @@ function openDbReportOverlay(jid, mapIdx = 0) {
         L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, maxNativeZoom: 20 }).addTo(miniMap);
         L.circleMarker([lat, lng], { color: '#ff4444', radius: 5, fillOpacity: 1, stroke: true, weight: 2, color: '#fff' }).addTo(miniMap);
         setTimeout(() => miniMap.invalidateSize(), 10);
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => {
+                miniMap.invalidateSize();
+            });
+            ro.observe(mapMount);
+        }
     }
 
     
