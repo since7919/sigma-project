@@ -682,7 +682,7 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -760,14 +760,14 @@ app.get('/api/sim/data', async (req, res) => {
           res.write(headerStr);
           
           const pageSize = 1000;
-          const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id');
+          const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
-                promises.push(supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
+                promises.push(supabase.from('signal_maps').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
               }
               const results = await Promise.all(promises);
               results.forEach(({data, error}) => {
@@ -826,14 +826,14 @@ app.get('/api/sim/data', async (req, res) => {
           res.write(headerStr);
           
           const pageSize = 1000;
-          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).like('id', `${regionCode}-%`).order('id').order('day_plan');
+          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 3; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
-                promises.push(supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
+                promises.push(supabase.from('tod_plans').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
               }
               const results = await Promise.all(promises);
               results.forEach(({data, error}) => {
@@ -991,7 +991,7 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
       if (tableName === 'junctions' || tableName === 'groups') {
         countQuery = countQuery.eq('region_cd', regionCode);
       } else {
-        countQuery = countQuery.like('id', `${regionCode}-%`);
+        countQuery = countQuery.gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
       }
     }
     
@@ -1010,7 +1010,7 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
         if (tableName === 'junctions' || tableName === 'groups') {
           q = q.eq('region_cd', regionCode);
         } else {
-          q = q.like('id', `${regionCode}-%`);
+          q = q.gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
         }
       }
       promises.push(q);
