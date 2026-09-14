@@ -16,7 +16,7 @@ function serializeArrows(j) {
     return arrs.join(';');
 }
 
-function processIntersectionCSV(csv, isAppend = false) {
+async function processIntersectionCSV(csv, isAppend = false) {
     const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
     const firstLine = lines[0].replace(/^\ufeff/, '').trim();
     const delimiter = firstLine.includes(';') ? ';' : ',';
@@ -58,6 +58,7 @@ function processIntersectionCSV(csv, isAppend = false) {
             else if (line[c] === delimiter && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
         }
         cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
+        if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); // [최적화] 메인 스레드 블로킹(미니게임 렉) 방지
         let id = getCol(cols, colIdx.id); if (!id) continue;
         const region = getCol(cols, colIdx.region) || (id.startsWith("L02-") ? "L02" : "L01");
         const apiIntNoRaw = getCol(cols, colIdx.apiIntNo);
@@ -110,7 +111,7 @@ function processIntersectionCSV(csv, isAppend = false) {
     refreshDBStats();
 }
 
-function processSignalMapCSV(csv) {
+async function processSignalMapCSV(csv) {
     const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
     const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.replace(/^"|"$/g, '').trim());
     
@@ -126,6 +127,7 @@ function processSignalMapCSV(csv) {
         const line = lines[i];
         const cols = [];
         let start = 0, inQ = false;
+        if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); // [최적화] 렉 방지
         const parseVal = (str) => {
             let v = str.trim();
             if (v.startsWith('"') && v.endsWith('"')) {
@@ -164,7 +166,7 @@ function processSignalMapCSV(csv) {
     }
 }
 
-function processTodPlanCSV(csv) {
+async function processTodPlanCSV(csv) {
     const lines = csv.trim().split(/\r?\n/); if (lines.length < 2) return;
     const headers = lines[0].replace(/^\ufeff/, '').split(',').map(h => h.replace(/^"|"$/g, '').trim());
     

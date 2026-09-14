@@ -145,11 +145,11 @@ async function handleDBFileLoad(el, type) {
     const file = el.files[0]; if (!file) return;
     STATE.loadedFiles[type] = file.name;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         const content = e.target.result;
-        if (type === 'inter') processIntersectionCSV(content);
-        else if (type === 'maps') processSignalMapCSV(content);
-        else if (type === 'plans') processTodPlanCSV(content);
+        if (type === 'inter') await processIntersectionCSV(content);
+        else if (type === 'maps') await processSignalMapCSV(content);
+        else if (type === 'plans') await processTodPlanCSV(content);
         else if (type === 'links') processGeoJSON(content);
         else if (type === 'poly') processBoundaryGeoJSON(content);
         else if (type === 'groups' && typeof processGroupCSV === 'function') processGroupCSV(content);
@@ -745,15 +745,15 @@ async function revertActiveJunctionFromDB() {
         // 가져온 데이터로 메모리(STATE.junctions[jid]) 덮어쓰기
         if (data.interCsvLine) {
             const mockCsv = "ID,Name,Lat,Lng,Seq,Police,Office,GroupID,FlashCfg,OpIntervention,ArrowConfigs,Controller,DiagramOrder,Weekly_plan\n" + data.interCsvLine;
-            processIntersectionCSV(mockCsv, true);
+            await processIntersectionCSV(mockCsv, true);
         }
         if (data.mapCsvLines) {
             const mockCsv = "ID,MapIdx,movA,movB,pedMovA,pedMovB,mainMovements,yellowA,yellowB,allredA,allredB,pedA,pedB,pedDelayA,pedDelayB,pedFlashA,pedFlashB,pedGreenA,pedGreenB,rawSteps\n" + data.mapCsvLines;
-            processSignalMapCSV(mockCsv);
+            await processSignalMapCSV(mockCsv);
         }
         if (data.todCsvLines) {
             const mockCsv = "ID,Seq,SignalMap,GroupID,Day_plan,Time_plan1,Time_plan2,Time_plan3,Time_plan4,Time_plan5,Time_plan6,Time_plan7,Time_plan8,Time_plan9,Time_plan10,Time_plan11,Time_plan12,Time_plan13,Time_plan14,Time_plan15,Time_plan16\n" + data.todCsvLines;
-            processTodPlanCSV(mockCsv);
+            await processTodPlanCSV(mockCsv);
         }
 
         hideLoading();

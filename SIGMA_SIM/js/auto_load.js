@@ -86,9 +86,9 @@ async function autoLoadFiles() {
             if (content && content.length > 5) {
                 const pt0 = performance.now();
                 if (isGroup) {
-                    processFunc(content, true);
+                    await processFunc(content, true);
                 } else {
-                    processFunc(content);
+                    await processFunc(content);
                 }
                 const pt1 = performance.now();
                 STATE.loadedFiles[type] = url;
