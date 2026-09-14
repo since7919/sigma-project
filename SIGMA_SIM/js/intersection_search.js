@@ -285,7 +285,7 @@ function updateVirtualListDOM() {
             <div class="acc-group" style="position:absolute; top:${item.top}px; left:0; right:0; height:${item.height}px; margin:0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <div class="acc-header" onclick="toggleAccordion('${item.rCode}')" style="height:100%; box-sizing:border-box; margin:0;">
                     <span class="acc-icon" style="width:20px;">${item.isOpen ? '▼' : '▶'}</span>
-                    ${item.rName} <span class="acc-count">(${item.count})</span>
+                    ${item.rName} <span class="acc-count">${(item.rCode === window.CURRENT_REGION_CODE || item.count > 0) ? '(' + item.count + ')' : ''}</span>
                 </div>
             </div>`;
         } else if (item.type === 'empty') {
