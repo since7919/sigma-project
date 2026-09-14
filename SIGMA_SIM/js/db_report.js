@@ -75,7 +75,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
             
             <table class="db-table db-table-bordered">
                 <tr>
-                    <td rowspan="2" style="width:250px; padding:0; position:relative; vertical-align:top;">${mapHtml}</td>
+                    <td rowspan="2" style="width:250px; padding:0; position:relative; vertical-align:top; height: 100%; min-height: 250px;">${mapHtml}</td>
                     <th colspan="4">교차로번호: ${jid.replace('L01-','')}</th>
                     <th colspan="4">교차로명: ${j.name || ''}</th>
                 </tr>
@@ -123,7 +123,7 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                                 if (h) {
                                     return `<tr><td>${i+1}</td><td style="text-align:left; padding-left:5px;">${h.name} ${h.d}</td><td>4</td></tr>`;
                                 } else {
-                                    return `<tr><td>${i+1}</td><td></td><td></td></tr>`;
+                                    return `<tr><td>${i+1}</td><td style="text-align:left; padding-left:5px;"></td><td></td></tr>`;
                                 }
                             }).join('')}
                         </tbody>
@@ -131,8 +131,8 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                 </div>
             </div>
             
-            <div style="margin-top:5px; display:flex; justify-content:space-between;">
-                <table class="db-table db-table-bordered" style="width: 59.5%;">
+            <div style="margin-top:5px; display:flex; justify-content:space-between; align-items:stretch;">
+                <table class="db-table db-table-bordered" style="width: 59.5%; height:100%;">
                     <tr><th>번호</th><th>주기</th><th>패턴</th><th>연동</th><th>현시값</th></tr>
                     ${(dayPlans[mapIdx * 5] || []).map((tp, rowI) => {
                         const splitsA = tp?.splitA || [0,0,0,0,0,0,0,0];
@@ -142,8 +142,8 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                         }
                         return `
                         <tr>
-                            <td>${rowI+1}</td>
-                            <td>${tp.cycle || 0}</td>
+                            <td style="padding: 4px 0;">${rowI+1}</td>
+                            <td style="padding: 4px 0;">${tp.cycle || 0}</td>
                             <td>${rowI+1}</td>
                             <td>${tp.offset || 0}</td>
                             <td>

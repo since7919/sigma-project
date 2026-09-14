@@ -865,7 +865,7 @@ class RoadNetworkManager {
         this.edgeSet.clear();
         
         // ID 매칭을 위한 맵 생성 (ID 정규화 처리)
-        const normalizeId = (id) => String(id || "").replace(/[^0-9]/g, ''); // 숫자만 추출
+        const normalizeId = (id) => String(id || "").split("-").pop().replace(/[^0-9]/g, ''); // Prefix 무시하고 숫자만 추출
         const nodeByNormId = new Map();
         this.nodes.forEach(n => {
             nodeByNormId.set(normalizeId(n.id), n);

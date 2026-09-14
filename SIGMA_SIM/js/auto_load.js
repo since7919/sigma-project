@@ -100,12 +100,14 @@ async function autoLoadFiles() {
     }
 
     // [Step 1] 최우선 순위: 교차로마스터, 신호맵데이터, 운영계획 (병렬 로딩)
-    const priority1 = [
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터'),
+        // [수정] 교차로마스터가 먼저 파싱완료되어야 신호맵, 운영계획이 정상 매핑됨 (레이스 컨디션 방지)
+    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터');
+    
+    const priority1_sub = [
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
     ];
-    await Promise.all(priority1);
+    await Promise.all(priority1_sub);
     
     // DB 로드 완료 시 모든 교차로의 상세 정보가 로드된 것으로 간주하여
     // 이후 UI 클릭 시 서버에서 데이터를 덮어쓰지 않도록 _detailLoaded 플래그 설정
