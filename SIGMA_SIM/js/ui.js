@@ -530,7 +530,7 @@ function refreshVisibleTooltips() {
             return;
         }
         refreshJunctionTooltip(jid);
-    }););
+    });
 }
 
 function refreshJunctionTooltip(jid) {
