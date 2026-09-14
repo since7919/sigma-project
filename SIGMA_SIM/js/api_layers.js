@@ -66,13 +66,13 @@ const ApiLayers = {
             data.forEach(j => {
                 // 서울은 DB에 '서울tdata'로 저장되어 있으므로 함께 UTIC 레이어에 포함시킵니다.
                 if ((j.origin_type === 'UTIC' || j.origin_type === '서울tdata') && j.y_coord && j.x_coord) {
-                    const marker = L.marker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
-                        icon: L.divIcon({
-                            className: 'utic-icon-custom',
-                            html: `<div style="background-color: #9b59b6; color: white; border: 2px solid #fff; border-radius: 6px; padding: 3px 6px; font-size: 11px; font-weight: 800; box-shadow: 0 0 10px #9b59b6; white-space: nowrap; transform: translate(-50%, -50%);">UTIC</div>`,
-                            iconSize: [0, 0],
-                            iconAnchor: [0, 0]
-                        }),
+                    // [최적화] 수천 개의 L.marker(DOM) 대신 Canvas 렌더링을 타는 L.circleMarker 사용으로 메모리 및 렌더링 속도 대폭 개선
+                    const marker = L.circleMarker([parseFloat(j.y_coord), parseFloat(j.x_coord)], {
+                        radius: 5,
+                        fillColor: '#9b59b6',
+                        fillOpacity: 0.9,
+                        color: '#ffffff',
+                        weight: 2,
                         pane: 'markerPane'
                     });
 

@@ -471,21 +471,66 @@ function refreshVisibleTooltips() {
     STATE.showGroup = document.getElementById('chk-show-group')?.checked || false;
     STATE.showController = document.getElementById('chk-show-controller')?.checked || false;
 
+    // [최적화] 가시 영역 내 교차로 개수 파악
+    let visibleCount = 0;
+    const minZoom = STATE.showCycleColors ? 14 : (typeof CONFIG !== 'undefined' ? CONFIG.MIN_ZOOM_FOR_TEXT : 15);
+    const isZoomValid = zoom >= minZoom;
+    
+    if (isZoomValid) {
+        Object.keys(STATE.junctions).forEach(jid => {
+            const j = STATE.junctions[jid];
+            if (bounds.contains([j.lat, j.lng])) visibleCount++;
+        });
+    }
+
+    // 화면에 400개 이상의 교차로가 한 번에 보일 때는 DOM 부하(메모리 렉) 방지를 위해 툴팁 강제 숨김
+    const MAX_TOOLTIPS = 400;
+    const forceHide = visibleCount > MAX_TOOLTIPS;
+
+    if (forceHide && isZoomValid && (STATE.showName || STATE.showCycleColors)) {
+        if (!window._toastShownForLimit) {
+            const div = document.createElement('div');
+            div.style.position = 'absolute';
+            div.style.top = '80px';
+            div.style.left = '50%';
+            div.style.transform = 'translateX(-50%)';
+            div.style.background = 'rgba(231, 76, 60, 0.9)';
+            div.style.color = '#fff';
+            div.style.padding = '8px 16px';
+            div.style.borderRadius = '20px';
+            div.style.zIndex = '9999';
+            div.style.fontSize = '12px';
+            div.style.fontWeight = 'bold';
+            div.style.pointerEvents = 'none';
+            div.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+            div.innerText = '화면에 교차로가 너무 많아 텍스트 표시가 생략되었습니다. (지도를 확대해주세요)';
+            document.body.appendChild(div);
+            window._toastShownForLimit = true;
+            setTimeout(() => {
+                div.style.opacity = '0';
+                div.style.transition = 'opacity 1s';
+                setTimeout(() => div.remove(), 1000);
+            }, 3000);
+            setTimeout(() => { window._toastShownForLimit = false; }, 8000); // 8초 쿨타임
+        }
+    }
+
     // 현재 체크박스 상태를 강제로 STATE에 반영 (동기화 보장)
     Object.keys(STATE.junctions).forEach(jid => {
         const j = STATE.junctions[jid];
         if (!j.marker) return;
 
-        // 주기 모드 시에는 더 낮은 줌 레벨(14)에서도 정보가 보이도록 허용 (성능 최적화 위해 13->14 상향)
-        const minZoom = STATE.showCycleColors ? 14 : CONFIG.MIN_ZOOM_FOR_TEXT;
-        const isVisible = bounds.contains([j.lat, j.lng]) && zoom >= minZoom;
+        const isVisible = isZoomValid && !forceHide && bounds.contains([j.lat, j.lng]);
 
         if (!isVisible && j.id !== STATE.activeJid) {
-            j.marker.unbindTooltip();
+            if (j.marker.getTooltip()) {
+                j.marker.unbindTooltip();
+                j.lastTooltipContent = null;
+            }
             return;
         }
         refreshJunctionTooltip(jid);
-    });
+    }););
 }
 
 function refreshJunctionTooltip(jid) {
