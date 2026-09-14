@@ -210,15 +210,24 @@ function buildVirtualListData() {
         currentTop += HEADER_HEIGHT;
         
         if (isOpen) {
-            items.forEach(j => {
+            if (items.length === 0) {
                 _virtualListItems.push({
-                    type: 'item',
-                    j: j,
+                    type: 'empty',
                     top: currentTop,
-                    height: ITEM_HEIGHT
+                    height: 60
                 });
-                currentTop += ITEM_HEIGHT;
-            });
+                currentTop += 60;
+            } else {
+                items.forEach(j => {
+                    _virtualListItems.push({
+                        type: 'item',
+                        j: j,
+                        top: currentTop,
+                        height: ITEM_HEIGHT
+                    });
+                    currentTop += ITEM_HEIGHT;
+                });
+            }
         }
     });
     
@@ -279,6 +288,11 @@ function updateVirtualListDOM() {
                     ${item.rName} <span class="acc-count">(${item.count})</span>
                 </div>
             </div>`;
+        } else if (item.type === 'empty') {
+            html += `
+            <div style="position:absolute; top:${item.top}px; left:0; right:0; height:${item.height}px; box-sizing:border-box; margin:0; padding:15px; text-align:center; color:#666; font-size:12px;">
+                교차로 데이터가 없습니다.<br>(Supabase 또는 CSV 확인)
+            </div>`;
         } else {
             const j = item.j;
             const isActive = activeJid === String(j.id);
@@ -301,15 +315,7 @@ function renderJunctionList() {
     const s = (typeof STATE !== 'undefined') ? STATE : window.STATE;
     const junctions = (s && s.junctions) ? s.junctions : {};
     
-    if (Object.keys(junctions).length === 0) {
-        listEl.innerHTML = `
-            <div style="padding:40px 20px; color:#666; font-size:12.5px; text-align:center;">
-                <div style="margin-bottom:10px; font-size:24px; opacity:0.5;">🚫</div>
-                표시할 교차로 데이터가 없습니다.<br>
-                <div style="font-size:11px; color:#888; margin-top:8px;">(CSV 파일 로드 후 확인하세요)</div>
-            </div>`;
-        return;
-    }
+
 
     if (!_isVirtualScrollInitialized) {
         _scrollContainer = listEl;
