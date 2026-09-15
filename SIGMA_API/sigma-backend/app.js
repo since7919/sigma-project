@@ -535,7 +535,16 @@ app.get('/api/intersections/nearest', async (req, res) => {
 
 // 1-2. 교차로 마스터 데이터 조회 (Supabase)
 app.get('/api/intersections', async (req, res) => {
-  const { regionCode } = req.query;
+  let { regionCode } = req.query;
+  // [Fix] UTIC DB Code Mapping
+  const uticMap = {
+    '155': 'L29', // 대구
+    'L01': 'L01', // 서울
+    'L02': 'L02', // 인천
+  };
+  if (regionCode && uticMap[regionCode]) {
+    regionCode = uticMap[regionCode];
+  }
   try {
     let countQuery = supabase.from('utic_intersections').select('int_no', { count: 'exact', head: true });
     if (regionCode) countQuery = countQuery.eq('region_cd', regionCode);
