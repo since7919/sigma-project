@@ -103,6 +103,12 @@ async function autoLoadFiles() {
         // [수정] 교차로마스터가 먼저 파싱완료되어야 신호맵, 운영계획이 정상 매핑됨 (레이스 컨디션 방지)
     await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터');
     
+    if (typeof renderJunctionList === 'function') { 
+    renderJunctionList(); 
+    const sb = document.getElementById('left-search-sidebar'); 
+    if(sb) sb.classList.remove('hidden'); 
+}
+
     const priority1_sub = [
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
         fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
