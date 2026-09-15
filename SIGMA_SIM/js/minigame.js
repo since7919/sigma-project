@@ -707,6 +707,7 @@ initMiniGameMaster(-1);
 
 
 window.playStandaloneMiniGame = function() {
+    window.MINIGAME_ACTIVE = true;
     let modal = document.getElementById('minigame-standalone-modal');
     if (!modal) {
         modal = document.createElement('div');
@@ -718,6 +719,7 @@ window.playStandaloneMiniGame = function() {
         closeBtn.style.cssText = "position:absolute; top:20px; right:30px; color:#fff; font-size:24px; cursor:pointer; font-weight:bold;";
         closeBtn.onclick = () => {
             modal.style.display = 'none';
+            window.MINIGAME_ACTIVE = false;
         };
         modal.appendChild(closeBtn);
         
