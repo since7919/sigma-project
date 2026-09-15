@@ -537,17 +537,44 @@ function syncActiveJunctionData() {
     });
 }
 
-function applyInfo() {
+
+window.saveInfoToDB = async function() {
     if (!STATE.activeJid) return;
-
+    
+    // First, apply local changes
     syncActiveJunctionData();
+    drawJunction(STATE.activeJid);
+    createArrows(STATE.activeJid);
+    
+    // Convert to CSV lines
+    if (typeof exportSingleJunctionCSV !== 'function') {
+        alert("exportSingleJunctionCSV 함수를 찾을 수 없습니다.");
+        return;
+    }
+    const payload = exportSingleJunctionCSV(STATE.activeJid);
+    if (!payload) {
+        alert("교차로 데이터 추출에 실패했습니다.");
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/sim/update-junction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.success) {
+            if (typeof sendToDashboard === 'function') sendToDashboard();
+            alert('DB(데이터베이스)에 성공적으로 저장되었습니다.');
+        } else {
+            alert('DB 저장 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        alert('DB 저장 오류: ' + e.message);
+    }
+};
 
-    const savedJid = STATE.activeJid;
-    drawJunction(savedJid);
-    createArrows(savedJid);
-    if (typeof sendToDashboard === 'function') sendToDashboard();
-    alert("정보가 적용되었습니다.");
-}
 
 /* ══════════════════════════════════════════
  *  교차로 선택 + 줌 이동

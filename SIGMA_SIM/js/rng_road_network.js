@@ -1193,13 +1193,45 @@ function toggleNetworkEditMode() {
 /**
  * 내보내기: GeoJSON 저장
  */
-function exportRoadNetwork() {
-    if (!window.RoadManager.isActive || window.RoadManager.edges.length === 0) {
-        alert("내보낼 네트워크 데이터가 없습니다.");
+
+window.saveNetworkToDB = async function() {
+    if (!window.RoadManager || !window.RoadManager.isActive || window.RoadManager.edges.length === 0) {
+        alert("저장할 네트워크 데이터가 없습니다.");
         return;
     }
-    window.RoadManager.exportJSON();
-}
+    const features = window.RoadManager.edges.map(pair => {
+        const u = window.RoadManager.nodes[pair[0]];
+        const v = window.RoadManager.nodes[pair[1]];
+        return {
+            type: "Feature",
+            geometry: { type: "LineString", coordinates: [[u.lng, u.lat], [v.lng, v.lat]] },
+            properties: { u_id: u.id, v_id: v.id, group: u.group }
+        };
+    });
+    const geojson = { type: "FeatureCollection", features: features };
+    
+    // Determine the active region
+    const regionSelect = document.getElementById('api-region-select');
+    const regionCode = window.CURRENT_REGION_CODE || 'L01'; 
+    const fileName = `db_${regionCode}_coordlink.geojson`;
+    
+    try {
+        const response = await fetch('/api/sim/upload-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file_name: fileName, file_content: JSON.stringify(geojson) })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(`위상 네트워크 데이터가 성공적으로 DB에 저장되었습니다. (파일: ${fileName})`);
+        } else {
+            alert('DB 저장 실패: ' + (result.error || '알 수 없는 오류'));
+        }
+    } catch (e) {
+        alert('DB 저장 오류: ' + e.message);
+    }
+};
+
 
 /**
  * 불러오기: GeoJSON 파일 읽기

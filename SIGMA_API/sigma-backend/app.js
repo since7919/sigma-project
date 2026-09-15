@@ -67,6 +67,30 @@ const sendIndexHtml = (req, res) => {
 app.get('/realtime', sendIndexHtml);
 app.get(/^\/realtime\/.*/, sendIndexHtml);
 
+
+app.post('/api/sim/upload-file', express.json({ limit: '50mb' }), async (req, res) => {
+  const { file_name, file_content } = req.body;
+  if (!file_name || !file_content) {
+    return res.status(400).json({ error: 'file_name, file_content가 필요합니다.' });
+  }
+  
+  try {
+    const result = await enqueueDBWrite(async () => {
+      const { data, error } = await supabase.from('sim_csv_storage').upsert({
+        file_name,
+        file_content,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'file_name' });
+      if (error) throw error;
+      return { success: true };
+    });
+    res.json(result);
+  } catch(err) {
+    console.error('[Upload File] DB Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 const UTIC_API_KEY = process.env.UTIC_API_KEY;
 const UTIC_SERVICE_KEY = process.env.UTIC_SERVICE_KEY;
