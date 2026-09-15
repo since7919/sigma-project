@@ -148,34 +148,20 @@ function toggleSidebarExpand() {
     const iconEl = document.querySelector('.sidebar-expand-handle .handle-icon');
     if (!sidebar) return;
 
-    // 현재 상태 파악
-    const isExpanded = sidebar.classList.contains('expanded');
     const isCollapsed = sidebar.classList.contains('collapsed');
 
-    // Body 클래스 초기화
     document.body.classList.remove('sidebar-expanded', 'sidebar-collapsed');
+    sidebar.classList.remove('expanded');
 
-    if (!isExpanded && !isCollapsed) {
-        // Normal -> Expanded
-        sidebar.classList.add('expanded');
-        document.body.classList.add('sidebar-expanded');
-        // if (textEl) textEl.innerText = '축소'; // [사용자 요청] 텍스트 고정
-        if (iconEl) iconEl.innerText = '≫';
-    } else if (isExpanded) {
-        // Expanded -> Hidden
-        sidebar.classList.remove('expanded');
+    if (!isCollapsed) {
         sidebar.classList.add('collapsed');
         document.body.classList.add('sidebar-collapsed');
-        // if (textEl) textEl.innerText = '표시'; // [사용자 요청] 텍스트 고정
         if (iconEl) iconEl.innerText = '≪';
     } else {
-        // Hidden -> Normal
         sidebar.classList.remove('collapsed');
-        // if (textEl) textEl.innerText = '확장'; // [사용자 요청] 텍스트 고정
-        if (iconEl) iconEl.innerText = '≪';
+        if (iconEl) iconEl.innerText = '≫';
     }
 
-    // 지도 리사이즈 트리거
     setTimeout(() => {
         if (typeof map !== 'undefined' && map && map.invalidateSize) {
             map.invalidateSize();
