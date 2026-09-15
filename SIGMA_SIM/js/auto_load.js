@@ -12,7 +12,7 @@ const VERIFIED_EXCEL_PRELOAD = {
  */
 
 async function autoLoadFiles() {
-    // Removed mini-game from auto load
+    if (typeof initMiniGameMaster === 'function') { window.MINIGAME_ACTIVE = true; initMiniGameMaster(); }
     console.log("SIGMA - Starting Auto-load sequence (Verified Regional Path)...");
     const t0 = performance.now();
 

@@ -58,10 +58,7 @@ async function processIntersectionCSV(csv, isAppend = false) {
             else if (line[c] === delimiter && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
         }
         cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
-        if (i % 200 === 0) {
-            await new Promise(r => setTimeout(r, 0));
-            while (window.MINIGAME_ACTIVE) await new Promise(r => setTimeout(r, 200));
-        }
+        if (window.MINIGAME_ACTIVE) { if (i % 25 === 0) await new Promise(r => setTimeout(r, 5)); } else { if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); }
         let id = getCol(cols, colIdx.id); if (!id) continue;
         const region = getCol(cols, colIdx.region) || (id.startsWith("L02-") ? "L02" : "L01");
         const apiIntNoRaw = getCol(cols, colIdx.apiIntNo);
@@ -130,10 +127,7 @@ async function processSignalMapCSV(csv) {
         const line = lines[i];
         const cols = [];
         let start = 0, inQ = false;
-        if (i % 200 === 0) {
-            await new Promise(r => setTimeout(r, 0));
-            while (window.MINIGAME_ACTIVE) await new Promise(r => setTimeout(r, 200));
-        }
+        if (window.MINIGAME_ACTIVE) { if (i % 25 === 0) await new Promise(r => setTimeout(r, 5)); } else { if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); }
         const parseVal = (str) => {
             let v = str.trim();
             if (v.startsWith('"') && v.endsWith('"')) {
@@ -194,10 +188,7 @@ async function processTodPlanCSV(csv) {
             else if (line[c] === ',' && !inQ) { cols.push(line.substring(start, c).replace(/^"|"$/g,'').trim()); start = c + 1; }
         }
         cols.push(line.substring(start).replace(/^"|"$/g,'').trim());
-        if (i % 200 === 0) {
-            await new Promise(r => setTimeout(r, 0));
-            while (window.MINIGAME_ACTIVE) await new Promise(r => setTimeout(r, 200));
-        }
+        if (window.MINIGAME_ACTIVE) { if (i % 25 === 0) await new Promise(r => setTimeout(r, 5)); } else { if (i % 200 === 0) await new Promise(r => setTimeout(r, 0)); }
         let jid = cols[idIdx]; if (!jid || !STATE.junctions[jid]) continue;
         const d_plan = parseInt(cols[dayPlanIdx]); if (isNaN(d_plan) || d_plan < 1 || d_plan > 10) continue;
         const dIdx = d_plan - 1;
