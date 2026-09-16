@@ -1592,6 +1592,16 @@
                                         <option value="ALL">전체 경찰서</option>
                                     </select>
                                 </div>
+                                <div style="flex: 1;">
+                                    <div class="text-dim fs-11 mb-8">⏱️ 시간대 필터</div>
+                                    <select id="stat-time-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                                        <option value="ALL">전체 24시간</option>
+                                        <option value="AM_PEAK">오전 출근 (07~09시)</option>
+                                        <option value="PM_PEAK">오후 퇴근 (17~19시)</option>
+                                        <option value="NORMAL">오전/오후 평시 (09~17시)</option>
+                                        <option value="NIGHT">야간/심야 (20~06시)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -1853,7 +1863,7 @@
     <script src="js/group.js?v=40"></script>
     <script src="js/tsd.js?v=40"></script>
     <script src="js/simulation.js?v=40"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=1789596453032"></script>
+    <script src="js/stats.js?v=1789596682502"></script>
     <script src="js/api_layers.js?v=40"></script>
     <script src="js/intersection_search.js?v=1789473178606"></script>
     <script src="js/junction_optimizer.js?v=40"></script>

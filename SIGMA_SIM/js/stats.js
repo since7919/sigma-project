@@ -324,6 +324,15 @@ function renderStats() {
         junctions = junctions.filter(j => (j.police || "").trim() === policeFilter);
     }
 
+    const timeFilter = document.getElementById('stat-time-filter')?.value || 'ALL';
+    window.STAT_VALID_HOURS = [];
+    if (timeFilter === 'AM_PEAK') window.STAT_VALID_HOURS = [7, 8];
+    else if (timeFilter === 'PM_PEAK') window.STAT_VALID_HOURS = [17, 18];
+    else if (timeFilter === 'NORMAL') window.STAT_VALID_HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
+    else if (timeFilter === 'NIGHT') window.STAT_VALID_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
+    else window.STAT_VALID_HOURS = Array.from({length:24}, (_, i) => i);
+
+
     const jids = junctions.map(j => j.id);
     if (document.getElementById('stat-no-data')) document.getElementById('stat-no-data').style.display = 'none';
     if (document.getElementById('stat-content')) document.getElementById('stat-content').style.display = 'block';
@@ -1063,7 +1072,7 @@ function renderAdvancedInsights(junctions) {
         let sumAWorst = 0, sumBWorst = 0;
 
         if (sched && hasValidPlan && sm) {
-            for (let h = 0; h < 24; h++) {
+            for (let h of window.STAT_VALID_HOURS) {
                 const sec = h * 3600;
                 let activeIdx = 0;
                 for (let i = 0; i < sched.length; i++) {
@@ -1355,8 +1364,8 @@ const INSIGHT_DETAILS = {
     },
     "macro_avg_cycle": {
         title: "⏳ 평균 신호주기 (Average Cycle)",
-        def: "해당 지역 내 모든 교차로에서 하루(24시간) 동안 실제로 운영되는 일계획(TOD) 상의 신호주기 평균입니다.",
-        calc: "단순히 등록된 N개의 일계획 주기의 산술평균을 구하지 않고, 실제 도로 상황을 반영하기 위해 <b>시간 가중 평균(Time-weighted average)</b>을 사용합니다.<br><br>• 각 교차로마다 00시부터 23시까지 <b>하루 24번의 매 정각마다 현재 가동 중인 TOD 계획을 순회하며 샘플링</b>합니다.<br>• 즉, 어떤 교차로가 100초 주기로 8시간, 160초 주기로 2시간 운영된다면 각각 8번, 2번 중복 누적되어 <b>해당 계획의 유지시간에 완벽히 비례한 가중치</b>가 부여됩니다.<br>• 전체 누적된 주기 총합을 (전체 교차로 수 × 24시간)으로 나누어 최종 거시 평균값을 도출합니다.",
+        def: "해당 지역 내 모든 교차로에서 지정된 분석 시간대 동안 실제로 운영되는 일계획(TOD) 상의 신호주기 평균입니다.",
+        calc: "단순히 등록된 N개의 일계획 주기의 산술평균을 구하지 않고, 실제 도로 상황을 반영하기 위해 <b>시간 가중 평균(Time-weighted average)</b>을 사용합니다.<br><br>• <b>지정된 분석 시간대(필터) 내의 매 정각마다 가동 중인 TOD 계획을 샘플링</b>합니다.<br>• 즉, 어떤 교차로가 100초 주기로 8시간, 160초 주기로 2시간 운영된다면 각각 8번, 2번 중복 누적되어 <b>해당 계획의 유지시간에 완벽히 비례한 가중치</b>가 부여됩니다.<br>• 전체 누적된 주기 총합을 (전체 교차로 수 × 분석 시간)으로 나누어 최종 평균값을 도출합니다.",
         meaning: "네트워크 전체의 평균적인 신호 대기 및 통행 템포를 파악할 수 있으며, 최빈 신호주기와의 차이를 통해 특정 시간대나 교차로에 예외적으로 긴 주기가 얼마나 분포하는지 유추할 수 있습니다."
     },
     "macro_max_cycle": {
@@ -1386,7 +1395,7 @@ const INSIGHT_DETAILS = {
     "micro_ped": {
         title: "🚶 평균 보행자 지체 및 서비스수준 (Pedestrian Delay & LOS)",
         def: "한국도로용량편람(KHCM)의 신호횡단보도 분석 절차에 따라 산출한 보행자 1인당 평균 지체시간과 그에 따른 서비스수준(LOS)입니다.",
-        calc: "보행자 지체(d) = (C - g)² / 2C (C: 주기, g: 유효녹색시간)<br><br>• 평균 신호주기와 <b>동일하게 24시간 가중 평균(Time-weighted)</b> 방식이 적용됩니다.<br>• 각 교차로마다 하루 24번 정각 기준으로 현재 가동 중인 보행자 신호를 샘플링하여 유지시간이 길수록 지체 통계에 더 큰 가중치가 부여됩니다.",
+        calc: "보행자 지체(d) = (C - g)² / 2C (C: 주기, g: 유효녹색시간)<br><br>• 평균 신호주기와 <b>동일하게 시간 가중 평균(Time-weighted)</b> 방식이 적용됩니다.<br>• 지정된 시간대(필터) 내에서 매 정각마다 가동 중인 보행자 신호를 샘플링하여, 유지시간이 길수록 지체 통계에 더 큰 가중치가 부여됩니다.",
         meaning: "서비스수준은 A(15초 미만)부터 F(90초 초과)까지로 분류되며, 지체시간이 길어질수록 보행자의 대기 피로도가 증가하고 무단횡단 등의 위험이 높아집니다."
     },
     "micro_clearance": {
