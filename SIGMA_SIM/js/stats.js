@@ -1149,10 +1149,10 @@ function renderAdvancedInsights(junctions) {
 
                         for(let i=0; i<8; i++) {
                             if (activeDPlan.splitA && activeDPlan.splitA[i] > 0) {
-                                if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) { aStr.push('A황색단락'); hasAnomaly=true; }
+                                if (sm.yellowA && sm.yellowA[i] > 0 && (sm.yellowA[i] < 3 || sm.yellowA[i] >= 6)) { aStr.push(sm.yellowA[i] < 3 ? 'A황색단락' : 'A황색초과'); hasAnomaly=true; }
                             }
                             if (activeDPlan.splitB && activeDPlan.splitB[i] > 0) {
-                                if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) { aStr.push('B황색단락'); hasAnomaly=true; }
+                                if (sm.yellowB && sm.yellowB[i] > 0 && (sm.yellowB[i] < 3 || sm.yellowB[i] >= 6)) { aStr.push(sm.yellowB[i] < 3 ? 'B황색단락' : 'B황색초과'); hasAnomaly=true; }
                             }
                         }
                     }
@@ -1399,10 +1399,10 @@ const INSIGHT_DETAILS = {
         meaning: "서비스수준은 A(15초 미만)부터 F(90초 초과)까지로 분류되며, 지체시간이 길어질수록 보행자의 대기 피로도가 증가하고 무단횡단 등의 위험이 높아집니다."
     },
     "micro_clearance": {
-        title: "⚠️ 소거시간 이상치 (Clearance Interval Anomaly)",
-        def: "황색신호가 3초 미만이거나, 전적색(All-Red) 신호가 3초 이상으로 비정상적으로 길게 설정된 위험 구간의 건수입니다.",
-        calc: "황색 < 3초 (짧은 황색) 로 설정된 교차로 개수 합산",
-        meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 꼬리물기나 급제동 사고를 유발하며, 지나치게 긴 전적색은 교차로 면적이 비정상적으로 넓거나 기하구조가 복잡한 침지형 교차로임을 암시합니다."
+        title: "⚠️ 황색시간 이상치 (Yellow Time Anomaly)",
+        def: "황색신호가 3초 미만으로 비정상적으로 짧거나, 6초 이상으로 너무 길게 설정되어 전적색(All-Red) 처리가 누락된 위험 구간의 건수입니다.",
+        calc: "현시의 황색시간(Yellow)이 3초 미만이거나 6초 이상으로 설정된 교차로 개수 합산",
+        meaning: "짧은 황색은 운전자의 딜레마존을 악화시켜 급제동 사고를 유발하며, 한국 규정상 5초를 초과하는 황색은 원칙적으로 금지(전적색으로 분리해야 함)되어 있으므로 너무 긴 황색은 신호 설계 오류를 암시합니다."
     },
     "micro_balance": {
         title: "⚖️ A/B링 길이 무결성 (Dual-Ring Split Integrity)",
