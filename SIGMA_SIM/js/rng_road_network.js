@@ -1223,6 +1223,9 @@ window.saveNetworkToDB = async function() {
         });
         const result = await response.json();
         if (result.success) {
+            if (typeof invalidateSigmaCache === 'function') {
+                await invalidateSigmaCache('coordlink');
+            }
             alert(`위상 네트워크 데이터가 성공적으로 DB에 저장되었습니다. (파일: ${fileName})`);
         } else {
             alert('DB 저장 실패: ' + (result.error || '알 수 없는 오류'));

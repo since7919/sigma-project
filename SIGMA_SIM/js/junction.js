@@ -565,6 +565,11 @@ window.saveInfoToDB = async function() {
         });
         const result = await response.json();
         if (result.success) {
+            if (typeof invalidateSigmaCache === 'function') {
+                await invalidateSigmaCache('intersections');
+                await invalidateSigmaCache('signal_maps');
+                await invalidateSigmaCache('tod_plans');
+            }
             if (typeof sendToDashboard === 'function') sendToDashboard();
             alert('DB(데이터베이스)에 성공적으로 저장되었습니다.');
         } else {

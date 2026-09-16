@@ -597,3 +597,20 @@ window.clampAngleForPfx = function(pfx, angle) {
         default: return norm;
     }
 };
+
+window.invalidateSigmaCache = async function(keyword) {
+    if ('caches' in window) {
+        try {
+            const cache = await caches.open('sigma-data-cache');
+            const keys = await cache.keys();
+            for (let req of keys) {
+                if (req.url.includes(keyword)) {
+                    await cache.delete(req);
+                    console.log('[Cache] Invalidated cache for:', req.url);
+                }
+            }
+        } catch (e) {
+            console.error('[Cache] Invalidation error:', e);
+        }
+    }
+};
