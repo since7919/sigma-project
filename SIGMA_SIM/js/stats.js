@@ -1035,29 +1035,33 @@ function renderAdvancedInsights(junctions) {
     let validIntegrityCount = 0, totalIntegrityCount = 0;
 
     junctions.forEach(j => {
-        const dPlan = j.dayPlans && j.dayPlans[0] ? j.dayPlans[0][0] : null;
-        const hasValidPlan = dPlan && dPlan.splitA && dPlan.splitA.some(v => v > 0);
+        const dPlanForCheck = j.dayPlans && j.dayPlans[0] ? j.dayPlans[0][0] : null;
+        const hasValidPlan = dPlanForCheck && dPlanForCheck.splitA && dPlanForCheck.splitA.some(v => v > 0);
 
-        // 기본 지표: 활성 일계획 (유효한 데이터가 있는 경우만 합산)
         if (hasValidPlan && j.schedules) {
             j.schedules.forEach(sched => {
                 if (sched && sched[0] && sched[0].h >= 0) activePlansCount++;
             });
         }
-        
-        
 
-        // 거시 지표: 연동 그룹 및 연동화율
         if (j.group && j.group !== 0) {
             coordinatedJunctions++;
             groupCounts[j.group] = (groupCounts[j.group] || 0) + 1;
         }
 
-        // 심층 지표: 1일계획(기본) 기준 분석
         const sm = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
-
         const sched = j.schedules && j.schedules[0] ? j.schedules[0] : null;
+        
         let maxCycleForJ = 0;
+        let jDpSum = 0, jDpCount = 0;
+        let jMainSplit = 0, jCycleSum = 0, jMainPhaseCount = 0;
+        let jValidIntegrity = 0, jTotalIntegrity = 0;
+        let jPhases = 0, jPhasesCount = 0;
+        let jHasPT = false;
+        let aStr = [];
+        let hasAnomaly = false;
+        let sumAWorst = 0, sumBWorst = 0;
+
         if (sched && hasValidPlan && sm) {
             for (let h = 0; h < 24; h++) {
                 const sec = h * 3600;
@@ -1074,92 +1078,114 @@ function renderAdvancedInsights(junctions) {
                 if (activeSched && activeSched.cycle > 0) {
                     cycleCounts[activeSched.cycle] = (cycleCounts[activeSched.cycle] || 0) + 1;
                     if (Number(activeSched.cycle) > maxCycleForJ) maxCycleForJ = Number(activeSched.cycle);
+                    
+                    const tpIdx = (activeSched.idx || 1) - 1;
+                    const activeDPlan = j.dayPlans && j.dayPlans[0] && j.dayPlans[0][tpIdx] ? j.dayPlans[0][tpIdx] : null;
+
+                    if (activeDPlan) {
+                        const mainA = (activeDPlan.splitA && activeDPlan.splitA[0]) || 0;
+                        const mainB = (activeDPlan.splitB && activeDPlan.splitB[0]) || (activeDPlan.splitA && activeDPlan.splitA[1]) || 0; 
+                        if (mainA > 0 || mainB > 0) {
+                            jMainSplit += (mainA + mainB);
+                            jCycleSum += activeDPlan.cycle || 0;
+                            jMainPhaseCount++;
+                        }
+                        
+                        const sumA = activeDPlan.splitA ? activeDPlan.splitA.reduce((a,b)=>a+b, 0) : 0;
+                        const sumB = activeDPlan.splitB ? activeDPlan.splitB.reduce((a,b)=>a+b, 0) : 0;
+                        if (sumA > 0) {
+                            jTotalIntegrity++;
+                            if (sumB === 0 || sumA === sumB) {
+                                jValidIntegrity++;
+                            } else {
+                                sumAWorst = sumA; sumBWorst = sumB;
+                            }
+                        }
+
+                        let activePhases = 0;
+                        for(let i=0; i<8; i++) {
+                            if (activeDPlan.splitA && activeDPlan.splitA[i] > 0) activePhases++;
+                            if (activeDPlan.splitB && activeDPlan.splitB[i] > 0) activePhases++;
+                            
+                            const mA = sm.movA ? sm.movA[i] : null;
+                            const mB = sm.movB ? sm.movB[i] : null;
+                            if ([7, 8, 9, 20, 21, 22, 23].includes(mA) || [7, 8, 9, 20, 21, 22, 23].includes(mB)) {
+                                jHasPT = true;
+                            }
+                        }
+                        if (activePhases > 0) {
+                            jPhases += activePhases;
+                            jPhasesCount++;
+                            if (activePhases > maxPhases) maxPhases = activePhases;
+                        }
+
+                        let dpSum = 0;
+                        let pedPhaseCount = 0;
+                        for(let i=0; i<8; i++) {
+                            if (sm.pedMovA && sm.pedMovA[i] > 0 && activeDPlan.splitA && activeDPlan.splitA[i] > 0) {
+                                const g = activeDPlan.splitA[i];
+                                if (activeDPlan.cycle > 0) dpSum += Math.pow(activeDPlan.cycle - g, 2) / (2 * activeDPlan.cycle);
+                                pedPhaseCount++;
+                            }
+                            if (sm.pedMovB && sm.pedMovB[i] > 0 && activeDPlan.splitB && activeDPlan.splitB[i] > 0) {
+                                const g = activeDPlan.splitB[i];
+                                if (activeDPlan.cycle > 0) dpSum += Math.pow(activeDPlan.cycle - g, 2) / (2 * activeDPlan.cycle);
+                                pedPhaseCount++;
+                            }
+                        }
+                        if (pedPhaseCount > 0 && activeDPlan.cycle > 0) {
+                            jDpSum += (dpSum / pedPhaseCount);
+                            jDpCount++;
+                        }
+
+                        for(let i=0; i<8; i++) {
+                            if (activeDPlan.splitA && activeDPlan.splitA[i] > 0) {
+                                if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) { aStr.push('A황색단락'); hasAnomaly=true; }
+                            }
+                            if (activeDPlan.splitB && activeDPlan.splitB[i] > 0) {
+                                if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) { aStr.push('B황색단락'); hasAnomaly=true; }
+                            }
+                        }
+                    }
                 }
             }
         }
         
         if (maxCycleForJ > 0) junctionMaxCycles.push({ name: j.name || j.id, cycle: maxCycleForJ });
         
-        if (dPlan && sm) {
+        if (jMainPhaseCount > 0) {
+            totalMainSplit += (jMainSplit / jMainPhaseCount);
+            totalCycle += (jCycleSum / jMainPhaseCount);
+            mainPhaseCount++;
+        }
+        
+        if (jTotalIntegrity > 0) {
+            totalIntegrityCount++;
+            if (jValidIntegrity === jTotalIntegrity) {
+                validIntegrityCount++;
+            } else {
+                window.LATEST_INSIGHT_DYNAMIC.balanceWorst.push({ name: j.name || j.id, sumA: sumAWorst, sumB: sumBWorst });
+            }
+        }
 
-            // 주간선 비율 (현시 1번, 2번 기준)
-            const mainA = (dPlan.splitA && dPlan.splitA[0]) || 0;
-            const mainB = (dPlan.splitB && dPlan.splitB[0]) || (dPlan.splitA && dPlan.splitA[1]) || 0; 
-            if (mainA > 0 || mainB > 0) {
-                totalMainSplit += (mainA + mainB);
-                totalCycle += dPlan.cycle || 0;
-                mainPhaseCount++;
-            }
-            
-            // A/B링 분할 합계 무결성 확인
-            const sumA = dPlan.splitA ? dPlan.splitA.reduce((a,b)=>a+b, 0) : 0;
-            const sumB = dPlan.splitB ? dPlan.splitB.reduce((a,b)=>a+b, 0) : 0;
-            if (sumA > 0) {
-                totalIntegrityCount++;
-                if (sumB === 0 || sumA === sumB) {
-                    validIntegrityCount++;
-                } else {
-                    window.LATEST_INSIGHT_DYNAMIC.balanceWorst.push({ name: j.name || j.id, sumA, sumB });
-                }
-            }
+        if (jPhasesCount > 0) {
+            hasSignalMapCount++;
+            totalPhases += (jPhases / jPhasesCount);
+        }
+        
+        if (jHasPT) ptPhaseCount++;
 
-            // 현시 복잡도
-            let activePhases = 0;
-            let hasPT = false;
-            for(let i=0; i<8; i++) {
-                if (dPlan.splitA && dPlan.splitA[i] > 0) activePhases++;
-                if (dPlan.splitB && dPlan.splitB[i] > 0) activePhases++;
-                
-                const mA = sm.movA ? sm.movA[i] : null;
-                const mB = sm.movB ? sm.movB[i] : null;
-                if ([7, 8, 9, 20, 21, 22, 23].includes(mA) || [7, 8, 9, 20, 21, 22, 23].includes(mB)) {
-                    hasPT = true;
-                }
-            }
-            if (activePhases > 0) {
-                hasSignalMapCount++;
-                totalPhases += activePhases;
-                if (activePhases > maxPhases) maxPhases = activePhases;
-            }
-            if (hasPT) ptPhaseCount++;
+        if (jDpCount > 0) {
+            const avgDp = jDpSum / jDpCount;
+            sumPedWaitTime += avgDp;
+            maxPedWaitTime = Math.max(maxPedWaitTime, avgDp);
+            pedWaitJunctionCount++;
+            window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.push({ name: j.name || j.id, val: avgDp });
+        }
 
-            // 보행자 지체 (KHCM)
-            let dpSum = 0;
-            let pedPhaseCount = 0;
-            for(let i=0; i<8; i++) {
-                if (sm.pedMovA && sm.pedMovA[i] > 0 && dPlan.splitA && dPlan.splitA[i] > 0) {
-                    const g = dPlan.splitA[i];
-                    if (dPlan.cycle > 0) dpSum += Math.pow(dPlan.cycle - g, 2) / (2 * dPlan.cycle);
-                    pedPhaseCount++;
-                }
-                if (sm.pedMovB && sm.pedMovB[i] > 0 && dPlan.splitB && dPlan.splitB[i] > 0) {
-                    const g = dPlan.splitB[i];
-                    if (dPlan.cycle > 0) dpSum += Math.pow(dPlan.cycle - g, 2) / (2 * dPlan.cycle);
-                    pedPhaseCount++;
-                }
-            }
-            if (pedPhaseCount > 0 && dPlan.cycle > 0) {
-                const avgDp = dpSum / pedPhaseCount;
-                sumPedWaitTime += avgDp;
-                maxPedWaitTime = Math.max(maxPedWaitTime, avgDp);
-                pedWaitJunctionCount++;
-                window.LATEST_INSIGHT_DYNAMIC.worstPedJunctions.push({ name: j.name || j.id, val: avgDp });
-            }
-
-            // 소거 시간 이상치
-            let hasAnomaly = false;
-            let aStr = [];
-            for(let i=0; i<8; i++) {
-                if (dPlan.splitA && dPlan.splitA[i] > 0) {
-                    if (sm.yellowA && sm.yellowA[i] > 0 && sm.yellowA[i] < 3) { shortYellowCount++; aStr.push('A황색단락'); hasAnomaly=true; }
-                    // removed longAllRedCount A
-                }
-                if (dPlan.splitB && dPlan.splitB[i] > 0) {
-                    if (sm.yellowB && sm.yellowB[i] > 0 && sm.yellowB[i] < 3) { shortYellowCount++; aStr.push('B황색단락'); hasAnomaly=true; }
-                    // removed longAllRedCount B
-                }
-            }
-            if (hasAnomaly) window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
+        if (hasAnomaly) {
+            shortYellowCount++;
+            window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
         }
     });
 
@@ -1360,7 +1386,7 @@ const INSIGHT_DETAILS = {
     "micro_ped": {
         title: "🚶 평균 보행자 지체 및 서비스수준 (Pedestrian Delay & LOS)",
         def: "한국도로용량편람(KHCM)의 신호횡단보도 분석 절차에 따라 산출한 보행자 1인당 평균 지체시간과 그에 따른 서비스수준(LOS)입니다.",
-        calc: "보행자 지체(d) = (C - g)² / 2C (C: 주기, g: 유효녹색시간)",
+        calc: "보행자 지체(d) = (C - g)² / 2C (C: 주기, g: 유효녹색시간)<br><br>• 평균 신호주기와 <b>동일하게 24시간 가중 평균(Time-weighted)</b> 방식이 적용됩니다.<br>• 각 교차로마다 하루 24번 정각 기준으로 현재 가동 중인 보행자 신호를 샘플링하여 유지시간이 길수록 지체 통계에 더 큰 가중치가 부여됩니다.",
         meaning: "서비스수준은 A(15초 미만)부터 F(90초 초과)까지로 분류되며, 지체시간이 길어질수록 보행자의 대기 피로도가 증가하고 무단횡단 등의 위험이 높아집니다."
     },
     "micro_clearance": {
