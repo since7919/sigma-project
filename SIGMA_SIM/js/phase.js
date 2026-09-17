@@ -1031,13 +1031,13 @@ function renderTodPlanInfoTable() {
 
                                 return `
                                     <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer;">
-                                        <input type="text" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
+                                        <input type="text" data-day="${idx}" data-slot="${rIdx}" data-field="time" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
                                     </td>
                                     <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; cursor: pointer;">
-                                        <input type="number" class="sigma-input ${cycleCls}" value="${cycleVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
+                                        <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="cycle" class="sigma-input ${cycleCls}" value="${cycleVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
                                     </td>
                                     <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; font-weight: bold; cursor: pointer;">
-                                        <input type="number" class="sigma-input ${idxCls}" value="${idxVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'idx', this.value)">
+                                        <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="idx" class="sigma-input ${idxCls}" value="${idxVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'idx', this.value)">
                                     </td>
                                 `;
                             }).join('')}
@@ -1114,10 +1114,7 @@ window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
     }
 
     if (j.group) {
-        if (!confirm("이 수정은 그룹 소속 교차로 전체에 영향을 줍니다. 수정하시겠습니까?")) {
-            renderTodPlanInfoTable();
-            return;
-        }
+        // Removed confirm
     }
 
     let targets = [j];
