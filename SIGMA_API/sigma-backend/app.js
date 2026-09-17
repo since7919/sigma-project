@@ -636,10 +636,10 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
 
 global.SIGMA_DB_VERSION = null;
 
-// 모든 POST 요청(업데이트) 발생 시 DB 버전 갱신
+// 모든 POST 요청(업데이트) 발생 시 DB 버전 무효화 (다음 요청시 DB에서 실시간 최대 updated_at 재계산)
 app.use('/api/sim/', (req, res, next) => {
   if (req.method === 'POST') {
-    global.SIGMA_DB_VERSION = Date.now();
+    global.SIGMA_DB_VERSION = null;
   }
   next();
 });
@@ -707,7 +707,7 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -788,7 +788,7 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -854,7 +854,7 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 1; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
