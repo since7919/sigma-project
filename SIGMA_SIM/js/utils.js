@@ -22,9 +22,7 @@ function loadScript(url) {
  * ══════════════════════════════════════════ */
 
 function showLoading(text = 'Loading Data...') {
-    if (typeof initMiniGameMaster === 'function') {
-        initMiniGameMaster();
-    }
+
     const overlay = document.getElementById('loading-overlay');
     const textEl = document.getElementById('loading-text');
     if (overlay && textEl) {
