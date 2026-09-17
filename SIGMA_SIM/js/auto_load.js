@@ -116,9 +116,11 @@ async function autoLoadFiles() {
     if(sb) sb.classList.remove('hidden'); 
 }
 
-    // Changed to sequential to prevent Render OOM and deadlock
-    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
-    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획');
+        const priority1_sub = [
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터'),
+        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획')
+    ];
+    await Promise.all(priority1_sub);
     
     // DB 로드 완료 시 모든 교차로의 상세 정보가 로드된 것으로 간주하여
     // 이후 UI 클릭 시 서버에서 데이터를 덮어쓰지 않도록 _detailLoaded 플래그 설정
