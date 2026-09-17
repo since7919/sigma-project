@@ -612,3 +612,24 @@ window.invalidateSigmaCache = async function(keyword) {
         }
     }
 };
+
+
+/* ══════════════════════════════════════════
+ *  Global Event Listeners
+ * ══════════════════════════════════════════ */
+// 숫자 입력칸(input[type="number"])에서 마우스 휠로 값이 변하는 현상 방지
+document.addEventListener('wheel', function(e) {
+    if (document.activeElement && document.activeElement.type === 'number') {
+        document.activeElement.blur();
+    }
+});
+
+
+// 키보드 방향키(위/아래)로 숫자가 바뀌는 현상 방지
+document.addEventListener('keydown', function(e) {
+    if (document.activeElement && document.activeElement.type === 'number') {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+        }
+    }
+});
