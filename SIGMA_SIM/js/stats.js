@@ -1420,6 +1420,111 @@ window.showInsightDetail = function(id) {
     overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px);";
     
     const modal = document.createElement('div');
+    // 초기 너비 450px
+    modal.style.cssText = "background:#252526; border:1px solid #3e3e42; border-radius:12px; width:450px; max-width:95vw; box-shadow:0 10px 40px rgba(0,0,0,0.9); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);";
+    
+    modal.innerHTML = `
+        <div style="background:#1e1e1e; padding:18px 24px; border-bottom:1px solid #3e3e42; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#ffffff; font-weight:700; font-size:17px;">${data.title}</span>
+            <span id="insight-modal-close" style="color:#858585; font-size:24px; cursor:pointer; line-height:1;">&times;</span>
+        </div>
+        
+        <div style="display:flex; flex-direction:row; flex:1; overflow:hidden;">
+            <!-- 좌측 기본 영역 -->
+            <div style="padding:24px; display:flex; flex-direction:column; gap:20px; width:450px; flex-shrink:0; box-sizing:border-box; overflow-y:auto; max-height:70vh;">
+                <div>
+                    <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#38bdf8;">📌</span> 지표 정의</div>
+                    <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">${data.def}</div>
+                </div>
+                <div>
+                    <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#34d399;">💡</span> 분석적 의미 (Insight)</div>
+                    <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">${data.meaning}</div>
+                </div>
+                <div id="insight-dynamic-content" style="display:none;">
+                    <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#fbbf24;">📊</span> 통계 분석 상세 (모수 및 이상치)</div>
+                    <div id="insight-dynamic-text" style="color:#e2e8f0; font-size:14px; line-height:1.6; background:rgba(251,191,36,0.1); padding:12px 16px; border-radius:8px; border:1px solid rgba(251,191,36,0.4);"></div>
+                </div>
+            </div>
+            
+            <!-- 우측 확장 영역 (초기에는 width 0에 가려짐) -->
+            <div id="insight-calc-panel" style="padding:24px; display:flex; flex-direction:column; gap:20px; width:400px; flex-shrink:0; box-sizing:border-box; border-left:1px solid #3e3e42; background:#1e1e1e; overflow-y:auto; max-height:70vh;">
+                <div>
+                    <div style="color:#e5e5e5; font-weight:700; font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span style="color:#a78bfa;">🧮</span> 계산 방식 및 산출 예시</div>
+                    <div style="color:#d4d4d4; font-size:14px; line-height:1.6; background:rgba(0,0,0,0.3); padding:12px 16px; border-radius:8px; border:1px solid #333;">${data.calc}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding:16px 24px; background:#1e1e1e; border-top:1px solid #3e3e42; display:flex; justify-content:space-between; align-items:center;">
+            <button id="insight-modal-btn-expand" style="padding:8px 16px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.1); border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.2s;">계산식 및 산출예시 보기 ➡</button>
+            <button id="insight-modal-btn-close" style="padding:10px 28px; background:#007acc; color:#fff; font-weight:600; border:none; border-radius:6px; cursor:pointer; font-size:14px; transition:background 0.2s;">확인</button>
+        </div>
+    `;
+
+    const dyn = window.LATEST_INSIGHT_DYNAMIC;
+    if (dyn) {
+        let dynHtml = '';
+        if (id === 'macro_max_cycle') {
+            const list = (dyn.top5MaxCycles || []).map((j, i) => `<li>${i+1}위: ${j.name} (${j.cycle}초)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로<br><br><b style="color:#d35400;">📈 주기가 가장 긴 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        }
+        else if (id === 'macro_coord') dynHtml = `<b>분석 모수:</b> 전체 ${dyn.totalJunctions.toLocaleString()}개 교차로 중 연동 교차로 ${dyn.coordinatedJunctions.toLocaleString()}개`;
+        else if (id === 'macro_scale') dynHtml = `<b>분석 모수:</b> 총 ${dyn.numGroups.toLocaleString()}개 연동 그룹`;
+        else if (id === 'macro_max_scale') {
+            const list = (dyn.top5Groups || []).map((g, i) => `<li>${i+1}위: ${g[0]} (${g[1]}개)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> ${dyn.numGroups.toLocaleString()}개 연동 그룹 (총 ${dyn.coordinatedJunctions.toLocaleString()}개 교차로)<br><br><b style="color:#e74c3c;">🚨 최대 연동축 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        }
+        else if (id === 'micro_ped') {
+            const list = dyn.worstPedJunctions.map(x => `<li>${x.name} (${x.val.toFixed(1)}초)</li>`).join('');
+            dynHtml = `<b>분석 모수:</b> 보행 신호가 존재하는 ${dyn.pedWaitJunctionCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 보행자 지체 최악 교차로 Top 5:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>없음</li>'}</ul>`;
+        } else if (id === 'micro_clearance') {
+            const list = dyn.clearanceAnomalies.slice(0, 5).map(x => `<li>${x}</li>`).join('');
+            let extra = dyn.clearanceAnomalies.length > 5 ? `<li>...외 ${dyn.clearanceAnomalies.length - 5}건</li>` : '';
+            dynHtml = `<b>분석 모수:</b> ${dyn.hasSignalMapCount.toLocaleString()}개 교차로<br><br><b style="color:#ef4444;">⚠️ 이상치 검출 교차로:</b><ul style="margin:5px 0 0 20px; padding:0;">${list || '<li>발견된 이상치 없음</li>'}${extra}</ul>`;
+        }
+        
+        if (dynHtml) {
+            const dc = modal.querySelector('#insight-dynamic-content');
+            const dt = modal.querySelector('#insight-dynamic-text');
+            if (dc && dt) {
+                dc.style.display = 'block';
+                dt.innerHTML = dynHtml;
+            }
+        }
+    }
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    let expanded = false;
+    const btnExpand = modal.querySelector('#insight-modal-btn-expand');
+    btnExpand.onclick = () => {
+        if (!expanded) {
+            modal.style.width = '850px';
+            btnExpand.innerHTML = '⬅ 다시 접기';
+            btnExpand.style.background = 'rgba(255,255,255,0.1)';
+            expanded = true;
+        } else {
+            modal.style.width = '450px';
+            btnExpand.innerHTML = '계산식 및 산출예시 보기 ➡';
+            btnExpand.style.background = 'rgba(255,255,255,0.05)';
+            expanded = false;
+        }
+    };
+
+    const closeFn = () => document.body.removeChild(overlay);
+    modal.querySelector('#insight-modal-close').onclick = closeFn;
+    modal.querySelector('#insight-modal-btn-close').onclick = closeFn;
+    overlay.onclick = (e) => { if(e.target === overlay) closeFn(); };
+};
+window.showInsightDetail = function(id) {
+    const data = INSIGHT_DETAILS[id];
+    if (!data) return;
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(3px);";
+    
+    const modal = document.createElement('div');
     modal.style.cssText = "background:#252526; border:1px solid #3e3e42; border-radius:12px; width:450px; max-width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.9); display:flex; flex-direction:column; overflow:hidden; font-family:'Pretendard', sans-serif;";
     
     modal.innerHTML = `
