@@ -1051,15 +1051,29 @@ function renderTodPlanInfoTable() {
 }
 
 window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
-    let activeDay = null, activeSlot = null, activeField = null;
-    if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
-        activeDay = document.activeElement.getAttribute('data-day');
-        activeSlot = document.activeElement.getAttribute('data-slot');
-        activeField = document.activeElement.getAttribute('data-field');
-    }
     const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
-    // 교차로가 없을 때는 defaultSchedules를 수정하도록 함
+    
+    let targetObj = null;
+    
+    // Time parser helper
+    const parseTime = (val) => {
+        if (!val) return {h:-1, m:0};
+        val = String(val).trim().replace(/[^0-9:]/g, '');
+        if (!val) return {h:-1, m:0};
+        if (val.includes(':')) {
+            let p = val.split(':');
+            return {h: parseInt(p[0]) || 0, m: parseInt(p[1]) || 0};
+        } else if (val.length >= 3) {
+            return {
+                h: parseInt(val.substring(0, val.length - 2)) || 0,
+                m: parseInt(val.substring(val.length - 2)) || 0
+            };
+        } else {
+            return {h: parseInt(val) || 0, m: 0};
+        }
+    };
+
     if (!j) {
         if (!STATE.defaultSchedules) {
             STATE.defaultSchedules = {};
@@ -1072,135 +1086,92 @@ window.handleTodPlanEdit = function(dayIdx, slotIdx, field, value) {
             sc = {h:-1, m:0, cycle:0};
             STATE.defaultSchedules[dayIdx][slotIdx] = sc;
         }
-
-        if (field === 'time') {
-            if (!value || !value.includes(':')) {
-                sc.h = -1; sc.m = 0;
-            } else {
-                let parts = value.split(':');
-                if (parts.length === 2) {
-                    sc.h = parseInt(parts[0]) || 0;
-                    sc.m = parseInt(parts[1]) || 0;
+        targetObj = sc;
+    } else {
+        let targets = [j];
+        if (j.group && STATE.groups[j.group]) {
+            targets = [];
+            for (let key in STATE.junctions) {
+                if (STATE.junctions[key].group === j.group) {
+                    targets.push(STATE.junctions[key]);
                 }
             }
-        } else if (field === 'cycle') {
-            sc.cycle = parseInt(value) || 0;
-        } else if (field === 'idx') {
-            sc.idx = parseInt(value) || 0;
         }
 
-        let activeDay = null, activeSlot = null, activeField = null;
-        if (document.activeElement && document.activeElement.hasAttribute('data-day')) {
-            activeDay = document.activeElement.getAttribute('data-day');
-            activeSlot = document.activeElement.getAttribute('data-slot');
-            activeField = document.activeElement.getAttribute('data-field');
-        }
-
-        renderTodPlanInfoTable();
-
-        if (activeDay !== null) {
-            setTimeout(() => {
-                const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
-                if (inputToFocus) {
-                    inputToFocus.focus();
-                    if (inputToFocus.type === 'text') {
-                        const len = inputToFocus.value.length;
-                        inputToFocus.setSelectionRange(len, len);
-                    }
-                }
-            }, 10);
-        }
-        return;
-    }
-
-    if (j.group) {
-        // Removed confirm
-    }
-
-    let targets = [j];
-    if (j.group && STATE.groups[j.group]) {
-        targets = [];
-        for (let key in STATE.junctions) {
-            if (STATE.junctions[key].group === j.group) {
-                targets.push(STATE.junctions[key]);
+        targets.forEach(targetJ => {
+            if (!targetJ.schedules) targetJ.schedules = {};
+            if (!targetJ.schedules[dayIdx]) targetJ.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+            
+            let sc = targetJ.schedules[dayIdx][slotIdx];
+            if (!sc) {
+                sc = {h:-1, m:0, cycle:0};
+                targetJ.schedules[dayIdx][slotIdx] = sc;
             }
-        }
-    }
 
-    targets.forEach(targetJ => {
-        if (!targetJ.schedules) targetJ.schedules = {};
-        if (!targetJ.schedules[dayIdx]) targetJ.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
-        
-        let sc = targetJ.schedules[dayIdx][slotIdx];
-        if (!sc) {
-            sc = {h:-1, m:0, cycle:0};
-            targetJ.schedules[dayIdx][slotIdx] = sc;
-        }
-
-        if (field === 'time') {
-            if (!value || !value.includes(':')) {
-                sc.h = -1;
-                sc.m = 0;
-            } else {
-                let parts = value.split(':');
-                if (parts.length === 2) {
-                    sc.h = parseInt(parts[0]) || 0;
-                    sc.m = parseInt(parts[1]) || 0;
-                }
+            if (field === 'time') {
+                const parsed = parseTime(value);
+                sc.h = parsed.h;
+                sc.m = parsed.m;
+            } else if (field === 'cycle') {
+                sc.cycle = parseInt(value) || 0;
+            } else if (field === 'idx') {
+                sc.idx = parseInt(value) || 0;
             }
-        } else if (field === 'cycle') {
-            sc.cycle = parseInt(value) || 0;
-        } else if (field === 'idx') {
-            sc.idx = parseInt(value) || 0;
-        }
-    });
+            if (targetJ === j) targetObj = sc;
+        });
 
-    if (j.group && STATE.groups[j.group]) {
-        let g = STATE.groups[j.group];
-        if (!g.schedules) g.schedules = {};
-        if (!g.schedules[dayIdx]) g.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
-        let sc = g.schedules[dayIdx][slotIdx];
-        if (!sc) {
-            sc = {h:-1, m:0, cycle:0};
-            g.schedules[dayIdx][slotIdx] = sc;
-        }
-        if (field === 'time') {
-            if (!value || !value.includes(':')) {
-                sc.h = -1;
-                sc.m = 0;
-            } else {
-                let parts = value.split(':');
-                if (parts.length === 2) {
-                    sc.h = parseInt(parts[0]) || 0;
-                    sc.m = parseInt(parts[1]) || 0;
-                }
+        if (j.group && STATE.groups[j.group]) {
+            let g = STATE.groups[j.group];
+            if (!g.schedules) g.schedules = {};
+            if (!g.schedules[dayIdx]) g.schedules[dayIdx] = Array(16).fill(null).map(() => ({h:-1, m:0, cycle:0}));
+            let sc = g.schedules[dayIdx][slotIdx];
+            if (!sc) {
+                sc = {h:-1, m:0, cycle:0};
+                g.schedules[dayIdx][slotIdx] = sc;
             }
-        } else if (field === 'cycle') {
-            sc.cycle = parseInt(value) || 0;
-        } else if (field === 'idx') {
-            sc.idx = parseInt(value) || 0;
+            if (field === 'time') {
+                const parsed = parseTime(value);
+                sc.h = parsed.h;
+                sc.m = parsed.m;
+            } else if (field === 'cycle') {
+                sc.cycle = parseInt(value) || 0;
+            } else if (field === 'idx') {
+                sc.idx = parseInt(value) || 0;
+            }
         }
     }
 
-    renderTodPlanInfoTable();
+    // Update input visually without re-rendering entire table
+    if (targetObj) {
+        const editedInput = document.querySelector(`input[data-day="${dayIdx}"][data-slot="${slotIdx}"][data-field="${field}"]`);
+        if (editedInput) {
+            if (field === 'time') {
+                if (targetObj.h === -1) {
+                    editedInput.value = '';
+                    editedInput.classList.add('val-zero');
+                } else {
+                    editedInput.value = String(targetObj.h).padStart(2,'0') + ':' + String(targetObj.m).padStart(2,'0');
+                    editedInput.classList.remove('val-zero');
+                }
+            } else if (field === 'cycle' || field === 'idx') {
+                const val = targetObj[field];
+                if (!val || val === 0) {
+                    editedInput.value = '';
+                    editedInput.classList.add('val-zero');
+                } else {
+                    editedInput.value = val;
+                    editedInput.classList.remove('val-zero');
+                }
+            }
+        }
+    }
+
+    // Render downstream dependencies
     if (STATE.currentJunctionDayTypeIdx === dayIdx && parseInt(UI.planIdx?.value || 0) === slotIdx) {
         renderRingTables();
         if (typeof renderSummaryTable === 'function') renderSummaryTable();
     }
     if (typeof updatePlanMap === 'function') updatePlanMap();
-
-    if (activeDay !== null) {
-        setTimeout(() => {
-            const inputToFocus = document.querySelector(`input[data-day="${activeDay}"][data-slot="${activeSlot}"][data-field="${activeField}"]`);
-            if (inputToFocus) {
-                inputToFocus.focus();
-                if (inputToFocus.type === 'text') {
-                    const len = inputToFocus.value.length;
-                    inputToFocus.setSelectionRange(len, len);
-                }
-            }
-        }, 10);
-    }
 };
 
 window.toggleTodPlanGroup = function(group) {
