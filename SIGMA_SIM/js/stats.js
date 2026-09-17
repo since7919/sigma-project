@@ -1299,10 +1299,12 @@ function renderAdvancedInsights(junctions) {
     html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
         <span style="color: #9b59b6; font-size: 13px; font-weight: 700;">🔗 연동 및 현시 (Coordination & Phase)</span>
     </div>`;
-    html += `<div class="grid-2col gap-15 mb-25">`;
+    html += `<div class="grid-3col gap-15 mb-15">`;
     html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, "네트워크 내 연동 그룹 소속 비율", "🌐", "#3498db");
     html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, "1개 연동 그룹당 묶여있는 교차로 수", "📏", "#9b59b6");
     html += InsightBox("macro_max_scale", "최대 연동축 규모", `${maxGroupScale}개`, "(단일 그룹 최대 교차로 수)", "가장 길게 끊기지 않고 연동되는 거대 간선도로의 규모", "🛣️", "#e74c3c");
+    html += `</div>`;
+    html += `<div class="grid-3col gap-15 mb-25">`;
     html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
     html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
     html += InsightBox("micro_balance", "A/B링 길이 무결성", `${finalBalance}%`, "듀얼 링(Dual-Ring) 분할 합계 일치율", "시간 계획 상의 물리적/구조적 오류 부재 비율", "⚖️", "#8e44ad");
@@ -1310,11 +1312,11 @@ function renderAdvancedInsights(junctions) {
 
     // 4. 카테고리 3: 보행, 소거시간 및 특수
     html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <span style="color: #e74c3c; font-size: 13px; font-weight: 700;">🚶 보행, 소거 및 특수 (Pedestrian & Clearance)</span>
+        <span style="color: #e74c3c; font-size: 13px; font-weight: 700;">🚶 보행, 황색시간 및 특수 (Pedestrian & Clearance)</span>
     </div>`;
     html += `<div class="grid-2col gap-15 mb-25">`;
     html += InsightBox("micro_ped", "평균 보행자 지체 (LOS)", `${avgPedWait}초 (LOS ${pedLos})`, `최악 교차로: ${maxPedWaitTime.toFixed(1)}초`, "도로용량편람(KHCM) 기준 보행자 평균 지체시간", "🚶", "#f1c40f");
-    html += InsightBox("micro_clearance", "소거시간 이상치", `${shortYellowCount}건`, `(짧은황색 < 3초)`, "딜레마존 악화를 유발하는 비정상적으로 짧은 황색신호 건수", "⚠️", "#e67e22");
+    html += InsightBox("micro_clearance", "황색시간 이상치", `${shortYellowCount}건`, `(< 3초 또는 ≥ 6초)`, "규정(3~5초)을 벗어난 비정상적 황색신호 교차로 건수", "⚠️", "#e67e22");
 
     html += `</div>`;
 
