@@ -831,6 +831,12 @@ window.triggerUticPlanSync = async function() {
         return;
     }
 
+    const pwd = prompt("DB 반영을 위해 관리자 비밀번호를 입력하세요.");
+    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+        alert("비밀번호가 일치하지 않습니다. DB 반영이 취소되었습니다.");
+        return;
+    }
+
     if (typeof showLoading === 'function') {
         showLoading("UTIC 신호 계획 동기화 중...");
     }
