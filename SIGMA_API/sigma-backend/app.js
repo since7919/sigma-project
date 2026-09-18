@@ -719,10 +719,16 @@ const uploadToCDN = async (filePath, cdnFilename) => {
         console.error("[CDN Exception]", err);
     }
 };
+const generationLocks = {};
 
+// 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
 app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: 'file 파라미터가 필요합니다.' });
+
+  while(generationLocks[file]) {
+      await new Promise(r => setTimeout(r, 2000));
+  }
 
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -752,6 +758,8 @@ app.get('/api/sim/data', async (req, res) => {
     }
   }
 
+  generationLocks[file] = true;
+  res.on('finish', () => { generationLocks[file] = false; });
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
     if (file.startsWith('db_') && file.endsWith('.csv')) {
