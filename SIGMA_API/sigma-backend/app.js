@@ -830,15 +830,24 @@ app.get('/api/sim/data', async (req, res) => {
           
           let lastId = `${regionCode}-`;
           while (true) {
-            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').limit(1000);
+            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('map_idx').limit(1000);
             if (error || !data || data.length === 0) break;
             
+            let safeData = data;
+            let nextLastId = data[data.length - 1].id;
+            
+            if (data.length === 1000) {
+              safeData = data.filter(r => r.id !== nextLastId);
+              if (safeData.length === 0) { safeData = data; }
+              else { nextLastId = safeData[safeData.length - 1].id; }
+            }
+            
             let chunk = "";
-            data.forEach(r => {
+            safeData.forEach(r => {
                 const line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
                 chunk += line + "\n";
             });
-            lastId = data[data.length - 1].id;
+            lastId = nextLastId;
             cacheStream.write(chunk);
             if (!res.writableEnded) res.write(chunk);
             try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
@@ -866,32 +875,31 @@ app.get('/api/sim/data', async (req, res) => {
           if (!res.writableEnded) res.write(headerStr);
           try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
-          const pageSize = 1000;
-          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan');
-          if (!countErr && count > 0) {
-            const totalPages = Math.ceil(count / pageSize);
-            for (let p = 0; p < totalPages; p++) {
-              const { data, error } = await supabase.from('tod_plans').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1);
-              if (error || !data || data.length === 0) continue;
-              
-              let chunk = "";
-              data.forEach(r => {
-                let line;
-                if ('tod_plans' === 'junctions') {
-                  line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police_station, r.police_office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
-                } else if ('tod_plans' === 'signal_maps') {
-                  line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
-                } else if ('tod_plans' === 'tod_plans') {
-                  let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
-                  line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
-                }
-                chunk += line + "\n";
-              });
-              cacheStream.write(chunk);
-              if (!res.writableEnded) res.write(chunk);
-              try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
-              await new Promise(r => setTimeout(r, 10)); // Force GC yield
+          let lastId = `${regionCode}-`;
+          while (true) {
+            const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('day_plan').limit(1000);
+            if (error || !data || data.length === 0) break;
+            
+            let safeData = data;
+            let nextLastId = data[data.length - 1].id;
+            
+            if (data.length === 1000) {
+              safeData = data.filter(r => r.id !== nextLastId);
+              if (safeData.length === 0) { safeData = data; }
+              else { nextLastId = safeData[safeData.length - 1].id; }
             }
+            
+            let chunk = "";
+            safeData.forEach(r => {
+                let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
+                const line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                chunk += line + "\n";
+            });
+            lastId = nextLastId;
+            cacheStream.write(chunk);
+            if (!res.writableEnded) res.write(chunk);
+            try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
+            await new Promise(r => setTimeout(r, 5));
           }
           cacheStream.end(() => {
             if (global.SIGMA_DB_VERSION) {
