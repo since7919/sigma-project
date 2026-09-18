@@ -20,7 +20,7 @@ const CSV_CACHE = {};
 
 // 캐시 무효화 미들웨어: 데이터 변경(POST/PUT/DELETE) 시 캐시를 날림
 app.use('/api', (req, res, next) => {
-    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
+    if ((req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') && !req.url.includes('/ping') && !req.url.includes('/logs')) {
         const scratchDir = path.join(__dirname, 'scratch');
         if (fs.existsSync(scratchDir)) {
             const files = fs.readdirSync(scratchDir);
