@@ -47,62 +47,75 @@ async function autoLoadFiles() {
     }
 
     // Helper function to load a single file with Cache API
-    async function fetchAndProcess(baseUrl, type, processFunc, label, isGroup = false) {
+    async function fetchAndProcess(baseUrl, type, processFunc, label, isGroup = false, retries = 1) {
         try {
             if (!processFunc) return null;
             const ft0 = performance.now();
-            
-            // 캐시 버스터로 dbVersion 사용 (버전이 바뀌면 새 URL로 인식하여 새로 다운로드)
             const url = `${baseUrl}&v=${dbVersion}`;
-            
             let res;
             let fromCache = false;
-            
+            let buf;
             
             if ('caches' in window) {
                 const cache = await caches.open('sigma-data-cache');
-                
-                
-                
                 res = await cache.match(url);
-
                 if (res) {
                     fromCache = true;
-                } else {
-                    res = await fetch(url);
-                    if (res.ok) {
-                        cache.put(url, res.clone());
-                    }
+                    buf = await res.arrayBuffer();
                 }
-            } else {
-                res = await fetch(url);
             }
             
-            if (!res.ok) {
-                console.warn(`[Auto-load] ${label} file not found (${url}).`);
-                return null;
+            if (!fromCache) {
+                res = await fetch(url);
+                if (!res.ok) {
+                    if (retries > 0) throw new Error("HTTP Error " + res.status);
+                    console.warn(`[Auto-load] ${label} file not found (${url}).`);
+                    return null;
+                }
+                buf = await res.arrayBuffer();
             }
-            const buf = await res.arrayBuffer();
-            const ft1 = performance.now();
+            
             const content = decodeBuffer(buf);
             if (content.trim().toLowerCase().startsWith('<!doctype html') || content.trim().toLowerCase().startsWith('<html')) {
-                console.warn(`[Auto-load] Warning: ${baseUrl} returned HTML. Assuming file not found on server.`);
+                if (retries > 0) throw new Error("Returned HTML instead of CSV");
+                console.warn(`[Auto-load] Warning: ${baseUrl} returned HTML.`);
                 return null;
             }
             
             if (content && content.length > 5) {
-                const pt0 = performance.now();
                 if (isGroup) {
                     await processFunc(content, true);
                 } else {
                     await processFunc(content);
                 }
-                const pt1 = performance.now();
-                STATE.loadedFiles[type] = url;
-                console.log(`[Auto-load] ✅ ${label} Processed (Cache: ${fromCache ? 'HIT' : 'MISS'}). Fetch: ${(ft1-ft0).toFixed(1)}ms, Parse: ${(pt1-pt0).toFixed(1)}ms`);
+                
+                // ONLY CACHE AFTER SUCCESSFUL PARSE!
+                if ('caches' in window && !fromCache) {
+                    const cache = await caches.open('sigma-data-cache');
+                    cache.put(url, new Response(buf, { headers: res ? res.headers : undefined }));
+                }
+                
+                const ft1 = performance.now();
+                console.log(`[Auto-load] ✅ ${label} Processed (Cache: ${fromCache?'HIT':'MISS'}). Time: ${(ft1-ft0).toFixed(1)}ms`);
             }
-        } catch (e) {
-            console.error(`[Auto-load] Error loading ${label} (${baseUrl}):`, e);
+        } catch(e) {
+            // Delete cache on error to prevent eternal poisoning
+            if ('caches' in window) {
+                try {
+                    const cache = await caches.open('sigma-data-cache');
+                    const url = `${baseUrl}&v=${dbVersion}`;
+                    await cache.delete(url);
+                    console.log("[Auto-load] Deleted potentially poisoned cache:", baseUrl);
+                } catch(e2) {}
+            }
+            
+            if (retries > 0) {
+                console.warn(`[Auto-load] Error fetching ${label}, retrying in 5 seconds...`, e);
+                updateLoading(`${label} 연결 재시도 중...`);
+                await new Promise(r => setTimeout(r, 5000));
+                return fetchAndProcess(baseUrl, type, processFunc, label, isGroup, retries - 1);
+            }
+            console.error(`[Auto-load] Error loading ${label}`, e);
         }
     }
 

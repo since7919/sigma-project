@@ -1,3 +1,11 @@
+
+process.on('uncaughtException', (err) => {
+    console.error('[Fatal] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, p) => {
+    console.error('[Fatal] Unhandled Rejection:', reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -780,8 +788,8 @@ app.get('/api/sim/data', async (req, res) => {
           const headers = ["ID", "Region", "Name", "Lat", "Lng", "Seq", "Police", "Office", "GroupID", "FlashCfg", "OpIntervention", "ArrowConfigs", "Controller", "DiagramOrder", "Weekly_plan", "API_Int_No"];
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
-          res.write(headerStr);
-          if (res.flush) res.flush();
+          if (!res.writableEnded) res.write(headerStr);
+          try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
@@ -805,8 +813,8 @@ app.get('/api/sim/data', async (req, res) => {
                 chunk += line + "\n";
               });
               cacheStream.write(chunk);
-              res.write(chunk);
-              if (res.flush) res.flush();
+              if (!res.writableEnded) res.write(chunk);
+              try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
               await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
@@ -828,8 +836,8 @@ app.get('/api/sim/data', async (req, res) => {
           const headers = ["ID", "MapIdx", "movA", "movB", "pedMovA", "pedMovB", "mainMovements", "yellowA", "yellowB", "allredA", "allredB", "pedA", "pedB", "pedDelayA", "pedDelayB", "pedFlashA", "pedFlashB", "pedGreenA", "pedGreenB", "rawSteps"];
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
-          res.write(headerStr);
-          if (res.flush) res.flush();
+          if (!res.writableEnded) res.write(headerStr);
+          try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id');
@@ -853,8 +861,8 @@ app.get('/api/sim/data', async (req, res) => {
                 chunk += line + "\n";
               });
               cacheStream.write(chunk);
-              res.write(chunk);
-              if (res.flush) res.flush();
+              if (!res.writableEnded) res.write(chunk);
+              try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
               await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
@@ -877,8 +885,8 @@ app.get('/api/sim/data', async (req, res) => {
           for (let i = 1; i <= 16; i++) headers.push(`Time_plan${i}`);
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
-          res.write(headerStr);
-          if (res.flush) res.flush();
+          if (!res.writableEnded) res.write(headerStr);
+          try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan');
@@ -902,8 +910,8 @@ app.get('/api/sim/data', async (req, res) => {
                 chunk += line + "\n";
               });
               cacheStream.write(chunk);
-              res.write(chunk);
-              if (res.flush) res.flush();
+              if (!res.writableEnded) res.write(chunk);
+              try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
               await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
@@ -926,8 +934,8 @@ app.get('/api/sim/data', async (req, res) => {
           for (let i = 1; i <= 10; i++) headers.push(`Day_plan${i}`);
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
-          res.write(headerStr);
-          if (res.flush) res.flush();
+          if (!res.writableEnded) res.write(headerStr);
+          try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           let page = 0;
           const pageSize = 500;
@@ -957,8 +965,8 @@ app.get('/api/sim/data', async (req, res) => {
             });
             
             cacheStream.write(chunk);
-                res.write(chunk);
-                if (res.flush) res.flush();
+                if (!res.writableEnded) res.write(chunk);
+                try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
             if (data.length < pageSize) hasMore = false;
             page++;
           }
