@@ -787,67 +787,27 @@ app.get('/api/sim/data', async (req, res) => {
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
-            for (let i = 0; i < totalPages; i += CONCURRENCY) {
-              const promises = [];
-              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
-                promises.push(supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
-              }
-              const results = await Promise.all(promises);
-              results.forEach(({data, error}) => {
-                if (error || !data) return;
-            
-            if (!data || data.length === 0) return;
-            
-            let chunk = "";
-            data.forEach(r => {
-              // arrowConfigs & _custom_angles 복원
-              let arrowStr = "";
-              if (r.arrow_configs && typeof r.arrow_configs === 'object') {
-                const arrs = [];
-                Object.entries(r.arrow_configs).forEach(([mov, configs]) => {
-                  if (mov === '_custom_angles') {
-                    if (configs && typeof configs === 'object') {
-                      Object.entries(configs).forEach(([pfx, angle]) => {
-                        arrs.push(`_custom_angles:${pfx}:${angle}`);
-                      });
-                    }
-                  } else if (Array.isArray(configs)) {
-                    configs.forEach(c => {
-                      arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`);
-                    });
-                  }
-                });
-                arrowStr = arrs.join(';');
-              }
+            for (let p = 0; p < totalPages; p++) {
+              const { data, error } = await supabase.from('junctions').select('*').eq('region_cd', regionCode).order('id').range(p * pageSize, (p + 1) * pageSize - 1);
+              if (error || !data || data.length === 0) continue;
               
-              const line = [
-                r.id,
-                r.region_cd,
-                r.name,
-                r.lat ? Number(r.lat).toFixed(9) : "37.5",
-                r.lng ? Number(r.lng).toFixed(9) : "127.0",
-                r.seq || "",
-                r.police || "",
-                r.office || "",
-                r.group_id || 0,
-                "0|||", // flash_cfg 제외
-                "0|",    // op_intervention 제외
-                arrowStr,
-                r.controller || "",
-                r.diagram_order !== null ? r.diagram_order : -1,
-                r.weekly_plan || "1;1;1;1;1;2;3",
-                r.api_int_no !== null && r.api_int_no !== undefined ? r.api_int_no : ""
-              ];
-              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-            });
-            
-            cacheStream.write(chunk);
-                res.write(chunk);
-                if (res.flush) res.flush();
+              let chunk = "";
+              data.forEach(r => {
+                let line;
+                if ('junctions' === 'junctions') {
+                  line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police_station, r.police_office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                } else if ('junctions' === 'signal_maps') {
+                  line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
+                } else if ('junctions' === 'tod_plans') {
+                  let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
+                  line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                }
+                chunk += line + "\n";
               });
-              // Force garbage collection in V8 if possible, or just let event loop clear memory
-              await new Promise(r => setTimeout(r, 10)); 
+              cacheStream.write(chunk);
+              res.write(chunk);
+              if (res.flush) res.flush();
+              await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
           cacheStream.end(() => {
@@ -872,54 +832,30 @@ app.get('/api/sim/data', async (req, res) => {
           if (res.flush) res.flush();
           
           const pageSize = 1000;
-          const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
+          const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
-            for (let i = 0; i < totalPages; i += CONCURRENCY) {
-              const promises = [];
-              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
-                promises.push(supabase.from('signal_maps').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').range(p * pageSize, (p + 1) * pageSize - 1));
-              }
-              const results = await Promise.all(promises);
-              results.forEach(({data, error}) => {
-                if (error || !data) return;
-            
-            if (!data || data.length === 0) return;
-            
-            let chunk = "";
-            data.forEach(r => {
-              const line = [
-                r.id,
-                r.map_idx,
-                Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""),
-                Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""),
-                Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""),
-                Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""),
-                Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || "A0;B0"),
-                Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""),
-                Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""),
-                Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""),
-                Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""),
-                Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""),
-                Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""),
-                Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""),
-                Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""),
-                Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""),
-                Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""),
-                Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""),
-                Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""),
-                r.raw_steps ? JSON.stringify(r.raw_steps) : ""
-              ];
-              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-            });
-            
-            cacheStream.write(chunk);
-                res.write(chunk);
-                if (res.flush) res.flush();
+            for (let p = 0; p < totalPages; p++) {
+              const { data, error } = await supabase.from('signal_maps').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').range(p * pageSize, (p + 1) * pageSize - 1);
+              if (error || !data || data.length === 0) continue;
+              
+              let chunk = "";
+              data.forEach(r => {
+                let line;
+                if ('signal_maps' === 'junctions') {
+                  line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police_station, r.police_office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                } else if ('signal_maps' === 'signal_maps') {
+                  line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
+                } else if ('signal_maps' === 'tod_plans') {
+                  let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
+                  line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                }
+                chunk += line + "\n";
               });
-              // Force garbage collection in V8 if possible, or just let event loop clear memory
-              await new Promise(r => setTimeout(r, 10)); 
+              cacheStream.write(chunk);
+              res.write(chunk);
+              if (res.flush) res.flush();
+              await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
           cacheStream.end(() => {
@@ -945,50 +881,30 @@ app.get('/api/sim/data', async (req, res) => {
           if (res.flush) res.flush();
           
           const pageSize = 1000;
-          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
+          const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
-            for (let i = 0; i < totalPages; i += CONCURRENCY) {
-              const promises = [];
-              for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
-                promises.push(supabase.from('tod_plans').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1));
-              }
-              const results = await Promise.all(promises);
-              results.forEach(({data, error}) => {
-                if (error || !data) return;
-            
-            if (!data || data.length === 0) return;
-            
-            let chunk = "";
-            data.forEach(r => {
-              const line = [r.id, r.id, r.signal_map || 0, r.group_id || 0, r.day_plan];
+            for (let p = 0; p < totalPages; p++) {
+              const { data, error } = await supabase.from('tod_plans').select('*').gte('id', `${regionCode}-`).lt('id', `${regionCode}.`).order('id').order('day_plan').range(p * pageSize, (p + 1) * pageSize - 1);
+              if (error || !data || data.length === 0) continue;
               
-              // 16개 시간계획 복원
-              const tpMap = {};
-              (r.time_plans || []).forEach(tp => {
-                tpMap[tp.slot_idx] = tp;
-              });
-              
-              for (let i = 1; i <= 16; i++) {
-                const tp = tpMap[i];
-                if (tp) {
-                  const timeStr = tp.h === -1 ? "-1" : `${String(tp.h).padStart(2, '0')}:${String(tp.m).padStart(2, '0')}`;
-                  line.push(`${timeStr}|${tp.cycle}|${tp.offset}|${(tp.splitA || []).join(';')}|${(tp.splitB || []).join(';')}|${tp.idx || 1}`);
-                } else {
-                  line.push("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+              let chunk = "";
+              data.forEach(r => {
+                let line;
+                if ('tod_plans' === 'junctions') {
+                  line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police_station, r.police_office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                } else if ('tod_plans' === 'signal_maps') {
+                  line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
+                } else if ('tod_plans' === 'tod_plans') {
+                  let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
+                  line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
                 }
-              }
-              
-              chunk += line.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
-            });
-            
-            cacheStream.write(chunk);
-                res.write(chunk);
-                if (res.flush) res.flush();
+                chunk += line + "\n";
               });
-              // Force garbage collection in V8 if possible, or just let event loop clear memory
-              await new Promise(r => setTimeout(r, 10)); 
+              cacheStream.write(chunk);
+              res.write(chunk);
+              if (res.flush) res.flush();
+              await new Promise(r => setTimeout(r, 10)); // Force GC yield
             }
           }
           cacheStream.end(() => {
