@@ -552,6 +552,7 @@ app.get('/api/intersections/nearest', async (req, res) => {
       res.json({ success: false, message: '가장 가까운 교차로를 찾을 수 없습니다.' });
     }
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '가장 가까운 교차로 조회 중 오류가 발생했습니다.');
   }
 });
@@ -609,6 +610,7 @@ app.get('/api/intersections', async (req, res) => {
     
     res.json(allData);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 데이터 조회 중 오류가 발생했습니다.');
   }
 });
@@ -630,6 +632,7 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
     
     res.json({ success: true, message: '각도 설정이 저장되었습니다.' });
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '각도 설정 저장 중 오류가 발생했습니다.');
   }
 });
@@ -759,7 +762,6 @@ app.get('/api/sim/data', async (req, res) => {
   }
 
   generationLocks[file] = true;
-  res.on('finish', () => { generationLocks[file] = false; });
   try {
     // A~D 파일 요청에 대한 처리 (RDB 테이블 연동 및 CSV 실시간 복원)
     if (file.startsWith('db_') && file.endsWith('.csv')) {
@@ -779,12 +781,13 @@ app.get('/api/sim/data', async (req, res) => {
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
           res.write(headerStr);
+          if (res.flush) res.flush();
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('junctions').select('*', { count: 'exact', head: true }).eq('region_cd', regionCode).order('id');
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -841,6 +844,7 @@ app.get('/api/sim/data', async (req, res) => {
             
             cacheStream.write(chunk);
                 res.write(chunk);
+                if (res.flush) res.flush();
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
@@ -851,6 +855,7 @@ app.get('/api/sim/data', async (req, res) => {
                 uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
             }
           });
+          generationLocks[file] = false;
           return res.end();
         }
         
@@ -864,12 +869,13 @@ app.get('/api/sim/data', async (req, res) => {
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
           res.write(headerStr);
+          if (res.flush) res.flush();
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('signal_maps').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -910,6 +916,7 @@ app.get('/api/sim/data', async (req, res) => {
             
             cacheStream.write(chunk);
                 res.write(chunk);
+                if (res.flush) res.flush();
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
@@ -920,6 +927,7 @@ app.get('/api/sim/data', async (req, res) => {
                 uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
             }
           });
+          generationLocks[file] = false;
           return res.end();
         }
         
@@ -934,12 +942,13 @@ app.get('/api/sim/data', async (req, res) => {
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
           res.write(headerStr);
+          if (res.flush) res.flush();
           
           const pageSize = 1000;
           const { count, error: countErr } = await supabase.from('tod_plans').select('*', { count: 'exact', head: true }).gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
           if (!countErr && count > 0) {
             const totalPages = Math.ceil(count / pageSize);
-            const CONCURRENCY = 5; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
+            const CONCURRENCY = 2; // Limit parallel requests to prevent Render OOM (512MB RAM limit)
             for (let i = 0; i < totalPages; i += CONCURRENCY) {
               const promises = [];
               for (let p = i; p < Math.min(i + CONCURRENCY, totalPages); p++) {
@@ -976,6 +985,7 @@ app.get('/api/sim/data', async (req, res) => {
             
             cacheStream.write(chunk);
                 res.write(chunk);
+                if (res.flush) res.flush();
               });
               // Force garbage collection in V8 if possible, or just let event loop clear memory
               await new Promise(r => setTimeout(r, 10)); 
@@ -986,6 +996,7 @@ app.get('/api/sim/data', async (req, res) => {
                 uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
             }
           });
+          generationLocks[file] = false;
           return res.end();
         }
         
@@ -1000,6 +1011,7 @@ app.get('/api/sim/data', async (req, res) => {
           const headerStr = "\ufeff" + headers.join(",") + "\n";
           cacheStream.write(headerStr);
           res.write(headerStr);
+          if (res.flush) res.flush();
           
           let page = 0;
           const pageSize = 500;
@@ -1030,6 +1042,7 @@ app.get('/api/sim/data', async (req, res) => {
             
             cacheStream.write(chunk);
                 res.write(chunk);
+                if (res.flush) res.flush();
             if (data.length < pageSize) hasMore = false;
             page++;
           }
@@ -1038,6 +1051,7 @@ app.get('/api/sim/data', async (req, res) => {
                 uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
             }
           });
+          generationLocks[file] = false;
           return res.end();
         }
       }
@@ -1066,6 +1080,7 @@ app.get('/api/sim/data', async (req, res) => {
 
     res.send(fileContent);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '시뮬레이터 데이터 조회에 실패했습니다.');
   }
 });
@@ -1088,6 +1103,7 @@ app.get('/api/sim/junction-detail/:id', async (req, res) => {
       tod_plans: plansResult.data || []
     });
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 상세 정보 조회에 실패했습니다.');
   }
 });
@@ -1559,6 +1575,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 데이터 복원에 실패했습니다.');
   }
 });
@@ -1758,6 +1775,7 @@ app.post('/api/sim/update-junction', async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 데이터 업데이트에 실패했습니다.');
   }
 });
@@ -1918,6 +1936,7 @@ app.post('/api/sim/osm-lanes', async (req, res) => {
     res.json({ success: true, cached: false, lanes: incomingLanes, rawWays: ways, rawNodes: nodes });
 
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, 'OSM 차로 데이터 추출 중 오류가 발생했습니다.');
   }
 });
@@ -2095,6 +2114,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 일괄 업데이트에 실패했습니다.');
   }
 });
@@ -2165,6 +2185,7 @@ app.post('/api/sim/batch-update-groups', async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '그룹마스터 일괄 업데이트에 실패했습니다.');
   }
 });
@@ -2216,6 +2237,7 @@ app.post('/api/sim/batch-update-stats', async (req, res) => {
     });
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '통계 데이터 일괄 업데이트에 실패했습니다.');
   }
 });
@@ -2267,6 +2289,7 @@ app.post('/api/sim/batch-update-yearbook', async (req, res) => {
     });
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, '민원 데이터 일괄 업데이트에 실패했습니다.');
   }
 });
@@ -2366,6 +2389,7 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
 
     res.json(result);
   } catch (err) {
+    generationLocks[file] = false;
     sendErrorResponse(res, err, 'UTIC 신호 계획 동기화 및 DB 반영에 실패했습니다.');
   }
 });
