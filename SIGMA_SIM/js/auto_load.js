@@ -123,7 +123,16 @@ async function autoLoadFiles() {
     if(sb) sb.classList.remove('hidden'); 
 }
 
+    
+    const smUrl = `/api/sim/data?file=db_${regionCode}_signal_maps.csv&v=${dbVersion}`;
+    const cache = await caches.open('sigma-cache-v1');
+    const cachedSm = await cache.match(smUrl);
+    if (!cachedSm && typeof initMiniGameMaster === 'function') {
+        try { initMiniGameMaster(); } catch(e) {}
+    }
+    
     updateLoading("신호맵데이터 다운로드 중... (서버 상태에 따라 최대 2분 소요될 수 있습니다) (2/8)");
+
     const smRes = await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
     updateLoading("운영계획 다운로드 중... (거의 다 되었습니다) (3/8)");
     const tpRes = await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획');
