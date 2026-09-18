@@ -667,6 +667,35 @@ app.get('/api/sim/db-version', async (req, res) => {
 });
 
 // 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
+
+const uploadToCDN = async (filePath, cdnFilename) => {
+    try {
+        const fileBuffer = fs.readFileSync(filePath);
+        const { data, error } = await supabase.storage.from('sigma-data').upload(cdnFilename, fileBuffer, {
+            contentType: 'text/csv; charset=utf-8',
+            upsert: true
+        });
+        if (error) {
+            if (error.message && (error.message.includes('bucket') || error.message.includes('not found') || error.message.includes('find'))) {
+                console.log("[CDN] Bucket sigma-data not found, creating...");
+                await supabase.storage.createBucket('sigma-data', { public: true });
+                const { error: retryErr } = await supabase.storage.from('sigma-data').upload(cdnFilename, fileBuffer, {
+                    contentType: 'text/csv; charset=utf-8',
+                    upsert: true
+                });
+                if (retryErr) console.error("[CDN Retry Error]", retryErr);
+                else console.log(`[CDN] Created bucket and uploaded ${cdnFilename}`);
+            } else {
+                console.error("[CDN Upload Error]", error);
+            }
+        } else {
+            console.log(`[CDN] Successfully uploaded ${cdnFilename}`);
+        }
+    } catch(err) {
+        console.error("[CDN Exception]", err);
+    }
+};
+
 app.get('/api/sim/data', async (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: 'file 파라미터가 필요합니다.' });
@@ -681,6 +710,22 @@ app.get('/api/sim/data', async (req, res) => {
     const stat = fs.statSync(cacheFilePath);
     res.setHeader('Content-Length', stat.size);
     return fs.createReadStream(cacheFilePath).pipe(res);
+  }
+
+
+  const cdnFilename = `cache_${file}_${global.SIGMA_DB_VERSION}.csv`;
+  const cdnUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/sigma-data/${cdnFilename}`;
+  
+  if (global.SIGMA_DB_VERSION && !fs.existsSync(cacheFilePath)) {
+    try {
+      const headRes = await axios.head(cdnUrl, { timeout: 3000 });
+      if (headRes.status === 200) {
+        console.log(`[CDN HIT] Redirecting to ${cdnUrl}`);
+        return res.redirect(302, cdnUrl);
+      }
+    } catch (e) {
+      console.log(`[CDN MISS] Need to generate ${cdnFilename}`);
+    }
   }
 
   try {
@@ -769,7 +814,11 @@ app.get('/api/sim/data', async (req, res) => {
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          cacheStream.end();
+          cacheStream.end(() => {
+            if (global.SIGMA_DB_VERSION) {
+                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+            }
+          });
           return res.end();
         }
         
@@ -834,7 +883,11 @@ app.get('/api/sim/data', async (req, res) => {
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          cacheStream.end();
+          cacheStream.end(() => {
+            if (global.SIGMA_DB_VERSION) {
+                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+            }
+          });
           return res.end();
         }
         
@@ -896,7 +949,11 @@ app.get('/api/sim/data', async (req, res) => {
               await new Promise(r => setTimeout(r, 10)); 
             }
           }
-          cacheStream.end();
+          cacheStream.end(() => {
+            if (global.SIGMA_DB_VERSION) {
+                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+            }
+          });
           return res.end();
         }
         
@@ -944,7 +1001,11 @@ app.get('/api/sim/data', async (req, res) => {
             if (data.length < pageSize) hasMore = false;
             page++;
           }
-          cacheStream.end();
+          cacheStream.end(() => {
+            if (global.SIGMA_DB_VERSION) {
+                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+            }
+          });
           return res.end();
         }
       }
