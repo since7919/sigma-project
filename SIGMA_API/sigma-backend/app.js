@@ -644,8 +644,29 @@ app.use('/api/sim/', (req, res, next) => {
   next();
 });
 
+
+const logHistory = [];
+const originalLog = console.log;
+const originalError = console.error;
+console.log = function(...args) {
+    logHistory.push('[LOG] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '));
+    if (logHistory.length > 200) logHistory.shift();
+    originalLog.apply(console, args);
+};
+console.error = function(...args) {
+    logHistory.push('[ERR] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' '));
+    if (logHistory.length > 200) logHistory.shift();
+    originalError.apply(console, args);
+};
+
+app.get('/api/sim/logs', (req, res) => {
+    res.json(logHistory);
+});
+
 app.get('/api/sim/db-version', async (req, res) => {
   if (!global.SIGMA_DB_VERSION) {
+    let debugInfo = null;
+    let errorInfo = null;
     try {
       const [jRes, sRes, tRes] = await Promise.all([
         supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1),
@@ -657,13 +678,16 @@ app.get('/api/sim/db-version', async (req, res) => {
         sRes.data?.[0]?.updated_at,
         tRes.data?.[0]?.updated_at
       ].filter(d => d).map(d => new Date(d).getTime());
+      debugInfo = { j: jRes, s: sRes, t: tRes };
       
       global.SIGMA_DB_VERSION = dates.length > 0 ? Math.max(...dates) : Date.now();
     } catch (e) {
+      errorInfo = e.message;
       global.SIGMA_DB_VERSION = Date.now();
     }
+    global.SIGMA_DB_DEBUG = { debugInfo, errorInfo };
   }
-  res.json({ version: global.SIGMA_DB_VERSION });
+  res.json({ version: global.SIGMA_DB_VERSION, debug: global.SIGMA_DB_DEBUG });
 });
 
 // 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
