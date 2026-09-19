@@ -891,8 +891,35 @@ app.get('/api/sim/data', async (req, res) => {
             
             let chunk = "";
             safeData.forEach(r => {
-                let tpCols = []; for(let i=1; i<=16; i++) { let tp = r['time_plan'+i]; if (tp) { tpCols.push(tp.hour+":"+tp.min+"|"+(tp.cycle||0)+"|"+(tp.offset||0)+"|"+(tp.split_a ? tp.split_a.join(';') : '')+"|"+(tp.split_b ? tp.split_b.join(';') : '')+"|"+(tp.schedule_idx||0)); } else { tpCols.push(""); } }
-                const line = [r.id, r.day_plan, r.signal_map_idx, ...tpCols].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                let tpCols = [];
+                for (let i = 0; i < 16; i++) {
+                    let tp = r.time_plans ? r.time_plans[i] : null;
+                    if (tp && tp.h !== undefined && tp.h >= 0) {
+                        tpCols.push(
+                            tp.h + ":" + (tp.m || 0) + "|" +
+                            (tp.cycle || 0) + "|" +
+                            (tp.offset || 0) + "|" +
+                            (tp.splitA ? tp.splitA.join(';') : '') + "|" +
+                            (tp.splitB ? tp.splitB.join(';') : '') + "|" +
+                            (tp.idx || 0)
+                        );
+                    } else {
+                        tpCols.push("");
+                    }
+                }
+                const lineArr = [
+                    r.id,
+                    "", // Seq
+                    r.signal_map !== null && r.signal_map !== undefined ? r.signal_map : "",
+                    r.group_id !== null && r.group_id !== undefined ? r.group_id : "",
+                    r.day_plan !== null && r.day_plan !== undefined ? r.day_plan : "",
+                    ...tpCols
+                ];
+                const line = lineArr.map(v => {
+                    let s = String(v ?? "");
+                    if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"';
+                    return s;
+                }).join(",");
                 chunk += line + "\n";
             });
             lastId = nextLastId;
