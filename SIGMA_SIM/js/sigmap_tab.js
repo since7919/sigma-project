@@ -317,7 +317,7 @@ async function loadSignalMapFromExcel(input) {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: true, defval: "" });
         const getVal = (r, c) => (sheetData[r-1] ? sheetData[r-1][c-1] : null);
 
         const jid = STATE.activeJid;
@@ -350,7 +350,7 @@ async function loadSignalMapFromExcel(input) {
             const cleanExcel = excelName.replace(/\s/g, '');
             const cleanJ = j.name.replace(/\s/g, '');
             if (cleanExcel !== cleanJ) {
-                const proceed = confirm(`⚠️ 엑셀 파일의 교차로명(${excelName})과 현재 선택된 교차로명(${j.name})이 일치하지 않습니다.\n\n그래도 계속 진행하시겠습니까?`);
+                const proceed = confirm(`현재 선택된 교차로("${j.name}")와 엑셀 파일의 교차로명("${excelName}")이 다릅니다.\n계속 진행하시겠습니까?`);
                 if (!proceed) {
                     input.value = "";
                     return;
@@ -386,7 +386,6 @@ async function loadSignalMapFromExcel(input) {
                 if (tempV.length >= 8 && tempP.length >= 8) {
                     vCols = tempV;
                     pCols = tempP;
-                    break;
                 } else if (tempV.length > vCols.length) {
                     vCols = tempV;
                     pCols = tempP;
