@@ -167,6 +167,10 @@ class InteractivePhaseDiagram {
             html += `
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NESW" data-mov="PED-NESW" d="M 80,20 L 20,80" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,30 L 8,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
             `;
         }
         return html;
@@ -218,8 +222,12 @@ class InteractivePhaseDiagram {
         }
         if (!filter || filter === 'SCRAMBLE') {
             html += `
-            <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">D1</text>
-            <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">D2</text>
+            <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(X)</text>
+            <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(X)</text>
+            <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(+)</text>
+            <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(+)</text>
+            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">(+)</text>
+            <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">(+)</text>
             `;
         }
         
@@ -356,7 +364,6 @@ class InteractivePhaseDiagram {
                     <button class="phase-action-btn phase-btn-cyan" id="ipd-tab-normal" style="min-width: 130px; font-weight:bold;">기본 방향</button>
                     <button class="phase-action-btn phase-btn-gray" id="ipd-tab-diag" style="min-width: 130px; font-weight:bold;">대각선 방향</button>
                     <button class="phase-action-btn phase-btn-gray" id="ipd-tab-scramble" style="min-width: 130px; font-weight:bold;">대각선 횡단보도</button>
-                    <button class="phase-action-btn phase-btn-purple" id="ipd-btn-scramble-all" style="min-width: 130px; font-weight:bold;">대각선 모두 선택</button>
                 </div>
                 
                 <div id="ipd-content-normal" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
@@ -408,6 +415,7 @@ class InteractivePhaseDiagram {
                     <!-- 대각선 횡단보도 (SCRAMBLE) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">대각선 횡단보도 (Scramble)</div>
+                        <button id="ipd-btn-scramble-all" class="phase-action-btn phase-btn-purple" style="position:absolute; top:6px; right:10px; font-weight:bold; min-width:80px; padding:3px 8px; font-size:11px;">모두 선택</button>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
                             ${this.getPedSVGPaths('modal', 'SCRAMBLE')}
                             ${this.getLabelSVGPaths('modal', 'SCRAMBLE')}
@@ -508,26 +516,23 @@ class InteractivePhaseDiagram {
         if(btnScrambleAll) {
             btnScrambleAll.addEventListener('click', () => {
                 const modalContainer = document.getElementById('ipd-modal');
-                const pedNWSE = modalContainer.querySelector('[data-mov="PED-NWSE"]');
-                const pedNESW = modalContainer.querySelector('[data-mov="PED-NESW"]');
+                const peds = ['PED-NWSE', 'PED-NESW', 'PED-N', 'PED-S', 'PED-E', 'PED-W'];
                 
-                // If both are active, deselect both. Otherwise, select both.
-                const bothActive = (pedNWSE && pedNWSE.classList.contains('ipd-active')) && 
-                                   (pedNESW && pedNESW.classList.contains('ipd-active'));
-                                   
-                if (bothActive) {
-                    if (pedNWSE) pedNWSE.classList.remove('ipd-active');
-                    if (pedNESW) pedNESW.classList.remove('ipd-active');
-                } else {
-                    if (pedNWSE) pedNWSE.classList.add('ipd-active');
-                    if (pedNESW) pedNESW.classList.add('ipd-active');
-                }
+                // Check if ALL are active
+                let allActive = true;
+                peds.forEach(p => {
+                    const arr = modalContainer.querySelector(`.ipd-arrow[data-mov="${p}"]`);
+                    if (!arr || !arr.classList.contains('ipd-active')) allActive = false;
+                });
                 
-                if (pedNWSE) this.updateArrowMarker(pedNWSE);
-                if (pedNESW) this.updateArrowMarker(pedNESW);
-                
-                // Open the scramble tab to show the result
-                if(tabScramble) tabScramble.click();
+                peds.forEach(p => {
+                    const relatedArrows = modalContainer.querySelectorAll(`.ipd-arrow[data-mov="${p}"]`);
+                    relatedArrows.forEach(arr => {
+                        if (allActive) arr.classList.remove('ipd-active');
+                        else arr.classList.add('ipd-active');
+                        this.updateArrowMarker(arr);
+                    });
+                });
             });
         }
 
@@ -536,8 +541,14 @@ class InteractivePhaseDiagram {
             const modalArrows = modalContainer.querySelectorAll('.ipd-arrow');
             modalArrows.forEach(arrow => {
                 arrow.addEventListener('click', () => {
-                    arrow.classList.toggle('ipd-active');
-                    this.updateArrowMarker(arrow);
+                    const mov = arrow.getAttribute('data-mov');
+                    const isActive = !arrow.classList.contains('ipd-active');
+                    const relatedArrows = modalContainer.querySelectorAll(`.ipd-arrow[data-mov="${mov}"]`);
+                    relatedArrows.forEach(arr => {
+                        if (isActive) arr.classList.add('ipd-active');
+                        else arr.classList.remove('ipd-active');
+                        this.updateArrowMarker(arr);
+                    });
                 });
             });
             
@@ -545,11 +556,15 @@ class InteractivePhaseDiagram {
             modalLabels.forEach(label => {
                 label.addEventListener('click', () => {
                     const mov = label.getAttribute('data-mov');
-                    // Find the arrow with this data-mov in the modal (could be multiple if we have duplicates, but data-mov is unique per palette)
-                    const arrow = modalContainer.querySelector(`.ipd-arrow[data-mov="${mov}"]`);
-                    if (arrow) {
-                        arrow.classList.toggle('ipd-active');
-                        this.updateArrowMarker(arrow);
+                    const firstArrow = modalContainer.querySelector(`.ipd-arrow[data-mov="${mov}"]`);
+                    if (firstArrow) {
+                        const isActive = !firstArrow.classList.contains('ipd-active');
+                        const relatedArrows = modalContainer.querySelectorAll(`.ipd-arrow[data-mov="${mov}"]`);
+                        relatedArrows.forEach(arr => {
+                            if (isActive) arr.classList.add('ipd-active');
+                            else arr.classList.remove('ipd-active');
+                            this.updateArrowMarker(arr);
+                        });
                     }
                 });
             });
