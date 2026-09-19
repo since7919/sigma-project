@@ -361,35 +361,11 @@ async function loadSignalMapFromExcel(input) {
         // 2) Parse all 6 maps
         if (!j.signalMaps) j.signalMaps = [];
         let loadedCount = 0;
-        const baseRowMapStart = 247;
+        const baseRowMapStart = 250;
 
         for (let mIdx = 0; mIdx < 6; mIdx++) {
             const startRowA = baseRowMapStart + (mIdx * 67);
             const startRowB = startRowA + 32;
-
-            let actualStartRowA = startRowA;
-            for (let offset = 0; offset < 10; offset++) {
-                const r = startRowA + offset;
-                const c1 = String(getVal(r, 1) || "").trim().toUpperCase();
-                const c2 = String(getVal(r, 2) || "").trim().toUpperCase();
-                const c3 = String(getVal(r, 3) || "").trim().toUpperCase();
-                if ((c1 === 'A' || c2 === 'A') && (c2 === '1' || c3 === '1')) {
-                    actualStartRowA = r;
-                    break;
-                }
-            }
-
-            let actualStartRowB = startRowB;
-            for (let offset = 0; offset < 10; offset++) {
-                const r = startRowB + offset;
-                const c1 = String(getVal(r, 1) || "").trim().toUpperCase();
-                const c2 = String(getVal(r, 2) || "").trim().toUpperCase();
-                const c3 = String(getVal(r, 3) || "").trim().toUpperCase();
-                if ((c1 === 'B' || c2 === 'B') && (c2 === '1' || c3 === '1')) {
-                    actualStartRowB = r;
-                    break;
-                }
-            }
 
             // Dynamically find V, P, MIN, EOP columns from header rows
             let vCols = [];
@@ -397,7 +373,7 @@ async function loadSignalMapFromExcel(input) {
             let minCol = 53;
             let eopCol = 57;
             
-            for (let hr of [actualStartRowA - 1, actualStartRowA - 2, actualStartRowA - 3]) {
+            for (let hr of [startRowA - 1, startRowA - 2, startRowA - 3]) {
                 const tempV = [];
                 const tempP = [];
                 for (let c = 1; c <= 70; c++) {
@@ -417,7 +393,7 @@ async function loadSignalMapFromExcel(input) {
                 }
             }
 
-            const step1Min = parseInt(getVal(actualStartRowA, minCol));
+            const step1Min = parseInt(getVal(startRowA, minCol));
             if (isNaN(step1Min) || step1Min === 0 && mIdx > 0) {
                 // If there's no first step data, skip this plan
                 continue;
@@ -451,8 +427,8 @@ async function loadSignalMapFromExcel(input) {
                 return steps;
             };
 
-            const ringA = parseSteps(actualStartRowA);
-            const ringB = parseSteps(actualStartRowB, actualStartRowA);
+            const ringA = parseSteps(startRowA);
+            const ringB = parseSteps(startRowB, startRowA);
 
             if (!j.signalMaps[mIdx]) {
                 j.signalMaps[mIdx] = {

@@ -143,11 +143,11 @@ function handleTableInput(el) {
         
         const arA = sm.allredA?.[idx] || 0;
         const dlyA = sm.pedDelayA?.[idx] || 0;
-        const mgA = sm.pedA[idx] > 0 ? sm.pedA[idx] + arA + dlyA : 7 + arA;
+        const mgA = sm.pedA[idx] > 0 ? sm.pedA[idx] + arA + dlyA : 0;
         
         const arB = sm.allredB?.[idx] || 0;
         const dlyB = sm.pedDelayB?.[idx] || 0;
-        const mgB = sm.pedB[idx] > 0 ? sm.pedB[idx] + arB + dlyB : 7 + arB;
+        const mgB = sm.pedB[idx] > 0 ? sm.pedB[idx] + arB + dlyB : 0;
         
         const updateField = (k, v) => {
             const el = document.querySelector(`.calc-field[data-key="${k}"][data-index="${idx}"]`);
@@ -376,7 +376,7 @@ function updateDependentCells(i, p, sm) {
         const dly = sm['pedDelay' + ring]?.[i] || 0;
         const yel = sm['yellow' + ring]?.[i] || 0;
 
-        const mg = ped > 0 ? ped + dly + arr : 7 + arr;
+        const mg = ped > 0 ? ped + dly + arr : 0;
         const mgWithYellow = mg + yel;
 
         const el = document.querySelector(`.sigma-input.inp-${splitKey}[data-index="${i}"]`);

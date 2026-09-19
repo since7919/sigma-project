@@ -182,9 +182,9 @@ function renderRingTables() {
     // 현시계획(Map)의 Yellow/AllRed/Ped 등은 항상 A/B 모두 표시
     const phaseCategories = [
         { id: 'mg', label: 'MG (최소녹색)', keyA: 'minGreenA', keyB: 'minGreenB', clsA: 'c-green', clsB: 'c-green', isDetail: true,
-          calcA: (i) => { if (!sm.movA?.[i]) return 0; const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0; return pA > 0 ? pA + arA + dlyA : 7 + arA; },
-          calcB: (i) => { if (!sm.movB?.[i]) return 0; const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0; return pB > 0 ? pB + arB + dlyB : 7 + arB; },
-          calcTitle: '최소녹색시간 = 보행합계+전적색+보행지연 (또는 최소 7초+전적색)'
+          calcA: (i) => { if (!sm.movA?.[i]) return 0; const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0; return pA > 0 ? pA + arA + dlyA : 0; },
+          calcB: (i) => { if (!sm.movB?.[i]) return 0; const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0; return pB > 0 ? pB + arB + dlyB : 0; },
+          calcTitle: '최소녹색시간 = 보행합계+전적색+보행지연'
         },
         { id: 'allred', label: 'AllRed', keyA: 'allredA', keyB: 'allredB', clsA: 'c-red', clsB: 'c-red', isDetail: true },
         { id: 'yellow', label: 'Yellow', keyA: 'yellowA', keyB: 'yellowB', clsA: 'c-yellow', clsB: 'c-yellow', isDetail: true },
@@ -232,7 +232,7 @@ function renderRingTables() {
                     const dly = isB ? sm.pedDelayB?.[i] : sm.pedDelayA?.[i];
                     const yel = isB ? sm.yellowB?.[i] : sm.yellowA?.[i];
                     
-                    const mg = (ped || 0) > 0 ? (ped || 0) + (dly || 0) + (arr || 0) : 7 + (arr || 0);
+                    const mg = (ped || 0) > 0 ? (ped || 0) + (dly || 0) + (arr || 0) : 0;
                     const mgWithYellow = mg + (yel || 0);
                     
                     if (val > 0 && val < mg) {
