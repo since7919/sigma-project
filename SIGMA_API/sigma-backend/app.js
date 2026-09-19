@@ -691,10 +691,10 @@ app.get('/api/sim/db-version', async (req, res) => {
       ].filter(d => d).map(d => new Date(d).getTime());
       debugInfo = { j: jRes, s: sRes, t: tRes };
       
-      global.SIGMA_DB_VERSION = dates.length > 0 ? Math.max(...dates) : Date.now();
+      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v2";
     } catch (e) {
       errorInfo = e.message;
-      global.SIGMA_DB_VERSION = Date.now();
+      global.SIGMA_DB_VERSION = Date.now() + "_v2";
     }
     global.SIGMA_DB_DEBUG = { debugInfo, errorInfo };
   }
