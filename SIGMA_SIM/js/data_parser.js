@@ -572,15 +572,15 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             const cycCols = [], idxCols = [], offCols = [], spCols = [], noCols = [];
                             for (let col = 1; col <= 80; col++) {
                                 const hVal = String(getVal(r + 1, col) || "").toLowerCase().replace(/\s/g, '');
-                                if (hVal === "cycle" || hVal === "주기") cycCols.push(col);
-                                else if (hVal === "index" || hVal === "인덱스") idxCols.push(col);
-                                else if (hVal === "offset" || hVal === "옵셋") offCols.push(col);
-                                else if (hVal === "split" || hVal === "스플릿" || hVal.includes("split")) spCols.push(col);
-                                else if (hVal === "no" || hVal === "패턴") noCols.push(col);
+                                if (hVal.includes("cycle") || hVal.includes("주기")) cycCols.push(col);
+                                else if (hVal.includes("index") || hVal.includes("인덱스") || hVal === "패턴") idxCols.push(col);
+                                else if (hVal.includes("offset") || hVal.includes("옵셋")) offCols.push(col);
+                                else if (hVal.includes("split") || hVal.includes("스플릿")) spCols.push(col);
+                                else if (hVal === "no") noCols.push(col);
                             }
                             
-                            const cycCL = cycCols[0] || 5, cycCR = cycCols[1] || (cycCols[0] ? cycCols[0] + 24 : 29);
-                            const offCL = offCols[0] || 9, offCR = offCols[1] || (offCols[0] ? offCols[0] + 23 : 32);
+                            const cycCL = cycCols[0] || 3, cycCR = cycCols[1] || (cycCols[0] ? cycCols[0] + 25 : 28);
+                            const offCL = offCols[0] || 7, offCR = offCols[1] || (offCols[0] ? offCols[0] + 22 : 29);
                             const spCL = spCols[0] || 13, spCR = spCols[1] || (spCols[0] ? spCols[0] + 22 : 35);
                             const noCL = noCols[0] || 1, noCR = noCols[1] || (noCols[0] ? noCols[0] + 25 : 26);
 
@@ -595,8 +595,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 
                                 const rB = rA + 1;
 
-                                const idxCL = idxCols[0] || 3, idxCR = idxCols[1] || (idxCols[0] ? idxCols[0] + 25 : 28);
-
+                                const idxCL = idxCols[0] || 5, idxCR = idxCols[1] || (idxCols[0] ? idxCols[0] + 25 : 30);
+                                
                                 // [좌측 테이블]
                                 const parsedIdxL = parseInt(getVal(rA, idxCL));
                                 if (!isNaN(parsedIdxL) && parsedIdxL >= 1 && parsedIdxL <= 16) {
