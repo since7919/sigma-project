@@ -304,7 +304,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             const arrayBuffer = await file.arrayBuffer();
             const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: true, defval: "" });
             const getVal = (r, c) => (sheetData[r-1] ? sheetData[r-1][c-1] : null);
 
             const jNo = parseInt(getVal(3, 37));
@@ -441,16 +441,37 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     }
 
                     if (stepsInPhase.length > 0) {
-                        const eopStep = stepsInPhase[stepsInPhase.length - 1];
-                        if (eopStep.eop) {
-                            // V열에 값이 있는지 확인 (차량신호 존재 여부)
-                            const hasVehicleSignal = eopStep.sigsV.some(v => v > 0);
-                            phaseData[pIdx].yellow = hasVehicleSignal ? eopStep.min : 0;
+                        let foundYellow = false;
+                        for (let i = stepsInPhase.length - 1; i >= 0; i--) {
+                            const yFlag = stepsInPhase[i].sigsV.some(v => v === 2 || v === 32 || v === 20 || v === 34 || v === 18);
+                            if (yFlag) {
+                                phaseData[pIdx].yellow = stepsInPhase[i].min;
+                                foundYellow = true;
+                                break;
+                            }
+                        }
+                        
+                        // Fallback to eop step if yellow wasn't explicitly found
+                        if (!foundYellow) {
+                            const eopStep = stepsInPhase[stepsInPhase.length - 1];
+                            if (eopStep.eop) {
+                                phaseData[pIdx].yellow = eopStep.min;
+                            }
                         }
                     }
 
-                    const currentVId = baseMovs[pIdx] || 0;
-                    phaseData[pIdx].vId = currentVId;
+                    let detectedVId = 0;
+                    const checkCarActive = (l) => stepsInPhase.some(st => {
+                        const c = st.sigsV[l];
+                        return (c === 1 || c === 16 || c === 2 || c === 32 || c === 10 || c === 20);
+                    });
+                    for (let l = 0; l < 8; l++) {
+                        if (checkCarActive(l)) {
+                            detectedVId = l + 1;
+                            break;
+                        }
+                    }
+                    phaseData[pIdx].vId = detectedVId > 0 ? detectedVId : (baseMovs[pIdx] || 0);
 
                     let pLSU = -1;
                     const checkPedActive = (l) => stepsInPhase.some(st => {
@@ -475,7 +496,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             currentPhaseTime += st.min;
                         });
                         if (phaseData[pIdx].g > 0 || phaseData[pIdx].f > 0) {
-                            phaseData[pIdx].pId = (currentVId > 0 && currentVId % 2 === 0) ? (currentVId + 100) : (pLSU + 101);
+                            const v = phaseData[pIdx].vId;
+                            phaseData[pIdx].pId = (v > 0 && v % 2 === 0) ? (v + 100) : (pLSU + 101);
                         }
                     }
                 }
