@@ -661,7 +661,32 @@ function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
 }
 function initMiniGameMaster(forceGameIndex = -1) {
     let container = document.getElementById("minigame-container");
-    if (!container) return;
+    if (!container) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+            container = document.createElement('div');
+            container.id = 'minigame-container';
+            container.style.cssText = "background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); width: 400px; text-align: center; margin-top: 20px;";
+            container.innerHTML = `
+                <h4 style="color: #00d4ff; margin: 0 0 10px 0; font-size: 14px;">🎮 휴식 타임 미니게임</h4>
+                <div style="display:flex; justify-content:center; gap:5px; margin-bottom:10px;">
+                    <button onclick="initMiniGameMaster(0)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">과일</button>
+                    <button onclick="initMiniGameMaster(1)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">회피</button>
+                    <button onclick="initMiniGameMaster(2)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">팩맨</button>
+                    <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">점프</button>
+                    <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
+                    <button onclick="initMiniGameMaster(5)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
+                </div>
+                <canvas id="minigameCanvas" width="360" height="200" tabindex="0" style="background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
+                <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
+                <p style="color: #888; font-size: 11px; margin: 5px 0 0 0;">방향키(스페이스바)를 사용하여 플레이하세요!</p>
+            `;
+            loadingOverlay.appendChild(container);
+            window.MINIGAME_ACTIVE = true;
+        } else {
+            return;
+        }
+    }
 
     const canvas = document.getElementById("minigameCanvas");
     if (!canvas) return;

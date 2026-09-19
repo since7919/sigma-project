@@ -138,7 +138,7 @@ async function autoLoadFiles() {
 
     
     const smUrl = `/api/sim/data?file=db_${regionCode}_signal_maps.csv&v=${dbVersion}`;
-    const cache = await caches.open('sigma-cache-v1');
+    const cache = await caches.open('sigma-data-cache');
     const cachedSm = await cache.match(smUrl);
     if (!cachedSm && typeof initMiniGameMaster === 'function') {
         try { initMiniGameMaster(); } catch(e) {}
