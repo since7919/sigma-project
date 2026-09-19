@@ -1044,8 +1044,10 @@ function renderAdvancedInsights(junctions) {
     let validIntegrityCount = 0, totalIntegrityCount = 0;
 
     junctions.forEach(j => {
-        const dPlanForCheck = j.dayPlans && j.dayPlans[0] ? j.dayPlans[0][0] : null;
-        const hasValidPlan = dPlanForCheck && dPlanForCheck.splitA && dPlanForCheck.splitA.some(v => v > 0);
+        let hasValidPlan = false;
+        if (j.dayPlans && j.dayPlans[0]) {
+            hasValidPlan = j.dayPlans[0].some(dp => dp && dp.splitA && dp.splitA.some(v => v > 0));
+        }
 
         if (hasValidPlan && j.schedules) {
             j.schedules.forEach(sched => {
@@ -1088,16 +1090,18 @@ function renderAdvancedInsights(junctions) {
                     cycleCounts[activeSched.cycle] = (cycleCounts[activeSched.cycle] || 0) + 1;
                     if (Number(activeSched.cycle) > maxCycleForJ) maxCycleForJ = Number(activeSched.cycle);
                     
-                    const tpIdx = (activeSched.idx || 1) - 1;
+                    const tpIdx = activeSched.sIdx !== undefined ? activeSched.sIdx : ((activeSched.idx || 1) - 1);
                     const activeDPlan = j.dayPlans && j.dayPlans[0] && j.dayPlans[0][tpIdx] ? j.dayPlans[0][tpIdx] : null;
+
+                    // Always add cycle sum even if activeDPlan doesn't exist
+                    jCycleSum += activeSched.cycle || (activeDPlan && activeDPlan.cycle) || 0;
+                    jMainPhaseCount++;
 
                     if (activeDPlan) {
                         const mainA = (activeDPlan.splitA && activeDPlan.splitA[0]) || 0;
                         const mainB = (activeDPlan.splitB && activeDPlan.splitB[0]) || (activeDPlan.splitA && activeDPlan.splitA[1]) || 0; 
                         if (mainA > 0 || mainB > 0) {
                             jMainSplit += (mainA + mainB);
-                            jCycleSum += activeDPlan.cycle || 0;
-                            jMainPhaseCount++;
                         }
                         
                         const sumA = activeDPlan.splitA ? activeDPlan.splitA.reduce((a,b)=>a+b, 0) : 0;

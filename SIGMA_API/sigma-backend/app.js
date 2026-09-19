@@ -1002,6 +1002,7 @@ app.get('/api/sim/data', async (req, res) => {
       .single();
 
     if (error || !data) {
+      generationLocks[file] = false;
       return res.status(404).json({ error: `파일을 찾을 수 없습니다: ${file}` });
     }
     
@@ -1015,10 +1016,11 @@ app.get('/api/sim/data', async (req, res) => {
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     }
 
+    generationLocks[file] = false;
     res.send(fileContent);
   } catch (err) {
     generationLocks[file] = false;
-    sendErrorResponse(res, err, '시뮬레이터 데이터 조회에 실패했습니다.');
+    sendErrorResponse(res, err, 'CSV 데이터 파일 생성 또는 조회에 실패했습니다.');
   }
 });
 
