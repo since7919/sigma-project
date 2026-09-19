@@ -502,19 +502,7 @@ function parseStepsToSignalMap(sm, ringA, ringB) {
                 }
             }
 
-            let detectedVId = 0;
-            const checkCarActive = (l) => stepsInPhase.some(st => {
-                const c = st[`car${l+1}`];
-                return (c === 1 || c === 16 || c === 2 || c === 32 || c === 10 || c === 20); // Hex 01, 10, 02, 20
-            });
-            for (let l = 0; l < 8; l++) { 
-                if (checkCarActive(l)) { 
-                    detectedVId = l + 1; 
-                    break; 
-                } 
-            }
-            
-            const currentVId = detectedVId > 0 ? detectedVId : (refMovs[pIdx] || 0);
+            const currentVId = refMovs[pIdx] || 0;
             phaseData[pIdx].vId = currentVId;
 
             let pLSU = -1;

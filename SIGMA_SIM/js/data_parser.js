@@ -460,18 +460,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         }
                     }
 
-                    let detectedVId = 0;
-                    const checkCarActive = (l) => stepsInPhase.some(st => {
-                        const c = st.sigsV[l];
-                        return (c === 1 || c === 16 || c === 2 || c === 32 || c === 10 || c === 20);
-                    });
-                    for (let l = 0; l < 8; l++) {
-                        if (checkCarActive(l)) {
-                            detectedVId = l + 1;
-                            break;
-                        }
-                    }
-                    phaseData[pIdx].vId = detectedVId > 0 ? detectedVId : (baseMovs[pIdx] || 0);
+                    const currentVId = baseMovs[pIdx] || 0;
+                    phaseData[pIdx].vId = currentVId;
 
                     let pLSU = -1;
                     const checkPedActive = (l) => stepsInPhase.some(st => {
