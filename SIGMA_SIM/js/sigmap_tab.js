@@ -367,13 +367,37 @@ async function loadSignalMapFromExcel(input) {
             const startRowA = baseRowMapStart + (mIdx * 67);
             const startRowB = startRowA + 32;
 
+            let actualStartRowA = startRowA;
+            for (let offset = 0; offset < 10; offset++) {
+                const r = startRowA + offset;
+                const c1 = String(getVal(r, 1) || "").trim().toUpperCase();
+                const c2 = String(getVal(r, 2) || "").trim().toUpperCase();
+                const c3 = String(getVal(r, 3) || "").trim().toUpperCase();
+                if ((c1 === 'A' || c2 === 'A') && (c2 === '1' || c3 === '1')) {
+                    actualStartRowA = r;
+                    break;
+                }
+            }
+
+            let actualStartRowB = startRowB;
+            for (let offset = 0; offset < 10; offset++) {
+                const r = startRowB + offset;
+                const c1 = String(getVal(r, 1) || "").trim().toUpperCase();
+                const c2 = String(getVal(r, 2) || "").trim().toUpperCase();
+                const c3 = String(getVal(r, 3) || "").trim().toUpperCase();
+                if ((c1 === 'B' || c2 === 'B') && (c2 === '1' || c3 === '1')) {
+                    actualStartRowB = r;
+                    break;
+                }
+            }
+
             // Dynamically find V, P, MIN, EOP columns from header rows
             let vCols = [];
             let pCols = [];
             let minCol = 53;
             let eopCol = 57;
             
-            for (let hr of [startRowA - 1, startRowA - 2, startRowA - 3]) {
+            for (let hr of [actualStartRowA - 1, actualStartRowA - 2, actualStartRowA - 3]) {
                 const tempV = [];
                 const tempP = [];
                 for (let c = 1; c <= 70; c++) {
@@ -393,7 +417,7 @@ async function loadSignalMapFromExcel(input) {
                 }
             }
 
-            const step1Min = parseInt(getVal(startRowA, minCol));
+            const step1Min = parseInt(getVal(actualStartRowA, minCol));
             if (isNaN(step1Min) || step1Min === 0 && mIdx > 0) {
                 // If there's no first step data, skip this plan
                 continue;
@@ -427,8 +451,8 @@ async function loadSignalMapFromExcel(input) {
                 return steps;
             };
 
-            const ringA = parseSteps(startRowA);
-            const ringB = parseSteps(startRowB, startRowA);
+            const ringA = parseSteps(actualStartRowA);
+            const ringB = parseSteps(actualStartRowB, actualStartRowA);
 
             if (!j.signalMaps[mIdx]) {
                 j.signalMaps[mIdx] = {
@@ -480,9 +504,26 @@ function parseStepsToSignalMap(sm, ringA, ringB) {
             }
 
             if (stepsInPhase.length > 0) {
-                const eopStep = stepsInPhase[stepsInPhase.length - 1];
-                if (eopStep.eop) {
-                    phaseData[pIdx].yellow = eopStep.minTm;
+                let foundYellow = false;
+                for (let i = stepsInPhase.length - 1; i >= 0; i--) {
+                    let yFlag = false;
+                    for (let l = 0; l < 8; l++) {
+                        const c = stepsInPhase[i][`car${l+1}`];
+                        if (c === 2 || c === 32 || c === 20 || c === 34 || c === 18) yFlag = true;
+                    }
+                    if (yFlag) {
+                        phaseData[pIdx].yellow = stepsInPhase[i].minTm;
+                        foundYellow = true;
+                        break;
+                    }
+                }
+                
+                // Fallback to eop step if yellow wasn't explicitly found (e.g. legacy files)
+                if (!foundYellow) {
+                    const eopStep = stepsInPhase[stepsInPhase.length - 1];
+                    if (eopStep.eop) {
+                        phaseData[pIdx].yellow = eopStep.minTm;
+                    }
                 }
             }
 
