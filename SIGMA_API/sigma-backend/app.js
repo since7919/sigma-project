@@ -639,15 +639,7 @@ app.post('/api/intersections/:int_no/angles', express.json(), async (req, res) =
   }
 });
 
-global.SIGMA_DB_VERSION = null;
-
-// 모든 POST 요청(업데이트) 발생 시 DB 버전 무효화 (다음 요청시 DB에서 실시간 최대 updated_at 재계산)
-app.use('/api/sim/', (req, res, next) => {
-  if (req.method === 'POST') {
-    global.SIGMA_DB_VERSION = null;
-  }
-  next();
-});
+// 모든 POST 요청 시 DB 버전 강제 무효화 로직 제거 (이제 개별 API에서 직접 패치하고 버전 갱신함)
 
 
 const logHistory = [];
@@ -673,17 +665,15 @@ app.get('/api/sim/db-version', async (req, res) => {
     let debugInfo = null;
     let errorInfo = null;
     try {
-      const [jRes, sRes, tRes] = await Promise.all([
+      const [jRes, sRes] = await Promise.all([
         supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1),
-        supabase.from('signal_maps').select('updated_at').order('updated_at', { ascending: false }).limit(1),
-        supabase.from('tod_plans').select('updated_at').order('updated_at', { ascending: false }).limit(1)
+        supabase.from('signal_maps').select('updated_at').order('updated_at', { ascending: false }).limit(1)
       ]);
       const dates = [
         jRes.data?.[0]?.updated_at,
-        sRes.data?.[0]?.updated_at,
-        tRes.data?.[0]?.updated_at
+        sRes.data?.[0]?.updated_at
       ].filter(d => d).map(d => new Date(d).getTime());
-      debugInfo = { j: jRes, s: sRes, t: tRes };
+      debugInfo = { j: jRes, s: sRes };
       
       global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v2";
     } catch (e) {
