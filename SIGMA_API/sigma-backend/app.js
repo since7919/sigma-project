@@ -742,8 +742,7 @@ const patchLocalCsvCache = async (updates) => {
             for (const file of filesToPatch) {
                 const cacheFilePath = path.join(scratchDir, 'cache_' + file);
                 if (fs.existsSync(cacheFilePath)) {
-                    // Upload patched files to CDN asynchronously so it doesn't block
-                    uploadToCDN(cacheFilePath, \`cache_\${file}_\${global.SIGMA_DB_VERSION}.csv\`).catch(console.error);
+                    uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`).catch(console.error);
                 }
             }
             console.log('[Cache] Successfully patched CSV cache and updated SIGMA_DB_VERSION to', global.SIGMA_DB_VERSION);
