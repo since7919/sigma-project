@@ -518,6 +518,13 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     // B링 분석 시 A링의 EOP 행 위치를 함께 전달하여 동기화
                     const { phaseData: dataB, rawSteps: stepsB } = processRingData(startRowB, baseMovB, startRowA);
 
+                    // 엑셀 시그널맵이 완전히 비어있을 경우 (모든 step의 minTm 합이 0), 기존 데이터 덮어쓰기 방지
+                    const sumMinA = stepsA.reduce((sum, s) => sum + s.minTm, 0);
+                    const sumMinB = stepsB.reduce((sum, s) => sum + s.minTm, 0);
+                    if (sumMinA === 0 && sumMinB === 0 && sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) {
+                        continue; // 기존 시그널맵 유지
+                    }
+
                     sm.stepsA = stepsA;
                     sm.stepsB = stepsB;
 
