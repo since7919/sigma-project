@@ -1775,7 +1775,6 @@ app.post('/api/sim/update-junction', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 데이터 업데이트에 실패했습니다.');
   }
 });
@@ -2117,7 +2116,6 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 일괄 업데이트에 실패했습니다.');
   }
 });
