@@ -665,15 +665,13 @@ app.get('/api/sim/db-version', async (req, res) => {
     let debugInfo = null;
     let errorInfo = null;
     try {
-      const [jRes, sRes] = await Promise.all([
-        supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1),
-        supabase.from('signal_maps').select('updated_at').order('updated_at', { ascending: false }).limit(1)
+      const [jRes] = await Promise.all([
+        supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1)
       ]);
       const dates = [
-        jRes.data?.[0]?.updated_at,
-        sRes.data?.[0]?.updated_at
+        jRes.data?.[0]?.updated_at
       ].filter(d => d).map(d => new Date(d).getTime());
-      debugInfo = { j: jRes, s: sRes };
+      debugInfo = { j: jRes };
       
       global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v2";
     } catch (e) {
