@@ -20,8 +20,9 @@ window.addEventListener("keydown", (e) => {
         mg_keys[e.code] = true;
         if (currentGame && currentGame.isGameOver && e.code === "Space") {
             currentGame.reset();
-    canvas.focus();
-}
+            const cvs = document.getElementById('mg-canvas');
+            if (cvs) cvs.focus();
+        }
     }
 });
 window.addEventListener("keyup", (e) => { 
