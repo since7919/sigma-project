@@ -34,12 +34,21 @@ class InteractivePhaseDiagram {
             const MAP = {
                 1: ['WBL'], 2: ['EBT'], 3: ['NBL'], 4: ['SBT'],
                 5: ['EBL'], 6: ['WBT'], 7: ['SBL'], 8: ['NBT'],
-                9: ['NEL'], 14: ['NET'],
-                11: ['SEL'], 16: ['SET'],
-                13: ['SWL'], 10: ['SWT'],
-                15: ['NWL'], 12: ['NWT'],
-                102: ['PED-S'], 106: ['PED-N'],
-                104: ['PED-W'], 108: ['PED-E']
+                9: ['NEL'], 10: ['SWT'], 11: ['SEL'], 12: ['NWT'],
+                13: ['SWL'], 14: ['NET'], 15: ['NWL'], 16: ['SET'],
+                
+                // Right Turns
+                22: ['EBR'], 24: ['SBR'], 26: ['WBR'], 28: ['NBR'],
+                30: ['SWR'], 32: ['NWR'], 34: ['NER'], 36: ['SER'],
+                
+                // Permissive Lefts
+                31: ['WBL-P'], 33: ['NBL-P'], 35: ['EBL-P'], 37: ['SBL-P'],
+                39: ['NEL-P'], 41: ['SEL-P'], 43: ['SWL-P'], 45: ['NWL-P'],
+                
+                // Pedestrians
+                102: ['PED-S'], 104: ['PED-W'], 106: ['PED-N'], 108: ['PED-E'],
+                101: ['PED-NWSE'], 103: ['PED-NESW'],
+                112: ['PED-NW'], 113: ['PED-SW'], 114: ['PED-NE'], 116: ['PED-SE']
             };
             return MAP[m] || [];
         };
@@ -183,9 +192,14 @@ class InteractivePhaseDiagram {
         if (!filter || filter === 'NS') {
             html += `
             <text class="ipd-text-label" data-mov="NBL" x="56" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">3</text>
+            <text class="ipd-text-label" data-mov="NBL-P" x="52" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">33</text>
             <text class="ipd-text-label" data-mov="NBT" x="68" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">8</text>
+            <text class="ipd-text-label" data-mov="NBR" x="80" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">28</text>
+            
             <text class="ipd-text-label" data-mov="SBL" x="44" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">7</text>
+            <text class="ipd-text-label" data-mov="SBL-P" x="48" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">37</text>
             <text class="ipd-text-label" data-mov="SBT" x="32" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">4</text>
+            <text class="ipd-text-label" data-mov="SBR" x="20" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">24</text>
             
             <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
             <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
@@ -194,9 +208,14 @@ class InteractivePhaseDiagram {
         if (!filter || filter === 'EW') {
             html += `
             <text class="ipd-text-label" data-mov="EBL" x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">5</text>
+            <text class="ipd-text-label" data-mov="EBL-P" x="3" y="52" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">35</text>
             <text class="ipd-text-label" data-mov="EBT" x="3" y="68" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">2</text>
+            <text class="ipd-text-label" data-mov="EBR" x="3" y="80" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">22</text>
+            
             <text class="ipd-text-label" data-mov="WBL" x="97" y="44" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">1</text>
+            <text class="ipd-text-label" data-mov="WBL-P" x="97" y="48" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">31</text>
             <text class="ipd-text-label" data-mov="WBT" x="97" y="32" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">6</text>
+            <text class="ipd-text-label" data-mov="WBR" x="97" y="20" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">26</text>
             
             <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
             <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
@@ -205,29 +224,43 @@ class InteractivePhaseDiagram {
         if (!filter || filter === 'NESW') {
             html += `
             <text class="ipd-text-label" data-mov="SWL" x="20" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">13</text>
+            <text class="ipd-text-label" data-mov="SWL-P" x="17" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">43</text>
             <text class="ipd-text-label" data-mov="SWT" x="28" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">10</text>
+            <text class="ipd-text-label" data-mov="SWR" x="37" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">30</text>
             
             <text class="ipd-text-label" data-mov="NEL" x="80" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">9</text>
+            <text class="ipd-text-label" data-mov="NEL-P" x="82" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">39</text>
             <text class="ipd-text-label" data-mov="NET" x="72" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">14</text>
+            <text class="ipd-text-label" data-mov="NER" x="62" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">34</text>
+            
+            <text class="ipd-text-label" data-mov="PED-SW" x="13" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">113</text>
+            <text class="ipd-text-label" data-mov="PED-NE" x="86" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
             `;
         }
         if (!filter || filter === 'NWSE') {
             html += `
             <text class="ipd-text-label" data-mov="SEL" x="80" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">11</text>
+            <text class="ipd-text-label" data-mov="SEL-P" x="83" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">41</text>
             <text class="ipd-text-label" data-mov="SET" x="72" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">16</text>
+            <text class="ipd-text-label" data-mov="SER" x="63" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">36</text>
             
             <text class="ipd-text-label" data-mov="NWL" x="20" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">15</text>
+            <text class="ipd-text-label" data-mov="NWL-P" x="18" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">45</text>
             <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
+            <text class="ipd-text-label" data-mov="NWR" x="38" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">32</text>
+            
+            <text class="ipd-text-label" data-mov="PED-SE" x="87" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">116</text>
+            <text class="ipd-text-label" data-mov="PED-NW" x="14" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
             `;
         }
         if (!filter || filter === 'SCRAMBLE') {
             html += `
-            <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(X)</text>
-            <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(X)</text>
-            <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(+)</text>
-            <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">(+)</text>
-            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">(+)</text>
-            <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">(+)</text>
+            <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">101</text>
+            <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">103</text>
+            <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
+            <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
+            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
+            <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
             `;
         }
         
