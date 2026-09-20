@@ -28,17 +28,11 @@ const CSV_CACHE = {};
 
 // 캐시 무효화 미들웨어: 데이터 변경(POST/PUT/DELETE) 시 캐시를 날림
 app.use('/api', (req, res, next) => {
+    // [성능 개선] POST 요청 시 무조건 로컬 캐시 파일을 지우지 않고,
+    // update-junction 등 개별 API에서 직접 메모리/디스크 파일을 패치(Patch)하도록 변경합니다.
+    // 이는 수천건의 DB를 다시 쿼리하는 오버헤드를 없앱니다.
     if ((req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') && !req.url.includes('/ping') && !req.url.includes('/logs')) {
-        const scratchDir = path.join(__dirname, 'scratch');
-        if (fs.existsSync(scratchDir)) {
-            const files = fs.readdirSync(scratchDir);
-            files.forEach(f => {
-                if (f.startsWith('cache_')) {
-                    try { fs.unlinkSync(path.join(scratchDir, f)); } catch(e) {}
-                }
-            });
-        }
-        console.log(`[Cache] Cleared due to ${req.method} ${req.url}`);
+        console.log(`[Cache] Update requested by ${req.method} ${req.url}. Cache will be patched or invalidated by the handler.`);
     }
     next();
 });
@@ -702,6 +696,66 @@ app.get('/api/sim/db-version', async (req, res) => {
 });
 
 // 1-3. 시뮬레이터용 데이터 반환 API (RDB 테이블 실시간 쿼리 및 CSV 동적 변환 서빙)
+
+
+const patchLocalCsvCache = async (updates) => {
+    try {
+        const scratchDir = path.join(__dirname, 'scratch');
+        if (!fs.existsSync(scratchDir)) return false;
+        
+        let patchedAny = false;
+        const filesToPatch = ['db_L01.csv', 'db_L01_maps.csv', 'db_L01_tod_plans.csv', 'db_L01_stats.csv'];
+        
+        for (const file of filesToPatch) {
+            const cacheFilePath = path.join(scratchDir, 'cache_' + file);
+            if (!fs.existsSync(cacheFilePath)) continue;
+            
+            let lines = fs.readFileSync(cacheFilePath, 'utf8').split(/\r?\n/);
+            
+            for (const update of updates) {
+                const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines } = update;
+                if (file === 'db_L01.csv' && interCsvLine) {
+                    lines = lines.filter(l => !l.startsWith(jid + ','));
+                    lines.push(interCsvLine);
+                } else if (file === 'db_L01_maps.csv' && mapCsvLines) {
+                    lines = lines.filter(l => !l.startsWith(jid + ','));
+                    mapCsvLines.split(/\r?\n/).filter(l => l.trim()).forEach(l => lines.push(l));
+                } else if (file === 'db_L01_tod_plans.csv' && todCsvLines) {
+                    lines = lines.filter(l => !l.startsWith(jid + ','));
+                    todCsvLines.split(/\r?\n/).filter(l => l.trim()).forEach(l => lines.push(l));
+                } else if (file === 'db_L01_stats.csv' && statsCsvLines) {
+                    lines = lines.filter(l => !l.startsWith(jid + ','));
+                    const statLines = statsCsvLines.split(/\r?\n/).filter(l => l.trim());
+                    if (statLines.length > 1) {
+                        for (let i = 1; i < statLines.length; i++) {
+                            lines.push(statLines[i]);
+                        }
+                    }
+                }
+            }
+            fs.writeFileSync(cacheFilePath, lines.join('\n'));
+            patchedAny = true;
+        }
+        
+        if (patchedAny) {
+            global.SIGMA_DB_VERSION = Date.now() + '_v2';
+            for (const file of filesToPatch) {
+                const cacheFilePath = path.join(scratchDir, 'cache_' + file);
+                if (fs.existsSync(cacheFilePath)) {
+                    // Upload patched files to CDN asynchronously so it doesn't block
+                    uploadToCDN(cacheFilePath, \`cache_\${file}_\${global.SIGMA_DB_VERSION}.csv\`).catch(console.error);
+                }
+            }
+            console.log('[Cache] Successfully patched CSV cache and updated SIGMA_DB_VERSION to', global.SIGMA_DB_VERSION);
+            return true;
+        }
+        return false;
+    } catch(e) {
+        console.error('[Cache] Error patching cache:', e);
+        return false;
+    }
+};
+
 
 const uploadToCDN = async (filePath, cdnFilename) => {
     try {
@@ -1709,6 +1763,13 @@ app.post('/api/sim/update-junction', async (req, res) => {
         }
       }
 
+      // [성능 최적화] RDB 저장이 완료되면 로컬 캐시 파일을 직접 패치(수정)하여 36,000건 재조회 방지
+      const isPatched = await patchLocalCsvCache([{ jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines }]);
+      if (!isPatched) {
+          // 로컬 캐시가 없어서 패치에 실패한 경우에만 기존처럼 강제 무효화
+          global.SIGMA_DB_VERSION = null;
+      }
+
       return { success: true };
     });
 
@@ -2047,7 +2108,10 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
         }
       }
 
-      global.SIGMA_DB_VERSION = Date.now();
+      const isPatched = await patchLocalCsvCache(chunks);
+      if (!isPatched) {
+          global.SIGMA_DB_VERSION = null;
+      }
       return { success: true, counts: { junctions: junctionsPayload.length, maps: mapsPayload.length, tods: todPayload.length } };
     });
 
