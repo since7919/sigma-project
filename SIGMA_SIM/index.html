@@ -11,14 +11,14 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=1789884542181">
+    <link rel="stylesheet" href="css/style.css?v=1789885722993">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/panels.css">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
-    <link rel="stylesheet" href="css/modals.css?v=1789884542181">
+    <link rel="stylesheet" href="css/modals.css?v=1789885722993">
 
     <style>
         .phase-action-btn {
@@ -524,9 +524,9 @@
                     <button class="btn-neon" style="height:28px; font-size:11px; padding:0 10px;"
                         onclick="handlePhaseSearch(document.getElementById('inp-search-phase-jid').value, true)">조회</button>
                     <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
-                        onclick="updateActiveJunctionToDB()" disabled>DB 반영</button>
+                        onclick="updateActiveJunctionToDB()" disabled>☁️ 클라우드 저장</button>
                     <button id="btn-junction-db-revert" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.15); opacity:0.5; cursor:not-allowed;"
-                        onclick="revertActiveJunctionFromDB()" disabled>DB값으로 복원</button>
+                        onclick="revertActiveJunctionFromDB()" disabled>☁️ 서버값으로 복원</button>
                 </div>
             </div>
 
@@ -920,8 +920,8 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button onclick="openDBUpdateModal()" class="phase-action-btn phase-btn-purple" style="height:36px; padding: 0 20px; font-size:13px; font-weight:900;">💾 DB 업데이트</button>
-                        <button onclick="exportNormalizedDBFiles()" class="phase-action-btn phase-btn-gray" style="height:36px; padding:0 16px; font-size:13px;">📤 DB 통합 저장</button>
+                        <button onclick="openDBUpdateModal()" class="phase-action-btn phase-btn-purple" style="height:36px; padding: 0 20px; font-size:13px; font-weight:900;">☁️ 클라우드 DB 동기화</button>
+                        <button onclick="exportNormalizedDBFiles()" class="phase-action-btn phase-btn-gray" style="height:36px; padding:0 16px; font-size:13px;">💾 로컬 PC 파일 백업</button>
                     </div>
                 </div>
 
@@ -937,13 +937,13 @@
                                     <div class="db-type-badge">DB</div>
                                     <div id="expl-status-inter" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('inter')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('inter')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-inter').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('inter')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('inter')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-inter" onclick="clearDBFile('inter')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -954,13 +954,13 @@
                                     <div class="db-type-badge">MAP</div>
                                     <div id="expl-status-maps" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('maps')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('maps')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-maps').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('maps')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('maps')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-maps" onclick="clearDBFile('maps')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -971,13 +971,13 @@
                                     <div class="db-type-badge">TOD</div>
                                     <div id="expl-status-plans" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('plans')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('plans')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-plans').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('plans')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('plans')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-plans" onclick="clearDBFile('plans')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -988,13 +988,13 @@
                                     <div class="db-type-badge">GRP</div>
                                     <div id="expl-status-groups" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('groups')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('groups')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-groups').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('groups')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('groups')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-groups" onclick="clearDBFile('groups')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -1005,13 +1005,13 @@
                                     <div class="db-type-badge">ST</div>
                                     <div id="expl-status-stats" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('stats')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('stats')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-stats').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('stats')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('stats')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-stats" onclick="clearDBFile('stats')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -1022,13 +1022,13 @@
                                     <div class="db-type-badge">GEO</div>
                                     <div id="expl-status-links" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('links')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('links')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-links').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('links')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('links')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-links" onclick="clearDBFile('links')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -1039,13 +1039,13 @@
                                     <div class="db-type-badge">PLY</div>
                                     <div id="expl-status-poly" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('poly')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('poly')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-poly').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('poly')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('poly')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-poly" onclick="clearDBFile('poly')" class="btn-db-del"
                                             title="삭제">❌</button>
                                     </div>
@@ -1056,13 +1056,13 @@
                                     <div class="db-type-badge">ARC</div>
                                     <div id="expl-status-yearbook" class="status-txt">[로드 대기]</div>
                                     <div class="db-actions">
-                                        <button onclick="syncSigmaDB('yearbook')" class="btn-db-action" style="background:#3498db; color:#fff;" title="백엔드 DB 동기화">🌐</button>
+                                        <button onclick="syncSigmaDB('yearbook')" class="btn-db-action" style="background:#3498db; color:#fff;" title="클라우드 DB 덮어쓰기 (동기화)">☁️</button>
                                         <button onclick="document.getElementById('file-load-db-yearbook').click()"
                                             class="btn-db-action" title="열기">📂</button>
                                         <button onclick="viewDBFile('yearbook')" class="btn-db-action"
                                             title="보기">📋</button>
                                         <button onclick="saveDBFile('yearbook')" class="btn-db-action"
-                                            title="저장">💾</button>
+                                            title="로컬 PC 파일로 다운로드">💾</button>
                                         <button id="btn-del-yearbook" onclick="clearDBFile('yearbook')"
                                             class="btn-db-del" title="삭제">❌</button>
                                     </div>
@@ -1841,41 +1841,41 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=1789884542181"></script>
+    <script src="js/security.js?v=1789885722993"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=1789884542181"></script>
-    <script src="js/auth.js?v=1789884542181"></script>
-    <script src="js/ui_components.js?v=1789884542181"></script>
-    <script src="js/config.js?v=1789884542181"></script>
-    <script src="js/utils.js?v=1789884542181"></script>
-    <script src="js/ui.js?v=1789884542181"></script>
-    <script src="js/safetyzone.js?v=1789884542181"></script>
-    <script src="js/table_popup.js?v=1789884542181"></script>
-    <script src="js/map.js?v=1789884542181"></script>
-    <script src="js/junction_map.js?v=1789884542181"></script>
-    <script src="js/junction.js?v=1789884542181"></script>
-    <script src="js/data_parser.js?v=1789884542181"></script>
-    <script src="js/data.js?v=1789884542181"></script>
-    <script src="js/phase.js?v=1789884542181"></script>
-    <script src="js/sigmap_tab.js?v=1789884542181"></script>
-    <script src="js/group_parser.js?v=1789884542181"></script>
-    <script src="js/group_map.js?v=1789884542181"></script>
-    <script src="js/group.js?v=1789884542181"></script>
-    <script src="js/tsd.js?v=1789884542181"></script>
-    <script src="js/simulation.js?v=1789884542181"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=1789884542181"></script>
-    <script src="js/api_layers.js?v=1789884542181"></script>
-    <script src="js/intersection_search.js?v=1789884542181"></script>
-    <script src="js/junction_optimizer.js?v=1789884542181"></script>
-    <script src="js/civil.js?v=1789884542181"></script>
-    <script src="js/home.js?v=1789884542181"></script>
-    <script src="js/rng_road_network.js?v=1789884542181"></script>
-    <script src="js/table_logic.js?v=1789884542181"></script>
-    <script src="js/phase_diagram_interactive.js?v=1789884542181"></script>\n    <script src="js/init.js?v=1789884542181"></script>
-    <script src="js/auto_load.js?v=1789884542181"></script>
-    <script src="js/minigame.js?v=1789884542181"></script>
-    <script src="js/chatbot_advanced.js?v=1789884542181"></script>
+    <script src="js/dashboard.js?v=1789885722993"></script>
+    <script src="js/auth.js?v=1789885722993"></script>
+    <script src="js/ui_components.js?v=1789885722993"></script>
+    <script src="js/config.js?v=1789885722993"></script>
+    <script src="js/utils.js?v=1789885722993"></script>
+    <script src="js/ui.js?v=1789885722993"></script>
+    <script src="js/safetyzone.js?v=1789885722993"></script>
+    <script src="js/table_popup.js?v=1789885722993"></script>
+    <script src="js/map.js?v=1789885722993"></script>
+    <script src="js/junction_map.js?v=1789885722993"></script>
+    <script src="js/junction.js?v=1789885722993"></script>
+    <script src="js/data_parser.js?v=1789885722993"></script>
+    <script src="js/data.js?v=1789885722993"></script>
+    <script src="js/phase.js?v=1789885722993"></script>
+    <script src="js/sigmap_tab.js?v=1789885722993"></script>
+    <script src="js/group_parser.js?v=1789885722993"></script>
+    <script src="js/group_map.js?v=1789885722993"></script>
+    <script src="js/group.js?v=1789885722993"></script>
+    <script src="js/tsd.js?v=1789885722993"></script>
+    <script src="js/simulation.js?v=1789885722993"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=1789885722993"></script>
+    <script src="js/api_layers.js?v=1789885722993"></script>
+    <script src="js/intersection_search.js?v=1789885722993"></script>
+    <script src="js/junction_optimizer.js?v=1789885722993"></script>
+    <script src="js/civil.js?v=1789885722993"></script>
+    <script src="js/home.js?v=1789885722993"></script>
+    <script src="js/rng_road_network.js?v=1789885722993"></script>
+    <script src="js/table_logic.js?v=1789885722993"></script>
+    <script src="js/phase_diagram_interactive.js?v=1789885722993"></script>\n    <script src="js/init.js?v=1789885722993"></script>
+    <script src="js/auto_load.js?v=1789885722993"></script>
+    <script src="js/minigame.js?v=1789885722993"></script>
+    <script src="js/chatbot_advanced.js?v=1789885722993"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
@@ -1885,7 +1885,7 @@
     <div id="db-update-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="background:#1e2430; border:1px solid #38bdf8; border-radius:12px; width:450px; box-shadow:0 10px 40px rgba(0,0,0,0.8); overflow:hidden;">
             <div style="background:#262d3d; padding:15px 20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; font-size:16px; color:#fff;">💾 데이터베이스 반영 선택</h3>
+                <h3 style="margin:0; font-size:16px; color:#fff;">☁️ 클라우드 DB 동기화 대상 선택</h3>
                 <button onclick="document.getElementById('db-update-modal').style.display='none'" style="background:none; border:none; color:#999; font-size:20px; cursor:pointer;">&times;</button>
             </div>
             <div style="padding:20px;">
@@ -2013,14 +2013,14 @@
                     <!-- 시그널맵 데이터 바인딩 영역 -->
                 </div>
                 <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; padding: 20px;">
-                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (저장)</button></div>
+                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
                     <!-- 교차로정보 데이터 바인딩 영역 -->
                     <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b;">
                         <!-- Dynamic: info-fields-container -->
                     </div>
                 </div>
                 <div id="overlay-tab-optstats" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;">
-                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">DB 반영 (저장)</button></div>
+                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
                     
                     <div class="sigma-panel">
                         <div class="card-title">
@@ -2141,8 +2141,8 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1789884542181"></script>
-    <script src="js/db_report.js?v=1789884542181"></script>
+    <script src="js/overlay_ui.js?v=1789885722993"></script>
+    <script src="js/db_report.js?v=1789885722993"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
