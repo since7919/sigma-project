@@ -11,14 +11,14 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=1789890726733">
+    <link rel="stylesheet" href="css/style.css?v=1789910791619">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/panels.css">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
-    <link rel="stylesheet" href="css/modals.css?v=1789890726733">
+    <link rel="stylesheet" href="css/modals.css?v=1789910791619">
 
     <style>
         .phase-action-btn {
@@ -531,13 +531,20 @@
             </div>
 
             <div class="box-green" style="margin-bottom: 8px;">
-                <div class="xlsx-loader-header">
-                    <div class="flex-row gap-12">
-                        <div class="xlsx-icon-box">📗</div>
-                        <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
+                <div class="xlsx-loader-header" style="flex-direction:column; align-items:stretch; gap:10px;">
+                    <div class="flex-row" style="justify-content:space-between; width:100%;">
+                        <div class="flex-row gap-12">
+                            <div class="xlsx-icon-box">📗</div>
+                            <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
+                        </div>
+                        <button onclick="document.getElementById('xlsx-file-input-phase').click()" class="btn-neon green" style="height:38px; padding:0 18px;">📁 파일 선택</button>
                     </div>
-                    <button onclick="document.getElementById('xlsx-file-input-phase').click()" class="btn-neon green"
-                        style="height:38px; padding:0 18px;">📁 파일 선택</button>
+                    <div class="flex-row gap-12" style="font-size:12px; color:#ccc; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 6px; flex-wrap:wrap;">
+                        <span style="color:#2ecc71; font-weight:bold; margin-right:5px;">옵션:</span>
+                        <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-master-phase" checked> 마스터</label>
+                        <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-map-phase"> 시그널맵</label>
+                        <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-tod-phase" checked> 시간/주간계획</label>
+                    </div>
                 </div>
                 <div id="xlsx-progress-container-phase" class="p-10"
                     style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
@@ -1073,12 +1080,20 @@
                     </div>
 
                     <div class="box-green">
-                        <div class="xlsx-loader-header">
-                            <div class="flex-row gap-12">
-                                <div class="xlsx-icon-box">📗</div>
-                                <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
+                        <div class="xlsx-loader-header" style="flex-direction:column; align-items:stretch; gap:10px;">
+                            <div class="flex-row" style="justify-content:space-between; width:100%;">
+                                <div class="flex-row gap-12">
+                                    <div class="xlsx-icon-box">📗</div>
+                                    <div class="fs-15 fw-900" style="color:#2ecc71;">SISO 입출력 파일(XLSX) 로더</div>
+                                </div>
+                                <button onclick="document.getElementById('xlsx-file-input').click()" class="phase-action-btn phase-btn-green" style="height:36px; padding:0 18px; font-size:13px;">📁 파일 선택</button>
                             </div>
-                            <button onclick="document.getElementById('xlsx-file-input').click()" class="phase-action-btn phase-btn-green" style="height:36px; padding:0 18px; font-size:13px;">📁 파일 선택</button>
+                            <div class="flex-row gap-12" style="font-size:12px; color:#ccc; padding: 6px 12px; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                                <span style="color:#2ecc71; font-weight:bold; margin-right:5px;">업데이트 옵션:</span>
+                                <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-master" checked> 마스터 정보</label>
+                                <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-map"> 시그널맵(Phase)</label>
+                                <label style="cursor:pointer;"><input type="checkbox" id="chk-opt-tod" checked> 시간/주간계획(TOD)</label>
+                            </div>
                         </div>
                         <div id="xlsx-progress-container" class="p-10"
                             style="display:none; background:rgba(0,0,0,0.2); border-radius:10px;">
@@ -1842,41 +1857,41 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=1789890726733"></script>
+    <script src="js/security.js?v=1789910791619"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=1789890726733"></script>
-    <script src="js/auth.js?v=1789890726733"></script>
-    <script src="js/ui_components.js?v=1789890726733"></script>
-    <script src="js/config.js?v=1789890726733"></script>
-    <script src="js/utils.js?v=1789890726733"></script>
-    <script src="js/ui.js?v=1789890726733"></script>
-    <script src="js/safetyzone.js?v=1789890726733"></script>
-    <script src="js/table_popup.js?v=1789890726733"></script>
-    <script src="js/map.js?v=1789890726733"></script>
-    <script src="js/junction_map.js?v=1789890726733"></script>
-    <script src="js/junction.js?v=1789890726733"></script>
-    <script src="js/data_parser.js?v=1789890726733"></script>
-    <script src="js/data.js?v=1789890726733"></script>
-    <script src="js/phase.js?v=1789890726733"></script>
-    <script src="js/sigmap_tab.js?v=1789890726733"></script>
-    <script src="js/group_parser.js?v=1789890726733"></script>
-    <script src="js/group_map.js?v=1789890726733"></script>
-    <script src="js/group.js?v=1789890726733"></script>
-    <script src="js/tsd.js?v=1789890726733"></script>
-    <script src="js/simulation.js?v=1789890726733"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=1789890726733"></script>
-    <script src="js/api_layers.js?v=1789890726733"></script>
-    <script src="js/intersection_search.js?v=1789890726733"></script>
-    <script src="js/junction_optimizer.js?v=1789890726733"></script>
-    <script src="js/civil.js?v=1789890726733"></script>
-    <script src="js/home.js?v=1789890726733"></script>
-    <script src="js/rng_road_network.js?v=1789890726733"></script>
-    <script src="js/table_logic.js?v=1789890726733"></script>
-    <script src="js/phase_diagram_interactive.js?v=1789890726733"></script>\n    <script src="js/init.js?v=1789890726733"></script>
-    <script src="js/auto_load.js?v=1789890726733"></script>
-    <script src="js/minigame.js?v=1789890726733"></script>
-    <script src="js/chatbot_advanced.js?v=1789890726733"></script>
+    <script src="js/dashboard.js?v=1789910791619"></script>
+    <script src="js/auth.js?v=1789910791619"></script>
+    <script src="js/ui_components.js?v=1789910791619"></script>
+    <script src="js/config.js?v=1789910791619"></script>
+    <script src="js/utils.js?v=1789910791619"></script>
+    <script src="js/ui.js?v=1789910791619"></script>
+    <script src="js/safetyzone.js?v=1789910791619"></script>
+    <script src="js/table_popup.js?v=1789910791619"></script>
+    <script src="js/map.js?v=1789910791619"></script>
+    <script src="js/junction_map.js?v=1789910791619"></script>
+    <script src="js/junction.js?v=1789910791619"></script>
+    <script src="js/data_parser.js?v=1789910791619"></script>
+    <script src="js/data.js?v=1789910791619"></script>
+    <script src="js/phase.js?v=1789910791619"></script>
+    <script src="js/sigmap_tab.js?v=1789910791619"></script>
+    <script src="js/group_parser.js?v=1789910791619"></script>
+    <script src="js/group_map.js?v=1789910791619"></script>
+    <script src="js/group.js?v=1789910791619"></script>
+    <script src="js/tsd.js?v=1789910791619"></script>
+    <script src="js/simulation.js?v=1789910791619"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=1789910791619"></script>
+    <script src="js/api_layers.js?v=1789910791619"></script>
+    <script src="js/intersection_search.js?v=1789910791619"></script>
+    <script src="js/junction_optimizer.js?v=1789910791619"></script>
+    <script src="js/civil.js?v=1789910791619"></script>
+    <script src="js/home.js?v=1789910791619"></script>
+    <script src="js/rng_road_network.js?v=1789910791619"></script>
+    <script src="js/table_logic.js?v=1789910791619"></script>
+    <script src="js/phase_diagram_interactive.js?v=1789910791619"></script>\n    <script src="js/init.js?v=1789910791619"></script>
+    <script src="js/auto_load.js?v=1789910791619"></script>
+    <script src="js/minigame.js?v=1789910791619"></script>
+    <script src="js/chatbot_advanced.js?v=1789910791619"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
@@ -2142,8 +2157,8 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1789890726733"></script>
-    <script src="js/db_report.js?v=1789890726733"></script>
+    <script src="js/overlay_ui.js?v=1789910791619"></script>
+    <script src="js/db_report.js?v=1789910791619"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">

@@ -232,6 +232,19 @@ async function handleExcelSignalLoad(input, isSingle = false) {
         alert("하나의 파일만 선택해 주세요.");
         return;
     }
+    
+    const suffix = isSingle ? "-phase" : "";
+    const chkMaster = document.getElementById('chk-opt-master' + suffix);
+    const chkMap = document.getElementById('chk-opt-map' + suffix);
+    const chkTod = document.getElementById('chk-opt-tod' + suffix);
+    const optMaster = chkMaster ? chkMaster.checked : true;
+    const optMap = chkMap ? chkMap.checked : true;
+    const optTod = chkTod ? chkTod.checked : true;
+    
+    if (!optMaster && !optMap && !optTod) {
+        alert("업데이트할 옵션을 하나 이상 선택해 주세요.");
+        return;
+    }
 
     const infoEl = document.getElementById('xlsx-info-text');
     const progEl = document.getElementById('xlsx-progress-bar');
@@ -494,33 +507,35 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 return { phaseData, rawSteps };
             };
 
-            for (let m = 0; m < 6; m++) {
-                if (!junction.signalMaps[m]) junction.signalMaps[m] = createEmptySignalMap();
-                const sm = junction.signalMaps[m];
-                const startRowA = baseRowMapStart + (m * 67) + 3;
-                const startRowB = startRowA + 32;
+            if (optMap) {
+                for (let m = 0; m < 6; m++) {
+                    if (!junction.signalMaps[m]) junction.signalMaps[m] = createEmptySignalMap();
+                    const sm = junction.signalMaps[m];
+                    const startRowA = baseRowMapStart + (m * 67) + 3;
+                    const startRowB = startRowA + 32;
 
-                const { phaseData: dataA, rawSteps: stepsA } = processRingData(startRowA, baseMovA);
-                // B링 분석 시 A링의 EOP 행 위치를 함께 전달하여 동기화
-                const { phaseData: dataB, rawSteps: stepsB } = processRingData(startRowB, baseMovB, startRowA);
+                    const { phaseData: dataA, rawSteps: stepsA } = processRingData(startRowA, baseMovA);
+                    // B링 분석 시 A링의 EOP 행 위치를 함께 전달하여 동기화
+                    const { phaseData: dataB, rawSteps: stepsB } = processRingData(startRowB, baseMovB, startRowA);
 
-                sm.stepsA = stepsA;
-                sm.stepsB = stepsB;
+                    sm.stepsA = stepsA;
+                    sm.stepsB = stepsB;
 
-                sm.movA = dataA.map(d => d.vId);
-                sm.movB = dataB.map(d => d.vId);
-                sm.pedMovA = dataA.map(d => d.pId);
-                sm.pedMovB = dataB.map(d => d.pId);
-                sm.yellowA = dataA.map(d => d.yellow);
-                sm.yellowB = dataB.map(d => d.yellow);
-                sm.pedGreenA = dataA.map(d => d.g);
-                sm.pedGreenB = dataB.map(d => d.g);
-                sm.pedFlashA = dataA.map(d => d.f);
-                sm.pedFlashB = dataB.map(d => d.f);
-                sm.pedDelayA = dataA.map(d => d.delay || 0);
-                sm.pedDelayB = dataB.map(d => d.delay || 0);
-                sm.pedA = dataA.map(d => d.g + d.f);
-                sm.pedB = dataB.map(d => d.g + d.f);
+                    sm.movA = dataA.map(d => d.vId);
+                    sm.movB = dataB.map(d => d.vId);
+                    sm.pedMovA = dataA.map(d => d.pId);
+                    sm.pedMovB = dataB.map(d => d.pId);
+                    sm.yellowA = dataA.map(d => d.yellow);
+                    sm.yellowB = dataB.map(d => d.yellow);
+                    sm.pedGreenA = dataA.map(d => d.g);
+                    sm.pedGreenB = dataB.map(d => d.g);
+                    sm.pedFlashA = dataA.map(d => d.f);
+                    sm.pedFlashB = dataB.map(d => d.f);
+                    sm.pedDelayA = dataA.map(d => d.delay || 0);
+                    sm.pedDelayB = dataB.map(d => d.delay || 0);
+                    sm.pedA = dataA.map(d => d.g + d.f);
+                    sm.pedB = dataB.map(d => d.g + d.f);
+                }
             }
 
             // [3] 일계획 및 시간계획 분석 (1-indexed getVal 오프셋 및 동적 컬럼 탐색 적용)
@@ -658,31 +673,33 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 }
             }
 
-            // [4] ������(schedules) ����: �ϰ�ȹ(dayPlansFound) ����
-            for (let dK = 1; dK <= 5; dK++) {
-                const daily = dayPlansFound[dK]; if (!daily) continue;
-                const sysDayIndices = (dK === 1 ? [0, 5] : dK === 2 ? [1, 6] : dK === 3 ? [2, 7] : dK === 4 ? [3, 8] : dK === 5 ? [4, 9] : []);
-                sysDayIndices.forEach(dIdx => {
-                    junction.dayPlanMapIds[dIdx] = (dK - 1);
-                    junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                        const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
-                        const [h, m] = s.time.split(':').map(Number);
-                        return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
+            if (optTod) {
+                // [4] 스케줄(schedules) 매핑: 일계획(dayPlansFound) 기준
+                for (let dK = 1; dK <= 5; dK++) {
+                    const daily = dayPlansFound[dK]; if (!daily) continue;
+                    const sysDayIndices = (dK === 1 ? [0, 5] : dK === 2 ? [1, 6] : dK === 3 ? [2, 7] : dK === 4 ? [3, 8] : dK === 5 ? [4, 9] : []);
+                    sysDayIndices.forEach(dIdx => {
+                        junction.dayPlanMapIds[dIdx] = (dK - 1);
+                        junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
+                            const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
+                            const [h, m] = s.time.split(':').map(Number);
+                            return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
+                        });
                     });
-                });
-            }
+                }
 
-            // [5] 패턴(dayPlans) 매핑: 시간계획(tpPlansDict) 기준, 일계획 존재 여부와 무관하게 항상 매핑
-            for (let dIdx = 0; dIdx < 10; dIdx++) {
-                junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                    const targetTpIdx = dIdx + 1; // 일반맵(0~4) -> 1~5, 시차맵(5~9) -> 6~10
-                    const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
-                    
-                    // TOD 스케줄에서 해당 슬롯(sI)이 사용하는 패턴(idx)을 찾아 매핑 (Flattening)
-                    const pl = tPlans[sI];
-                    if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
-                    return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
-                });
+                // [5] 패턴(dayPlans) 매핑: 시간계획(tpPlansDict) 기준, 일계획 존재 여부와 무관하게 항상 매핑
+                for (let dIdx = 0; dIdx < 10; dIdx++) {
+                    junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
+                        const targetTpIdx = dIdx + 1; // 일반맵(0~4) -> 1~5, 시차맵(5~9) -> 6~10
+                        const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
+                        
+                        // TOD 스케줄에서 해당 슬롯(sI)이 사용하는 패턴(idx)을 찾아 매핑 (Flattening)
+                        const pl = tPlans[sI];
+                        if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+                        return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
+                    });
+                }
             }
             
             junction._isDirty = true;
