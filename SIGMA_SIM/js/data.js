@@ -183,7 +183,7 @@ function exportNormalizedDBFiles() {
 function viewDBFile(type) {
     try {
         const fileName = STATE.loadedFiles ? STATE.loadedFiles[type] : null;
-        if (!fileName) { alert("먼저 파일을 로드해 주세요."); return; }
+        if (!fileName && Object.keys(STATE.junctions || {}).length === 0) { alert("먼저 데이터를 로드해 주세요."); return; }
         
         // 데이터 뷰어 팝업 띄우기 공통 함수
         const openViewer = (csvText) => {
