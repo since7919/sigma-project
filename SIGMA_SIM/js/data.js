@@ -192,7 +192,7 @@ function viewDBFile(type) {
                 return;
             }
             const lines = csvText.trim().split('\n');
-            let tableHtml = `<table border="1" style="border-collapse: collapse; width: 100%; font-family: 'Pretendard', sans-serif; font-size: 13px; text-align: center;">`;
+            let tableHtml = `<table border="1" style="border-collapse: collapse; min-width: 100%; width: max-content; font-family: 'Pretendard', sans-serif; font-size: 13px; text-align: center;">`;
             
             lines.forEach((line, index) => {
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => {
@@ -205,7 +205,8 @@ function viewDBFile(type) {
                     if (index === 0) {
                         tableHtml += `<th style="background: #2a2d3e; color: #fff; padding: 8px 12px; position: sticky; top: 0; white-space: nowrap; box-shadow: 0 1px 0 #444; z-index: 10;">${col}</th>`;
                     } else {
-                        tableHtml += `<td style="padding: 6px 10px; white-space: nowrap; border: 1px solid #334155; color: #e2e8f0;">${col}</td>`;
+                        // Use max-width with ellipsis to prevent insane column widths, but show full text on hover (title attribute)
+                        tableHtml += `<td title="${col.replace(/"/g, '&quot;')}" style="padding: 6px 10px; white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; border: 1px solid #334155; color: #e2e8f0;">${col}</td>`;
                     }
                 });
                 tableHtml += '</tr>';
