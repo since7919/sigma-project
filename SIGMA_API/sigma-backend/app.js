@@ -729,12 +729,15 @@ const patchLocalCsvCache = async (updates) => {
         
         if (patchedAny) {
             global.SIGMA_DB_VERSION = Date.now() + '_v2';
-            for (const file of filesToPatch) {
-                const cacheFilePath = path.join(scratchDir, 'cache_' + file);
-                if (fs.existsSync(cacheFilePath)) {
-                    uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`).catch(console.error);
+            // 백그라운드에서 순차적으로 CDN 업로드 진행 (메모리 OOM 방지)
+            (async () => {
+                for (const file of filesToPatch) {
+                    const cacheFilePath = path.join(scratchDir, 'cache_' + file);
+                    if (fs.existsSync(cacheFilePath)) {
+                        await uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`).catch(console.error);
+                    }
                 }
-            }
+            })();
             console.log('[Cache] Successfully patched CSV cache and updated SIGMA_DB_VERSION to', global.SIGMA_DB_VERSION);
             return true;
         }
