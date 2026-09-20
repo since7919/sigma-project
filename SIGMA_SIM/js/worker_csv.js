@@ -139,7 +139,7 @@ function parseTodPlans(csv) {
             if (h !== null) { schedObj.h = h; schedObj.m = m; }
             if (p[1]) { schedObj.cycle = parseInt(p[1]); }
             
-            if (p[3] && p[4] && p[3] !== '0;0;0;0;0;0;0;0') {
+            if (p[3] && p[4]) {
                 schedObj.dp = {
                     splitA: p[3].split(';').map(Number),
                     splitB: p[4].split(';').map(Number)

@@ -696,8 +696,19 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         
                         // TOD 스케줄에서 해당 슬롯(sI)이 사용하는 패턴(idx)을 찾아 매핑 (Flattening)
                         const pl = tPlans[sI];
-                        if (!pl) return { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
-                        return { cycle: pl.cycle || 100, offset: pl.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
+                        const existingPlan = (junction.dayPlans && junction.dayPlans[dIdx] && junction.dayPlans[dIdx][sI]) 
+                            ? junction.dayPlans[dIdx][sI] 
+                            : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
+
+                        if (!pl) return existingPlan;
+                        
+                        // 엑셀에서 읽어온 패턴의 splitA 합계가 0이면 비어있는 것으로 간주하고 기존 데이터 유지 (덮어쓰기 방지)
+                        const sumA = pl.splitA ? pl.splitA.reduce((a,b)=>a+b, 0) : 0;
+                        if (sumA === 0 && existingPlan.splitA && existingPlan.splitA.reduce((a,b)=>a+b,0) > 0) {
+                            return existingPlan;
+                        }
+
+                        return { cycle: pl.cycle || existingPlan.cycle, offset: pl.offset !== undefined ? pl.offset : existingPlan.offset, splitA: [...pl.splitA], splitB: [...pl.splitB] };
                     });
                 }
             }
