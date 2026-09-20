@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); const lines = fs.readFileSync('C:/Users/since/OneDrive/바탕 화면/SIGMA/SIGMA_API/sigma-backend/app.js', 'utf8').split('\n'); lines.forEach((l, i) => { if(l.includes('const processedRecords = validRecords.map')) { lines.slice(i, i+150).forEach((ll, ii) => console.log(i+ii, ll)); } });

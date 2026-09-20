@@ -874,21 +874,40 @@ app.get('/api/sim/data', async (req, res) => {
           
           let lastId = `${regionCode}-`;
           while (true) {
-            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('map_idx').limit(1000);
+            const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('map_idx').limit(300);
             if (error || !data || data.length === 0) break;
             
             let safeData = data;
             let nextLastId = data[data.length - 1].id;
             
-            if (data.length === 1000) {
+            if (data.length === 300) {
               safeData = data.filter(r => r.id !== nextLastId);
               if (safeData.length === 0) { safeData = data; }
               else { nextLastId = safeData[safeData.length - 1].id; }
             }
             
+            const minifyRawSteps = (raw) => {
+                if (!raw) return null;
+                const minifySteps = (steps) => {
+                    if (!Array.isArray(steps)) return steps;
+                    return steps.map(s => {
+                        const obj = {};
+                        for (const k in s) {
+                            if (s[k] !== 0 && s[k] !== '0' && s[k] !== null) obj[k] = s[k];
+                        }
+                        return obj;
+                    });
+                };
+                const res = {};
+                if (raw.stepsA) res.stepsA = minifySteps(raw.stepsA);
+                if (raw.stepsB) res.stepsB = minifySteps(raw.stepsB);
+                return Object.keys(res).length > 0 ? res : null;
+            };
+
             let chunk = "";
             safeData.forEach(r => {
-                const line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), r.raw_steps ? '"' + JSON.stringify(r.raw_steps).replace(/"/g, '""') + '"' : '""'].join(",");
+                const minRaw = minifyRawSteps(r.raw_steps);
+                const line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), minRaw ? '"' + JSON.stringify(minRaw).replace(/"/g, '""') + '"' : '""'].join(",");
                 chunk += line + "\n";
             });
             lastId = nextLastId;
@@ -921,13 +940,13 @@ app.get('/api/sim/data', async (req, res) => {
           
           let lastId = `${regionCode}-`;
           while (true) {
-            const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('day_plan').limit(1000);
+            const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('day_plan').limit(500);
             if (error || !data || data.length === 0) break;
             
             let safeData = data;
             let nextLastId = data[data.length - 1].id;
             
-            if (data.length === 1000) {
+            if (data.length === 500) {
               safeData = data.filter(r => r.id !== nextLastId);
               if (safeData.length === 0) { safeData = data; }
               else { nextLastId = safeData[safeData.length - 1].id; }
