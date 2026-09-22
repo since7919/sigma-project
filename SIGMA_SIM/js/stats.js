@@ -1263,6 +1263,43 @@ function renderAdvancedInsights(junctions) {
     else if (avgPedWait >= 15) pedLos = 'B';
     const finalBalance = totalIntegrityCount > 0 ? ((validIntegrityCount / totalIntegrityCount) * 100).toFixed(1) : 0;
     
+    // --- 신규 통계: 이동류 및 보호구역 ---
+    let cntLeftProt = 0, cntLeftUnprot = 0, cntPplt = 0;
+    let cntRightSig = 0, cntDiagonal = 0, cntLpi = 0;
+    let cntChildren = 0, cntElderly = 0, cntPedEarly = 0;
+
+    junctions.forEach(j => {
+        let hasLeftProt = false, hasLeftUnprot = false, hasPplt = false;
+        let hasRightSig = false, hasDiagonal = false, hasLpi = false;
+        let hasChildren = false, hasElderly = false, hasPedEarly = false;
+        
+        if (j.options) {
+            Object.values(j.options).forEach(opt => {
+                if (opt.diagonal) hasDiagonal = true;
+                if (opt.children) hasChildren = true;
+                if (opt.elderly) hasElderly = true;
+                if (opt.op) {
+                    if (opt.op.leftProt) hasLeftProt = true;
+                    if (opt.op.leftUnprot) hasLeftUnprot = true;
+                    if (opt.op.leftPplt) hasPplt = true;
+                    if (opt.op.rightOnly || opt.op.rightSig) hasRightSig = true;
+                    if (opt.op.pedLpi) hasLpi = true;
+                    if (opt.op.pedEarly) hasPedEarly = true;
+                }
+            });
+        }
+        
+        if (hasLeftProt) cntLeftProt++;
+        if (hasLeftUnprot) cntLeftUnprot++;
+        if (hasPplt) cntPplt++;
+        if (hasRightSig) cntRightSig++;
+        if (hasDiagonal) cntDiagonal++;
+        if (hasLpi) cntLpi++;
+        if (hasChildren) cntChildren++;
+        if (hasElderly) cntElderly++;
+        if (hasPedEarly) cntPedEarly++;
+    });
+
     // --- 기본 지표 계산 ---
     const totalPlans = totalJunctions * 10;
     
@@ -1312,6 +1349,22 @@ function renderAdvancedInsights(junctions) {
     html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
     html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
     html += InsightBox("micro_balance", "A/B링 길이 무결성", `${finalBalance}%`, "듀얼 링(Dual-Ring) 분할 합계 일치율", "시간 계획 상의 물리적/구조적 오류 부재 비율", "⚖️", "#8e44ad");
+    html += `</div>`;
+    
+    // 4. 신규 카테고리: 이동류 및 운영 특성
+    html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span style="color: #f39c12; font-size: 13px; font-weight: 700;">🚥 이동류 및 운영 특성 (Movements & Features)</span>
+    </div>`;
+    const pct = (val) => totalJunctions > 0 ? (val / totalJunctions * 100).toFixed(1) : "0.0";
+    html += `<div class="grid-3col gap-15 mb-15">`;
+    html += InsightBox(null, "보호 좌회전", `${cntLeftProt.toLocaleString()}개소`, `(${pct(cntLeftProt)}%)`, "좌회전 전용 화살표 신호 적용", "⬅️", "#2ecc71");
+    html += InsightBox(null, "비보호 좌회전", `${cntLeftUnprot.toLocaleString()}개소`, `(${pct(cntLeftUnprot)}%)`, "녹색(직진) 신호 시 비보호 좌회전 허용", "⚠️", "#f1c40f");
+    html += InsightBox(null, "PPLT (보호+비보호)", `${cntPplt.toLocaleString()}개소`, `(${pct(cntPplt)}%)`, "좌회전 신호와 직진 시 비보호 좌회전 동시 허용", "🔄", "#e67e22");
+    html += `</div>`;
+    html += `<div class="grid-3col gap-15 mb-25">`;
+    html += InsightBox(null, "대각선 횡단보도", `${cntDiagonal.toLocaleString()}개소`, `(${pct(cntDiagonal)}%)`, "모든 차량 신호 적색 시 전 방향 동시 보행", "✖️", "#9b59b6");
+    html += InsightBox(null, "우회전 전용신호", `${cntRightSig.toLocaleString()}개소`, `(${pct(cntRightSig)}%)`, "우회전 전용 삼색/사색 신호등 설치 운영", "➡️", "#e74c3c");
+    html += InsightBox(null, "LPI (보행조기출발)", `${cntLpi.toLocaleString()}개소`, `(${pct(cntLpi)}%)`, "보행신호를 차량신호보다 3~7초 먼저 부여", "🚶", "#3498db");
     html += `</div>`;
 
     // 4. 카테고리 3: 보행, 소거시간 및 특수
