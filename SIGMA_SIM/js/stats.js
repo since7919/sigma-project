@@ -1273,8 +1273,8 @@ function renderAdvancedInsights(junctions) {
         let hasRightSig = false, hasDiagonal = false, hasLpi = false;
         let hasChildren = false, hasElderly = false, hasPedEarly = false;
         
-        if (j.options) {
-            Object.values(j.options).forEach(opt => {
+        if (j.optimizerState) {
+            Object.values(j.optimizerState).forEach(opt => {
                 if (opt.diagonal) hasDiagonal = true;
                 if (opt.children) hasChildren = true;
                 if (opt.elderly) hasElderly = true;
