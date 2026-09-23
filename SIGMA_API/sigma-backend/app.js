@@ -954,9 +954,16 @@ app.get('/api/sim/data', async (req, res) => {
             
             let chunk = "";
             safeData.forEach(r => {
+                const tpMap = {};
+                if (r.time_plans) {
+                    r.time_plans.forEach(tp => {
+                        tpMap[tp.slot_idx] = tp;
+                    });
+                }
+                
                 let tpCols = [];
-                for (let i = 0; i < 16; i++) {
-                    let tp = r.time_plans ? r.time_plans[i] : null;
+                for (let i = 1; i <= 16; i++) {
+                    let tp = tpMap[i];
                     if (tp && tp.h !== undefined && tp.h >= 0) {
                         tpCols.push(
                             tp.h + ":" + (tp.m || 0) + "|" +
