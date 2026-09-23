@@ -1357,14 +1357,14 @@ function renderAdvancedInsights(junctions) {
     </div>`;
     const pct = (val) => totalJunctions > 0 ? (val / totalJunctions * 100).toFixed(1) : "0.0";
     html += `<div class="grid-3col gap-15 mb-15">`;
-    html += InsightBox(null, "보호 좌회전", `${cntLeftProt.toLocaleString()}개소`, `(${pct(cntLeftProt)}%)`, "좌회전 전용 화살표 신호 적용", "⬅️", "#2ecc71");
-    html += InsightBox(null, "비보호 좌회전", `${cntLeftUnprot.toLocaleString()}개소`, `(${pct(cntLeftUnprot)}%)`, "녹색(직진) 신호 시 비보호 좌회전 허용", "⚠️", "#f1c40f");
-    html += InsightBox(null, "PPLT (보호+비보호)", `${cntPplt.toLocaleString()}개소`, `(${pct(cntPplt)}%)`, "좌회전 신호와 직진 시 비보호 좌회전 동시 허용", "🔄", "#e67e22");
+    html += InsightBox("move_left_prot", "보호 좌회전", `${cntLeftProt.toLocaleString()}개소`, `(${pct(cntLeftProt)}%)`, "좌회전 전용 화살표 신호 적용", "⬅️", "#2ecc71");
+    html += InsightBox("move_left_unprot", "비보호 좌회전", `${cntLeftUnprot.toLocaleString()}개소`, `(${pct(cntLeftUnprot)}%)`, "녹색(직진) 신호 시 비보호 좌회전 허용", "⚠️", "#f1c40f");
+    html += InsightBox("move_pplt", "PPLT (보호+비보호)", `${cntPplt.toLocaleString()}개소`, `(${pct(cntPplt)}%)`, "좌회전 신호와 직진 시 비보호 좌회전 동시 허용", "🔄", "#e67e22");
     html += `</div>`;
     html += `<div class="grid-3col gap-15 mb-25">`;
-    html += InsightBox(null, "대각선 횡단보도", `${cntDiagonal.toLocaleString()}개소`, `(${pct(cntDiagonal)}%)`, "모든 차량 신호 적색 시 전 방향 동시 보행", "✖️", "#9b59b6");
-    html += InsightBox(null, "우회전 전용신호", `${cntRightSig.toLocaleString()}개소`, `(${pct(cntRightSig)}%)`, "우회전 전용 삼색/사색 신호등 설치 운영", "➡️", "#e74c3c");
-    html += InsightBox(null, "LPI (보행조기출발)", `${cntLpi.toLocaleString()}개소`, `(${pct(cntLpi)}%)`, "보행신호를 차량신호보다 3~7초 먼저 부여", "🚶", "#3498db");
+    html += InsightBox("move_diagonal", "대각선 횡단보도", `${cntDiagonal.toLocaleString()}개소`, `(${pct(cntDiagonal)}%)`, "모든 차량 신호 적색 시 전 방향 동시 보행", "✖️", "#9b59b6");
+    html += InsightBox("move_right_sig", "우회전 전용신호", `${cntRightSig.toLocaleString()}개소`, `(${pct(cntRightSig)}%)`, "우회전 전용 삼색/사색 신호등 설치 운영", "➡️", "#e74c3c");
+    html += InsightBox("move_lpi", "LPI (보행조기출발)", `${cntLpi.toLocaleString()}개소`, `(${pct(cntLpi)}%)`, "보행신호를 차량신호보다 3~7초 먼저 부여", "🚶", "#3498db");
     html += `</div>`;
 
     // 4. 카테고리 3: 보행, 소거시간 및 특수
@@ -1449,6 +1449,42 @@ const INSIGHT_DETAILS = {
         def: "NEMA 듀얼 링(Dual-Ring) 신호체계에서 A링과 B링에 배분된 총 신호 시간(Split)의 합이 정확히 일치하는지(무결성)를 검증한 비율입니다.",
         calc: "(A링 총 시간과 B링 총 시간이 동일한 교차로 수 / 듀얼 링 교차로 수) × 100",
         meaning: "듀얼 링 구조에서 A링과 B링의 합계는 항상 신호주기(Cycle)와 동일해야 합니다. 이 수치가 100%가 아니라면, 시간 계획 상의 물리적 오류나 구조적 결함(DB 입력 오류 등)이 존재하는 교차로가 있음을 의미합니다."
+    },
+    "move_left_prot": {
+        title: "⬅️ 보호 좌회전 (Protected Left Turn)",
+        def: "독립된 좌회전 화살표 신호를 부여하여 직진 차량과의 상충 없이 안전하게 좌회전할 수 있도록 운영하는 교차로입니다.",
+        calc: "분석 시간대 기준 보호 좌회전 현시가 운영 중인 교차로 개수",
+        meaning: "가장 기본적이고 안전한 좌회전 처리 방식이나, 교통량이 적은 시간대에는 불필요한 대기시간(지체)을 유발하여 전체 교차로의 효율을 저하시킬 수 있습니다."
+    },
+    "move_left_unprot": {
+        title: "⚠️ 비보호 좌회전 (Permitted Left Turn)",
+        def: "별도의 좌회전 신호 없이, 직진 녹색 신호 시 반대편 직진 차량의 빈틈(Gap)을 이용하여 좌회전하도록 허용하는 운영 방식입니다.",
+        calc: "분석 시간대 기준 비보호 좌회전 플래그가 켜져 있는 교차로 개수",
+        meaning: "좌회전 전용 현시를 생략할 수 있어 직진 방향에 더 많은 녹색시간을 부여할 수 있으므로 교차로 전체의 통행 효율을 크게 높일 수 있으나, 반대편 교통량이 많으면 사고 위험이 증가합니다."
+    },
+    "move_pplt": {
+        title: "🔄 PPLT (Protected/Permitted Left Turn)",
+        def: "보호 좌회전 신호와 비보호 좌회전을 병행하여 운영하는 방식입니다.",
+        calc: "분석 시간대 기준 PPLT 플래그가 켜져 있는 교차로 개수",
+        meaning: "좌회전 교통량이 많을 때는 보호 신호로 처리하고, 직진 신호 시에도 비보호로 추가 통과를 허용하여 좌회전 대기행렬을 효과적으로 해소할 수 있는 선진화된 운영 기법입니다."
+    },
+    "move_diagonal": {
+        title: "✖️ 대각선 횡단보도 (Scramble/Diagonal Crossing)",
+        def: "모든 차량 신호를 적색으로 통제하고, 보행 신호를 동시에 부여하여 대각선 횡단까지 허용하는 방식입니다.",
+        calc: "분석 시간대 기준 대각선 횡단보도 플래그가 켜져 있는 교차로 개수",
+        meaning: "차량 우회전 시 보행자와의 상충을 원천 차단하여 보행자 안전을 극대화하지만, 보행자 전용 현시를 위한 추가 시간이 필요하므로 차량의 지체시간이 다소 증가합니다."
+    },
+    "move_right_sig": {
+        title: "➡️ 우회전 전용신호 (Right Turn Signal)",
+        def: "우회전 전용 삼색등이나 사색등을 별도로 설치하여, 우회전 차량을 별도 현시로 엄격하게 통제하는 교차로입니다.",
+        calc: "분석 시간대 기준 우회전 전용신호 플래그가 켜져 있는 교차로 개수",
+        meaning: "우회전 사고 다발 구역이나 보행자 통행이 잦은 곳에 설치되어 안전을 도모하나, 적색 신호 시 빈 공간이 있어도 우회전할 수 없으므로 차량 흐름이 정체될 수 있습니다."
+    },
+    "move_lpi": {
+        title: "🚶 LPI (보행조기출발, Leading Pedestrian Interval)",
+        def: "차량 녹색 신호가 켜지기 3~7초 전에 보행자 신호를 먼저 점등하여 보행자가 횡단보도에 미리 진입하도록 하는 기법입니다.",
+        calc: "분석 시간대 기준 LPI 플래그가 켜져 있는 교차로 개수",
+        meaning: "우회전 또는 비보호 좌회전 차량이 횡단 중인 보행자를 명확하게 인지하도록 하여 보행자 사고를 획기적으로 줄이는 저비용 고효율 안전 대책입니다."
     }
 };
 
