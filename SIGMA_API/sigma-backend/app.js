@@ -964,7 +964,7 @@ app.get('/api/sim/data', async (req, res) => {
                 let tpCols = [];
                 for (let i = 1; i <= 16; i++) {
                     let tp = tpMap[i];
-                    if (tp && tp.h !== undefined && tp.h >= 0) {
+                    if (tp && tp.h !== undefined) {
                         tpCols.push(
                             tp.h + ":" + (tp.m || 0) + "|" +
                             (tp.cycle || 0) + "|" +
