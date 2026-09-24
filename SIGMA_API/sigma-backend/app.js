@@ -901,6 +901,7 @@ app.get('/api/sim/data', async (req, res) => {
                 const res = {};
                 if (raw.stepsA) res.stepsA = minifySteps(raw.stepsA);
                 if (raw.stepsB) res.stepsB = minifySteps(raw.stepsB);
+                if (raw.ipdCustomArrows) res.ipdCustomArrows = raw.ipdCustomArrows;
                 return Object.keys(res).length > 0 ? res : null;
             };
 
