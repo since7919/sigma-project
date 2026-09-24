@@ -1047,6 +1047,7 @@ function _getSyncedOptState(j) {
         'NE': { L: 9, T: 14 }, 'SE': { L: 11, T: 16 }, 'SW': { L: 13, T: 10 }, 'NW': { L: 15, T: 12 }
     };
     const movs = [...(j.movA || []), ...(j.movB || [])];
+    const pedMovs = [...(j.pedMovA || []), ...(j.pedMovB || [])];
 
     Object.keys(nemaMap).forEach(dirId => {
         const target = nemaMap[dirId];
@@ -1060,6 +1061,7 @@ function _getSyncedOptState(j) {
             s.A.T = hasT ? 1 : 0;
             s.A.SPD = 50;
             if (hasL && [1, 3, 5, 7, 9, 11, 13, 15].includes(target.L)) s.op.leftProt = true;
+            if (pedMovs.some(m => [101, 103, 118].includes(m))) s.diagonal = true;
 
             let pedTimeVal = 0, pedDlyVal = 0;
             if (p) {
