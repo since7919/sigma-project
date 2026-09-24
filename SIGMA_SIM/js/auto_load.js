@@ -144,7 +144,7 @@ async function autoLoadFiles() {
         try { initMiniGameMaster(); } catch(e) {}
     }
     
-    updateLoading("신호맵데이터 다운로드 중... (서버 상태에 따라 최대 2분 소요될 수 있습니다) (2/8)");
+    updateLoading("신호맵데이터 다운로드 중... (초기 로딩 시 데이터량에 따라 최대 3~5분 소요될 수 있습니다) (2/8)");
 
     const smRes = await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
     updateLoading("운영계획 다운로드 중... (거의 다 되었습니다) (3/8)");

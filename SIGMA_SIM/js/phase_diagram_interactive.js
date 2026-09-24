@@ -73,6 +73,48 @@ class InteractivePhaseDiagram {
         }
     }
 
+    saveToSignalMap(sm) {
+        if (!sm) return;
+        
+        const REVERSE_MAP = {
+            'WBL': 1, 'EBT': 2, 'NBL': 3, 'SBT': 4,
+            'EBL': 5, 'WBT': 6, 'SBL': 7, 'NBT': 8,
+            'NEL': 9, 'SWT': 10, 'SEL': 11, 'NWT': 12,
+            'SWL': 13, 'NET': 14, 'NWL': 15, 'SET': 16,
+            'EBR': 22, 'SBR': 24, 'WBR': 26, 'NBR': 28,
+            'SWR': 30, 'NWR': 32, 'NER': 34, 'SER': 36,
+            'WBL-P': 31, 'NBL-P': 33, 'EBL-P': 35, 'SBL-P': 37,
+            'NEL-P': 39, 'SEL-P': 41, 'SWL-P': 43, 'NWL-P': 45,
+            'PED-S': 102, 'PED-W': 104, 'PED-N': 106, 'PED-E': 108,
+            'PED-NWSE': 101, 'PED-NESW': 103,
+            'PED-NW': 112, 'PED-SW': 113, 'PED-NE': 114, 'PED-SE': 116
+        };
+
+        for (let i = 0; i < 8; i++) {
+            const movsA = this.activeMovements['P' + (i + 1) + '-A'] || [];
+            const movsB = this.activeMovements['P' + (i + 1) + '-B'] || [];
+            
+            let vehA = 0, pedA = 0;
+            movsA.forEach(m => {
+                const code = REVERSE_MAP[m] || 0;
+                if (code > 0 && code < 100) vehA = code;
+                else if (code >= 100) pedA = code;
+            });
+
+            let vehB = 0, pedB = 0;
+            movsB.forEach(m => {
+                const code = REVERSE_MAP[m] || 0;
+                if (code > 0 && code < 100) vehB = code;
+                else if (code >= 100) pedB = code;
+            });
+
+            if (sm.movA) sm.movA[i] = vehA;
+            if (sm.movB) sm.movB[i] = vehB;
+            if (sm.pedMovA) sm.pedMovA[i] = pedA;
+            if (sm.pedMovB) sm.pedMovB[i] = pedB;
+        }
+    }
+
     getVehSVGPaths(prefix, filter = null) {
         let html = '';
         if (!filter || filter === 'NS') {
@@ -502,6 +544,17 @@ class InteractivePhaseDiagram {
                 this.activeMovements[this.currentEditingCell] = selected;
                 this.renderCell(this.currentEditingCell);
                 document.getElementById('ipd-modal').style.display = 'none';
+
+                if (window.STATE && window.STATE.junctions && window.STATE.activeJid) {
+                    const j = window.STATE.junctions[window.STATE.activeJid];
+                    if (j && j.signalMaps) {
+                        const sm = j.signalMaps[window.STATE.currentSignalMapIdx || 0];
+                        this.saveToSignalMap(sm);
+                        if (typeof window.renderRingTables === 'function') {
+                            window.renderRingTables();
+                        }
+                    }
+                }
             });
         }
 
