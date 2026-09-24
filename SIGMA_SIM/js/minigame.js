@@ -266,90 +266,6 @@ function initPacman(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
     return game;
 }
 
-// ----------------------------------------------------
-// 4. 점프! 안전선 넘기 (크롬 공룡 응용)
-// ----------------------------------------------------
-function initDinoJump(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
-    titleDisplay.innerHTML = "🎮 미니게임 4: 과속 방지턱 넘기";
-    descDisplay.innerHTML = "<strong>스페이스바</strong>를 눌러 방지턱(🚧)을 뛰어넘으세요!";
-    
-    let score = 0, isGameOver = false, frameCount = 0;
-    let player = { x: 50, y: 150, size: 20, vy: 0, gravity: 0.4, jump: -8.5, grounded: true };
-    let obstacles = [];
-
-    const game = {
-        get isGameOver() { return isGameOver; },
-        reset: () => {
-            score = 0; isGameOver = false; frameCount = 0;
-            player.y = 150; player.vy = 0; player.grounded = true;
-            obstacles = []; loop();
-        }
-    };
-
-    function update() {
-        if (isGameOver) return;
-        frameCount++;
-        score = Math.floor(frameCount / 10);
-        
-        if (mg_keys["Space"] && player.grounded) {
-            player.vy = player.jump;
-            player.grounded = false;
-        }
-
-        player.vy += player.gravity;
-        player.y += player.vy;
-        
-        if (player.y >= 150) {
-            player.y = 150;
-            player.grounded = true;
-        }
-
-        if (frameCount % Math.floor(Math.random() * 80 + 80) === 0) {
-            obstacles.push({ x: canvas.width, y: 155, w: 15, h: 15, speed: 3.5 });
-        }
-
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            obstacles[i].x -= obstacles[i].speed;
-            
-            // AABB 충돌
-            if (player.x < obstacles[i].x + obstacles[i].w &&
-                player.x + player.size > obstacles[i].x &&
-                player.y < obstacles[i].y + obstacles[i].h &&
-                player.y + player.size > obstacles[i].y) {
-                isGameOver = true;
-            }
-            if (obstacles[i].x < -20) obstacles.splice(i, 1);
-        }
-        scoreDisplay.textContent = "점수: " + score;
-    }
-
-    function draw() {
-        ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 바닥선
-        ctx.strokeStyle = "#555"; ctx.beginPath(); ctx.moveTo(0, 170); ctx.lineTo(canvas.width, 170); ctx.stroke();
-        
-        if (!isGameOver) {
-            ctx.font = "24px sans-serif";
-            ctx.fillText("🚔", player.x, player.y + 20);
-            
-            ctx.font = "20px sans-serif";
-            for (let obs of obstacles) {
-                ctx.fillText("🚧", obs.x, obs.y + 15);
-            }
-        } else {
-            drawGameOver(ctx, canvas, score);
-        }
-    }
-
-    function loop() {
-        if (isOverlayHidden()) return;
-        update(); draw();
-        if (!isGameOver) mg_animationId = requestAnimationFrame(loop);
-    }
-    
-    return game;
-}
 
 // ----------------------------------------------------
 // 5. 신호등 타이밍 맞추기
@@ -696,7 +612,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
     const titleDisplay = document.querySelector("#minigame-container h4");
     const descDisplay = document.querySelector("#minigame-container p");
 
-    const games = [initFruitCatch, initDodger, initPacman, initDinoJump, initReaction, init2048];
+    const games = [initFruitCatch, initDodger, initPacman, initReaction, init2048];
     const selectedGame = forceGameIndex >= 0 && forceGameIndex < games.length ? games[forceGameIndex] : games[Math.floor(Math.random() * games.length)];
     
     if (mg_animationId) cancelAnimationFrame(mg_animationId);
