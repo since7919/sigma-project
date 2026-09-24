@@ -399,11 +399,11 @@ class InteractivePhaseDiagram {
 
     getModalHTML() {
         return `
-        <div id="ipd-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+        <div id="${this.containerId}-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
             <div style="background:#1e1e1e; padding:20px; border-radius:8px; border:1px solid #3e3e42; color:#d4d4d4; width: 650px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
                 <h3 style="margin-top:0; border-bottom:1px solid #3e3e42; padding-bottom:10px; display:flex; justify-content:space-between; font-size:15px; color:#fff;">
-                    <span>🎨 방향 선택 팔레트 - <span id="ipd-modal-title" style="color:#0ea5e9;"></span></span>
-                    <button onclick="document.getElementById('ipd-modal').style.display='none'" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
+                    <span>🎨 방향 선택 팔레트 - <span id="${this.containerId}-modal-title" style="color:#0ea5e9;"></span></span>
+                    <button onclick="document.getElementById('${this.containerId}-modal').style.display='none'" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px;">&times;</button>
                 </h3>
                 <div style="text-align:center; font-size:12px; color:#888; margin-bottom:15px; line-height: 1.4;">
                     원하는 이동류(직진, 좌회전 등)와 보행자를 클릭하여 켜고 끄세요.<br>
@@ -411,12 +411,12 @@ class InteractivePhaseDiagram {
                 </div>
                 
                 <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-                    <button class="phase-action-btn phase-btn-cyan" id="ipd-tab-normal" style="min-width: 130px; font-weight:bold;">기본 방향</button>
-                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-diag" style="min-width: 130px; font-weight:bold;">대각선 방향</button>
-                    <button class="phase-action-btn phase-btn-gray" id="ipd-tab-scramble" style="min-width: 130px; font-weight:bold;">대각선 횡단보도</button>
+                    <button class="phase-action-btn phase-btn-cyan" id="${this.containerId}-tab-normal" style="min-width: 130px; font-weight:bold;">기본 방향</button>
+                    <button class="phase-action-btn phase-btn-gray" id="${this.containerId}-tab-diag" style="min-width: 130px; font-weight:bold;">대각선 방향</button>
+                    <button class="phase-action-btn phase-btn-gray" id="${this.containerId}-tab-scramble" style="min-width: 130px; font-weight:bold;">대각선 횡단보도</button>
                 </div>
                 
-                <div id="ipd-content-normal" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                <div id="${this.containerId}-content-normal" style="display: flex; gap: 20px; justify-content: center; margin-bottom: 10px;">
                     <!-- 동서 방향 (E-W) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">동서 방향 (E-W)</div>
@@ -438,7 +438,7 @@ class InteractivePhaseDiagram {
                     </div>
                 </div>
 
-                <div id="ipd-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                <div id="${this.containerId}-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
                     <!-- 북동-남서 방향 (NE-SW) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">북동-남서 방향 (NE-SW)</div>
@@ -461,11 +461,11 @@ class InteractivePhaseDiagram {
                 </div>
 
                 
-                <div id="ipd-content-scramble" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                <div id="${this.containerId}-content-scramble" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
                     <!-- 대각선 횡단보도 (SCRAMBLE) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">대각선 횡단보도 (Scramble)</div>
-                        <button id="ipd-btn-scramble-all" class="phase-action-btn phase-btn-purple" style="position:absolute; top:6px; right:10px; font-weight:bold; min-width:80px; padding:3px 8px; font-size:11px;">모두 선택</button>
+                        <button id="${this.containerId}-btn-scramble-all" class="phase-action-btn phase-btn-purple" style="position:absolute; top:6px; right:10px; font-weight:bold; min-width:80px; padding:3px 8px; font-size:11px;">모두 선택</button>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
                             ${this.getPedSVGPaths('modal', 'SCRAMBLE')}
                             ${this.getLabelSVGPaths('modal', 'SCRAMBLE')}
@@ -473,9 +473,9 @@ class InteractivePhaseDiagram {
                     </div>
                 </div>
                 <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:8px;">
-                    <button onclick="document.getElementById('ipd-modal').style.display='none'" class="phase-action-btn phase-btn-gray">취소</button>
-                    <button id="ipd-modal-clear" class="phase-action-btn phase-btn-red">초기화</button>
-                    <button id="ipd-modal-save" class="phase-action-btn phase-btn-cyan">적용하기</button>
+                    <button onclick="document.getElementById('${this.containerId}-modal').style.display='none'" class="phase-action-btn phase-btn-gray">취소</button>
+                    <button id="${this.containerId}-modal-clear" class="phase-action-btn phase-btn-red">초기화</button>
+                    <button id="${this.containerId}-modal-save" class="phase-action-btn phase-btn-cyan">적용하기</button>
                 </div>
             </div>
         </div>
@@ -493,10 +493,10 @@ class InteractivePhaseDiagram {
             });
         });
 
-        const clearBtn = document.getElementById('ipd-modal-clear');
+        const clearBtn = document.getElementById(this.containerId + '-modal-clear');
         if(clearBtn) {
             clearBtn.addEventListener('click', () => {
-                const modalContainer = document.getElementById('ipd-modal');
+                const modalContainer = document.getElementById(this.containerId + '-modal');
                 const arrows = modalContainer.querySelectorAll('.ipd-arrow');
                 arrows.forEach(arrow => {
                     arrow.classList.remove('ipd-active');
@@ -505,10 +505,10 @@ class InteractivePhaseDiagram {
             });
         }
 
-        const saveBtn = document.getElementById('ipd-modal-save');
+        const saveBtn = document.getElementById(this.containerId + '-modal-save');
         if(saveBtn) {
             saveBtn.addEventListener('click', () => {
-                const modalContainer = document.getElementById('ipd-modal');
+                const modalContainer = document.getElementById(this.containerId + '-modal');
                 const arrows = modalContainer.querySelectorAll('.ipd-arrow');
                 const selected = [];
                 arrows.forEach(arrow => {
@@ -518,7 +518,7 @@ class InteractivePhaseDiagram {
                 });
                 this.activeMovements[this.currentEditingCell] = selected;
                 this.renderCell(this.currentEditingCell);
-                document.getElementById('ipd-modal').style.display = 'none';
+                document.getElementById(this.containerId + '-modal').style.display = 'none';
 
                 if (window.STATE && window.STATE.junctions && window.STATE.activeJid) {
                     const j = window.STATE.junctions[window.STATE.activeJid];
@@ -533,31 +533,31 @@ class InteractivePhaseDiagram {
             });
         }
 
-        const tabNormal = document.getElementById('ipd-tab-normal');
-        const tabDiag = document.getElementById('ipd-tab-diag');
+        const tabNormal = document.getElementById(this.containerId + '-tab-normal');
+        const tabDiag = document.getElementById(this.containerId + '-tab-diag');
         if(tabNormal && tabDiag) {
             tabNormal.addEventListener('click', () => {
-                document.getElementById('ipd-content-normal').style.display = 'flex';
-                document.getElementById('ipd-content-diag').style.display = 'none';
+                document.getElementById(this.containerId + '-content-normal').style.display = 'flex';
+                document.getElementById(this.containerId + '-content-diag').style.display = 'none';
                 tabNormal.classList.replace('phase-btn-gray', 'phase-btn-cyan');
                 tabDiag.classList.replace('phase-btn-cyan', 'phase-btn-gray');
             });
             tabDiag.addEventListener('click', () => {
-                document.getElementById('ipd-content-normal').style.display = 'none';
-                document.getElementById('ipd-content-diag').style.display = 'flex';
-                document.getElementById('ipd-content-scramble').style.display = 'none';
+                document.getElementById(this.containerId + '-content-normal').style.display = 'none';
+                document.getElementById(this.containerId + '-content-diag').style.display = 'flex';
+                document.getElementById(this.containerId + '-content-scramble').style.display = 'none';
                 tabDiag.classList.replace('phase-btn-gray', 'phase-btn-cyan');
                 tabNormal.classList.replace('phase-btn-cyan', 'phase-btn-gray');
-                if(document.getElementById('ipd-tab-scramble')) document.getElementById('ipd-tab-scramble').classList.replace('phase-btn-cyan', 'phase-btn-gray');
+                if(document.getElementById(this.containerId + '-tab-scramble')) document.getElementById(this.containerId + '-tab-scramble').classList.replace('phase-btn-cyan', 'phase-btn-gray');
             });
         }
         
-        const tabScramble = document.getElementById('ipd-tab-scramble');
+        const tabScramble = document.getElementById(this.containerId + '-tab-scramble');
         if(tabScramble) {
             tabScramble.addEventListener('click', () => {
-                document.getElementById('ipd-content-normal').style.display = 'none';
-                document.getElementById('ipd-content-diag').style.display = 'none';
-                document.getElementById('ipd-content-scramble').style.display = 'flex';
+                document.getElementById(this.containerId + '-content-normal').style.display = 'none';
+                document.getElementById(this.containerId + '-content-diag').style.display = 'none';
+                document.getElementById(this.containerId + '-content-scramble').style.display = 'flex';
                 tabScramble.classList.replace('phase-btn-gray', 'phase-btn-cyan');
                 if(tabNormal) tabNormal.classList.replace('phase-btn-cyan', 'phase-btn-gray');
                 if(tabDiag) tabDiag.classList.replace('phase-btn-cyan', 'phase-btn-gray');
@@ -568,15 +568,15 @@ class InteractivePhaseDiagram {
         if(tabNormal) {
             const origNormal = tabNormal.onclick;
             tabNormal.addEventListener('click', () => {
-                document.getElementById('ipd-content-scramble').style.display = 'none';
+                document.getElementById(this.containerId + '-content-scramble').style.display = 'none';
                 if(tabScramble) tabScramble.classList.replace('phase-btn-cyan', 'phase-btn-gray');
             });
         }
 
-        const btnScrambleAll = document.getElementById('ipd-btn-scramble-all');
+        const btnScrambleAll = document.getElementById(this.containerId + '-btn-scramble-all');
         if(btnScrambleAll) {
             btnScrambleAll.addEventListener('click', () => {
-                const modalContainer = document.getElementById('ipd-modal');
+                const modalContainer = document.getElementById(this.containerId + '-modal');
                 const peds = ['PED-NWSE', 'PED-NESW', 'PED-N', 'PED-S', 'PED-E', 'PED-W'];
                 
                 // Check if ALL are active
@@ -597,7 +597,7 @@ class InteractivePhaseDiagram {
             });
         }
 
-        const modalContainer = document.getElementById('ipd-modal');
+        const modalContainer = document.getElementById(this.containerId + '-modal');
         if(modalContainer) {
             const modalArrows = modalContainer.querySelectorAll('.ipd-arrow');
             modalArrows.forEach(arrow => {
@@ -634,10 +634,10 @@ class InteractivePhaseDiagram {
 
     openModal(cellId) {
         this.currentEditingCell = cellId;
-        document.getElementById('ipd-modal-title').innerText = cellId;
+        document.getElementById(this.containerId + '-modal-title').innerText = cellId;
         
         const activeMovs = this.activeMovements[cellId] || [];
-        const modalContainer = document.getElementById('ipd-modal');
+        const modalContainer = document.getElementById(this.containerId + '-modal');
         const arrows = modalContainer.querySelectorAll('.ipd-arrow');
         
         arrows.forEach(arrow => {
@@ -650,7 +650,7 @@ class InteractivePhaseDiagram {
             this.updateArrowMarker(arrow);
         });
 
-        document.getElementById('ipd-modal').style.display = 'flex';
+        document.getElementById(this.containerId + '-modal').style.display = 'flex';
     }
 
     renderCell(cellId) {

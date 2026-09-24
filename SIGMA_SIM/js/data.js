@@ -613,6 +613,13 @@ function exportSingleJunctionCSV(jid) {
     const j = STATE.junctions[jid];
     if (!j) return null;
 
+    if (window.ipdInstance && jid === STATE.activeJid) {
+        const smIdx = STATE.currentSignalMapIdx || 0;
+        if (j.signalMaps && j.signalMaps[smIdx]) {
+            window.ipdInstance.saveToSignalMap(j.signalMaps[smIdx], j);
+        }
+    }
+
     // 1. 교차로 마스터 정보 (1줄, 헤더 제외)
     const interRow = [
         j.id || "", 

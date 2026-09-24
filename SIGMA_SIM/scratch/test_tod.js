@@ -1,0 +1,1 @@
+fetch('https://sigma-project-245n.onrender.com/api/sim/data?file=db_L01_tod_plans.csv').then(r=>r.text()).then(t=>{ const lines = t.split('\n'); console.log(lines[0]); console.log(lines[1]); console.log(lines[2]); });
