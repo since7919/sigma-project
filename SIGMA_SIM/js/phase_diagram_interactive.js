@@ -27,6 +27,15 @@ class InteractivePhaseDiagram {
         if (!sm) return;
         this.activeMovements = {};
 
+        if (sm.ipdCustomArrows) {
+            this.activeMovements = JSON.parse(JSON.stringify(sm.ipdCustomArrows));
+            for (let i = 1; i <= 8; i++) {
+                this.renderCell('P' + i + '-A');
+                this.renderCell('P' + i + '-B');
+            }
+            return;
+        }
+
         // Korean Standard Phase Mapping
         // 2: EBT (Eastbound), 6: WBT (Westbound), 4: SBT (Southbound), 8: NBT (Northbound)
         // 1: EBL, 5: WBL, 3: NBL, 7: SBL
@@ -77,82 +86,8 @@ class InteractivePhaseDiagram {
     saveToSignalMap(sm, j = null) {
         if (!sm) return;
         
-        const REVERSE_MAP = {
-            'WBL': 1, 'EBT': 2, 'NBL': 3, 'SBT': 4,
-            'EBL': 5, 'WBT': 6, 'SBL': 7, 'NBT': 8,
-            'NEL': 9, 'SWT': 10, 'SEL': 11, 'NWT': 12,
-            'SWL': 13, 'NET': 14, 'NWL': 15, 'SET': 16,
-            'EBR': 22, 'SBR': 24, 'WBR': 26, 'NBR': 28,
-            'SWR': 30, 'NWR': 32, 'NER': 34, 'SER': 36,
-            'WBL-P': 31, 'NBL-P': 33, 'EBL-P': 35, 'SBL-P': 37,
-            'NEL-P': 39, 'SEL-P': 41, 'SWL-P': 43, 'NWL-P': 45,
-            'PED-S': 102, 'PED-W': 104, 'PED-N': 106, 'PED-E': 108,
-            'PED-NWSE': 101, 'PED-NESW': 103,
-            'PED-NW': 112, 'PED-SW': 113, 'PED-NE': 114, 'PED-SE': 116
-        };
-
-        for (let i = 0; i < 8; i++) {
-            const movsA = this.activeMovements['P' + (i + 1) + '-A'] || [];
-            const movsB = this.activeMovements['P' + (i + 1) + '-B'] || [];
-            
-            let vehA = 0, pedA = 0;
-            let hasNWSE_A = false, hasNESW_A = false;
-            movsA.forEach(m => {
-                if (m === 'PED-NWSE') hasNWSE_A = true;
-                if (m === 'PED-NESW') hasNESW_A = true;
-                const code = REVERSE_MAP[m] || 0;
-                if (code > 0 && code < 100) vehA = code;
-                else if (code >= 100) pedA = code;
-            });
-            if (hasNWSE_A && hasNESW_A) pedA = 118;
-
-            let vehB = 0, pedB = 0;
-            let hasNWSE_B = false, hasNESW_B = false;
-            movsB.forEach(m => {
-                if (m === 'PED-NWSE') hasNWSE_B = true;
-                if (m === 'PED-NESW') hasNESW_B = true;
-                const code = REVERSE_MAP[m] || 0;
-                if (code > 0 && code < 100) vehB = code;
-                else if (code >= 100) pedB = code;
-            });
-            if (hasNWSE_B && hasNESW_B) pedB = 118;
-
-            if (sm.movA) sm.movA[i] = vehA;
-            if (sm.movB) sm.movB[i] = vehB;
-            if (sm.pedMovA) sm.pedMovA[i] = pedA;
-            if (sm.pedMovB) sm.pedMovB[i] = pedB;
-        }
-
-        // 동기화된 SignalMap 데이터를 바탕으로 optimizerState (통계/제어 플래그) 자동 반영
-        if (j) {
-            const movs = [...(sm.movA || []), ...(sm.movB || [])];
-            const pedMovs = [...(sm.pedMovA || []), ...(sm.pedMovB || [])];
-            const nemaMap = {
-                'N': { L: 7, T: 4 }, 'E': { L: 1, T: 6 }, 'S': { L: 3, T: 8 }, 'W': { L: 5, T: 2 },
-                'NE': { L: 9, T: 14 }, 'SE': { L: 11, T: 16 }, 'SW': { L: 13, T: 10 }, 'NW': { L: 15, T: 12 }
-            };
-            if (!j.optimizerState) j.optimizerState = {};
-            Object.keys(nemaMap).forEach(dirId => {
-                const target = nemaMap[dirId];
-                const hasL = movs.includes(target.L);
-                const hasT = movs.includes(target.T);
-                if (hasL || hasT) {
-                    if (!j.optimizerState[dirId]) j.optimizerState[dirId] = { active: true, op: {} };
-                    if (!j.optimizerState[dirId].op) j.optimizerState[dirId].op = {};
-                    j.optimizerState[dirId].active = true;
-                    if (hasL && [1, 3, 5, 7, 9, 11, 13, 15].includes(target.L)) {
-                        j.optimizerState[dirId].op.leftProt = true;
-                    }
-                    if (pedMovs.some(m => [101, 103, 118].includes(m))) {
-                        j.optimizerState[dirId].diagonal = true;
-                    }
-                }
-            });
-            // 대시보드 요약 갱신
-            if (typeof window._updateOpStatsSummary === 'function') {
-                window._updateOpStatsSummary(j, j.optimizerState);
-            }
-        }
+        // Save the explicit combination of arrows directly to ipdCustomArrows
+        sm.ipdCustomArrows = JSON.parse(JSON.stringify(this.activeMovements));
     }
 
     getVehSVGPaths(prefix, filter = null) {

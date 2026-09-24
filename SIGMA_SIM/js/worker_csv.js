@@ -67,6 +67,7 @@ function parseSignalMaps(csv) {
                 const rs = JSON.parse(cols[rawStepsIdx]);
                 if (rs && rs.stepsA) mapData.stepsA = rs.stepsA;
                 if (rs && rs.stepsB) mapData.stepsB = rs.stepsB;
+                if (rs && rs.ipdCustomArrows) mapData.ipdCustomArrows = rs.ipdCustomArrows;
             } catch(e) {
                 // ignore
             }

@@ -637,6 +637,7 @@ function exportSingleJunctionCSV(jid) {
     let mapCsvLines = "";
     (j.signalMaps || []).forEach((sm, idx) => {
         const rawSteps = { stepsA: sm.stepsA || [], stepsB: sm.stepsB || [] };
+        if (sm.ipdCustomArrows) rawSteps.ipdCustomArrows = sm.ipdCustomArrows;
         const rawStepsJson = JSON.stringify(rawSteps);
         const row = [j.id, idx, (sm.movA||[]).join(';'), (sm.movB||[]).join(';'), (sm.pedMovA||[]).join(';'), (sm.pedMovB||[]).join(';'), (sm.mainMovements||[]).join(';'), (sm.yellowA||[]).join(';'), (sm.yellowB||[]).join(';'), (sm.allredA||[]).join(';'), (sm.allredB||[]).join(';'), (sm.pedA||[]).join(';'), (sm.pedB||[]).join(';'), (sm.pedDelayA||[]).join(';'), (sm.pedDelayB||[]).join(';'), (sm.pedFlashA||[]).join(';'), (sm.pedFlashB||[]).join(';'), (sm.pedGreenA||[]).join(';'), (sm.pedGreenB||[]).join(';'), rawStepsJson];
         mapCsvLines += row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",") + "\n";
