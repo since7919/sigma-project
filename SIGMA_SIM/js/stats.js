@@ -1289,6 +1289,18 @@ function renderAdvancedInsights(junctions) {
             });
         }
         
+        if (j.signalMaps) {
+            j.signalMaps.forEach(sm => {
+                if (sm && sm.ipdCustomArrows) {
+                    Object.values(sm.ipdCustomArrows).forEach(arr => {
+                        if (arr.includes('PED-NWSE') || arr.includes('PED-NESW')) {
+                            hasDiagonal = true;
+                        }
+                    });
+                }
+            });
+        }
+
         if (hasLeftProt) cntLeftProt++;
         if (hasLeftUnprot) cntLeftUnprot++;
         if (hasPplt) cntPplt++;
