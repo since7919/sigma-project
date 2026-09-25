@@ -593,7 +593,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
                     <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
                     <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
                 </div>
-                <canvas id="minigameCanvas" width="720" height="400" tabindex="0" style="background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
+                <canvas id="minigameCanvas" width="360" height="200" tabindex="0" style="width: 720px; height: 400px; background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
                 <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
                 <p style="color: #888; font-size: 11px; margin: 5px 0 0 0;">방향키(스페이스바)를 사용하여 플레이하세요!</p>
             `;
@@ -657,7 +657,7 @@ window.playStandaloneMiniGame = function() {
                 <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
                 <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
             </div>
-            <canvas id="minigameCanvas" width="720" height="400" tabindex="0" style="background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
+            <canvas id="minigameCanvas" width="360" height="200" tabindex="0" style="width: 720px; height: 400px; background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
             <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
             <p style="color: #888; font-size: 11px; margin: 5px 0 0 0;">방향키(스페이스바)를 사용하여 플레이하세요!</p>
 `;
