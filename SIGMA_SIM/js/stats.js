@@ -1278,10 +1278,9 @@ function renderAdvancedInsights(junctions) {
         31: ['WBL-P'], 33: ['NBL-P'], 35: ['EBL-P'], 37: ['SBL-P'],
         39: ['NEL-P'], 41: ['SEL-P'], 43: ['SWL-P'], 45: ['NWL-P'],
         102: ['PED-S'], 104: ['PED-W'], 106: ['PED-N'], 108: ['PED-E'],
-        101: ['PED-NWSE'], 103: ['PED-NESW'],
-        112: ['PED-NW'], 113: ['PED-SW'], 114: ['PED-NE'], 116: ['PED-SE'],
-        118: ['PED-NWSE', 'PED-NESW']
-    };
+        
+        
+        };
 
     const getArrowsFromSignalMap = (sm) => {
         if (sm.ipdCustomArrows) {

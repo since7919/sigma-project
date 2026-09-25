@@ -56,9 +56,9 @@ class InteractivePhaseDiagram {
                 
                 // Pedestrians
                 102: ['PED-S'], 104: ['PED-W'], 106: ['PED-N'], 108: ['PED-E'],
-                101: ['PED-NWSE'], 103: ['PED-NESW'],
-                112: ['PED-NW'], 113: ['PED-SW'], 114: ['PED-NE'], 116: ['PED-SE'],
-                118: ['PED-NWSE', 'PED-NESW'] // Full Scramble
+                
+                
+                
             };
             return MAP[m] || [];
         };
