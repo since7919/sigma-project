@@ -32,6 +32,8 @@ async function processIntersectionCSV(csv, isAppend = false) {
         return -1;
     };
     
+    console.log("[DEBUG CSV HEADERS]", headers);
+    console.log("[DEBUG CSV NORMALIZED]", normalizedHeaders);
     const colIdx = {
         id: getColIdx(["ID", "교차로번호", "No", "JID"]),
         region: getColIdx(["Region", "지역"]),
@@ -40,14 +42,15 @@ async function processIntersectionCSV(csv, isAppend = false) {
         lat: getColIdx(["Lat", "위도"]),
         lng: getColIdx(["Lng", "경도"]),
         seq: getColIdx(["Seq", "연등번호"]),
-        police: getColIdx(["Police", "경찰서"]),
-        office: getColIdx(["Office", "관리청"]),
+        police: getColIdx(["Police", "경찰서", "경찰서명", "관할경찰서"]),
+        office: getColIdx(["Office", "관리청", "구청", "관할구청", "자치구"]),
         group: getColIdx(["GroupID", "그룹ID"]),
         weeklyPlan: getColIdx(["Weekly_plan"]),
         controller: getColIdx(["Controller", "제어기"]),
         diagramOrder: getColIdx(["DiagramOrder", "Order"])
     };
 
+    console.log("[DEBUG CSV colIdx]", colIdx);
     const getCol = (cols, idx) => idx !== -1 ? cols[idx] : null;
 
     const newJuncts = {};
