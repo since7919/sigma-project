@@ -91,8 +91,8 @@ function getDefaultOptState() {
     return Object.fromEntries(OPT_DIRS.map(d => [d.id, {
         active: false,
         diagonal: false, twoStage: false, trafficIsland: false, children: false, elderly: false, disabled: false,
-        A: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 1, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_D: 0, SPD: 50 },
-        B: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 0, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_D: 0, SPD: 50 },
+        A: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 1, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
+        B: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 0, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
         op: {
             leftProt: false, leftUnprot: false, leftPplt: false, leftPdlt: false,
             leftTurnSimul: false, leftLeadLag: false, uTurnSig: false,
@@ -1286,10 +1286,23 @@ function renderTemplatePanel() {
         `;
 
         tbodyRowCw += `
-            <td colspan="4" style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
-                <div style="display:inline-flex; align-items:center; gap:4px; justify-content:center;">
-                    <input type="number" id="preset-cw-${d.id}" class="preset-cw-input" data-dir="${d.id}" onchange="applyCwLengthToDir('${d.id}')" style="width:40px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:4px;" min="0" placeholder="0">
-                    <span style="font-size:11px; color:#aaa;">m</span>
+            <td style="padding:2px; border:1px solid #444; background:rgba(0,0,0,0.1);"></td>
+            <td style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
+                <div style="display:inline-flex; align-items:center; gap:2px; justify-content:center;">
+                    <input type="number" id="preset-cw-l-${d.id}" class="preset-cw-input" data-dir="${d.id}" onchange="applyCwLengthToDir('${d.id}', 'L')" style="width:36px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" placeholder="0">
+                    <span style="font-size:10px; color:#aaa;">m</span>
+                </div>
+            </td>
+            <td style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
+                <div style="display:inline-flex; align-items:center; gap:2px; justify-content:center;">
+                    <input type="number" id="preset-cw-t-${d.id}" class="preset-cw-input" data-dir="${d.id}" onchange="applyCwLengthToDir('${d.id}', 'T')" style="width:36px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" placeholder="0">
+                    <span style="font-size:10px; color:#aaa;">m</span>
+                </div>
+            </td>
+            <td style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
+                <div style="display:inline-flex; align-items:center; gap:2px; justify-content:center;">
+                    <input type="number" id="preset-cw-r-${d.id}" class="preset-cw-input" data-dir="${d.id}" onchange="applyCwLengthToDir('${d.id}', 'R')" style="width:36px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" placeholder="0">
+                    <span style="font-size:10px; color:#aaa;">m</span>
                 </div>
             </td>
         `;
@@ -1398,18 +1411,13 @@ window.updateTemplatePanelUI = function() {
             chk.checked = isActive;
             
             sels.forEach(sel => {
-                const cwInput = document.getElementById(`preset-cw-${d.id}`);
-                if (cwInput) {
-                    cwInput.value = opt_state[d.id].A.CW || 0;
-                    const cwTd = cwInput.closest('td');
-                    if (isActive) {
-                        if (cwTd) cwTd.style.opacity = '1';
-                        cwInput.disabled = false;
-                    } else {
-                        if (cwTd) cwTd.style.opacity = '0.4';
-                        cwInput.disabled = true;
-                    }
-                }
+                const cwL = document.getElementById(`preset-cw-l-${d.id}`);
+                const cwT = document.getElementById(`preset-cw-t-${d.id}`);
+                const cwR = document.getElementById(`preset-cw-r-${d.id}`);
+                
+                if (cwL) { cwL.value = opt_state[d.id].A.CW_L || 0; cwL.disabled = !isActive; cwL.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+                if (cwT) { cwT.value = opt_state[d.id].A.CW || 0; cwT.disabled = !isActive; cwT.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+                if (cwR) { cwR.value = opt_state[d.id].A.CW_D || 0; cwR.disabled = !isActive; cwR.closest('td').style.opacity = isActive ? '1' : '0.4'; }
 
                 const td = sel.parentElement;
                 if (isActive) {
@@ -1462,14 +1470,17 @@ window.applyLanePresetComposite = function(dir) {
     saveOptToActiveJunction();
 }
 
-window.applyCwLengthToDir = function(dir) {
+window.applyCwLengthToDir = function(dir, type) {
     if (!opt_state[dir]) return;
-    const input = document.getElementById(`preset-cw-${dir}`);
+    const input = document.getElementById(`preset-cw-${type.toLowerCase()}-${dir}`);
     if (!input) return;
     
     const val = parseInt(input.value);
     if (!isNaN(val) && val >= 0) {
-        opt_state[dir].A.CW = val;
+        if (type === 'L') opt_state[dir].A.CW_L = val;
+        else if (type === 'T') opt_state[dir].A.CW = val;
+        else if (type === 'R') opt_state[dir].A.CW_D = val;
+        
         // Optionally activate if length > 0
         if (val > 0) opt_state[dir].active = true;
         
