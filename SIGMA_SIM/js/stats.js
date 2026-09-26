@@ -340,7 +340,7 @@ function renderStats() {
     if (document.getElementById('stat-total-count')) document.getElementById('stat-total-count').innerText = jids.length.toLocaleString();
 
     const totalPlans = jids.length * 10;
-    let activePlansCount = 0;
+    let activePlansCount = 0, yeondeungCount = 0;
 
     junctions.forEach(j => {
         if (j.schedules) {
@@ -1040,10 +1040,11 @@ function renderAdvancedInsights(junctions) {
     const junctionMaxCycles = [];
 
     // 기본 지표 (이전의 stat-summary-grid 대체용)
-    let activePlansCount = 0;
+    let activePlansCount = 0, yeondeungCount = 0;
     let validIntegrityCount = 0, totalIntegrityCount = 0;
 
     junctions.forEach(j => {
+        if (j.name && j.name.includes("연등")) yeondeungCount++;
         let hasValidPlan = false;
         if (j.dayPlans && j.dayPlans[0]) {
             hasValidPlan = j.dayPlans[0].some(dp => dp && dp.splitA && dp.splitA.some(v => v > 0));
@@ -1383,7 +1384,7 @@ function renderAdvancedInsights(junctions) {
     </div>`;
     html += `<div class="grid-2col gap-15 mb-15">`;
     html += InsightBox(null, "총 교차로 수", `${totalJunctions.toLocaleString()}`, "개소", "데이터베이스 내 교차로 총합", "📊", "var(--accent)");
-    html += InsightBox(null, "사용 중인 일계획 수", `${activePlansCount.toLocaleString()}`, `/ ${totalPlans.toLocaleString()} 개`, "운영이 스케줄링된 활성 일계획 수", "📅", "#f1c40f");
+    html += InsightBox(null, "연등 교차로 수", `${yeondeungCount.toLocaleString()}개소`, `(${pct(yeondeungCount)}%)`, "교차로에 제어기가 없이 다른 교차로의 제어기와 연결되어 있는 교차로를 의미해", "🔗", "#f1c40f");
     html += `</div>`;
     html += `<div class="grid-3col gap-15 mb-25">`;
     html += InsightBox("macro_avg_cycle", "평균 신호주기", `${avgCycle}초`, "", "전체 교차로의 평균 신호주기", "⏳", "#e67e22");
