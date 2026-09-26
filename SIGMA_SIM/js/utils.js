@@ -62,16 +62,22 @@ function isTimeInRange(start, end, cur) {
  * @returns {number} activeIdx
  */
 function findActiveSchedIdx(sched, timeSec) {
-    let activeIdx = 0, maxSec = -1;
+    if (!sched || sched.length === 0) return 0;
+    let activeIdx = -1, maxSec = -1;
+    let lastValidIdx = -1;
     sched.forEach((sc, idx) => {
         if (sc && sc.h !== -1) {
-            const total = sc.h * 3600 + sc.m * 60;
+            lastValidIdx = idx;
+            const total = sc.h * 3600 + (sc.m || 0) * 60;
             if (timeSec >= total && total > maxSec) {
                 maxSec = total;
                 activeIdx = idx;
             }
         }
     });
+    if (activeIdx === -1) {
+        activeIdx = lastValidIdx !== -1 ? lastValidIdx : 0;
+    }
     return activeIdx;
 }
 

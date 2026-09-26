@@ -193,13 +193,7 @@ class RoadNetworkManager {
                 // Fallback
                 const sched = j.schedules[dIdx];
                 if (sched) {
-                    let activeIdx = 0, maxSec = -1;
-                    sched.forEach((sc, idx) => {
-                        if (sc && sc.h !== -1) {
-                            const total = sc.h * 3600 + sc.m * 60;
-                            if (targetSec >= total && total > maxSec) { maxSec = total; activeIdx = idx; }
-                        }
-                    });
+                    const activeIdx = typeof findActiveSchedIdx === 'function' ? findActiveSchedIdx(sched, targetSec) : 0;
                     if (sched[activeIdx] && sched[activeIdx].cycle > 0) cycle = sched[activeIdx].cycle;
                 }
             }

@@ -1077,15 +1077,7 @@ function renderAdvancedInsights(junctions) {
         if (sched && hasValidPlan && sm) {
             for (let h of window.STAT_VALID_HOURS) {
                 const sec = h * 3600;
-                let activeIdx = 0;
-                for (let i = 0; i < sched.length; i++) {
-                    if (sched[i].h < 0) continue;
-                    if (sched[i].h * 3600 + (sched[i].m || 0) * 60 <= sec) {
-                        activeIdx = i;
-                    } else {
-                        break;
-                    }
-                }
+                const activeIdx = typeof findActiveSchedIdx === 'function' ? findActiveSchedIdx(sched, sec) : 0;
                 const activeSched = sched[activeIdx];
                 if (activeSched && activeSched.cycle > 0) {
                     cycleCounts[activeSched.cycle] = (cycleCounts[activeSched.cycle] || 0) + 1;
