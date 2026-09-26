@@ -673,10 +673,10 @@ app.get('/api/sim/db-version', async (req, res) => {
       ].filter(d => d).map(d => new Date(d).getTime());
       debugInfo = { j: jRes };
       
-      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v2";
+      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v3";
     } catch (e) {
       errorInfo = e.message;
-      global.SIGMA_DB_VERSION = Date.now() + "_v2";
+      global.SIGMA_DB_VERSION = Date.now() + "_v3";
     }
     global.SIGMA_DB_DEBUG = { debugInfo, errorInfo };
   }
@@ -726,7 +726,7 @@ const patchLocalCsvCache = async (updates) => {
         }
         
         if (patchedAny) {
-            global.SIGMA_DB_VERSION = Date.now() + '_v2';
+            global.SIGMA_DB_VERSION = Date.now() + '_v3';
             // 백그라운드에서 순차적으로 CDN 업로드 진행 (메모리 OOM 방지)
             (async () => {
                 for (const file of filesToPatch) {
@@ -842,7 +842,7 @@ app.get('/api/sim/data', async (req, res) => {
             
             let chunk = "";
             data.forEach(r => {
-                const line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police_station, r.police_office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                const line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police, r.office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
                 chunk += line + "\n";
             });
             lastId = data[data.length - 1].id;
