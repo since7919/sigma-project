@@ -1378,6 +1378,8 @@ function renderAdvancedInsights(junctions) {
     `;
 
 
+    const pct = (val) => totalJunctions > 0 ? (val / totalJunctions * 100).toFixed(1) : "0.0";
+
     // 2. 카테고리 1: 기본 통계 및 주기
     html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
         <span style="color: #1abc9c; font-size: 13px; font-weight: 700;">⏱️ 기본 통계 및 주기 (Basic & Cycle)</span>
@@ -1411,7 +1413,6 @@ function renderAdvancedInsights(junctions) {
     html += `<div style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1);">
         <span style="color: #f39c12; font-size: 13px; font-weight: 700;">🚥 이동류 및 운영 특성 (Movements & Features)</span>
     </div>`;
-    const pct = (val) => totalJunctions > 0 ? (val / totalJunctions * 100).toFixed(1) : "0.0";
     html += `<div class="grid-3col gap-15 mb-15">`;
     html += InsightBox("move_left_prot", "보호 좌회전", `${cntLeftProt.toLocaleString()}개소`, `(${pct(cntLeftProt)}%)`, "좌회전 전용 화살표 신호 적용", "⬅️", "#2ecc71");
     html += InsightBox("move_left_unprot", "비보호 좌회전", `${cntLeftUnprot.toLocaleString()}개소`, `(${pct(cntLeftUnprot)}%)`, "녹색(직진) 신호 시 비보호 좌회전 허용", "⚠️", "#f1c40f");
