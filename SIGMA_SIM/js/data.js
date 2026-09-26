@@ -165,6 +165,11 @@ async function handleDBFileLoad(el, type) {
 /** 📤 전체 데이터 통합 데이터 내보내기 */
 function exportNormalizedDBFiles() {
     if (Object.keys(STATE.junctions).length === 0) { alert("저장할 데이터가 없습니다."); return; }
+    const pwd = prompt("다운로드를 위한 비밀번호를 입력하세요.");
+    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+    }
     const { interCsv, mapCsv, todCsv, groupCsv, statsCsv } = exportNormalizedDB();
     const now = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const download = (content, name) => {
@@ -302,6 +307,11 @@ function viewDBFile(type) {
 /** 💾 개별 파일 저장 기능 (파일별 💾 버튼) */
 function saveDBFile(type) {
     if (Object.keys(STATE.junctions).length === 0) { alert("데이터가 없습니다."); return; }
+    const pwd = prompt("다운로드를 위한 비밀번호를 입력하세요.");
+    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+    }
     const regionSelect = { value: window.CURRENT_REGION_CODE || 'L01' };
     const regionCode = regionSelect ? regionSelect.value : 'L01';
     
