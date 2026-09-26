@@ -1610,11 +1610,12 @@
                                 <div style="flex: 1;">
                                     <div class="text-dim fs-11 mb-8">⏱️ 시간대 필터</div>
                                     <select id="stat-time-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                                        <option value="ALL">전체 24시간</option>
-                                        <option value="AM_PEAK">오전 출근 (07~09시)</option>
-                                        <option value="PM_PEAK">오후 퇴근 (17~19시)</option>
-                                        <option value="NORMAL">오전/오후 평시 (09~17시)</option>
-                                        <option value="NIGHT">야간/심야 (20~06시)</option>
+                                        <option value="ALL">전체 (24시간)</option>
+                                        <option value="DAYTIME">주간 전일 (06~22시)</option>
+                                        <option value="T1">오전 첨두 T1 (07~09시)</option>
+                                        <option value="T2">낮 첨두 T2 (12~14시)</option>
+                                        <option value="T3">오후 첨두 T3 (17~19시)</option>
+                                        <option value="NIGHT">심야 (22~06시)</option>
                                     </select>
                                 </div>
                             </div>
