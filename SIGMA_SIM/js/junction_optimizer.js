@@ -1222,6 +1222,7 @@ function renderTemplatePanel() {
     let theadRow2 = `<th style="display:none;"></th>`; // For valid HTML matching rowspan
     
     let tbodyRow = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">차로 프리셋</td>`;
+    let tbodyRowCw = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">횡단보도</td>`;
 
     OPT_DIRS.slice(0, 4).forEach(d => {
         // Row 1: Direction Header (colspan 4)
@@ -1283,9 +1284,19 @@ function renderTemplatePanel() {
                 </select>
             </td>
         `;
+
+        tbodyRowCw += `
+            <td colspan="4" style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
+                <div style="display:inline-flex; align-items:center; gap:4px; justify-content:center;">
+                    <input type="number" id="preset-cw-${d.id}" class="preset-cw-input" data-dir="${d.id}" onchange="applyCwLengthToDir('${d.id}')" style="width:40px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:4px;" min="0" placeholder="0">
+                    <span style="font-size:11px; color:#aaa;">m</span>
+                </div>
+            </td>
+        `;
     });
 
     tbodyRow += `</tr>`;
+    tbodyRowCw += `</tr>`;
 
     const tableHtml = `
         <div class="sector-header-opt flex-row-between gap-10 mb-5 pb-5 border-b-1 mt-10" style="color:#3498db; border-bottom-color:#444;">
@@ -1299,6 +1310,7 @@ function renderTemplatePanel() {
                 </thead>
                 <tbody>
                     ${tbodyRow}
+                    ${tbodyRowCw}
                 </tbody>
             </table>
         </div>
@@ -1386,6 +1398,19 @@ window.updateTemplatePanelUI = function() {
             chk.checked = isActive;
             
             sels.forEach(sel => {
+                const cwInput = document.getElementById(`preset-cw-${d.id}`);
+                if (cwInput) {
+                    cwInput.value = opt_state[d.id].A.CW || 0;
+                    const cwTd = cwInput.closest('td');
+                    if (isActive) {
+                        if (cwTd) cwTd.style.opacity = '1';
+                        cwInput.disabled = false;
+                    } else {
+                        if (cwTd) cwTd.style.opacity = '0.4';
+                        cwInput.disabled = true;
+                    }
+                }
+
                 const td = sel.parentElement;
                 if (isActive) {
                     if (td) td.style.opacity = '1';
@@ -1436,3 +1461,21 @@ window.applyLanePresetComposite = function(dir) {
     if (typeof updateTemplatePanelUI === 'function') updateTemplatePanelUI();
     saveOptToActiveJunction();
 }
+
+window.applyCwLengthToDir = function(dir) {
+    if (!opt_state[dir]) return;
+    const input = document.getElementById(`preset-cw-${dir}`);
+    if (!input) return;
+    
+    const val = parseInt(input.value);
+    if (!isNaN(val) && val >= 0) {
+        opt_state[dir].A.CW = val;
+        // Optionally activate if length > 0
+        if (val > 0) opt_state[dir].active = true;
+        
+        renderOptimizer();
+        renderOptimizerStats();
+        if (typeof updateTemplatePanelUI === 'function') updateTemplatePanelUI();
+        saveOptToActiveJunction();
+    }
+};
