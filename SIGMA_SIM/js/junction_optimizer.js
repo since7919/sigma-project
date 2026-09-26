@@ -179,7 +179,7 @@ function initOptimizer() {
 
     // SVG 노드 생성
     nl.innerHTML = '';
-    OPT_DIRS.forEach(d => {
+    OPT_DIRS.slice(0, 4).forEach(d => {
         const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         Object.entries({ cx: d.x, cy: d.y, r: 5, class: 'node' }).forEach(([k, v]) => c.setAttribute(k, v));
         c.onclick = () => selectOptDir(d.id);
@@ -1223,7 +1223,7 @@ function renderTemplatePanel() {
     
     let tbodyRow = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">차로 프리셋</td>`;
 
-    OPT_DIRS.forEach(d => {
+    OPT_DIRS.slice(0, 4).forEach(d => {
         // Row 1: Direction Header (colspan 4)
         theadRow1 += `<th colspan="4" style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444;">
             <label style="cursor:pointer; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:5px;">
@@ -1292,7 +1292,7 @@ function renderTemplatePanel() {
             <span class="fs-12 fw-800">🚘 접근로별 차로 일괄 설정</span>
         </div>
         <div style="width: 100%; overflow-x: auto; padding-bottom: 5px;" class="custom-scroll">
-            <table style="border-collapse:collapse; background:rgba(0,0,0,0.2); border:1px solid #333; margin-bottom:10px; table-layout:fixed; min-width:2400px;">
+            <table style="border-collapse:collapse; background:rgba(0,0,0,0.2); border:1px solid #333; margin-bottom:10px; table-layout:fixed; min-width:980px;">
                 <thead>
                     <tr style="background:rgba(255,255,255,0.05);">${theadRow1}</tr>
                     <tr style="background:rgba(255,255,255,0.03);">${theadRow2}</tr>

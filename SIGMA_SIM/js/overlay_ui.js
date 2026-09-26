@@ -48,34 +48,36 @@ function openDetailOverlay(jid) {
             scrollWheelZoom: false,
             boxZoom: false,
             keyboard: false
-        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+        });
         L.tileLayer('https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             maxZoom: 22
         }).addTo(overlayMap);
-    } else {
-        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
     }
 
-    // 중앙 원형 마커 그리기 (API와의 완벽한 화면 싱크를 위해)
-    if (window._overlayCenterMarker) {
-        overlayMap.removeLayer(window._overlayCenterMarker);
-    }
-    window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
-        radius: 8,
-        fillColor: '#00ecff',
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 0.8
-    }).addTo(overlayMap);
     setTimeout(() => {
         if (overlayMap) {
             overlayMap.invalidateSize();
+            overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+            
+            // 중앙 원형 마커 그리기
+            if (window._overlayCenterMarker) {
+                overlayMap.removeLayer(window._overlayCenterMarker);
+            }
+            // 가시성을 높이기 위해 형광 노란색으로 변경 및 invalidateSize 이후 렌더링
+            window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
+                radius: 9,
+                fillColor: '#ffea00',
+                color: '#000',
+                weight: 2,
+                fillOpacity: 0.9
+            }).addTo(overlayMap);
+
             if (typeof createOverlayArrows === 'function') {
                 createOverlayArrows(jid, overlayMap);
                 if (typeof updateSim === 'function') updateSim();
             }
         }
-    }, 100);
+    }, 150);
 
     // 신호계획정보 탭(API UI) 렌더링
     if (typeof renderOverlayPlanInfo === 'function') {
@@ -221,35 +223,36 @@ function openStatsOverlay(jid) {
             scrollWheelZoom: false,
             boxZoom: false,
             keyboard: false
-        }).setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+        });
         L.tileLayer('https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             maxZoom: 22
         }).addTo(overlayMap);
-    } else {
-        overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
     }
-
-    // 중앙 원형 마커 그리기
-    if (window._overlayCenterMarker) {
-        overlayMap.removeLayer(window._overlayCenterMarker);
-    }
-    window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
-        radius: 8,
-        fillColor: '#00ecff',
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 0.8
-    }).addTo(overlayMap);
 
     setTimeout(() => {
         if (overlayMap) {
             overlayMap.invalidateSize();
+            overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
+            
+            // 중앙 원형 마커 그리기
+            if (window._overlayCenterMarker) {
+                overlayMap.removeLayer(window._overlayCenterMarker);
+            }
+            // 가시성을 높이기 위해 형광 노란색으로 변경 및 invalidateSize 이후 렌더링
+            window._overlayCenterMarker = L.circleMarker([STATE.junctions[jid].lat, STATE.junctions[jid].lng], {
+                radius: 9,
+                fillColor: '#ffea00',
+                color: '#000',
+                weight: 2,
+                fillOpacity: 0.9
+            }).addTo(overlayMap);
+
             if (typeof createOverlayArrows === 'function') {
                 createOverlayArrows(jid, overlayMap);
                 if (typeof updateSim === 'function') updateSim();
             }
         }
-    }, 100);
+    }, 150);
 
     // 신호계획정보 탭(API UI) 렌더링 (백그라운드에서 계산 돌도록 실행)
     if (typeof renderOverlayPlanInfo === 'function') {
