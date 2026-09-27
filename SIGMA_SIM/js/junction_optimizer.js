@@ -1256,11 +1256,11 @@ function renderTemplatePanel() {
                     <option value="L1">↰</option>
                     <option value="L2">↰↰</option>
                     <option value="L3">↰↰↰</option>
-                    <option value="LU1">↰U</option>
-                    <option value="LU1,L1">↰U↰</option>
-                    <option value="LT1">↰↑</option>
-                    <option value="LT1,L1">↰↰↑</option>
-                    <option value="LR1">↰↱</option>
+                    <option value="LU1">[↰U]</option>
+                    <option value="LU1,L1">[↰U] ↰</option>
+                    <option value="LT1">[↰↑]</option>
+                    <option value="LT1,L1">[↰↑] ↰</option>
+                    <option value="LR1">[↰↱]</option>
                 </select>
             </td>
             <td style="padding:2px; border:1px solid #444; text-align:center;">
@@ -1278,8 +1278,8 @@ function renderTemplatePanel() {
                     <option value="">-</option>
                     <option value="R1">↱</option>
                     <option value="R2">↱↱</option>
-                    <option value="TR1">↑↱</option>
-                    <option value="TR1,R1">↑↱↱</option>
+                    <option value="TR1">[↑↱]</option>
+                    <option value="TR1,R1">[↑↱] ↱</option>
                     <option value="R_D1">↱(도류)</option>
                 </select>
             </td>
