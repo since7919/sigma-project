@@ -1317,7 +1317,7 @@ function renderTemplatePanel() {
                         <input type="number" id="preset-spd-${d.id}" class="preset-spd-input" data-dir="${d.id}" onchange="applySpdToDir('${d.id}')" style="width:36px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" step="10" placeholder="50">
                         <span style="font-size:10px; color:#aaa;">km/h</span>
                     </div>
-                    <select id="preset-protect-${d.id}" onchange="applyProtectToDir(this, '${d.id}')" style="width:65px; height:20px; font-size:10px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
+                    <select id="preset-protect-${d.id}" class="protect-dropdown" data-dir="${d.id}" style="width:65px; height:20px; font-size:10px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                         <option value="none">해당없음</option>
                         <option value="children">어린이</option>
                         <option value="elderly">노인</option>
@@ -1527,7 +1527,6 @@ window.applyCwLengthToDir = function(dir, type) {
 
 
 window.applyProtectToDir = function(selOrDir, optionalDir) {
-    // 호환성 처리 (인자가 1개로 올 경우와 2개로 올 경우)
     let sel, dir;
     if (typeof optionalDir === 'string') {
         sel = selOrDir;
@@ -1537,52 +1536,54 @@ window.applyProtectToDir = function(selOrDir, optionalDir) {
         sel = document.getElementById(`preset-protect-${dir}`);
     }
 
-    console.log('[DEBUG] applyProtectToDir invoked for', dir);
-    if (!opt_state || !opt_state[dir]) return;
-    if (!sel) return;
-    
-    const val = sel.value; // Get value directly from the passed element
-    console.log('[DEBUG] selected val:', val);
-    
-    // 명시적 boolean 할당
-    opt_state[dir].children = (val === 'children');
-    opt_state[dir].elderly = (val === 'elderly');
-    opt_state[dir].disabled = (val === 'disabled');
-    opt_state[dir].adjacent = (val === 'adjacent');
-    
-    if (val !== 'none') {
-        if (!opt_state[dir].A) opt_state[dir].A = {};
-        if (!opt_state[dir].B) opt_state[dir].B = {};
-        opt_state[dir].A.SPD = 30;
-        opt_state[dir].B.SPD = 30;
-        const spdInput = document.getElementById(`preset-spd-${dir}`);
-        if (spdInput) spdInput.value = 30;
-    }
-    
-    try {
-        if (typeof renderOptimizer === 'function') renderOptimizer();
-        if (typeof renderOptimizerStats === 'function') renderOptimizerStats();
-        if (typeof saveOptToActiveJunction === 'function') saveOptToActiveJunction();
+    // Force read the value immediately and also async
+    const immediateVal = sel ? sel.value : 'none';
+    console.log('[DEBUG] selected val sync:', immediateVal);
+
+    setTimeout(() => {
+        console.log('[DEBUG] applyProtectToDir invoked for', dir);
+        if (!opt_state || !opt_state[dir]) return;
+        if (!sel) return;
         
-        // 상세 패널(Unified) 동기화
-        if (opt_curId === dir) {
-            ['children', 'elderly', 'disabled', 'adjacent'].forEach(k => {
-                const chk = document.querySelector(`#lane-fields-unified input[data-key="${k}"]`);
-                if (chk) chk.checked = (val === k);
-            });
-            if (val !== 'none') {
-                document.querySelectorAll('#lane-fields-unified input[data-type="SPD"]').forEach(i => {
-                    i.value = 30;
-                });
-            }
+        const val = sel.value;
+        console.log('[DEBUG] selected val async:', val);
+        
+        opt_state[dir].children = (val === 'children');
+        opt_state[dir].elderly = (val === 'elderly');
+        opt_state[dir].disabled = (val === 'disabled');
+        opt_state[dir].adjacent = (val === 'adjacent');
+        
+        if (val !== 'none') {
+            if (!opt_state[dir].A) opt_state[dir].A = {};
+            if (!opt_state[dir].B) opt_state[dir].B = {};
+            opt_state[dir].A.SPD = 30;
+            opt_state[dir].B.SPD = 30;
+            const spdInput = document.getElementById(`preset-spd-${dir}`);
+            if (spdInput) spdInput.value = 30;
         }
         
-        // 명시적으로 UI 상태 고정
-        sel.value = val;
-    } catch (e) {
-        console.error('[DEBUG] applyProtectToDir Error:', e);
-    }
+        try {
+            if (typeof renderOptimizer === 'function') renderOptimizer();
+            if (typeof renderOptimizerStats === 'function') renderOptimizerStats();
+            if (typeof saveOptToActiveJunction === 'function') saveOptToActiveJunction();
+            
+            if (opt_curId === dir) {
+                ['children', 'elderly', 'disabled', 'adjacent'].forEach(k => {
+                    const chk = document.querySelector(`#lane-fields-unified input[data-key="${k}"]`);
+                    if (chk) chk.checked = (val === k);
+                });
+                if (val !== 'none') {
+                    document.querySelectorAll('#lane-fields-unified input[data-type="SPD"]').forEach(i => {
+                        i.value = 30;
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('[DEBUG] applyProtectToDir Error:', e);
+        }
+    }, 50);
 };
+
 window.applySpdToDir = function(dir) {
     if (!opt_state[dir]) return;
     const input = document.getElementById(`preset-spd-${dir}`);
@@ -1605,3 +1606,12 @@ window.applySpdToDir = function(dir) {
         }
     }
 };
+
+document.addEventListener('change', (e) => {
+    if (e.target && e.target.classList.contains('protect-dropdown')) {
+        const dir = e.target.dataset.dir;
+        if (dir && typeof window.applyProtectToDir === 'function') {
+            window.applyProtectToDir(e.target, dir);
+        }
+    }
+});
