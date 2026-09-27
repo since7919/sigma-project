@@ -1246,41 +1246,41 @@ function renderTemplatePanel() {
             <td style="padding:2px; border:1px solid #444; text-align:center;">
                 <select id="preset-bus-${d.id}" class="preset-select" data-dir="${d.id}" onchange="applyLanePresetComposite('${d.id}')" style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                     <option value="">-</option>
-                    <option value="C1">C1</option>
-                    <option value="C2">C2</option>
+                    <option value="C1">🚌</option>
+                    <option value="C2">🚌🚌</option>
                 </select>
             </td>
             <td style="padding:2px; border:1px solid #444; text-align:center;">
                 <select id="preset-left-${d.id}" class="preset-select" data-dir="${d.id}" onchange="applyLanePresetComposite('${d.id}')" style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                     <option value="">-</option>
-                    <option value="L1">L1</option>
-                    <option value="L2">L2</option>
-                    <option value="L3">L3</option>
-                    <option value="LU1">LU1</option>
-                    <option value="LU1,L1">LU1,L1</option>
-                    <option value="LT1">LT1</option>
-                    <option value="LT1,L1">LT1,L1</option>
-                    <option value="LR1">LR1</option>
+                    <option value="L1">↰</option>
+                    <option value="L2">↰↰</option>
+                    <option value="L3">↰↰↰</option>
+                    <option value="LU1">↰U</option>
+                    <option value="LU1,L1">↰U↰</option>
+                    <option value="LT1">↰↑</option>
+                    <option value="LT1,L1">↰↰↑</option>
+                    <option value="LR1">↰↱</option>
                 </select>
             </td>
             <td style="padding:2px; border:1px solid #444; text-align:center;">
                 <select id="preset-straight-${d.id}" class="preset-select" data-dir="${d.id}" onchange="applyLanePresetComposite('${d.id}')" style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                     <option value="">-</option>
-                    <option value="T1">T1</option>
-                    <option value="T2">T2</option>
-                    <option value="T3">T3</option>
-                    <option value="T4">T4</option>
-                    <option value="T5">T5</option>
+                    <option value="T1">↑</option>
+                    <option value="T2">↑↑</option>
+                    <option value="T3">↑↑↑</option>
+                    <option value="T4">↑↑↑↑</option>
+                    <option value="T5">↑↑↑↑↑</option>
                 </select>
             </td>
             <td style="padding:2px; border:1px solid #444; text-align:center;">
                 <select id="preset-right-${d.id}" class="preset-select" data-dir="${d.id}" onchange="applyLanePresetComposite('${d.id}')" style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                     <option value="">-</option>
-                    <option value="R1">R1</option>
-                    <option value="R2">R2</option>
-                    <option value="TR1">TR1</option>
-                    <option value="TR1,R1">TR1,R1</option>
-                    <option value="R_D1">우도류</option>
+                    <option value="R1">↱</option>
+                    <option value="R2">↱↱</option>
+                    <option value="TR1">↑↱</option>
+                    <option value="TR1,R1">↑↱↱</option>
+                    <option value="R_D1">↱(도류)</option>
                 </select>
             </td>
         `;
