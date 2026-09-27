@@ -1317,7 +1317,7 @@ function renderTemplatePanel() {
                         <input type="number" id="preset-spd-${d.id}" class="preset-spd-input" data-dir="${d.id}" onchange="applySpdToDir('${d.id}')" style="width:36px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" step="10" placeholder="50">
                         <span style="font-size:10px; color:#aaa;">km/h</span>
                     </div>
-                    <select id="preset-protect-${d.id}" onchange="applyProtectToDir('${d.id}')" style="width:65px; height:20px; font-size:10px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
+                    <select id="preset-protect-${d.id}" onchange="applyProtectToDir(this, '${d.id}')" style="width:65px; height:20px; font-size:10px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                         <option value="none">해당없음</option>
                         <option value="children">어린이</option>
                         <option value="elderly">노인</option>
@@ -1526,13 +1526,22 @@ window.applyCwLengthToDir = function(dir, type) {
 };
 
 
-window.applyProtectToDir = function(dir) {
+window.applyProtectToDir = function(selOrDir, optionalDir) {
+    // 호환성 처리 (인자가 1개로 올 경우와 2개로 올 경우)
+    let sel, dir;
+    if (typeof optionalDir === 'string') {
+        sel = selOrDir;
+        dir = optionalDir;
+    } else {
+        dir = selOrDir;
+        sel = document.getElementById(`preset-protect-${dir}`);
+    }
+
     console.log('[DEBUG] applyProtectToDir invoked for', dir);
     if (!opt_state || !opt_state[dir]) return;
-    const sel = document.getElementById(`preset-protect-${dir}`);
     if (!sel) return;
     
-    const val = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].value : sel.value;
+    const val = sel.value; // Get value directly from the passed element
     console.log('[DEBUG] selected val:', val);
     
     // 명시적 boolean 할당
