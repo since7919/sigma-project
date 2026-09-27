@@ -16,10 +16,12 @@ const OPT_DIRS = [
     { id: 'NW', a: -135, x: 45, y: 45, label: '서북' }
 ];
 
-const OPT_TYPES = { C: '중앙차로', U: '유턴', LU: '좌_유', L: '좌회전', LT: '직_좌', T: '직진', TR: '직_우', LR: '좌_우', R: '우회전', R_D: '우_도류', CW: '횡단보도', CW_D: '횡단_도류', SPD: '제한속도' };
+const OPT_TYPES = { C: '중앙차로', C_LT: '중앙_직좌', C_TR: '중앙_직우', U: '유턴', LU: '좌_유', L: '좌회전', LT: '직_좌', T: '직진', TR: '직_우', LR: '좌_우', R: '우회전', R_D: '우_도류', CW: '횡단보도', CW_D: '횡단_도류', SPD: '제한속도' };
 
 const OPT_SEQ = [
     { c: 'A', t: 'C', g: null }, { c: 'B', t: 'C', g: null },
+    { c: 'A', t: 'C_LT', g: null }, { c: 'B', t: 'C_LT', g: null },
+    { c: 'A', t: 'C_TR', g: null }, { c: 'B', t: 'C_TR', g: null },
     { c: 'A', t: 'U', g: 0 }, { c: 'B', t: 'U', g: 30 },
     { c: 'A', t: 'LU', g: [0, 90] }, { c: 'B', t: 'LU', g: [30, 60] },
     { c: 'B', t: 'L', g: 60 }, { c: 'A', t: 'L', g: 90 }, { c: 'A', t: 'LT', g: [180, 90] }, { c: 'B', t: 'LT', g: [180, 60] },
@@ -91,8 +93,8 @@ function getDefaultOptState() {
     return Object.fromEntries(OPT_DIRS.map(d => [d.id, {
         active: false,
         diagonal: false, twoStage: false, trafficIsland: false, children: false, elderly: false, disabled: false,
-        A: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 1, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
-        B: { C: 0, U: 0, LU: 0, L: 0, LT: 0, T: 0, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
+        A: { C: 0, C_LT: 0, C_TR: 0, U: 0, LU: 0, L: 0, LT: 0, T: 1, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
+        B: { C: 0, C_LT: 0, C_TR: 0, U: 0, LU: 0, L: 0, LT: 0, T: 0, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
         op: {
             leftProt: false, leftUnprot: false, leftPplt: false, leftPdlt: false,
             leftTurnSimul: false, leftLeadLag: false, uTurnSig: false,
@@ -617,7 +619,7 @@ function renderOptimizer() {
             const count = s[m.c][m.t];
             const isGhost = m.isGhost && count === 0;
             const y = -(++laneIdxTotal * 8);
-            if (m.t === 'C') centralRows++;
+            if (m.t === 'C' || m.t === 'C_LT' || m.t === 'C_TR') centralRows++;
 
             const grp = document.createElementNS("http://www.w3.org/2000/svg", "g");
             if (m.c === 'B') grp.classList.add('b-opacity');
@@ -661,8 +663,8 @@ function renderOptimizer() {
             }
 
             // 2. 화살표 표시
-            const charMap = { T: "↑", L: "↰", R: "↱", U: "↶", LU: ["↰", "↶"], LT: ["↑", "↰"], TR: ["↱", "↑"], LR: ["↰", "↱"], CW: "🚶", SPD: "V" };
-            if (m.t !== 'C' && m.t !== 'CW_D') {
+            const charMap = { T: "↑", L: "↰", R: "↱", U: "↶", LU: ["↶", "↰"], LT: ["↰", "↑"], TR: ["↑", "↱"], LR: ["↰", "↱"], C: "↑", C_LT: ["↰", "↑"], C_TR: ["↑", "↱"], CW: "🚶", SPD: "V" };
+            if (m.t !== 'CW_D') {
                 const symbols = Array.isArray(charMap[m.t]) ? charMap[m.t] : [charMap[m.t] || "↑"];
                 const isShared = symbols.length > 1;
 
@@ -691,14 +693,14 @@ function renderOptimizer() {
             const textRot = -d.a;
             Object.entries({
                 x: numX, y: y + 4,
-                fill: (m.t === 'C' ? '#3498db' : (isSafety ? '#f1c40f' : '#ffffff')),
+                fill: ((m.t === 'C' || m.t === 'C_LT' || m.t === 'C_TR') ? '#3498db' : (isSafety ? '#f1c40f' : '#ffffff')),
                 'font-size': '10px',
                 'font-weight': 'bold',
                 'text-anchor': 'middle',
                 'dominant-baseline': 'middle',
                 transform: `rotate(${textRot}, ${numX}, ${y + 4})`
             }).forEach(([k, v]) => num.setAttribute(k, v));
-            num.textContent = isGhost ? "+" : (m.t === 'C' ? `C${count}` : count);
+            num.textContent = isGhost ? "+" : ((m.t === "C" || m.t === "C_LT" || m.t === "C_TR") ? `C${count}` : count);
             addInteraction(num, m.t, m.c);
             grp.appendChild(num);
 
@@ -1131,7 +1133,7 @@ function applyLanePreset(presetValue) {
         return;
     }
 
-    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, LU: 0, LT: 0, TR: 0, LR: 0 };
+    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, C_LT: 0, C_TR: 0, LU: 0, LT: 0, TR: 0, LR: 0 };
     const parts = presetValue.split(',');
     parts.forEach(p => {
         const type = p.replace(/\d+/g, '');
@@ -1246,8 +1248,9 @@ function renderTemplatePanel() {
             <td style="padding:2px; border:1px solid #444; text-align:center;">
                 <select id="preset-bus-${d.id}" class="preset-select" data-dir="${d.id}" onchange="applyLanePresetComposite('${d.id}')" style="width:100%; height:22px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; cursor:pointer;">
                     <option value="">-</option>
-                    <option value="C1">🚌</option>
-                    <option value="C2">🚌🚌</option>
+                    <option value="C_LT1">[↰↑]</option>
+                    <option value="C1">↑</option>
+                    <option value="C_TR1">[↑↱]</option>
                 </select>
             </td>
             <td style="padding:2px; border:1px solid #444; text-align:center;">
@@ -1256,10 +1259,10 @@ function renderTemplatePanel() {
                     <option value="L1">↰</option>
                     <option value="L2">↰↰</option>
                     <option value="L3">↰↰↰</option>
-                    <option value="LU1">[↰U]</option>
-                    <option value="LU1,L1">[↰U] ↰</option>
+                    <option value="LU1">[U↰]</option>
+                    <option value="LU1,L1">[U↰] ↰</option>
                     <option value="LT1">[↰↑]</option>
-                    <option value="LT1,L1">[↰↑] ↰</option>
+                    <option value="LT1,L1">↰ [↰↑]</option>
                     <option value="LR1">[↰↱]</option>
                 </select>
             </td>
@@ -1359,7 +1362,7 @@ window.applyLanePresetToDir = function(dir, presetValue) {
     // 해당 방향 강제 활성화
     opt_state[dir].active = true;
 
-    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, TL: 0, TR: 0 };
+    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, C_LT: 0, C_TR: 0, LU: 0, LT: 0, TR: 0, LR: 0, R_D: 0 };
     const parts = presetValue.split(',');
     parts.forEach(p => {
         const type = p.replace(/\d+/g, '');
@@ -1445,7 +1448,7 @@ window.applyLanePresetComposite = function(dir) {
     
     if(presetValue) opt_state[dir].active = true;
 
-    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, LU: 0, LT: 0, TR: 0, LR: 0, R_D: 0 };
+    const lanes = { L: 0, T: 0, R: 0, U: 0, C: 0, C_LT: 0, C_TR: 0, LU: 0, LT: 0, TR: 0, LR: 0, R_D: 0 };
     const parts = presetValue.split(',');
     parts.forEach(p => {
         if(!p) return;
@@ -1457,7 +1460,7 @@ window.applyLanePresetComposite = function(dir) {
     });
 
     // Reset relevant lane counts in A
-    ['L', 'T', 'R', 'U', 'C', 'LU', 'LT', 'TR', 'LR', 'R_D'].forEach(k => opt_state[dir].A[k] = 0);
+    Object.keys(lanes).forEach(k => opt_state[dir].A[k] = 0);
     
     // Apply new lanes
     Object.keys(lanes).forEach(k => {
