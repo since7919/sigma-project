@@ -1225,6 +1225,7 @@ function renderTemplatePanel() {
     
     let tbodyRow = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">차로 프리셋</td>`;
     let tbodyRowCw = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">횡단보도</td>`;
+    let tbodyRowSpd = `<tr><td style="padding:4px; text-align:center; font-size:11px; color:#aaa; border:1px solid #444; font-weight:bold; background:rgba(255,255,255,0.05);">제한속도</td>`;
 
     OPT_DIRS.forEach(d => {
         // Row 1: Direction Header (colspan 4)
@@ -1309,10 +1310,19 @@ function renderTemplatePanel() {
                 </div>
             </td>
         `;
+        tbodyRowSpd += `
+            <td colspan="4" style="padding:2px; border:1px solid #444; text-align:center; background:rgba(0,0,0,0.1);">
+                <div style="display:inline-flex; align-items:center; gap:2px; justify-content:center;">
+                    <input type="number" id="preset-spd-${d.id}" class="preset-spd-input" data-dir="${d.id}" onchange="applySpdToDir('${d.id}')" style="width:40px; height:20px; font-size:11px; background:#333; color:#fff; border:1px solid #555; border-radius:3px; outline:none; text-align:right; padding-right:2px;" min="0" step="10" placeholder="50">
+                    <span style="font-size:10px; color:#aaa;">km/h</span>
+                </div>
+            </td>
+        `;
     });
 
     tbodyRow += `</tr>`;
     tbodyRowCw += `</tr>`;
+    tbodyRowSpd += `</tr>`;
 
     const tableHtml = `
         <div class="sector-header-opt flex-row-between gap-10 mb-5 pb-5 border-b-1 mt-10" style="color:#3498db; border-bottom-color:#444;">
@@ -1327,6 +1337,7 @@ function renderTemplatePanel() {
                 <tbody>
                     ${tbodyRow}
                     ${tbodyRowCw}
+                    ${tbodyRowSpd}
                 </tbody>
             </table>
         </div>
@@ -1422,6 +1433,9 @@ window.updateTemplatePanelUI = function() {
                 if (cwT) { cwT.value = opt_state[d.id].A.CW || 0; cwT.disabled = !isActive; cwT.closest('td').style.opacity = isActive ? '1' : '0.4'; }
                 if (cwR) { cwR.value = opt_state[d.id].A.CW_D || 0; cwR.disabled = !isActive; cwR.closest('td').style.opacity = isActive ? '1' : '0.4'; }
 
+                const spd = document.getElementById(`preset-spd-${d.id}`);
+                if (spd) { spd.value = opt_state[d.id].A.SPD || 50; spd.disabled = !isActive; spd.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+
                 const td = sel.parentElement;
                 if (isActive) {
                     if (td) td.style.opacity = '1';
@@ -1491,5 +1505,28 @@ window.applyCwLengthToDir = function(dir, type) {
         renderOptimizerStats();
         if (typeof updateTemplatePanelUI === 'function') updateTemplatePanelUI();
         saveOptToActiveJunction();
+    }
+};
+
+window.applySpdToDir = function(dir) {
+    if (!opt_state[dir]) return;
+    const input = document.getElementById(`preset-spd-${dir}`);
+    if (!input) return;
+    
+    const val = parseInt(input.value);
+    if (!isNaN(val) && val >= 0) {
+        opt_state[dir].A.SPD = val;
+        opt_state[dir].B.SPD = val;
+        
+        renderOptimizer();
+        renderOptimizerStats();
+        if (typeof updateTemplatePanelUI === 'function') updateTemplatePanelUI();
+        saveOptToActiveJunction();
+        
+        if (opt_curId === dir) {
+            document.querySelectorAll('#lane-fields-unified input[type="number"]').forEach(i => {
+                if (i.dataset.type === 'SPD') i.value = val;
+            });
+        }
     }
 };
