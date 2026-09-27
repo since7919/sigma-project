@@ -92,7 +92,7 @@ const OPT_SUMMARY_ROWS = [
 function getDefaultOptState() {
     return Object.fromEntries(OPT_DIRS.map(d => [d.id, {
         active: false,
-        diagonal: false, twoStage: false, trafficIsland: false, children: false, elderly: false, disabled: false,
+        diagonal: false, twoStage: false, trafficIsland: false, children: false, elderly: false, disabled: false, adjacent: false,
         A: { C: 0, C_LT: 0, C_TR: 0, U: 0, LU: 0, L: 0, LT: 0, T: 1, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
         B: { C: 0, C_LT: 0, C_TR: 0, U: 0, LU: 0, L: 0, LT: 0, T: 0, TR: 0, LR: 0, R: 0, R_D: 0, CW: 0, CW_L: 0, CW_D: 0, SPD: 50 },
         op: {
@@ -151,7 +151,7 @@ function initOptimizer() {
         { ped: { k: 'children', l: '어린이' }, aux: { o: 'residRed', l: '잔여적색' } },
         { ped: { k: 'elderly', l: '노인' }, aux: { o: 'residGreen', l: '잔여녹색' } },
         { ped: { k: 'disabled', l: '장애인' }, aux: { o: 'auxA', l: '보조등좌' } },
-        { ped: null, aux: { o: 'auxB', l: '보조등우' } },
+        { ped: { k: 'adjacent', l: '인접' }, aux: { o: 'auxB', l: '보조등우' } },
         { ped: { k: 'diagonal', l: '대각선' }, aux: { o: 'floorSig', l: '바닥신호' } },
         { ped: { k: 'twoStage', l: '이단횡단' }, aux: null },
         { ped: { k: 'trafficIsland', l: '교통섬' }, aux: null }
@@ -218,7 +218,7 @@ function handleOptInput(e) {
         if (t.dataset.key) {
             s[t.dataset.key] = t.checked;
             // 어린이, 노인, 장애인 체크 시 제한속도 30으로 자동 변경
-            if (['children', 'elderly', 'disabled'].includes(t.dataset.key) && t.checked) {
+            if (['children', 'elderly', 'disabled', 'adjacent'].includes(t.dataset.key) && t.checked) {
                 s.A.SPD = 30;
                 const spdInp = document.querySelector('input[data-col="A"][data-type="SPD"]');
                 if (spdInp) spdInp.value = 30;
@@ -448,7 +448,7 @@ function renderOptimizerStats() {
     const activeDirs = OPT_DIRS.filter(d => opt_state[d.id].active).map(d => d.id);
 
     const getActiveSafety = () => {
-        const m = { children: '어린이', elderly: '노인', disabled: '장애인' };
+        const m = { children: '어린이', elderly: '노인', disabled: '장애인', adjacent: '인접' };
         return Object.keys(m).filter(k => activeDirs.some(id => opt_state[id][k])).map(k => m[k]).join(', ') || '-';
     };
 
@@ -1322,6 +1322,7 @@ function renderTemplatePanel() {
                         <option value="children">어린이</option>
                         <option value="elderly">노인</option>
                         <option value="disabled">장애인</option>
+                        <option value="adjacent">인접</option>
                     </select>
                 </div>
             </td>
@@ -1432,27 +1433,28 @@ window.updateTemplatePanelUI = function() {
             const isActive = opt_state[d.id].active;
             chk.checked = isActive;
             
+            const cwL = document.getElementById(`preset-cw-l-${d.id}`);
+            const cwT = document.getElementById(`preset-cw-t-${d.id}`);
+            const cwR = document.getElementById(`preset-cw-r-${d.id}`);
+            
+            if (cwL) { cwL.value = opt_state[d.id].A.CW_L || 0; cwL.disabled = !isActive; cwL.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+            if (cwT) { cwT.value = opt_state[d.id].A.CW || 0; cwT.disabled = !isActive; cwT.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+            if (cwR) { cwR.value = opt_state[d.id].A.CW_D || 0; cwR.disabled = !isActive; cwR.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+
+            const spd = document.getElementById(`preset-spd-${d.id}`);
+            if (spd) { spd.value = opt_state[d.id].A.SPD || 50; spd.disabled = !isActive; spd.closest('td').style.opacity = isActive ? '1' : '0.4'; }
+
+            const protect = document.getElementById(`preset-protect-${d.id}`);
+            if (protect) {
+                if (opt_state[d.id].children) protect.value = 'children';
+                else if (opt_state[d.id].elderly) protect.value = 'elderly';
+                else if (opt_state[d.id].disabled) protect.value = 'disabled';
+                else if (opt_state[d.id].adjacent) protect.value = 'adjacent';
+                else protect.value = 'none';
+                protect.disabled = !isActive;
+            }
+
             sels.forEach(sel => {
-                const cwL = document.getElementById(`preset-cw-l-${d.id}`);
-                const cwT = document.getElementById(`preset-cw-t-${d.id}`);
-                const cwR = document.getElementById(`preset-cw-r-${d.id}`);
-                
-                if (cwL) { cwL.value = opt_state[d.id].A.CW_L || 0; cwL.disabled = !isActive; cwL.closest('td').style.opacity = isActive ? '1' : '0.4'; }
-                if (cwT) { cwT.value = opt_state[d.id].A.CW || 0; cwT.disabled = !isActive; cwT.closest('td').style.opacity = isActive ? '1' : '0.4'; }
-                if (cwR) { cwR.value = opt_state[d.id].A.CW_D || 0; cwR.disabled = !isActive; cwR.closest('td').style.opacity = isActive ? '1' : '0.4'; }
-
-                const spd = document.getElementById(`preset-spd-${d.id}`);
-                if (spd) { spd.value = opt_state[d.id].A.SPD || 50; spd.disabled = !isActive; spd.closest('td').style.opacity = isActive ? '1' : '0.4'; }
-
-                const protect = document.getElementById(`preset-protect-${d.id}`);
-                if (protect) {
-                    if (opt_state[d.id].children) protect.value = 'children';
-                    else if (opt_state[d.id].elderly) protect.value = 'elderly';
-                    else if (opt_state[d.id].disabled) protect.value = 'disabled';
-                    else protect.value = 'none';
-                    protect.disabled = !isActive;
-                }
-
                 const td = sel.parentElement;
                 if (isActive) {
                     if (td) td.style.opacity = '1';
@@ -1535,6 +1537,7 @@ window.applyProtectToDir = function(dir) {
     opt_state[dir].children = (val === 'children');
     opt_state[dir].elderly = (val === 'elderly');
     opt_state[dir].disabled = (val === 'disabled');
+    opt_state[dir].adjacent = (val === 'adjacent');
     
     if (val !== 'none') {
         opt_state[dir].A.SPD = 30;
@@ -1553,6 +1556,7 @@ window.applyProtectToDir = function(dir) {
             if (i.dataset.key === 'children') i.checked = opt_state[dir].children;
             if (i.dataset.key === 'elderly') i.checked = opt_state[dir].elderly;
             if (i.dataset.key === 'disabled') i.checked = opt_state[dir].disabled;
+            if (i.dataset.key === 'adjacent') i.checked = opt_state[dir].adjacent;
         });
         if (val !== 'none') {
             document.querySelectorAll('#lane-fields-unified input[type="number"]').forEach(i => {
