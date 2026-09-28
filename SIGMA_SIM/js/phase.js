@@ -46,6 +46,7 @@ function renderRingTables() {
     };
 
     const pIdx = parseInt(UI.planIdx?.value) || 0;
+    const currentSlot = STATE.currentTodSlotIdx !== undefined ? STATE.currentTodSlotIdx : pIdx;
     
     // Find a schedule that uses this pattern (for display purposes like targetCycle)
     let s = { h: -1, m: 0, cycle: 100, idx: pIdx + 1 };
@@ -1013,7 +1014,7 @@ function renderTodPlanInfoTable() {
                             <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                             ${dayPlanIndices.map(idx => {
                                 const sc = (useSchedules && useSchedules[idx]) ? useSchedules[idx][rIdx] : null;
-                                const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
+                                const isActive = (dayIdx === idx && currentSlot === rIdx && sc && sc.h !== -1);
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
                                 const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
                                 
@@ -1184,8 +1185,19 @@ window.toggleTodPlanGroup = function(group) {
 };
 
 window.selectTodPlanCell = function(dayIdx, slotIdx) {
-    if (STATE.currentJunctionDayTypeIdx === dayIdx && parseInt(UI.planIdx.value || 0) === slotIdx) {
-        return; // 불필요한 재렌더링 방지
+    let targetPlanIdx = slotIdx;
+    if (STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+        const j = STATE.junctions[STATE.activeJid];
+        if (j.schedules && j.schedules[dayIdx] && j.schedules[dayIdx][slotIdx]) {
+            const sch = j.schedules[dayIdx][slotIdx];
+            if (sch.h !== -1 && sch.idx > 0 && sch.idx <= 16) {
+                targetPlanIdx = sch.idx - 1;
+            }
+        }
+    }
+    
+    if (STATE.currentJunctionDayTypeIdx === dayIdx && STATE.currentTodSlotIdx === slotIdx && parseInt(UI.planIdx.value || 0) === targetPlanIdx) {
+        return;
     }
 
     let activeDay = null, activeSlot = null, activeField = null;
@@ -1195,7 +1207,8 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
         activeField = document.activeElement.getAttribute('data-field');
     }
     STATE.currentJunctionDayTypeIdx = dayIdx;
-    UI.planIdx.value = slotIdx;
+    STATE.currentTodSlotIdx = slotIdx;
+    UI.planIdx.value = targetPlanIdx;
     let labelEl = document.getElementById('j-current-day-label');
     if (labelEl) {
         const planNum = dayIdx + 1;
