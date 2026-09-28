@@ -1,25 +1,26 @@
 /**
  * init.js
- * ─────────────────────────────────────────────
- * 애플리케이션 초기 설정 및 이벤트 리스너 통합
- * 의존: 모든 js 모듈
+ * ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
+ * ?�플리�??�션 초기 ?�정 �??�벤??리스???�합
+ * ?�존: 모든 js 모듈
  */
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log("SIGMA - Initializing Application Entry Point...");
 
-    // 1. UI 모듈 초기화
+    // 1. UI 모듈 초기??
     if (typeof initPlanSelector === 'function') initPlanSelector();
     if (typeof initSidebarResizer === 'function') initSidebarResizer();
     if (typeof initGroupTabResizer === 'function') initGroupTabResizer();
+    if (typeof initGroupDayDragAndDrop === 'function') initGroupDayDragAndDrop();
     if (typeof initUIComponents === 'function') initUIComponents();
     if (typeof syncConfigEditUI === 'function') syncConfigEditUI();
 
-    // 2. 지도 이벤트 핸들러 초기화
+    // 2. 지???�벤???�들??초기??
     if (typeof initMapClickHandlers === 'function') initMapClickHandlers();
     if (typeof initMapMoveHandlers === 'function') initMapMoveHandlers();
 
-    // 3. 타임슬라이더 이벤트 연결
+    // 3. ?�?�슬?�이???�벤???�결
     if (UI.timeSlider) {
         UI.timeSlider.oninput = () => {
             updateSim();
@@ -30,23 +31,23 @@ window.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // 4. 실시간 시계 업데이트 인터벌 (매초)
+    // 4. ?�시�??�계 ?�데?�트 ?�터�?(매초)
     setInterval(updateRealTime, 1000);
-    updateRealTime(); // 즉시 실행
+    updateRealTime(); // 즉시 ?�행
     
-    // 4.1. 시뮬레이션 초기 요일 설정 (오늘 요일 기준)
+    // 4.1. ?��??�이??초기 ?�일 ?�정 (?�늘 ?�일 기�?)
     if (typeof setSimDay === 'function') setSimDay(new Date().getDay());
 
-    // 5. 초기 테마 및 가시성 설정
+    // 5. 초기 ?�마 �?가?�성 ?�정
     if (STATE.currentTheme === 'dark') {
         const btn = document.getElementById('btn-map-theme');
         if (btn) btn.classList.add('on');
     }
 
-    // 6. 시작 시 현재 시간으로 점프 (선택 사항 - 여기서는 자동 실행)
+    // 6. ?�작 ???�재 ?�간?�로 ?�프 (?�택 ?�항 - ?�기?�는 ?�동 ?�행)
     // goToCurrentTime();
 
-    // 7. Render 백엔드 서버 슬립 방지용 Keep-Alive 핑 (1분 간격)
+    // 7. Render 백엔???�버 ?�립 방�???Keep-Alive ??(1�?간격)
     setInterval(() => {
         fetch('/api/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({}) })
             .catch(err => console.log('Keep-alive ping error:', err));
@@ -54,11 +55,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     console.log("SIGMA - Entry Point Logic Connected.");
 
-    // 강제로 초기 UI 공란 테이블 렌더링
+    // 강제�?초기 UI 공�? ?�이�??�더�?
     if (typeof deselectJunction === 'function') deselectJunction();
     if (typeof AppStateMachine !== 'undefined') AppStateMachine.updateGlobalUI(STATE.appMode);
 
-    // [Intersection Search] auto_load.js에서 데이터 로드 완료 후 처리하도록 변경됨
+    // [Intersection Search] auto_load.js?�서 ?�이??로드 ?�료 ??처리?�도�?변경됨
     // if (typeof renderJunctionList === 'function') renderJunctionList();
 
     // [Auto Load Trigger]
