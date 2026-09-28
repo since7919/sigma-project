@@ -1,9 +1,9 @@
 /**
  * group.js
- * ─────────────────────────────────────────────
- * 그룹 편집, TOD 테이블, 요일별 주기 차트,
- * 그룹 목록, 그룹 CSV 저장/불러오기
- * 의존: config.js, utils.js, ui.js
+ * ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
+ * 그룹 ?�집, TOD ?�이�? ?�일�?주기 차트,
+ * 그룹 목록, 그룹 CSV ?�??불러?�기
+ * ?�존: config.js, utils.js, ui.js
  */
 
 let currentEditingGroup = null;
@@ -12,70 +12,70 @@ let groupCycleChart = null;
 
 let groupHighlightMarkers = [];
 
-/** 시공도 도면 순서 업데이트 */
+/** ?�공???�면 ?�서 ?�데?�트 */
 function updateJunctionDiagramOrder(jid, val) {
     if (!STATE.junctions[jid]) return;
     if (!STATE.junctions[jid].extra) STATE.junctions[jid].extra = {};
     STATE.junctions[jid].extra.diagramOrder = parseInt(val);
     console.log(`[DiagramOrder] Junction ${jid} set to ${STATE.junctions[jid].extra.diagramOrder}`);
 
-    // 순서 변경 시 목록 재정렬 및 렌더링 (차트 리프레시는 불필요하므로 false 전달)
+    // ?�서 변�???목록 ?�정??�??�더�?(차트 리프?�시??불필?�하므�?false ?�달)
     loadGroupInfo(false);
 }
 
-/** 시공도 포함 여부 토글 */
+/** ?�공???�함 ?��? ?��? */
 function toggleJunctionTsdInclusion(jid, isChecked) {
     if (!STATE.junctions[jid]) return;
     if (!STATE.junctions[jid].extra) STATE.junctions[jid].extra = {};
     
-    // Checked 상태면 제외 플래그를 false로, Unchecked면 true로 설정
+    // Checked ?�태�??�외 ?�래그�? false�? Unchecked�?true�??�정
     STATE.junctions[jid].extra.excludeFromTsd = !isChecked;
     console.log(`[TSD Exclusion] Junction ${jid} is now ${!isChecked ? 'Excluded' : 'Included'}`);
     
-    // 리스트 가독성을 위해 즉시 재렌더링
+    // 리스??가?�성???�해 즉시 ?�렌?�링
     loadGroupInfo(false);
 }
 
-/** [사용자 요청] 소속 교차로(시공도 설정) 정렬 기능 */
+/** [?�용???�청] ?�속 교차�??�공???�정) ?�렬 기능 */
 function sortGroupMembers(type) {
     const gid = currentEditingGroup;
     if (!gid) return;
 
     let members = Object.values(STATE.junctions).filter(j => String(j.group) === String(gid));
-    // 체크된 교차로(excludeFromTsd가 true가 아닌 것)만 대상
+    // 체크??교차�?excludeFromTsd가 true가 ?�닌 �?�??�??
     let included = members.filter(j => !(j.extra && j.extra.excludeFromTsd));
     
     if (type === 'SN') {
-        // S-N: 위도(lat)가 낮은 순 (오름차순)
+        // S-N: ?�도(lat)가 ??? ??(?�름차순)
         included.sort((a, b) => (a.lat || 0) - (b.lat || 0));
     } else if (type === 'EW') {
-        // E-W: 경도(lng)가 높은 순 (내림차순)
+        // E-W: 경도(lng)가 ?��? ??(?�림차순)
         included.sort((a, b) => (b.lng || 0) - (a.lng || 0));
     }
     
-    // 순서 재부여 (1번부터)
+    // ?�서 ?��???(1번�???
     included.forEach((m, idx) => {
         if (!m.extra) m.extra = {};
         m.extra.diagramOrder = idx + 1;
     });
     
-    // 다시 렌더링
+    // ?�시 ?�더�?
     loadGroupInfo(false);
 }
 
-/** 일계획 별칭 업데이트 (전역 노출) */
+/** ?�계??별칭 ?�데?�트 (?�역 ?�출) */
 function updatePlanAlias(dayIdx, name) {
     const gid = currentEditingGroup;
     if (!gid || !STATE.groups[gid]) return;
     if (!STATE.groups[gid].planAliases) STATE.groups[gid].planAliases = Array(10).fill("");
     STATE.groups[gid].planAliases[dayIdx] = name;
     
-    // UI 즉시 갱신 (라디오 버튼 명칭 등)
+    // UI 즉시 갱신 (?�디??버튼 명칭 ??
     updateGroupDayUI();
 }
 window.updatePlanAlias = updatePlanAlias;
 
-/** 그룹 탭 내 패널 리사이저 설정 */
+/** 그룹 ?????�널 리사?��? ?�정 */
 function initGroupTabResizer() {
     const resizer = document.getElementById('group-tab-resizer');
     const leftPanel = document.getElementById('group-detail-panel');
@@ -93,7 +93,7 @@ function initGroupTabResizer() {
         const containerRect = container.getBoundingClientRect();
         const offsetX = e.clientX - containerRect.left;
         const totalWidth = containerRect.width;
-        let flexLeft = offsetX / totalWidth * 2; // flex 합이 2 (1.4+0.6)
+        let flexLeft = offsetX / totalWidth * 2; // flex ?�이 2 (1.4+0.6)
         if (flexLeft < 0.3) flexLeft = 0.3;
         if (flexLeft > 1.7) flexLeft = 1.7;
         leftPanel.style.flex = flexLeft;
@@ -108,16 +108,16 @@ function initGroupTabResizer() {
     });
 }
 
-/* ══════════════════════════════════════════
- *  그룹 멤버 하이라이트 (지도)
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 멤버 ?�이?�이??(지??
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 
 
 
 
 /**
- * 그룹 정보 로드
- * @param {boolean} refreshChart - 차트 재렌더링 여부 (기본 true)
+ * 그룹 ?�보 로드
+ * @param {boolean} refreshChart - 차트 ?�렌?�링 ?��? (기본 true)
  */
 function loadGroupInfo(refreshChart = true, targetGid = null) {
     const gidValue = targetGid !== null ? targetGid : document.getElementById('inp-edit-group-id').value;
@@ -126,27 +126,27 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
     if (!gid || isNaN(gid)) return;
     currentEditingGroup = gid;
     
-    // UI ID 동기화
+    // UI ID ?�기??
     const inpEdit = document.getElementById('inp-edit-group-id');
     if (inpEdit) inpEdit.value = gid;
 
-    // 데이터가 없는 경우 빈 데이터 구조라도 생성 (강제 렌더링을 위해)
+    // ?�이?��? ?�는 경우 �??�이??구조?�도 ?�성 (강제 ?�더링을 ?�해)
     if (!STATE.groups[gid]) {
         STATE.groups[gid] = {
             name: `그룹 ${gid}`,
             schedules: Array.from({ length: 10 }, () => 
                 Array.from({ length: 16 }, () => ({ h: -1, m: 0, cycle: 100 }))
             ),
-            planAliases: ["평일", "토요일", "일요일", "특수일", "", "", "", "", "", ""] // [New] 일계획별 별칭 기본값 설정
+            planAliases: ["?�일", "?�요??, "?�요??, "?�수??, "", "", "", "", "", ""] // [New] ?�계?�별 별칭 기본�??�정
         };
     }
 
     const group = STATE.groups[gid];
 
-    // [사용자 요청] 일계획 별칭 UI 동기화
+    // [?�용???�청] ?�계??별칭 UI ?�기??
     autoGeneratePlanAliases(group);
     
-    // [사용자 규칙] db_groups.csv는 별도 관리되므로 교차로 정보를 통해 그룹 스케줄을 자동으로 채우지 않음
+    // [?�용??규칙] db_groups.csv??별도 관리되므�?교차�??�보�??�해 그룹 ?��?줄을 ?�동?�로 채우지 ?�음
     if (!group.schedules) {
         group.schedules = Array.from({ length: 10 }, () => 
             Array.from({ length: 16 }, () => ({ h: -1, m: 0, cycle: 100 }))
@@ -156,15 +156,15 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
     const nameInp = document.getElementById('inp-group-name');
     if (nameInp) nameInp.value = (group.name || `그룹 ${gid}`).trim();
 
-    // 1. 테이블 즉시 렌더링 (지연 시간 없이)
+    // 1. ?�이�?즉시 ?�더�?(지???�간 ?�이)
     renderGroupTODTable();
     renderGroupWeeklyPlanTable();
 
-    // 2. 소속 교차로 목록 갱신
-    // [사용자 요청] 교차로 목록 및 순서/거리 자동 계산
+    // 2. ?�속 교차�?목록 갱신
+    // [?�용???�청] 교차�?목록 �??�서/거리 ?�동 계산
     let members = Object.values(STATE.junctions).filter(j => String(j.group) === String(gid));
     
-    // [사용자 규칙] 순서가 지정되지 않은 항목(-1)들에 대해 위도(Lat)가 낮은 순으로 자동 순서 부여
+    // [?�용??규칙] ?�서가 지?�되지 ?��? ??��(-1)?�에 ?�???�도(Lat)가 ??? ?�으�??�동 ?�서 부??
     let maxOrder = 0;
     const unorderedMembers = [];
     
@@ -177,7 +177,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
         }
     });
 
-    // 위도(Lat) 오름차순 정렬 (남쪽 -> 북쪽)
+    // ?�도(Lat) ?�름차순 ?�렬 (?�쪽 -> 북쪽)
     unorderedMembers.sort((a, b) => (a.lat || 0) - (b.lat || 0));
 
     unorderedMembers.forEach(m => {
@@ -186,7 +186,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
         m.extra.diagramOrder = maxOrder;
     });
 
-    // 순서대로 정렬 (체크 해제된 항목은 하단으로, 나머지는 지정된 순서대로)
+    // ?�서?��??�렬 (체크 ?�제????��?� ?�단?�로, ?�머지??지?�된 ?�서?��?
     members.sort((a, b) => {
         const aExcluded = a.extra && a.extra.excludeFromTsd === true;
         const bExcluded = b.extra && b.extra.excludeFromTsd === true;
@@ -203,7 +203,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
             let autoDist = getHaversineDistance(prev.lat, prev.lng, m.lat, m.lng);
             if (isNaN(autoDist)) autoDist = 0;
             
-            // 수동 입력값(diagramDist)이 유효한 숫자인지 확인
+            // ?�동 ?�력�?diagramDist)???�효???�자?��? ?�인
             const manualDist = parseInt(m.extra.diagramDist);
             if (!isNaN(manualDist) && m.extra.diagramDist !== undefined && m.extra.diagramDist !== null) {
                 m.extra.diagramDistDisp = manualDist;
@@ -215,7 +215,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
 
     document.getElementById('group-member-count').innerText = members.length;
 
-    // [검증] 소속 교차로들의 일계획(TOD) 데이터가 동일한지 확인
+    // [검�? ?�속 교차로들???�계??TOD) ?�이?��? ?�일?��? ?�인
     const statusEl = document.getElementById('group-validation-status');
     if (statusEl) {
         if (members.length > 1) {
@@ -235,19 +235,19 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
                 const mSched = JSON.stringify(normalize(m.schedules));
                 if (mSched !== baseSched) {
                     mismatchCount++;
-                    m._todMismatch = true; // 플래그 설정
+                    m._todMismatch = true; // ?�래�??�정
                 } else {
                     m._todMismatch = false;
                 }
             });
 
             if (mismatchCount === 0) {
-                statusEl.innerHTML = '✅ 모든 교차로 일계획 일치';
+                statusEl.innerHTML = '??모든 교차�??�계???�치';
                 statusEl.style.background = 'rgba(46, 204, 113, 0.1)';
                 statusEl.style.color = '#2ecc71';
                 statusEl.style.borderColor = 'rgba(46, 204, 113, 0.3)';
             } else {
-                statusEl.innerHTML = `⚠️ 일계획 불일치: ${mismatchCount}개소`;
+                statusEl.innerHTML = `?�️ ?�계??불일�? ${mismatchCount}개소`;
                 statusEl.style.background = 'rgba(230, 126, 34, 0.1)';
                 statusEl.style.color = '#e67e22';
                 statusEl.style.borderColor = 'rgba(230, 126, 34, 0.3)';
@@ -261,27 +261,27 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
 
     const listContainer = document.getElementById('group-member-list');
     if (members.length === 0) {
-        listContainer.innerHTML = `<div style="font-size: 10px; color: #555; text-align: center; padding: 10px;">소속 교차로 없음</div>`;
+        listContainer.innerHTML = `<div style="font-size: 10px; color: #555; text-align: center; padding: 10px;">?�속 교차�??�음</div>`;
     } else {
         listContainer.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 2px;">
-                <span style="font-size:11px; color:#aaa; font-weight:bold;">📍 소속 교차로 (시공도 설정)</span>
+                <span style="font-size:11px; color:#aaa; font-weight:bold;">?�� ?�속 교차�?(?�공???�정)</span>
                 <div style="display:flex; gap:4px;">
-                    <button class="sigma-btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="sortGroupMembers('SN')">S-N 정렬</button>
-                    <button class="sigma-btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="sortGroupMembers('EW')">E-W 정렬</button>
+                    <button class="sigma-btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="sortGroupMembers('SN')">S-N ?�렬</button>
+                    <button class="sigma-btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="sortGroupMembers('EW')">E-W ?�렬</button>
                 </div>
             </div>
             <div style="display:flex; gap:6px; font-size:9px; color:#666; margin-bottom:4px; padding:0 8px;">
-                <span style="width:15px; text-align:center;">✓</span>
+                <span style="width:15px; text-align:center;">??/span>
                 <span style="width:35px; text-align:left;">ID</span>
                 <span style="flex:1;">교차로명</span>
-                <span style="width:32px; text-align:center;">순번</span>
+                <span style="width:32px; text-align:center;">?�번</span>
                 <span style="width:42px; text-align:center;">거리(m)</span>
             </div>
             ${members.map((j, idx) => {
             const diagOrder = j.extra.diagramOrder;
             const diagDist = j.extra.diagramDistDisp;
-            const mismatchIcon = j._todMismatch ? `<span style="color:#e67e22; font-size:10px; margin-right:4px;" title="그룹 기준 일계획과 불일치">⚠️</span>` : '';
+            const mismatchIcon = j._todMismatch ? `<span style="color:#e67e22; font-size:10px; margin-right:4px;" title="그룹 기�? ?�계?�과 불일�?>?�️</span>` : '';
             const isExcluded = j.extra.excludeFromTsd === true;
             
             return `
@@ -295,7 +295,7 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
                         <input type="checkbox" ${isExcluded ? '' : 'checked'} 
                                onchange="toggleJunctionTsdInclusion('${j.id}', this.checked)"
                                style="cursor:pointer; width:13px; height:13px; accent-color:var(--accent); flex-shrink:0;"
-                               title="시공도 포함 여부">
+                               title="?�공???�함 ?��?">
                         <span style="color:rgba(255,255,255,0.4); font-size:9.5px; font-family:monospace; min-width:35px; text-align:left;">#${j.id}</span>
                         <span onclick="viewJunctionTODInGroup('${j.id}')" 
                               style="color:#eee; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding: 2px 0;">
@@ -307,11 +307,11 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
                         <input type="number" value="${diagOrder}" 
                                onchange="updateJunctionDiagramOrder('${j.id}', this.value)"
                                style="width:32px; height:18px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:var(--accent); text-align:center; font-size:10px; border-radius:2px; outline:none;"
-                               title="순서">
+                               title="?�서">
                         <input type="number" value="${diagDist}" 
                                onchange="updateJunctionDiagramDist('${j.id}', this.value)"
                                style="width:42px; height:18px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:#fff; text-align:center; font-size:10px; border-radius:2px; outline:none;"
-                               title="앞 교차로와의 거리 (자동계산됨, 수동수정 가능)">
+                               title="??교차로�???거리 (?�동계산?? ?�동?�정 가??">
                     </div>
                 </div>`;
         }).join('')}
@@ -320,10 +320,10 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
 
     renderGroupList();
     
-    // [신규] TSD 설정 세트 UI 렌더링
+    // [?�규] TSD ?�정 ?�트 UI ?�더�?
     renderGroupTsdSets(gid);
 
-    // [추가] 시공도(Time-Space Diagram) 자동 렌더링
+    // [추�?] ?�공??Time-Space Diagram) ?�동 ?�더�?
     if (typeof renderTimeSpaceDiagram === 'function') {
         renderTimeSpaceDiagram();
     }
@@ -340,42 +340,42 @@ function loadGroupInfo(refreshChart = true, targetGid = null) {
 }
 
 /** 
- * [사용자 요청] 특정 교차로의 TOD 데이터를 그룹 편집기(테이블/차트)에 로드 
+ * [?�용???�청] ?�정 교차로의 TOD ?�이?��? 그룹 ?�집�??�이�?차트)??로드 
  */
 function viewJunctionTODInGroup(jid) {
     const j = STATE.junctions[jid];
     if (!j || !j.schedules) return;
     
-    // 1. 해당 교차로가 속한 그룹 ID 가져오기
+    // 1. ?�당 교차로�? ?�한 그룹 ID 가?�오�?
     const gid = String(j.group);
     if (gid === "0" || !STATE.groups[gid]) {
         console.warn(`Junction ${jid} has no valid group assigned.`);
         return;
     }
     
-    // 2. 현재 편집 그룹 컨텍스트 업데이트
+    // 2. ?�재 ?�집 그룹 컨텍?�트 ?�데?�트
     currentEditingGroup = gid;
     
-    // 3. 그룹 버퍼 스케줄을 선택한 교차로의 스케줄로 교체 (일괄 적용 시 이 데이터를 사용하게 됨)
+    // 3. 그룹 버퍼 ?��?줄을 ?�택??교차로의 ?��?줄로 교체 (?�괄 ?�용 ?????�이?��? ?�용?�게 ??
     STATE.groups[gid].schedules = JSON.parse(JSON.stringify(j.schedules));
     
-    // 4. UI 컨트롤 요소 동기화
+    // 4. UI 컨트�??�소 ?�기??
     const inpEdit = document.getElementById('inp-edit-group-id');
     if (inpEdit) inpEdit.value = gid;
     
     const nameInp = document.getElementById('inp-group-name');
     if (nameInp) nameInp.value = (STATE.groups[gid].name || `그룹 ${gid}`).trim();
     
-    // 5. 테이블 및 차트 즉시 갱신
+    // 5. ?�이�?�?차트 즉시 갱신
     renderGroupTODTable();
     renderGroupCycleChart();
     
-    // 6. 교차로 선택 처리 (맵 이동/줌 생략하여 그룹 화면 유지)
+    // 6. 교차�??�택 처리 (�??�동/�??�략?�여 그룹 ?�면 ?��?)
     if (typeof selectJunction === 'function') {
         selectJunction(jid);
     }
     
-    // 7. 목록 내 선택 항목 하이라이트 처리
+    // 7. 목록 ???�택 ??�� ?�이?�이??처리
     document.querySelectorAll('.group-member-item').forEach(el => {
         el.style.borderColor = 'rgba(255,255,255,0.05)';
         el.style.background = 'rgba(255,255,255,0.03)';
@@ -393,9 +393,9 @@ function viewJunctionTODInGroup(jid) {
 
 
 
-/* ══════════════════════════════════════════
- *  그룹 요일 선택 UI
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 ?�일 ?�택 UI
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 
 window.toggleGroupTodPlanGroup = function(group) {
     if (typeof STATE !== 'undefined') {
@@ -432,11 +432,11 @@ function updateGroupDayUI() {
 
     let editHtml = '<div style="display:flex; flex-direction:column; gap:6px; width:100%;">';
     
-    // 1행: 일반
+    // 1?? ?�반
     editHtml += '<div style="display:flex; align-items:center; gap:8px;">';
-    editHtml += '<span style="font-size:10px; color:#aaa; min-width:35px; font-weight:bold;">[일반]</span>';
+    editHtml += '<span style="font-size:10px; color:#aaa; min-width:35px; font-weight:bold;">[?�반]</span>';
     
-    // [추가] 테이블 헤더 하이라이트 동기화
+    // [추�?] ?�이�??�더 ?�이?�이???�기??
     for (let d = 0; d < 10; d++) {
         const head = document.getElementById(`day-header-${d}`);
         if (head) {
@@ -448,9 +448,9 @@ function updateGroupDayUI() {
     for (let i = 0; i < 5; i++) editHtml += renderBtn(DAY_LABELS[i], i);
     editHtml += '</div></div>';
 
-    // 2행: 시차
+    // 2?? ?�차
     editHtml += '<div style="display:flex; align-items:center; gap:8px;">';
-    editHtml += '<span style="font-size:10px; color:var(--accent); min-width:35px; font-weight:bold;">[시차]</span>';
+    editHtml += '<span style="font-size:10px; color:var(--accent); min-width:35px; font-weight:bold;">[?�차]</span>';
     editHtml += '<div style="display:flex; gap:4px; flex:1;">';
     for (let i = 5; i < 10; i++) editHtml += renderBtn(DAY_LABELS[i], i);
     editHtml += '</div></div>';
@@ -461,7 +461,7 @@ function updateGroupDayUI() {
 
     // 2. Chart Comparison Selector (Checkbox)
     // 2. Chart Comparison Selector (Checkbox)
-    let chartHtml = '<span style="color:#aaa; font-weight:bold; margin-right:4px;">일계획:</span>'; 
+    let chartHtml = '<span style="color:#aaa; font-weight:bold; margin-right:4px;">?�계??</span>'; 
 
     DAY_LABELS.forEach((lab, i) => {
         const isSelected = selectedGroupDays.includes(i);
@@ -486,21 +486,21 @@ function toggleChartGroupDay(idx) {
     renderGroupCycleChart();
 }
 
-/** 편집 요일 선택 (라디오) */
+/** ?�집 ?�일 ?�택 (?�디?? */
 function setEditGroupDay(idx) {
     STATE.currentGroupDayTypeIdx = idx;
-    // 이제 체크박스(그래프 비교)와 연동하지 않음
+    // ?�제 체크박스(그래??비교)?� ?�동?��? ?�음
     updateGroupDayUI();
     renderGroupTODTable();
     renderGroupCycleChart();
 
-    // 선택한 요일 컬럼으로 자동 스크롤
+    // ?�택???�일 컬럼?�로 ?�동 ?�크�?
     setTimeout(() => {
         const header = document.getElementById(`day-header-${idx}`);
         const container = document.getElementById('group-tod-table-container');
         if (header && container) {
             const headerLeft = header.offsetLeft;
-            // 앞의 '#' 컬럼 width가 대략 30px이므로 조금 여유를 두고 스크롤
+            // ?�의 '#' 컬럼 width가 ?�??30px?��?�?조금 ?�유�??�고 ?�크�?
             container.scrollTo({ left: headerLeft - 40, behavior: 'smooth' });
         }
     }, 50);
@@ -508,28 +508,28 @@ function setEditGroupDay(idx) {
 
 function changeGroupDayType(idx) { setEditGroupDay(idx); }
 
-/* ══════════════════════════════════════════
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
  *  그룹 TOD 복사
- * ══════════════════════════════════════════ */
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function copyGroupTODDay() {
     if (!currentEditingGroup || !STATE.groups[currentEditingGroup]) return;
     const fromIdx = parseInt(document.getElementById('copy-from-day').value);
     const toIdx = STATE.currentGroupDayTypeIdx;
 
-    if (fromIdx === toIdx) { alert("출발지와 목적지가 같습니다."); return; }
-    if (!confirm(`${DAY_LABELS[fromIdx]} TOD 데이터를 ${DAY_LABELS[toIdx]}로 복사하시겠습니까?`)) return;
+    if (fromIdx === toIdx) { alert("출발지?� 목적지가 같습?�다."); return; }
+    if (!confirm(`${DAY_LABELS[fromIdx]} TOD ?�이?��? ${DAY_LABELS[toIdx]}�?복사?�시겠습?�까?`)) return;
 
     const fromData = STATE.groups[currentEditingGroup].schedules[fromIdx];
     STATE.groups[currentEditingGroup].schedules[toIdx] = JSON.parse(JSON.stringify(fromData));
 
     renderGroupTODTable();
     renderGroupCycleChart();
-    alert("복사 완료되었습니다.");
+    alert("복사 ?�료?�었?�니??");
 }
 
-/* ══════════════════════════════════════════
- *  그룹 TOD 테이블 렌더링
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 TOD ?�이�??�더�?
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function renderGroupTODTable() {
     const gid = currentEditingGroup;
     if (!gid || !STATE.groups[gid]) return;
@@ -537,15 +537,15 @@ function renderGroupTODTable() {
     const group = STATE.groups[gid];
 
     let html = '';
-    // 주기를 한 번에 보기 위해 16줄 모두 출력 (좌우 2단 대신 1단으로 하고 요일 5개를 가로로 배치하도록 변경 가능하지만, 
-    // 사용자가 '한 번에 보게' 해달라고 했으므로 16줄 전체를 요일별 컬럼으로 구성)
+    // 주기�???번에 보기 ?�해 16�?모두 출력 (좌우 2???�??1?�으�??�고 ?�일 5개�? 가로로 배치?�도�?변�?가?�하지�? 
+    // ?�용?��? '??번에 보게' ?�달?�고 ?�으므�?16�??�체�??�일�?컬럼?�로 구성)
     for (let i = 0; i < 16; i++) {
         const isSelected = (STATE.selectedTodPlanIdx === i);
         const rowBg = isSelected ? 'background:rgba(0,100,220,0.15);' : '';
         html += `<tr style="border-bottom: 1px solid #222; height: 18px; cursor:pointer; ${rowBg}" 
                      class="tod-row" data-plan-idx="${i}" 
                      onclick="selectTodPlan(${i})" 
-                     title="클릭: ${i+1}번 시간계획으로 시공도 분석">`;
+                     title="?�릭: ${i+1}�??�간계획?�로 ?�공??분석">`;
         html += `<td style="text-align:center; color:${isSelected ? '#33aaff' : '#555'}; border-right:1px solid #333; padding:0; font-size:10px; font-weight:${isSelected ? '800' : 'normal'};">${i + 1}</td>`;
 
         for (let d = 0; d < 10; d++) {
@@ -556,7 +556,7 @@ function renderGroupTODTable() {
             const isCurrentDay = (STATE.currentGroupDayTypeIdx === d);
             const activeClass = isCurrentDay ? 'gtod-td-active' : '';
             
-            // 시간이 -1인 경우(미사용) 톤다운 효과 적용
+            // ?�간??-1??경우(미사?? ?�다???�과 ?�용
             const isUnused = (s.h === -1);
             const unusedStyle = isUnused ? 'opacity: 0.35; filter: grayscale(1);' : '';
 
@@ -590,17 +590,17 @@ function renderGroupTODTable() {
 }
 
 /**
- * TOD 행 선택 → 시공도 연동
+ * TOD ???�택 ???�공???�동
  */
 function selectTodPlan(idx) {
     STATE.selectedTodPlanIdx = idx;
-    renderGroupTODTable();  // 하이라이트 갱신
+    renderGroupTODTable();  // ?�이?�이??갱신
     if (typeof renderTimeSpaceDiagram === 'function') renderTimeSpaceDiagram();
 }
 
-/* ══════════════════════════════════════════
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
  *  그룹 주기 차트
- * ══════════════════════════════════════════ */
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function renderGroupCycleChart() {
     const gid = currentEditingGroup;
     if (!gid || !STATE.groups[gid]) return;
@@ -668,14 +668,14 @@ function renderGroupCycleChart() {
     });
 }
 
-/* ══════════════════════════════════════════
- *  그룹 목록 렌더링
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 목록 ?�더�?
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function renderGroupList() {
     const listDiv = document.getElementById('group-list-container');
     if (!listDiv) return;
 
-    // [Fix] junctions 데이터에서 그룹 ID를 추출하여 STATE.groups에 동기화 (CSV 미로드 시에도 표시 보장)
+    // [Fix] junctions ?�이?�에??그룹 ID�?추출?�여 STATE.groups???�기??(CSV 미로???�에???�시 보장)
     Object.values(STATE.junctions).forEach(j => {
         if (j.group && j.group !== "0" && j.group !== 0) {
             const gid = String(j.group);
@@ -690,11 +690,11 @@ function renderGroupList() {
 
     const gids = Object.keys(STATE.groups).sort((a, b) => Number(a) - Number(b));
     if (gids.length === 0) {
-        listDiv.innerHTML = '<div style="color:#666; font-size:13px; padding:30px; text-align:center;">저장된 그룹 데이터가 없습니다.</div>';
+        listDiv.innerHTML = '<div style="color:#666; font-size:13px; padding:30px; text-align:center;">?�?�된 그룹 ?�이?��? ?�습?�다.</div>';
         return;
     }
 
-    // 최적화: 모든 교차로를 순회하여 그룹별 소속 정보 및 일계획 일치성 파악
+    // 최적?? 모든 교차로�? ?�회?�여 그룹�??�속 ?�보 �??�계???�치???�악
     const groupMeta = {};
     Object.values(STATE.junctions).forEach(j => {
         const g = String(j.group);
@@ -702,7 +702,7 @@ function renderGroupList() {
         
         groupMeta[g].count++;
         
-        // 사용하지 않는 슬롯(h === -1)의 background 데이터(cycle, idx 등) 무시하도록 정규화
+        // ?�용?��? ?�는 ?�롯(h === -1)??background ?�이??cycle, idx ?? 무시?�도�??�규??
         const normalizedSched = j.schedules ? j.schedules.map(day => 
             day.map(slot => slot.h === -1 ? { h: -1, m: 0 } : slot)
         ) : null;
@@ -720,8 +720,8 @@ function renderGroupList() {
         <thead style="position: sticky; top: 0; background: #1a1a1a; z-index: 5;">
             <tr style="background:#2a2a2a; border-bottom:1px solid #444;">
                 <th style="padding:6px 10px; text-align:center; width:45px; color:#aaa; font-size:11px;">ID</th>
-                <th style="padding:6px 10px; text-align:left; color:#aaa; font-size:11px;">그룹명 (Description)</th>
-                <th style="padding:6px 10px; text-align:center; width:65px; color:#aaa; font-size:11px;">교차로</th>
+                <th style="padding:6px 10px; text-align:left; color:#aaa; font-size:11px;">그룹�?(Description)</th>
+                <th style="padding:6px 10px; text-align:center; width:65px; color:#aaa; font-size:11px;">교차�?/th>
             </tr>
         </thead>
         <tbody>
@@ -736,8 +736,8 @@ function renderGroupList() {
         const weight = isEditing ? '700' : '400';
         const gName = (group.name || `그룹 ${gid}`).trim();
         
-        // 일계획 불일치 아이콘 설정
-        const mismatchIcon = meta.hasMismatch ? `<span style="color:#e67e22; margin-left:5px; font-size:10px;" title="교차로 간 일계획 데이터 불일치">⚠️</span>` : '';
+        // ?�계??불일�??�이�??�정
+        const mismatchIcon = meta.hasMismatch ? `<span style="color:#e67e22; margin-left:5px; font-size:10px;" title="교차�?�??�계???�이??불일�?>?�️</span>` : '';
 
         html += `
             <tr data-gid="${gid}" onclick="setEditingGroup(${gid})"
@@ -758,15 +758,15 @@ function setEditingGroup(gid) {
     loadGroupInfo();
 }
 
-/* ══════════════════════════════════════════
- *  그룹 스케줄/이름 업데이트
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 ?��?�??�름 ?�데?�트
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function updateGroupSched(idx, f, v, dayIdx = null) {
     if (!currentEditingGroup || !STATE.groups[currentEditingGroup]) return;
     const targetDayIdx = (dayIdx !== null) ? dayIdx : STATE.currentGroupDayTypeIdx;
     STATE.groups[currentEditingGroup].schedules[targetDayIdx][idx][f] = parseInt(v) || 0;
 
-    // 차트 업데이트 (이전 최적화 유지 - TOD 데이터 변경 시에만 redraw)
+    // 차트 ?�데?�트 (?�전 최적???��? - TOD ?�이??변�??�에�?redraw)
     renderGroupCycleChart();
     if (document.getElementById('tab-stats').classList.contains('active')) renderStats();
 }
@@ -781,10 +781,10 @@ function updateGroupName(val) {
 function applyGroupToMembers() {
     try {
         if (!currentEditingGroup || !STATE.groups[currentEditingGroup]) {
-            alert("편집할 그룹이 선택되지 않았습니다.");
+            alert("?�집??그룹???�택?��? ?�았?�니??");
             return;
         }
-        if (!confirm(`그룹 ${currentEditingGroup}의 모든 10일 설정을 소속된 모든 교차로에 일괄 적용하시겠습니까?`)) return;
+        if (!confirm(`그룹 ${currentEditingGroup}??모든 10???�정???�속??모든 교차로에 ?�괄 ?�용?�시겠습?�까?`)) return;
 
         const groupSchedules = STATE.groups[currentEditingGroup].schedules;
         let count = 0;
@@ -793,13 +793,17 @@ function applyGroupToMembers() {
                 j.schedules = JSON.parse(JSON.stringify(groupSchedules));
                 j.weeklyPlan = STATE.groups[currentEditingGroup].weeklyPlan || "1;1;1;1;1;2;3";
                 
-                // [Fix] 그룹 TOD에서 수정한 cycle이 j.dayPlans 에도 동기화되어야 DB 반영 시 옛날 cycle로 덮어쓰여 불일치가 발생하는 것을 방지
+                // [Fix] 그룹 TOD?�서 ?�정??cycle??j.dayPlans ?�도 ?�기?�되?�야 DB 반영 ???�날 cycle�???��?�여 불일치�? 발생?�는 것을 방�?
                 if (j.dayPlans) {
                     for (let d = 0; d < 10; d++) {
                         if (groupSchedules[d] && j.dayPlans[d]) {
                             for (let s = 0; s < 16; s++) {
-                                if (groupSchedules[d][s] && groupSchedules[d][s].cycle) {
-                                    j.dayPlans[d][s].cycle = groupSchedules[d][s].cycle;
+                                const schedItem = groupSchedules[d][s];
+                                if (schedItem && schedItem.cycle && schedItem.idx > 0) {
+                                    const targetIdx = schedItem.idx - 1;
+                                    if (j.dayPlans[d][targetIdx]) {
+                                        j.dayPlans[d][targetIdx].cycle = schedItem.cycle;
+                                    }
                                 }
                             }
                         }
@@ -814,30 +818,30 @@ function applyGroupToMembers() {
         if (STATE.activeJid && String(STATE.junctions[STATE.activeJid].group) === String(currentEditingGroup)) {
             renderRingTables();
         }
-        alert(`${count}개 교차로에 그룹 TOD 설정 적용 완료되었습니다.`);
+        alert(`${count}�?교차로에 그룹 TOD ?�정 ?�용 ?�료?�었?�니??`);
     } catch (e) {
         console.error("Apply Error:", e);
-        alert("적용 중 오류가 발생했습니다: " + e.message);
+        alert("?�용 �??�류가 발생?�습?�다: " + e.message);
     }
 }
 
-/* ══════════════════════════════════════════
- *  그룹 CSV 저장/불러오기
- * ══════════════════════════════════════════ */
-/* ══════════════════════════════════════════
- *  그룹 CSV 저장/불러오기 (통합 핸들러)
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 CSV ?�??불러?�기
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  그룹 CSV ?�??불러?�기 (?�합 ?�들??
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 
 
 
 
-/** 그룹 TOD CSV 데이터 처리 핵심 로직 (db_tod_plans.csv 규격 호환 추가) */
+/** 그룹 TOD CSV ?�이??처리 ?�심 로직 (db_tod_plans.csv 규격 ?�환 추�?) */
 
 
-/** [신규] db_tod_plans.csv 파일을 읽어 현재 그룹의 스케줄로 매핑 */
+/** [?�규] db_tod_plans.csv ?�일???�어 ?�재 그룹???��?줄로 매핑 */
 
 
-/** 기존 레거시 그룹 CSV 처리 로직 분리 */
+/** 기존 ?�거??그룹 CSV 처리 로직 분리 */
 function handleLegacyGroupCSV(lines, isAutoLoad) {
     const newGroups = {};
     let count = 0;
@@ -873,7 +877,7 @@ function handleLegacyGroupCSV(lines, isAutoLoad) {
         }
         else if (cols.length >= 4) parseSched(cols[3], schedules[0]);
 
-        // [신규] TSD 설정 세트 파싱 (Index 13, 14, 15)
+        // [?�규] TSD ?�정 ?�트 ?�싱 (Index 13, 14, 15)
         const tsdConfigs = [];
         for (let i = 0; i < 3; i++) {
             const colIdx = 13 + i;
@@ -894,7 +898,7 @@ function handleLegacyGroupCSV(lines, isAutoLoad) {
         count++;
     }
 
-    if (isAutoLoad || confirm(`총 ${count}개의 그룹 정보를 불러왔습니다. 적용하시겠습니까?`)) {
+    if (isAutoLoad || confirm(`�?${count}개의 그룹 ?�보�?불러?�습?�다. ?�용?�시겠습?�까?`)) {
         Object.assign(STATE.groups, newGroups);
         if (currentEditingGroup) loadGroupInfo();
         renderGroupList();
@@ -906,7 +910,7 @@ function updateJunctionDiagramOrder(jid, val) {
     if (!j) return;
     if (!j.extra) j.extra = {};
     j.extra.diagramOrder = parseInt(val);
-    loadGroupInfo(true, j.group); // UI 전체 갱신 (순서 변경에 따른 거리 재계산 필요)
+    loadGroupInfo(true, j.group); // UI ?�체 갱신 (?�서 변경에 ?�른 거리 ?�계???�요)
 }
 
 function updateJunctionDiagramDist(jid, val) {
@@ -914,12 +918,12 @@ function updateJunctionDiagramDist(jid, val) {
     if (!j) return;
     if (!j.extra) j.extra = {};
     const dist = parseInt(val);
-    // 수동 입력값 저장
+    // ?�동 ?�력�??�??
     j.extra.diagramDist = dist;
     loadGroupInfo(true, j.group);
 }
 
-// --- [신규] 교차로 순서 조정을 위한 드래그 앤 드롭 핸들러 ---
+// --- [?�규] 교차�??�서 조정???�한 ?�래�????�롭 ?�들??---
 function handleJunctionDragStart(e, jid) {
     e.dataTransfer.setData('text/plain', jid);
     e.currentTarget.style.opacity = '0.4';
@@ -956,11 +960,11 @@ function handleJunctionDrop(e, targetJid) {
     const targetIdx = members.findIndex(m => m.id === targetJid);
 
     if (draggedIdx !== -1 && targetIdx !== -1) {
-        // 배열에서 옮기기
+        // 배열?�서 ??���?
         const [movedItem] = members.splice(draggedIdx, 1);
         members.splice(targetIdx, 0, movedItem);
 
-        // 순서(diagramOrder) 순차적으로 재부여
+        // ?�서(diagramOrder) ?�차?�으�??��???
         members.forEach((m, i) => {
             if (!m.extra) m.extra = {};
             m.extra.diagramOrder = i + 1;
@@ -971,7 +975,7 @@ function handleJunctionDrop(e, targetJid) {
 }
 
 /**
- * 그룹 목록 드래그 스크롤 초기화
+ * 그룹 목록 ?�래�??�크�?초기??
  */
 (function initGroupListDragScroll() {
     document.addEventListener('DOMContentLoaded', () => {
@@ -1004,7 +1008,7 @@ function handleJunctionDrop(e, targetJid) {
         el.style.cursor = 'grab';
     });
 })();
-/** [신규] 그룹별 TSD 설정 세트 UI 렌더링 */
+/** [?�규] 그룹�?TSD ?�정 ?�트 UI ?�더�?*/
 function renderGroupTsdSets(gid) {
     const group = STATE.groups[gid];
     if (!group) return;
@@ -1019,29 +1023,29 @@ function renderGroupTsdSets(gid) {
             if (config.order && config.order.length > 0) {
                 const totalDist = config.distances.reduce((a, b) => a + b, 0);
                 infoEl.innerHTML = `
-                    <div style="color:var(--neon-cyan);">교차로: ${config.order.length}개</div>
-                    <div style="color:#aaa;">총 거리: ${Math.round(totalDist).toLocaleString()}m</div>
+                    <div style="color:var(--neon-cyan);">교차�? ${config.order.length}�?/div>
+                    <div style="color:#aaa;">�?거리: ${Math.round(totalDist).toLocaleString()}m</div>
                 `;
             } else {
-                infoEl.innerHTML = '<span style="color:#444;">데이터 없음</span>';
+                infoEl.innerHTML = '<span style="color:#444;">?�이???�음</span>';
             }
         }
     }
 }
 
-/** [신규] 현재 구성을 특정 TSD 세트에 캡처하여 저장 */
+/** [?�규] ?�재 구성???�정 TSD ?�트??캡처?�여 ?�??*/
 function captureCurrentTsdToSet(setIdx) {
-    if (!currentEditingGroup) { alert("그룹을 먼저 선택하세요."); return; }
+    if (!currentEditingGroup) { alert("그룹??먼�? ?�택?�세??"); return; }
     const gid = currentEditingGroup;
     const group = STATE.groups[gid];
 
-    // 현재 화면(멤버 리스트)의 구성을 수집
+    // ?�재 ?�면(멤버 리스????구성???�집
     let members = Object.values(STATE.junctions).filter(j => String(j.group) === String(gid));
     const valid = members.filter(j => j.extra && !j.extra.excludeFromTsd);
     valid.sort((a, b) => (a.extra.diagramOrder || 0) - (b.extra.diagramOrder || 0));
 
     if (valid.length < 2) {
-        alert("시공도에 포함된 교차로가 2개 이상이어야 저장할 수 있습니다.");
+        alert("?�공?�에 ?�함??교차로�? 2�??�상?�어???�?�할 ???�습?�다.");
         return;
     }
 
@@ -1050,21 +1054,21 @@ function captureCurrentTsdToSet(setIdx) {
     const order = valid.map(m => m.id);
     const distances = [];
     for (let i = 1; i < valid.length; i++) {
-        // diagramDistDisp: 수동 입력이 있으면 수동값, 없으면 자동계산값
+        // diagramDistDisp: ?�동 ?�력???�으�??�동�? ?�으�??�동계산�?
         distances.push(valid[i].extra.diagramDistDisp || 0);
     }
 
     group.tsdConfigs[setIdx] = {
-        enabled: 1, // 저장 시 자동 활성화
+        enabled: 1, // ?�?????�동 ?�성??
         order: order,
         distances: distances
     };
 
     renderGroupTsdSets(gid);
-    alert(`현재 구성이 SET ${setIdx + 1}에 저장되었습니다.`);
+    alert(`?�재 구성??SET ${setIdx + 1}???�?�되?�습?�다.`);
 }
 
-/** [신규] TSD 설정 세트 활성화 여부 업데이트 */
+/** [?�규] TSD ?�정 ?�트 ?�성???��? ?�데?�트 */
 function updateGroupTsdConfig(setIdx) {
     if (!currentEditingGroup) return;
     const gid = currentEditingGroup;
@@ -1082,7 +1086,7 @@ function updateGroupTsdConfig(setIdx) {
 function autoGeneratePlanAliases(groupObj) {
     if (!groupObj || !groupObj.weeklyPlan) return;
     const parts = groupObj.weeklyPlan.split(';');
-    const days = ["월", "화", "수", "목", "금", "토", "일"];
+    const days = ["??, "??, "??, "�?, "�?, "??, "??];
     const aliases = Array(10).fill("");
     
     const planToDays = {};
@@ -1107,13 +1111,13 @@ function autoGeneratePlanAliases(groupObj) {
         inp.value = groupObj.planAliases[d] || "";
     });
     
-    // UI 업데이트
+    // UI ?�데?�트
     const chartContainer = document.getElementById('group-chart-day-selector');
     if (chartContainer) {
         let chartHtml = '<select class="phase-select" style="width:90px;" onchange="setChartGroupDay(parseInt(this.value))">';
         for (let i = 0; i < 10; i++) {
             const alias = groupObj.planAliases[i] || "";
-            const lab = "일계획 " + (i + 1);
+            const lab = "?�계??" + (i + 1);
             chartHtml += '<option value="' + i + '" ' + (STATE.currentGroupDayTypeIdx === i ? 'selected' : '') + '>' + (alias ? alias : lab) + '</option>';
         }
         chartHtml += '</select>';
@@ -1136,10 +1140,10 @@ function renderGroupWeeklyPlanTable() {
     const gid = currentEditingGroup;
     const group = gid ? STATE.groups[gid] : null;
     const weeklyPlan = (group && group.weeklyPlan) ? group.weeklyPlan.split(';') : ["1", "1", "1", "1", "1", "2", "3"];
-    const weekLabels = ["월", "화", "수", "목", "금", "토", "일"];
+    const weekLabels = ["??, "??, "??, "�?, "�?, "??, "??];
     
     let html = `
-        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 일계획표</div>
+        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 ?�계?�표</div>
         <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; border: 1px solid rgba(255,255,255,0.08);">
             <thead>
                 <tr style="background: rgba(255,255,255,0.05);">
