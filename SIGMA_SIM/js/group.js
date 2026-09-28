@@ -560,7 +560,7 @@ function renderGroupTODTable() {
             const isUnused = (s.h === -1);
             const unusedStyle = isUnused ? 'opacity: 0.35; filter: grayscale(1);' : '';
 
-            html += `<td style="text-align:center; border-right:1px solid #333; padding:0; ${unusedStyle}" class="${activeClass}">
+            html += `<td style="text-align:center; border-right:1px solid #333; padding:0; ${unusedStyle}" class="${activeClass} drag-cell" data-drag-day="${d}" data-drag-idx="${i}" draggable="true">
                 <div style="display:flex; justify-content:center; align-items:center; height: 100%;">
                     <input type="number" class="sigma-input input-mini" value="${s.h}" min="-1" max="23" 
                            style="width:24px; height:16px; line-height:1; padding:0; text-align:center; font-size:9.5px; background:transparent; border:none;" 
@@ -571,12 +571,12 @@ function renderGroupTODTable() {
                            data-type="group-sched" data-field="m" data-idx="${i}" data-day="${d}">
                 </div>
             </td>`;
-            html += `<td style="text-align:center; border-right:1px solid #333; padding:0; ${unusedStyle}" class="${activeClass}">
+            html += `<td style="text-align:center; border-right:1px solid #333; padding:0; ${unusedStyle}" class="${activeClass} drag-cell" data-drag-day="${d}" data-drag-idx="${i}" draggable="true">
                 <input type="number" class="sigma-input input-mini" value="${s.cycle}" min="0" max="999" 
                        style="width:34px; height:16px; line-height:1; padding:0; text-align:center; color:var(--accent); font-size:10px; background:transparent; border-color:transparent;" 
                        data-type="group-sched" data-field="cycle" data-idx="${i}" data-day="${d}">
             </td>`;
-            html += `<td style="text-align:center; border-right:${d === 9 ? 'none' : '1px solid #555'}; padding:0; ${unusedStyle}" class="${activeClass}">
+            html += `<td style="text-align:center; border-right:${d === 9 ? 'none' : '1px solid #555'}; padding:0; ${unusedStyle}" class="${activeClass} drag-cell" data-drag-day="${d}" data-drag-idx="${i}" draggable="true">
                 <input type="number" class="sigma-input input-mini" value="${s.idx || 1}" min="1" max="16" 
                        style="width:26px; height:16px; line-height:1; padding:0; text-align:center; color:#888; font-size:10px; background:transparent; border-color:transparent;" 
                        data-type="group-sched" data-field="idx" data-idx="${i}" data-day="${d}">
@@ -585,6 +585,117 @@ function renderGroupTODTable() {
         html += `</tr>`;
     }
     document.getElementById('group-tod-body').innerHTML = html;
+
+    const tbody = document.getElementById('group-tod-body');
+    if (tbody && !tbody.dataset.dndInit) {
+        tbody.dataset.dndInit = 'true';
+        
+        tbody.addEventListener('dragstart', (e) => {
+            const td = e.target.closest('td[data-drag-day]');
+            if (!td) return;
+            
+            if (e.target.tagName === 'INPUT') {
+                e.preventDefault();
+                return;
+            }
+            
+            const d = td.dataset.dragDay;
+            const idx = td.dataset.dragIdx;
+            e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'cell', d: parseInt(d), idx: parseInt(idx) }));
+            e.dataTransfer.effectAllowed = 'copyMove';
+            
+            const siblingTds = tbody.querySelectorAll(`td[data-drag-day="${d}"][data-drag-idx="${idx}"]`);
+            siblingTds.forEach(el => el.style.opacity = '0.5');
+        });
+        
+        tbody.addEventListener('dragend', (e) => {
+            const td = e.target.closest('td[data-drag-day]');
+            if (!td) return;
+            const d = td.dataset.dragDay;
+            const idx = td.dataset.dragIdx;
+            const siblingTds = tbody.querySelectorAll(`td[data-drag-day="${d}"][data-drag-idx="${idx}"]`);
+            siblingTds.forEach(el => el.style.opacity = '1');
+            
+            tbody.querySelectorAll('.drag-hover').forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+        });
+        
+        tbody.addEventListener('dragover', (e) => {
+            const td = e.target.closest('td[data-drag-day]');
+            if (!td) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            
+            const d = td.dataset.dragDay;
+            const idx = td.dataset.dragIdx;
+            
+            tbody.querySelectorAll('.drag-hover').forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+            
+            const siblingTds = tbody.querySelectorAll(`td[data-drag-day="${d}"][data-drag-idx="${idx}"]`);
+            siblingTds.forEach(el => {
+                el.classList.add('drag-hover');
+                el.style.backgroundColor = 'rgba(0, 160, 255, 0.3)';
+            });
+        });
+        
+        tbody.addEventListener('dragleave', (e) => {
+            const td = e.target.closest('td[data-drag-day]');
+            if (!td) return;
+            const d = td.dataset.dragDay;
+            const idx = td.dataset.dragIdx;
+            const siblingTds = tbody.querySelectorAll(`td[data-drag-day="${d}"][data-drag-idx="${idx}"]`);
+            siblingTds.forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+        });
+        
+        tbody.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const td = e.target.closest('td[data-drag-day]');
+            if (!td) return;
+            
+            tbody.querySelectorAll('.drag-hover').forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+            
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                if (data.type === 'cell') {
+                    const srcD = data.d;
+                    const srcIdx = data.idx;
+                    const tgtD = parseInt(td.dataset.dragDay);
+                    const tgtIdx = parseInt(td.dataset.dragIdx);
+                    
+                    if (srcD === tgtD && srcIdx === tgtIdx) return;
+                    
+                    const group = STATE.groups[currentEditingGroup];
+                    if (group && group.schedules && group.schedules[srcD] && group.schedules[tgtD]) {
+                        group.schedules[tgtD][tgtIdx] = JSON.parse(JSON.stringify(group.schedules[srcD][srcIdx]));
+                        
+                        if (STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+                            const j = STATE.junctions[STATE.activeJid];
+                            if (String(j.group) === String(currentEditingGroup)) {
+                                j.schedules[tgtD][tgtIdx] = JSON.parse(JSON.stringify(group.schedules[srcD][srcIdx]));
+                            }
+                        }
+                        
+                        renderGroupTODTable();
+                        debounceUpdateHeavyUI();
+                    }
+                }
+            } catch (err) {
+                // Not a cell drop (maybe day plan drop)
+            }
+        });
+    }
+
     if(typeof updateGroupDayUI === 'function') updateGroupDayUI();
     updateGroupDayUI();
 }
