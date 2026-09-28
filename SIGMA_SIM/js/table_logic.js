@@ -1,8 +1,8 @@
 /**
  * table_logic.js
- * ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
- * ?�이�??�력 ?�능 최적??(Debounce, Direct DOM Update)
- * �?방향???� ?�동 (Navigation) 로직
+ * ─────────────────────────────────────────────
+ * 테이블 입력 성능 최적화 (Debounce, Direct DOM Update)
+ * 및 방향키 셀 이동 (Navigation) 로직
  */
 
 const tableEventInitialized = {
@@ -15,7 +15,7 @@ const tableEventInitialized = {
 function initTableEventHandlers() {
     console.log("[TableLogic] Initializing Event Handlers...");
 
-    // 0 �??�리�?처리 (?�마???�래???��?)
+    // 0 값 흐리게 처리 (테마용 클래스 토글)
     document.addEventListener('input', (e) => {
         if (e.target.classList.contains('sigma-input')) {
             let isZeroOrEmpty = false;
@@ -31,7 +31,7 @@ function initTableEventHandlers() {
         }
     });
 
-    // 1. Phase/Split ?�이�?(Split, AllRed, Yellow ??
+    // 1. Phase/Split 테이블 (Split, AllRed, Yellow 등)
     const todContainer = document.getElementById('tod-container');
     if (todContainer && !tableEventInitialized.tod) {
         todContainer.addEventListener('change', (e) => {
@@ -43,7 +43,7 @@ function initTableEventHandlers() {
         tableEventInitialized.tod = true;
     }
 
-    // 2. ?�동�?구성 ?�이�?(movA, movB, pedMov ??
+    // 2. 이동류 구성 테이블 (movA, movB, pedMov 등)
     const movContainer = document.getElementById('mov-combined-container');
     if (movContainer && !tableEventInitialized.mov) {
         movContainer.addEventListener('change', (e) => {
@@ -55,7 +55,7 @@ function initTableEventHandlers() {
         tableEventInitialized.mov = true;
     }
 
-    // 3. ?�약 ?�이�?(TOD Schedule & Pattern)
+    // 3. 요약 테이블 (TOD Schedule & Pattern)
     const summaryContainer = document.getElementById('tod-summary-container');
     if (summaryContainer && !tableEventInitialized.summary) {
         summaryContainer.addEventListener('change', (e) => {
@@ -71,7 +71,8 @@ function initTableEventHandlers() {
         tableEventInitialized.summary = true;
     }
 
-    // 4. 그룹 TOD ?�이�?    const groupTodContainer = document.getElementById('group-tod-table-container');
+    // 4. 그룹 TOD 테이블
+    const groupTodContainer = document.getElementById('group-tod-table-container');
     if (groupTodContainer && !tableEventInitialized.groupTod) {
         groupTodContainer.addEventListener('change', (e) => {
             if (e.target.dataset.type === 'group-sched') handleGroupSchedInput(e.target);
@@ -84,13 +85,14 @@ function initTableEventHandlers() {
 }
 
 /**
- * [Phase/Split] ?�이�??�력 처리
+ * [Phase/Split] 테이블 입력 처리
  */
 function handleTableInput(el) {
-    const key = el.dataset.key; // splitA, yellowA ??    const idx = parseInt(el.dataset.index);
+    const key = el.dataset.key; // splitA, yellowA 등
+    const idx = parseInt(el.dataset.index);
     const val = parseInt(el.value) || 0;
 
-    // [Fix] ID 체계 ?�원??(krd- 기반 직접 조회)
+    // [Fix] ID 체계 일원화 (krd- 기반 직접 조회)
     let jid = STATE.activeJid;
     if (!jid) return;
     
@@ -115,7 +117,7 @@ function handleTableInput(el) {
         console.log(`[Sync] Updated: ${jid} -> ${key}[${idx}] = ${val}`);
     }
 
-    // Dual 모드 ?�닐 ???�기??로직
+    // Dual 모드 아닐 때 동기화 로직
     const chkDual = document.getElementById('chk-dual-ring');
     const isDual = chkDual ? chkDual.checked : true;
     if (!isDual && key && key.endsWith('A')) {
@@ -172,33 +174,37 @@ function handleTableInput(el) {
 }
 
 /**
- * [Mov] ?�동�??�정 ?�력 처리
+ * [Mov] 이동류 설정 입력 처리
  */
 function handleMovInput(el) {
-    const key = el.dataset.key; // movA, movB ??    const idx = parseInt(el.dataset.index);
+    const key = el.dataset.key; // movA, movB 등
+    const idx = parseInt(el.dataset.index);
     const val = parseInt(el.value) || 0;
 
     const j = STATE.junctions[STATE.activeJid];
     if (!j) return;
 
-    // ?�재 ?�택???�차�??��? 글로벌 ?�이?�에 ?�??    const smIdx = STATE.currentSignalMapIdx || 0;
+    // 현재 선택된 시차맵 혹은 글로벌 데이터에 저장
+    const smIdx = STATE.currentSignalMapIdx || 0;
     const sm = j.signalMaps ? j.signalMaps[smIdx] : null;
 
     if (sm) {
         if (!sm[key]) sm[key] = [0,0,0,0,0,0,0,0];
         sm[key][idx] = val;
-        // 0�?맵인 경우 루트 ?�벨???�기??        if (smIdx === 0) { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
+        // 0번 맵인 경우 루트 레벨도 동기화
+        if (smIdx === 0) { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
         if (window.ipdInstance) window.ipdInstance.loadFromSignalMap(sm);
-        // ???�시계획(Map)?� A/B �??�립 ?�력 - Dual ?�기??불필??    } else { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
+        // ※ 현시계획(Map)은 A/B 링 독립 입력 - Dual 동기화 불필요
+    } else { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
 
     if (typeof refreshVisibleArrows === 'function') refreshVisibleArrows();
-    // 방향(Dir) ?��?지 갱신???�해 ?�바?�싱 리렌?�링
+    // 방향(Dir) 이미지 갱신을 위해 디바운싱 리렌더링
     debounceUpdateRingTables();
 }
 
 
 /**
- * [Sched] ?�약 ?�이�??��?�???�? 주기) ?�력 처리
+ * [Sched] 요약 테이블 스케줄(시:분, 주기) 입력 처리
  */
 function handlePatternCycleInput(el) {
     const idx = parseInt(el.dataset.index);
@@ -212,7 +218,7 @@ function handlePatternCycleInput(el) {
         j.dayPlans[dayIdx][idx].cycle = val;
     }
     
-    // 만약 ?�재 ?�이?�그??Ring Table)?????�턴??보여주고 ?�다�??�데?�트
+    // 만약 현재 다이어그램(Ring Table)이 이 패턴을 보여주고 있다면 업데이트
     if (typeof UI !== 'undefined' && UI.planIdx) {
         const pIdx = parseInt(UI.planIdx.value) || 0;
         if (pIdx === idx) {
@@ -238,7 +244,7 @@ function handleSchedInput(el) {
         schedules[idx][field] = val;
     }
 
-    // ?�재 보고 ?�는 ?�랜??주기가 바뀌었?�면 ?�면 갱신???�요???�인
+    // 현재 보고 있는 플랜의 주기가 바뀌었다면 화면 갱신의 필요성 확인
     if (idx === parseInt(UI.planIdx.value)) {
         debounceUpdateRingTables();
     }
@@ -288,7 +294,8 @@ function handleSplitInput(el) {
                 j.dayPlans[STATE.currentJunctionDayTypeIdx][idx].splitB[col] = val;
             }
             
-            // 만약 ?�집중인 ?�롯???�재 ?�단??로드???�롯�?같다�? ?�단 UI(�??�이�???즉시 ?�기??            if (typeof UI !== 'undefined' && UI.planIdx && parseInt(UI.planIdx.value) === idx) {
+            // 만약 편집중인 슬롯이 현재 상단에 로드된 슬롯과 같다면, 상단 UI(링 테이블)도 즉시 동기화
+            if (typeof UI !== 'undefined' && UI.planIdx && parseInt(UI.planIdx.value) === idx) {
                 if (typeof renderRingTables === 'function') renderRingTables();
             }
         }
@@ -300,7 +307,7 @@ function handleSplitInput(el) {
 
 
 /**
- * [GroupSched] 그룹 TOD ?�이�??�력 처리
+ * [GroupSched] 그룹 TOD 테이블 입력 처리
  */
 function handleGroupSchedInput(el) {
     const field = el.dataset.field; // h, m, cycle
@@ -314,7 +321,8 @@ function handleGroupSchedInput(el) {
 
     group.schedules[dayIdx][idx][field] = val;
 
-    // [중요] 개별 교차로�? ?�택???�태?�면 ?�당 교차로의 schedule?�도 즉시 ?�기??    if (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions[STATE.activeJid]) {
+    // [중요] 개별 교차로가 선택된 상태라면 해당 교차로의 schedule에도 즉시 동기화
+    if (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions[STATE.activeJid]) {
         const j = STATE.junctions[STATE.activeJid];
         if (String(j.group) === String(currentEditingGroup)) {
             if (j.schedules && j.schedules[dayIdx] && j.schedules[dayIdx][idx]) {
@@ -323,10 +331,10 @@ function handleGroupSchedInput(el) {
         }
     }
 
-    // 차트 �?기�? UI ?�데?�트 (?�바?�싱)
+    // 차트 및 기타 UI 업데이트 (디바운싱)
     debounceUpdateGroupUI();
 
-    // ?�재 보고 ?�는 ?�일???�집 중인 ?�일?�라�??�계 ?�도 갱신 ?�요?????�음
+    // 현재 보고 있는 요일이 편집 중인 요일이라면 통계 등도 갱신 필요할 수 있음
     if (dayIdx === STATE.currentGroupDayTypeIdx) {
         debounceUpdateHeavyUI();
     }
@@ -344,7 +352,7 @@ function debounceUpdateGroupUI() {
 }
 
 /**
- * Green ?�시�??�데?�트
+ * Green 실시간 업데이트
  */
 function updateDependentCells(i, p, sm) {
     const greenA = p.splitA[i] - (p.allredA[i] || 0) - (p.yellowA[i] || 0);
@@ -356,12 +364,12 @@ function updateDependentCells(i, p, sm) {
     if (gAEl) gAEl.innerText = greenA;
     if (gBEl) gBEl.innerText = greenB;
 
-    // [New] ?�시�??�전 감사 (MG 체크)
+    // [New] 실시간 안전 감사 (MG 체크)
     if (!sm) return;
     ['A', 'B'].forEach(ring => {
         const splitKey = 'split' + ring;
         const val = p[splitKey][i];
-        if (val <= 0) return; // 미사???�시???�외
+        if (val <= 0) return; // 미사용 현시는 제외
 
         const ped = sm['ped' + ring]?.[i] || 0;
         const arr = sm['allred' + ring]?.[i] || 0;
@@ -374,23 +382,23 @@ function updateDependentCells(i, p, sm) {
         const el = document.querySelector(`.sigma-input.inp-${splitKey}[data-index="${i}"]`);
         if (el) {
             if (val < mg) {
-                // [1?�계] ?�기 (Red)
+                // [1단계] 위기 (Red)
                 el.style.border = '2px solid #ff4d4d';
                 el.style.boxShadow = '0 0 10px rgba(255,77,77,0.5)';
                 el.style.background = 'rgba(255,77,77,0.15)';
                 el.style.color = '#ff4d4d';
                 el.style.fontWeight = 'bold';
-                el.title = `?�전감사 ?�기! 최소?�색?�간(${mg}�? 미달`;
+                el.title = `안전감사 위기! 최소녹색시간(${mg}초) 미달`;
             } else if (val < mgWithYellow) {
-                // [2?�계] 주의 (Yellow)
+                // [2단계] 주의 (Yellow)
                 el.style.border = '2px solid #ffcc00';
                 el.style.boxShadow = '0 0 10px rgba(255,204,0,0.5)';
                 el.style.background = 'rgba(255,204,0,0.1)';
                 el.style.color = '#ffcc00';
                 el.style.fontWeight = 'bold';
-                el.title = `?�전감사 주의! 최소?�색+?�색(${mgWithYellow}�? 미달`;
+                el.title = `안전감사 주의! 최소녹색+황색(${mgWithYellow}초) 미달`;
             } else {
-                // [3?�계] ?�상
+                // [3단계] 정상
                 el.style.border = '';
                 el.style.boxShadow = '';
                 el.style.background = '';
@@ -403,7 +411,7 @@ function updateDependentCells(i, p, sm) {
 }
 
 /**
- * 주기 ?�치 ?��? ?�시�??�데?�트
+ * 주기 일치 여부 실시간 업데이트
  */
 function updateCycleDisplayLocally(p) {
     const sA = p.splitA.reduce((a, b) => a + b, 0);
@@ -424,7 +432,7 @@ let heavyUiTimeout = null;
 function debounceUpdateHeavyUI() {
     if (heavyUiTimeout) clearTimeout(heavyUiTimeout);
     heavyUiTimeout = setTimeout(() => {
-        // [?�정] ?�재 ?�커?��? ?�약 ?�이�??��????�력창에 ?�다�?리렌?�링????�???지??(?�력 방해 방�?)
+        // [수정] 현재 포커스가 요약 테이블 내부의 입력창에 있다면 리렌더링을 한 번 더 지연 (입력 방해 방지)
         const activeEl = document.activeElement;
         if (activeEl && activeEl.closest('#tod-summary-container')) {
             debounceUpdateHeavyUI();
@@ -435,20 +443,20 @@ function debounceUpdateHeavyUI() {
         if (document.getElementById('tab-stats').classList.contains('active') && typeof renderStats === 'function') {
             renderStats();
         }
-    }, 1000); // 1초로 ?�간 ?�림
+    }, 1000); // 1초로 약간 늘림
 }
 
 let ringTableTimeout = null;
 function debounceUpdateRingTables() {
     if (ringTableTimeout) clearTimeout(ringTableTimeout);
     ringTableTimeout = setTimeout(() => {
-        // renderRingTables()�??�출?�되, ?�시 init ?�들?��? 중복?�행?��? ?�도�??��? flag가 관리함
+        // renderRingTables()를 호출하되, 다시 init 핸들러를 중복실행하지 않도록 내부 flag가 관리함
         if (typeof renderRingTables === 'function') renderRingTables();
     }, 1500);
 }
 
 /**
- * 방향???�비게이??(�?변�?금�? �??� ?�동)
+ * 방향키 내비게이션 (값 변경 금지 및 셀 이동)
  */
 function handleTableKeyNavigation(e) {
     const key = e.key;
@@ -459,12 +467,12 @@ function handleTableKeyNavigation(e) {
     const tr = td.closest('tr');
     if (!tr) return;
 
-    // ?�재 ?�의 모든 ?�력??배열�?가?�옴 (�????�동??
+    // 현재 행의 모든 입력을 배열로 가져옴 (좌/우 이동용)
     const inputsInRow = Array.from(tr.querySelectorAll('input.sigma-input'));
     const currentInputIdx = inputsInRow.indexOf(input);
 
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-        e.preventDefault(); // 기본 �?변�??�작 방�?
+        e.preventDefault(); // 기본 값 변경 동작 방지
 
         let targetInput = null;
 
@@ -477,7 +485,7 @@ function handleTableKeyNavigation(e) {
                 targetInput = inputsInRow[currentInputIdx + 1];
             }
         } else if (key === 'ArrowUp' || key === 'ArrowDown') {
-            // ???�래 ?�동?� ?�일??TD ?�의 �?번째 input?��? ?�악?�여 ?�동
+            // 위/아래 이동은 동일한 TD 내의 몇 번째 input인지 파악하여 이동
             const inputsInCell = Array.from(td.querySelectorAll('input.sigma-input'));
             const inputIdxInCell = inputsInCell.indexOf(input);
             const colIdx = Array.from(tr.cells).indexOf(td);
