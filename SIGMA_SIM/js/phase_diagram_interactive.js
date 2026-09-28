@@ -293,16 +293,16 @@ class InteractivePhaseDiagram {
         `;
 
         const getMultiNSLabels = () => `
-            <text class="ipd-text-label" data-mov="NDL" x="62" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="NDR" x="74" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
-            <text class="ipd-text-label" data-mov="SDL" x="38" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="SDR" x="26" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="NDL" x="62" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">53</text>
+            <text class="ipd-text-label" data-mov="NDR" x="74" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">73</text>
+            <text class="ipd-text-label" data-mov="SDL" x="38" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">57</text>
+            <text class="ipd-text-label" data-mov="SDR" x="26" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">77</text>
         `;
         const getMultiEWLabels = () => `
-            <text class="ipd-text-label" data-mov="EDL" x="3" y="62" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="EDR" x="3" y="74" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DR</text>
-            <text class="ipd-text-label" data-mov="WDL" x="97" y="38" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="WDR" x="97" y="26" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="EDL" x="3" y="62" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">55</text>
+            <text class="ipd-text-label" data-mov="EDR" x="3" y="74" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">75</text>
+            <text class="ipd-text-label" data-mov="WDL" x="97" y="38" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">51</text>
+            <text class="ipd-text-label" data-mov="WDR" x="97" y="26" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">71</text>
         `;
 
         const getNESWLabels = () => `
@@ -321,10 +321,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="PED-NE" x="78" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
             <text class="ipd-text-label" data-mov="PED-NE2" x="94" y="22" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">134</text>
             
-            <text class="ipd-text-label" data-mov="SWDL" x="24" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="SWDR" x="32" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
-            <text class="ipd-text-label" data-mov="NEDL" x="76" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="NEDR" x="67" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="SWDL" x="24" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">63</text>
+            <text class="ipd-text-label" data-mov="SWDR" x="32" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">83</text>
+            <text class="ipd-text-label" data-mov="NEDL" x="76" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">59</text>
+            <text class="ipd-text-label" data-mov="NEDR" x="67" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">79</text>
         `;
         const getNWSELabels = () => `
             <text class="ipd-text-label" data-mov="SEL" x="80" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">11</text>
@@ -342,10 +342,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="PED-NW" x="6" y="22" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
             <text class="ipd-text-label" data-mov="PED-NW2" x="22" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">132</text>
             
-            <text class="ipd-text-label" data-mov="SEDL" x="76" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="SEDR" x="67" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
-            <text class="ipd-text-label" data-mov="NWDL" x="24" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
-            <text class="ipd-text-label" data-mov="NWDR" x="33" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="SEDL" x="76" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">61</text>
+            <text class="ipd-text-label" data-mov="SEDR" x="67" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">81</text>
+            <text class="ipd-text-label" data-mov="NWDL" x="24" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">65</text>
+            <text class="ipd-text-label" data-mov="NWDR" x="33" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">85</text>
         `;
 
         if (filter === 'NS') html += getNSLabels();

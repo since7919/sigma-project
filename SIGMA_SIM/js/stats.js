@@ -1271,9 +1271,14 @@ function renderAdvancedInsights(junctions) {
         30: ['SWR'], 32: ['NWR'], 34: ['NER'], 36: ['SER'],
         31: ['WBL-P'], 33: ['NBL-P'], 35: ['EBL-P'], 37: ['SBL-P'],
         39: ['NEL-P'], 41: ['SEL-P'], 43: ['SWL-P'], 45: ['NWL-P'],
+        51: ['WDL'], 71: ['WDR'], 53: ['NDL'], 73: ['NDR'],
+        55: ['EDL'], 75: ['EDR'], 57: ['SDL'], 77: ['SDR'],
+        59: ['NEDL'], 79: ['NEDR'], 61: ['SEDL'], 81: ['SEDR'],
+        63: ['SWDL'], 83: ['SWDR'], 65: ['NWDL'], 85: ['NWDR'],
         102: ['PED-S'], 104: ['PED-W'], 106: ['PED-N'], 108: ['PED-E'],
-        
-        
+        122: ['PED-S2'], 124: ['PED-W2'], 126: ['PED-N2'], 128: ['PED-E2'],
+        110: ['PED-SW'], 130: ['PED-SW2'], 114: ['PED-NE'], 134: ['PED-NE2'],
+        116: ['PED-SE'], 136: ['PED-SE2'], 112: ['PED-NW'], 132: ['PED-NW2'],
         };
 
     const getArrowsFromSignalMap = (sm) => {
