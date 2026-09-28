@@ -198,31 +198,31 @@ class InteractivePhaseDiagram {
     getPedSVGPaths(prefix, filter = null) {
         let html = '';
         const getEWPeds = (pfx) => `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S" data-mov="PED-S" d="M 30,92 L 48,92" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S2" data-mov="PED-S2" d="M 52,92 L 70,92" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N" data-mov="PED-N" d="M 30,8 L 48,8" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N2" data-mov="PED-N2" d="M 52,8 L 70,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S" data-mov="PED-S" d="M 22,92 L 47,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S2" data-mov="PED-S2" d="M 53,92 L 78,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N" data-mov="PED-N" d="M 22,8 L 47,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N2" data-mov="PED-N2" d="M 53,8 L 78,8" />
         `;
         const getNSPeds = (pfx) => `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 8,30 L 8,48" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W2" data-mov="PED-W2" d="M 8,52 L 8,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 92,30 L 92,48" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E2" data-mov="PED-E2" d="M 92,52 L 92,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 8,22 L 8,47" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W2" data-mov="PED-W2" d="M 8,53 L 8,78" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 92,22 L 92,47" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E2" data-mov="PED-E2" d="M 92,53 L 92,78" />
         `;
         const getNESWPeds = (pfx) => `
             <g transform="rotate(45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW" data-mov="PED-SW" d="M 30,92 L 48,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW2" data-mov="PED-SW2" d="M 52,92 L 70,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE" data-mov="PED-NE" d="M 30,8 L 48,8" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE2" data-mov="PED-NE2" d="M 52,8 L 70,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW" data-mov="PED-SW" d="M 22,92 L 47,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW2" data-mov="PED-SW2" d="M 53,92 L 78,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE" data-mov="PED-NE" d="M 22,8 L 47,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE2" data-mov="PED-NE2" d="M 53,8 L 78,8" />
             </g>
         `;
         const getNWSEPeds = (pfx) => `
             <g transform="rotate(-45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE" data-mov="PED-SE" d="M 30,92 L 48,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE2" data-mov="PED-SE2" d="M 52,92 L 70,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW" data-mov="PED-NW" d="M 30,8 L 48,8" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW2" data-mov="PED-NW2" d="M 52,8 L 70,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE" data-mov="PED-SE" d="M 22,92 L 47,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE2" data-mov="PED-SE2" d="M 53,92 L 78,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW" data-mov="PED-NW" d="M 22,8 L 47,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW2" data-mov="PED-NW2" d="M 53,8 L 78,8" />
             </g>
         `;
 
@@ -241,15 +241,15 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NESW" data-mov="PED-NESW" d="M 80,20 L 20,80" />
             
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 48,92" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S2" data-mov="PED-S2" d="M 52,92 L 70,92" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 48,8" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N2" data-mov="PED-N2" d="M 52,8 L 70,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 22,92 L 47,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S2" data-mov="PED-S2" d="M 53,92 L 78,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 22,8 L 47,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N2" data-mov="PED-N2" d="M 53,8 L 78,8" />
             
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,30 L 8,48" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W2" data-mov="PED-W2" d="M 8,52 L 8,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,48" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E2" data-mov="PED-E2" d="M 92,52 L 92,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,22 L 8,47" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W2" data-mov="PED-W2" d="M 8,53 L 8,78" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,22 L 92,47" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E2" data-mov="PED-E2" d="M 92,53 L 92,78" />
             `;
         }
         return html;
@@ -389,6 +389,18 @@ class InteractivePhaseDiagram {
                     </marker>
                     <marker id="${this.containerId}-ah-blue-rev" markerWidth="3" markerHeight="3" refX="1.5" refY="1.5" orient="auto">
                         <polygon points="3 0, 0 1.5, 3 3" fill="#0ea5e9" />
+                    </marker>
+                    <marker id="${this.containerId}-ah-ped-gray" markerWidth="2" markerHeight="2" refX="1" refY="1" orient="auto">
+                        <polygon points="0 0, 2 1, 0 2" fill="#444" />
+                    </marker>
+                    <marker id="${this.containerId}-ah-ped-blue" markerWidth="2" markerHeight="2" refX="1" refY="1" orient="auto">
+                        <polygon points="0 0, 2 1, 0 2" fill="#0ea5e9" />
+                    </marker>
+                    <marker id="${this.containerId}-ah-ped-gray-rev" markerWidth="2" markerHeight="2" refX="1" refY="1" orient="auto">
+                        <polygon points="2 0, 0 1, 2 2" fill="#444" />
+                    </marker>
+                    <marker id="${this.containerId}-ah-ped-blue-rev" markerWidth="2" markerHeight="2" refX="1" refY="1" orient="auto">
+                        <polygon points="2 0, 0 1, 2 2" fill="#0ea5e9" />
                     </marker>
                 </defs>
             </svg>
@@ -825,12 +837,14 @@ class InteractivePhaseDiagram {
     updateArrowMarker(arrow) {
         const isActive = arrow.classList.contains('ipd-active');
         const color = isActive ? 'blue' : 'gray';
+        const isPed = arrow.classList.contains('ipd-ped');
+        const mType = isPed ? 'ah-ped' : 'ah';
         
-        if (arrow.classList.contains('ipd-ped')) {
-            arrow.setAttribute('marker-start', `url(#${this.containerId}-ah-${color}-rev)`);
-            arrow.setAttribute('marker-end', `url(#${this.containerId}-ah-${color})`);
+        if (isPed) {
+            arrow.setAttribute('marker-start', `url(#${this.containerId}-${mType}-${color}-rev)`);
+            arrow.setAttribute('marker-end', `url(#${this.containerId}-${mType}-${color})`);
         } else {
-            arrow.setAttribute('marker-end', `url(#${this.containerId}-ah-${color})`);
+            arrow.setAttribute('marker-end', `url(#${this.containerId}-${mType}-${color})`);
         }
     }
 }
