@@ -134,9 +134,51 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-wdl" id="${pfx}-WDL" data-mov="WDL" d="M 85,38 L 70,38 Q 60,38 50,48" />
             <path class="ipd-arrow ipd-wdr" id="${pfx}-WDR" data-mov="WDR" d="M 85,26 L 70,26 Q 60,26 50,16" />
         `;
+        const getNESW = (pfx) => `
+            <g transform="rotate(45 50 50)">
+                <!-- SW (From Bottom) -->
+                <path class="ipd-arrow ipd-nbl" id="${pfx}-SWL" data-mov="SWL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${pfx}-SWL-P" data-mov="SWL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
+                <path class="ipd-arrow ipd-nbt" id="${pfx}-SWT" data-mov="SWT" d="M 68,85 L 68,55" />
+                <path class="ipd-arrow ipd-nbr" id="${pfx}-SWR" data-mov="SWR" d="M 80,85 L 80,70 Q 80,60 90,60" />
+                <!-- SW Diag -->
+                <path class="ipd-arrow ipd-ndl" id="${pfx}-SWDL" data-mov="SWDL" d="M 62,85 L 62,70 Q 62,60 52,50" />
+                <path class="ipd-arrow ipd-ndr" id="${pfx}-SWDR" data-mov="SWDR" d="M 74,85 L 74,70 Q 74,60 84,50" />
+                
+                <!-- NE (From Top) -->
+                <path class="ipd-arrow ipd-sbl" id="${pfx}-NEL" data-mov="NEL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${pfx}-NEL-P" data-mov="NEL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
+                <path class="ipd-arrow ipd-sbt" id="${pfx}-NET" data-mov="NET" d="M 32,15 L 32,45" />
+                <path class="ipd-arrow ipd-sbr" id="${pfx}-NER" data-mov="NER" d="M 20,15 L 20,30 Q 20,40 10,40" />
+                <!-- NE Diag -->
+                <path class="ipd-arrow ipd-sdl" id="${pfx}-NEDL" data-mov="NEDL" d="M 38,15 L 38,30 Q 38,40 48,50" />
+                <path class="ipd-arrow ipd-sdr" id="${pfx}-NEDR" data-mov="NEDR" d="M 26,15 L 26,30 Q 26,40 16,50" />
+            </g>
+        `;
+        const getNWSE = (pfx) => `
+            <g transform="rotate(-45 50 50)">
+                <!-- SE (From Bottom) -->
+                <path class="ipd-arrow ipd-nbl" id="${pfx}-SEL" data-mov="SEL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${pfx}-SEL-P" data-mov="SEL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
+                <path class="ipd-arrow ipd-nbt" id="${pfx}-SET" data-mov="SET" d="M 68,85 L 68,55" />
+                <path class="ipd-arrow ipd-nbr" id="${pfx}-SER" data-mov="SER" d="M 80,85 L 80,70 Q 80,60 90,60" />
+                <!-- SE Diag -->
+                <path class="ipd-arrow ipd-ndl" id="${pfx}-SEDL" data-mov="SEDL" d="M 62,85 L 62,70 Q 62,60 52,50" />
+                <path class="ipd-arrow ipd-ndr" id="${pfx}-SEDR" data-mov="SEDR" d="M 74,85 L 74,70 Q 74,60 84,50" />
+                
+                <!-- NW (From Top) -->
+                <path class="ipd-arrow ipd-sbl" id="${pfx}-NWL" data-mov="NWL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${pfx}-NWL-P" data-mov="NWL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
+                <path class="ipd-arrow ipd-sbt" id="${pfx}-NWT" data-mov="NWT" d="M 32,15 L 32,45" />
+                <path class="ipd-arrow ipd-sbr" id="${pfx}-NWR" data-mov="NWR" d="M 20,15 L 20,30 Q 20,40 10,40" />
+                <!-- NW Diag -->
+                <path class="ipd-arrow ipd-sdl" id="${pfx}-NWDL" data-mov="NWDL" d="M 38,15 L 38,30 Q 38,40 48,50" />
+                <path class="ipd-arrow ipd-sdr" id="${pfx}-NWDR" data-mov="NWDR" d="M 26,15 L 26,30 Q 26,40 16,50" />
+            </g>
+        `;
 
         if (!filter) {
-            html += getNS(prefix) + getEW(prefix) + getMultiNS(prefix) + getMultiEW(prefix);
+            html += getNS(prefix) + getEW(prefix) + getMultiNS(prefix) + getMultiEW(prefix) + getNESW(prefix) + getNWSE(prefix);
         } else if (filter === 'NS') {
             html += getNS(prefix);
         } else if (filter === 'EW') {
@@ -145,6 +187,10 @@ class InteractivePhaseDiagram {
             html += getNS(prefix) + getMultiNS(prefix);
         } else if (filter === 'MULTI_LEG_EW') {
             html += getEW(prefix) + getMultiEW(prefix);
+        } else if (filter === 'MULTI_LEG_NESW') {
+            html += getNESW(prefix);
+        } else if (filter === 'MULTI_LEG_NWSE') {
+            html += getNWSE(prefix);
         }
         return html;
     }
@@ -159,13 +205,29 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 8,30 L 8,70" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
         `;
+        const getNESWPeds = (pfx) => `
+            <g transform="rotate(45 50 50)">
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW" data-mov="PED-SW" d="M 30,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE" data-mov="PED-NE" d="M 30,8 L 70,8" />
+            </g>
+        `;
+        const getNWSEPeds = (pfx) => `
+            <g transform="rotate(-45 50 50)">
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE" data-mov="PED-SE" d="M 30,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW" data-mov="PED-NW" d="M 30,8 L 70,8" />
+            </g>
+        `;
 
         if (!filter) {
-            html += getEWPeds(prefix) + getNSPeds(prefix);
+            html += getEWPeds(prefix) + getNSPeds(prefix) + getNESWPeds(prefix) + getNWSEPeds(prefix);
         } else if (filter === 'EW' || filter === 'MULTI_LEG_EW') {
             html += getEWPeds(prefix);
         } else if (filter === 'NS' || filter === 'MULTI_LEG_NS') {
             html += getNSPeds(prefix);
+        } else if (filter === 'MULTI_LEG_NESW') {
+            html += getNESWPeds(prefix);
+        } else if (filter === 'MULTI_LEG_NWSE') {
+            html += getNWSEPeds(prefix);
         } else if (filter === 'SCRAMBLE') {
             html += `
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
@@ -225,10 +287,51 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="WDR" x="97" y="26" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DR</text>
         `;
 
+        const getNESWLabels = () => `
+            <text class="ipd-text-label" data-mov="SWL" x="20" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">13</text>
+            <text class="ipd-text-label" data-mov="SWL-P" x="17" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">43</text>
+            <text class="ipd-text-label" data-mov="SWT" x="28" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">10</text>
+            <text class="ipd-text-label" data-mov="SWR" x="37" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">30</text>
+            
+            <text class="ipd-text-label" data-mov="NEL" x="80" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">9</text>
+            <text class="ipd-text-label" data-mov="NEL-P" x="82" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">39</text>
+            <text class="ipd-text-label" data-mov="NET" x="72" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">14</text>
+            <text class="ipd-text-label" data-mov="NER" x="62" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">34</text>
+            
+            <text class="ipd-text-label" data-mov="PED-SW" x="13" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">113</text>
+            <text class="ipd-text-label" data-mov="PED-NE" x="86" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
+            
+            <text class="ipd-text-label" data-mov="SWDL" x="24" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="SWDR" x="32" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="NEDL" x="76" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="NEDR" x="67" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+        `;
+        const getNWSELabels = () => `
+            <text class="ipd-text-label" data-mov="SEL" x="80" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">11</text>
+            <text class="ipd-text-label" data-mov="SEL-P" x="83" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">41</text>
+            <text class="ipd-text-label" data-mov="SET" x="72" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">16</text>
+            <text class="ipd-text-label" data-mov="SER" x="63" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">36</text>
+            
+            <text class="ipd-text-label" data-mov="NWL" x="20" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">15</text>
+            <text class="ipd-text-label" data-mov="NWL-P" x="18" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">45</text>
+            <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
+            <text class="ipd-text-label" data-mov="NWR" x="38" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">32</text>
+            
+            <text class="ipd-text-label" data-mov="PED-SE" x="87" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">116</text>
+            <text class="ipd-text-label" data-mov="PED-NW" x="14" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
+            
+            <text class="ipd-text-label" data-mov="SEDL" x="76" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="SEDR" x="67" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="NWDL" x="24" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="NWDR" x="33" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+        `;
+
         if (filter === 'NS') html += getNSLabels();
         if (filter === 'EW') html += getEWLabels();
         if (filter === 'MULTI_LEG_NS') html += getNSLabels() + getMultiNSLabels();
         if (filter === 'MULTI_LEG_EW') html += getEWLabels() + getMultiEWLabels();
+        if (filter === 'MULTI_LEG_NESW') html += getNESWLabels();
+        if (filter === 'MULTI_LEG_NWSE') html += getNWSELabels();
         if (filter === 'SCRAMBLE') {
             html += `
             <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">101</text>
@@ -397,7 +500,7 @@ class InteractivePhaseDiagram {
                     </div>
                 </div>
 
-                <div id="${this.containerId}-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
+                <div id="${this.containerId}-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap;">
                     <!-- 다지교차 동서 방향 (Multi-leg E-W) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">다지교차 동서 방향 (Multi-leg E-W)</div>
@@ -415,6 +518,26 @@ class InteractivePhaseDiagram {
                             ${this.getVehSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
                             ${this.getPedSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
                             ${this.getLabelSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
+                        </svg>
+                    </div>
+
+                    <!-- 다지교차 북동-남서 방향 (Multi-leg NE-SW) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">다지교차 북동-남서 방향 (Multi-leg NE-SW)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal-multileg', 'MULTI_LEG_NESW')}
+                            ${this.getPedSVGPaths('modal-multileg', 'MULTI_LEG_NESW')}
+                            ${this.getLabelSVGPaths('modal-multileg', 'MULTI_LEG_NESW')}
+                        </svg>
+                    </div>
+                    
+                    <!-- 다지교차 북서-남동 방향 (Multi-leg NW-SE) -->
+                    <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">다지교차 북서-남동 방향 (Multi-leg NW-SE)</div>
+                        <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
+                            ${this.getVehSVGPaths('modal-multileg', 'MULTI_LEG_NWSE')}
+                            ${this.getPedSVGPaths('modal-multileg', 'MULTI_LEG_NWSE')}
+                            ${this.getLabelSVGPaths('modal-multileg', 'MULTI_LEG_NWSE')}
                         </svg>
                     </div>
                 </div>
