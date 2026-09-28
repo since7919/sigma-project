@@ -92,104 +92,81 @@ class InteractivePhaseDiagram {
 
     getVehSVGPaths(prefix, filter = null) {
         let html = '';
-        if (!filter || filter === 'NS') {
-            html += `
+        const getNS = (pfx) => `
             <!-- NB -->
-            <path class="ipd-arrow ipd-nbl" id="${prefix}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
-            <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-NBL-P" data-mov="NBL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
-            <path class="ipd-arrow ipd-nbt" id="${prefix}-NBT" data-mov="NBT" d="M 68,85 L 68,55" />
-            <path class="ipd-arrow ipd-nbr" id="${prefix}-NBR" data-mov="NBR" d="M 80,85 L 80,70 Q 80,60 90,60" />
+            <path class="ipd-arrow ipd-nbl" id="${pfx}-NBL" data-mov="NBL" d="M 56,85 L 56,70 Q 56,60 46,60" />
+            <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${pfx}-NBL-P" data-mov="NBL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
+            <path class="ipd-arrow ipd-nbt" id="${pfx}-NBT" data-mov="NBT" d="M 68,85 L 68,55" />
+            <path class="ipd-arrow ipd-nbr" id="${pfx}-NBR" data-mov="NBR" d="M 80,85 L 80,70 Q 80,60 90,60" />
             
             <!-- SB -->
-            <path class="ipd-arrow ipd-sbl" id="${prefix}-SBL" data-mov="SBL" d="M 44,15 L 44,30 Q 44,40 54,40" />
-            <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-SBL-P" data-mov="SBL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
-            <path class="ipd-arrow ipd-sbt" id="${prefix}-SBT" data-mov="SBT" d="M 32,15 L 32,45" />
-            <path class="ipd-arrow ipd-sbr" id="${prefix}-SBR" data-mov="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" />
-            `;
-        }
-        if (!filter || filter === 'EW') {
-            html += `
+            <path class="ipd-arrow ipd-sbl" id="${pfx}-SBL" data-mov="SBL" d="M 44,15 L 44,30 Q 44,40 54,40" />
+            <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${pfx}-SBL-P" data-mov="SBL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
+            <path class="ipd-arrow ipd-sbt" id="${pfx}-SBT" data-mov="SBT" d="M 32,15 L 32,45" />
+            <path class="ipd-arrow ipd-sbr" id="${pfx}-SBR" data-mov="SBR" d="M 20,15 L 20,30 Q 20,40 10,40" />
+        `;
+        const getEW = (pfx) => `
             <!-- EB -->
-            <path class="ipd-arrow ipd-ebl" id="${prefix}-EBL" data-mov="EBL" d="M 15,56 L 30,56 Q 40,56 40,46" />
-            <path class="ipd-arrow ipd-dashed ipd-ebl-p" id="${prefix}-EBL-P" data-mov="EBL-P" d="M 15,60 L 30,60 Q 45,60 45,46" />
-            <path class="ipd-arrow ipd-ebt" id="${prefix}-EBT" data-mov="EBT" d="M 15,68 L 45,68" />
-            <path class="ipd-arrow ipd-ebr" id="${prefix}-EBR" data-mov="EBR" d="M 15,80 L 30,80 Q 40,80 40,90" />
+            <path class="ipd-arrow ipd-ebl" id="${pfx}-EBL" data-mov="EBL" d="M 15,56 L 30,56 Q 40,56 40,46" />
+            <path class="ipd-arrow ipd-dashed ipd-ebl-p" id="${pfx}-EBL-P" data-mov="EBL-P" d="M 15,60 L 30,60 Q 45,60 45,46" />
+            <path class="ipd-arrow ipd-ebt" id="${pfx}-EBT" data-mov="EBT" d="M 15,68 L 45,68" />
+            <path class="ipd-arrow ipd-ebr" id="${pfx}-EBR" data-mov="EBR" d="M 15,80 L 30,80 Q 40,80 40,90" />
             
             <!-- WB -->
-            <path class="ipd-arrow ipd-wbl" id="${prefix}-WBL" data-mov="WBL" d="M 85,44 L 70,44 Q 60,44 60,54" />
-            <path class="ipd-arrow ipd-dashed ipd-wbl-p" id="${prefix}-WBL-P" data-mov="WBL-P" d="M 85,40 L 70,40 Q 55,40 55,54" />
-            <path class="ipd-arrow ipd-wbt" id="${prefix}-WBT" data-mov="WBT" d="M 85,32 L 55,32" />
-            <path class="ipd-arrow ipd-wbr" id="${prefix}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
-            `;
-        }
-        if (!filter || filter === 'NESW') {
-            html += `
-            <g transform="rotate(45 50 50)">
-                <!-- SW (From Bottom) -->
-                <path class="ipd-arrow ipd-nbl" id="${prefix}-SWL" data-mov="SWL" d="M 56,85 L 56,70 Q 56,60 46,60" />
-                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-SWL-P" data-mov="SWL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
-                <path class="ipd-arrow ipd-nbt" id="${prefix}-SWT" data-mov="SWT" d="M 68,85 L 68,55" />
-                <path class="ipd-arrow ipd-nbr" id="${prefix}-SWR" data-mov="SWR" d="M 80,85 L 80,70 Q 80,60 90,60" />
-                
-                <!-- NE (From Top) -->
-                <path class="ipd-arrow ipd-sbl" id="${prefix}-NEL" data-mov="NEL" d="M 44,15 L 44,30 Q 44,40 54,40" />
-                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-NEL-P" data-mov="NEL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
-                <path class="ipd-arrow ipd-sbt" id="${prefix}-NET" data-mov="NET" d="M 32,15 L 32,45" />
-                <path class="ipd-arrow ipd-sbr" id="${prefix}-NER" data-mov="NER" d="M 20,15 L 20,30 Q 20,40 10,40" />
-            </g>
-            `;
-        }
-        if (!filter || filter === 'NWSE') {
-            html += `
-            <g transform="rotate(-45 50 50)">
-                <!-- SE (From Bottom) -->
-                <path class="ipd-arrow ipd-nbl" id="${prefix}-SEL" data-mov="SEL" d="M 56,85 L 56,70 Q 56,60 46,60" />
-                <path class="ipd-arrow ipd-dashed ipd-nbl-p" id="${prefix}-SEL-P" data-mov="SEL-P" d="M 52,85 L 52,70 Q 52,55 42,55" />
-                <path class="ipd-arrow ipd-nbt" id="${prefix}-SET" data-mov="SET" d="M 68,85 L 68,55" />
-                <path class="ipd-arrow ipd-nbr" id="${prefix}-SER" data-mov="SER" d="M 80,85 L 80,70 Q 80,60 90,60" />
-                
-                <!-- NW (From Top) -->
-                <path class="ipd-arrow ipd-sbl" id="${prefix}-NWL" data-mov="NWL" d="M 44,15 L 44,30 Q 44,40 54,40" />
-                <path class="ipd-arrow ipd-dashed ipd-sbl-p" id="${prefix}-NWL-P" data-mov="NWL-P" d="M 48,15 L 48,30 Q 48,45 58,45" />
-                <path class="ipd-arrow ipd-sbt" id="${prefix}-NWT" data-mov="NWT" d="M 32,15 L 32,45" />
-                <path class="ipd-arrow ipd-sbr" id="${prefix}-NWR" data-mov="NWR" d="M 20,15 L 20,30 Q 20,40 10,40" />
-            </g>
-            `;
+            <path class="ipd-arrow ipd-wbl" id="${pfx}-WBL" data-mov="WBL" d="M 85,44 L 70,44 Q 60,44 60,54" />
+            <path class="ipd-arrow ipd-dashed ipd-wbl-p" id="${pfx}-WBL-P" data-mov="WBL-P" d="M 85,40 L 70,40 Q 55,40 55,54" />
+            <path class="ipd-arrow ipd-wbt" id="${pfx}-WBT" data-mov="WBT" d="M 85,32 L 55,32" />
+            <path class="ipd-arrow ipd-wbr" id="${pfx}-WBR" data-mov="WBR" d="M 85,20 L 70,20 Q 60,20 60,10" />
+        `;
+        const getMultiNS = (pfx) => `
+            <!-- NB Diag -->
+            <path class="ipd-arrow ipd-ndl" id="${pfx}-NDL" data-mov="NDL" d="M 62,85 L 62,70 Q 62,60 52,50" />
+            <path class="ipd-arrow ipd-ndr" id="${pfx}-NDR" data-mov="NDR" d="M 74,85 L 74,70 Q 74,60 84,50" />
+            <!-- SB Diag -->
+            <path class="ipd-arrow ipd-sdl" id="${pfx}-SDL" data-mov="SDL" d="M 38,15 L 38,30 Q 38,40 48,50" />
+            <path class="ipd-arrow ipd-sdr" id="${pfx}-SDR" data-mov="SDR" d="M 26,15 L 26,30 Q 26,40 16,50" />
+        `;
+        const getMultiEW = (pfx) => `
+            <!-- EB Diag -->
+            <path class="ipd-arrow ipd-edl" id="${pfx}-EDL" data-mov="EDL" d="M 15,62 L 30,62 Q 40,62 50,52" />
+            <path class="ipd-arrow ipd-edr" id="${pfx}-EDR" data-mov="EDR" d="M 15,74 L 30,74 Q 40,74 50,84" />
+            <!-- WB Diag -->
+            <path class="ipd-arrow ipd-wdl" id="${pfx}-WDL" data-mov="WDL" d="M 85,38 L 70,38 Q 60,38 50,48" />
+            <path class="ipd-arrow ipd-wdr" id="${pfx}-WDR" data-mov="WDR" d="M 85,26 L 70,26 Q 60,26 50,16" />
+        `;
+
+        if (!filter) {
+            html += getNS(prefix) + getEW(prefix) + getMultiNS(prefix) + getMultiEW(prefix);
+        } else if (filter === 'NS') {
+            html += getNS(prefix);
+        } else if (filter === 'EW') {
+            html += getEW(prefix);
+        } else if (filter === 'MULTI_LEG_NS') {
+            html += getNS(prefix) + getMultiNS(prefix);
+        } else if (filter === 'MULTI_LEG_EW') {
+            html += getEW(prefix) + getMultiEW(prefix);
         }
         return html;
     }
 
     getPedSVGPaths(prefix, filter = null) {
         let html = '';
-        if (!filter || filter === 'EW') {
-            html += `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
-            `;
-        }
-        if (!filter || filter === 'NS') {
-            html += `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,30 L 8,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
-            `;
-        }
-        if (!filter || filter === 'NESW') {
-            html += `
-            <g transform="rotate(45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-SW" data-mov="PED-SW" d="M 30,92 L 70,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NE" data-mov="PED-NE" d="M 30,8 L 70,8" />
-            </g>
-            `;
-        }
-        if (!filter || filter === 'NWSE') {
-            html += `
-            <g transform="rotate(-45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-SE" data-mov="PED-SE" d="M 30,92 L 70,92" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NW" data-mov="PED-NW" d="M 30,8 L 70,8" />
-            </g>
-            `;
-        }
-        if (!filter || filter === 'SCRAMBLE') {
+        const getEWPeds = (pfx) => `
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S" data-mov="PED-S" d="M 30,92 L 70,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N" data-mov="PED-N" d="M 30,8 L 70,8" />
+        `;
+        const getNSPeds = (pfx) => `
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 8,30 L 8,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 92,30 L 92,70" />
+        `;
+
+        if (!filter) {
+            html += getEWPeds(prefix) + getNSPeds(prefix);
+        } else if (filter === 'EW' || filter === 'MULTI_LEG_EW') {
+            html += getEWPeds(prefix);
+        } else if (filter === 'NS' || filter === 'MULTI_LEG_NS') {
+            html += getNSPeds(prefix);
+        } else if (filter === 'SCRAMBLE') {
             html += `
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NESW" data-mov="PED-NESW" d="M 80,20 L 20,80" />
@@ -203,11 +180,10 @@ class InteractivePhaseDiagram {
     }
 
     getLabelSVGPaths(prefix, filter = null) {
-        if (prefix !== 'modal') return '';
+        if (!prefix.startsWith('modal')) return '';
         let html = '';
         
-        if (!filter || filter === 'NS') {
-            html += `
+        const getNSLabels = () => `
             <text class="ipd-text-label" data-mov="NBL" x="56" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">3</text>
             <text class="ipd-text-label" data-mov="NBL-P" x="52" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">33</text>
             <text class="ipd-text-label" data-mov="NBT" x="68" y="99" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">8</text>
@@ -220,10 +196,8 @@ class InteractivePhaseDiagram {
             
             <text class="ipd-text-label" data-mov="PED-W" x="-3" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
             <text class="ipd-text-label" data-mov="PED-E" x="103" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
-            `;
-        }
-        if (!filter || filter === 'EW') {
-            html += `
+        `;
+        const getEWLabels = () => `
             <text class="ipd-text-label" data-mov="EBL" x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">5</text>
             <text class="ipd-text-label" data-mov="EBL-P" x="3" y="52" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">35</text>
             <text class="ipd-text-label" data-mov="EBT" x="3" y="68" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">2</text>
@@ -236,41 +210,26 @@ class InteractivePhaseDiagram {
             
             <text class="ipd-text-label" data-mov="PED-S" x="50" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
             <text class="ipd-text-label" data-mov="PED-N" x="50" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
-            `;
-        }
-        if (!filter || filter === 'NESW') {
-            html += `
-            <text class="ipd-text-label" data-mov="SWL" x="20" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">13</text>
-            <text class="ipd-text-label" data-mov="SWL-P" x="17" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">43</text>
-            <text class="ipd-text-label" data-mov="SWT" x="28" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">10</text>
-            <text class="ipd-text-label" data-mov="SWR" x="37" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">30</text>
-            
-            <text class="ipd-text-label" data-mov="NEL" x="80" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">9</text>
-            <text class="ipd-text-label" data-mov="NEL-P" x="82" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">39</text>
-            <text class="ipd-text-label" data-mov="NET" x="72" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">14</text>
-            <text class="ipd-text-label" data-mov="NER" x="62" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">34</text>
-            
-            <text class="ipd-text-label" data-mov="PED-SW" x="13" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">113</text>
-            <text class="ipd-text-label" data-mov="PED-NE" x="86" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
-            `;
-        }
-        if (!filter || filter === 'NWSE') {
-            html += `
-            <text class="ipd-text-label" data-mov="SEL" x="80" y="91" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">11</text>
-            <text class="ipd-text-label" data-mov="SEL-P" x="83" y="86" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">41</text>
-            <text class="ipd-text-label" data-mov="SET" x="72" y="97" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">16</text>
-            <text class="ipd-text-label" data-mov="SER" x="63" y="106" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">36</text>
-            
-            <text class="ipd-text-label" data-mov="NWL" x="20" y="9" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">15</text>
-            <text class="ipd-text-label" data-mov="NWL-P" x="18" y="15" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">45</text>
-            <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
-            <text class="ipd-text-label" data-mov="NWR" x="38" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">32</text>
-            
-            <text class="ipd-text-label" data-mov="PED-SE" x="87" y="87" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">116</text>
-            <text class="ipd-text-label" data-mov="PED-NW" x="14" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
-            `;
-        }
-        if (!filter || filter === 'SCRAMBLE') {
+        `;
+
+        const getMultiNSLabels = () => `
+            <text class="ipd-text-label" data-mov="NDL" x="62" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="NDR" x="74" y="99" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="SDL" x="38" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="SDR" x="26" y="3" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
+        `;
+        const getMultiEWLabels = () => `
+            <text class="ipd-text-label" data-mov="EDL" x="3" y="62" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="EDR" x="3" y="74" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DR</text>
+            <text class="ipd-text-label" data-mov="WDL" x="97" y="38" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DL</text>
+            <text class="ipd-text-label" data-mov="WDR" x="97" y="26" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">DR</text>
+        `;
+
+        if (filter === 'NS') html += getNSLabels();
+        if (filter === 'EW') html += getEWLabels();
+        if (filter === 'MULTI_LEG_NS') html += getNSLabels() + getMultiNSLabels();
+        if (filter === 'MULTI_LEG_EW') html += getEWLabels() + getMultiEWLabels();
+        if (filter === 'SCRAMBLE') {
             html += `
             <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">101</text>
             <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">103</text>
@@ -412,7 +371,7 @@ class InteractivePhaseDiagram {
                 
                 <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
                     <button class="phase-action-btn phase-btn-cyan" id="${this.containerId}-tab-normal" style="min-width: 130px; font-weight:bold;">기본 방향</button>
-                    <button class="phase-action-btn phase-btn-gray" id="${this.containerId}-tab-diag" style="min-width: 130px; font-weight:bold;">대각선 방향</button>
+                    <button class="phase-action-btn phase-btn-gray" id="${this.containerId}-tab-diag" style="min-width: 130px; font-weight:bold;">다지 교차로</button>
                     <button class="phase-action-btn phase-btn-gray" id="${this.containerId}-tab-scramble" style="min-width: 130px; font-weight:bold;">대각선 횡단보도</button>
                 </div>
                 
@@ -421,9 +380,9 @@ class InteractivePhaseDiagram {
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">동서 방향 (E-W)</div>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                            ${this.getVehSVGPaths('modal', 'EW')}
-                            ${this.getPedSVGPaths('modal', 'EW')}
-                            ${this.getLabelSVGPaths('modal', 'EW')}
+                            ${this.getVehSVGPaths('modal-normal', 'EW')}
+                            ${this.getPedSVGPaths('modal-normal', 'EW')}
+                            ${this.getLabelSVGPaths('modal-normal', 'EW')}
                         </svg>
                     </div>
                     
@@ -431,31 +390,31 @@ class InteractivePhaseDiagram {
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">남북 방향 (N-S)</div>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                            ${this.getVehSVGPaths('modal', 'NS')}
-                            ${this.getPedSVGPaths('modal', 'NS')}
-                            ${this.getLabelSVGPaths('modal', 'NS')}
+                            ${this.getVehSVGPaths('modal-normal', 'NS')}
+                            ${this.getPedSVGPaths('modal-normal', 'NS')}
+                            ${this.getLabelSVGPaths('modal-normal', 'NS')}
                         </svg>
                     </div>
                 </div>
 
                 <div id="${this.containerId}-content-diag" style="display: none; gap: 20px; justify-content: center; margin-bottom: 10px;">
-                    <!-- 북동-남서 방향 (NE-SW) -->
+                    <!-- 다지교차 동서 방향 (Multi-leg E-W) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
-                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">북동-남서 방향 (NE-SW)</div>
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">다지교차 동서 방향 (Multi-leg E-W)</div>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                            ${this.getVehSVGPaths('modal', 'NESW')}
-                            ${this.getPedSVGPaths('modal', 'NESW')}
-                            ${this.getLabelSVGPaths('modal', 'NESW')}
+                            ${this.getVehSVGPaths('modal-multileg', 'MULTI_LEG_EW')}
+                            ${this.getPedSVGPaths('modal-multileg', 'MULTI_LEG_EW')}
+                            ${this.getLabelSVGPaths('modal-multileg', 'MULTI_LEG_EW')}
                         </svg>
                     </div>
                     
-                    <!-- 북서-남동 방향 (NW-SE) -->
+                    <!-- 다지교차 남북 방향 (Multi-leg N-S) -->
                     <div style="width:280px; height:280px; background:#252526; border-radius:4px; border:1px solid #3e3e42; position: relative;">
-                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">북서-남동 방향 (NW-SE)</div>
+                        <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">다지교차 남북 방향 (Multi-leg N-S)</div>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                            ${this.getVehSVGPaths('modal', 'NWSE')}
-                            ${this.getPedSVGPaths('modal', 'NWSE')}
-                            ${this.getLabelSVGPaths('modal', 'NWSE')}
+                            ${this.getVehSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
+                            ${this.getPedSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
+                            ${this.getLabelSVGPaths('modal-multileg', 'MULTI_LEG_NS')}
                         </svg>
                     </div>
                 </div>
@@ -467,8 +426,8 @@ class InteractivePhaseDiagram {
                         <div style="position:absolute; top:8px; left:10px; font-size:11.5px; color:#aaa; font-weight:bold;">대각선 횡단보도 (Scramble)</div>
                         <button id="${this.containerId}-btn-scramble-all" class="phase-action-btn phase-btn-purple" style="position:absolute; top:6px; right:10px; font-weight:bold; min-width:80px; padding:3px 8px; font-size:11px;">모두 선택</button>
                         <svg class="ipd-modal-svg" width="100%" height="100%" viewBox="-15 -15 130 130">
-                            ${this.getPedSVGPaths('modal', 'SCRAMBLE')}
-                            ${this.getLabelSVGPaths('modal', 'SCRAMBLE')}
+                            ${this.getPedSVGPaths('modal-scramble', 'SCRAMBLE')}
+                            ${this.getLabelSVGPaths('modal-scramble', 'SCRAMBLE')}
                         </svg>
                     </div>
                 </div>
@@ -665,9 +624,13 @@ class InteractivePhaseDiagram {
         
         const BBOX = {
             'NBL': {x:46, y:60, w:10, h:25}, 'NBL-P': {x:42, y:55, w:10, h:30}, 'NBT': {x:68, y:55, w:0, h:30}, 'NBR': {x:80, y:60, w:10, h:25},
+            'NDL': {x:52, y:50, w:10, h:35}, 'NDR': {x:74, y:50, w:10, h:35},
             'SBL': {x:44, y:15, w:10, h:25}, 'SBL-P': {x:48, y:15, w:10, h:30}, 'SBT': {x:32, y:15, w:0, h:30}, 'SBR': {x:10, y:15, w:10, h:25},
+            'SDL': {x:38, y:15, w:10, h:35}, 'SDR': {x:16, y:15, w:10, h:35},
             'EBL': {x:15, y:46, w:25, h:10}, 'EBL-P': {x:15, y:46, w:30, h:14}, 'EBT': {x:15, y:68, w:30, h:0}, 'EBR': {x:15, y:80, w:25, h:10},
-            'WBL': {x:60, y:44, w:25, h:10}, 'WBL-P': {x:55, y:40, w:30, h:14}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10}
+            'EDL': {x:15, y:52, w:35, h:10}, 'EDR': {x:15, y:74, w:35, h:10},
+            'WBL': {x:60, y:44, w:25, h:10}, 'WBL-P': {x:55, y:40, w:30, h:14}, 'WBT': {x:55, y:32, w:30, h:0}, 'WBR': {x:60, y:10, w:25, h:10},
+            'WDL': {x:50, y:38, w:35, h:10}, 'WDR': {x:50, y:16, w:35, h:10}
         };
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
