@@ -198,31 +198,31 @@ class InteractivePhaseDiagram {
     getPedSVGPaths(prefix, filter = null) {
         let html = '';
         const getEWPeds = (pfx) => `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S" data-mov="PED-S" d="M 30,89 L 70,89" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S2" data-mov="PED-S2" d="M 30,95 L 70,95" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N" data-mov="PED-N" d="M 30,5 L 70,5" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N2" data-mov="PED-N2" d="M 30,11 L 70,11" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S" data-mov="PED-S" d="M 30,92 L 48,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-S2" data-mov="PED-S2" d="M 52,92 L 70,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N" data-mov="PED-N" d="M 30,8 L 48,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-N2" data-mov="PED-N2" d="M 52,8 L 70,8" />
         `;
         const getNSPeds = (pfx) => `
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 5,30 L 5,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W2" data-mov="PED-W2" d="M 11,30 L 11,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 89,30 L 89,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E2" data-mov="PED-E2" d="M 95,30 L 95,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W" data-mov="PED-W" d="M 8,30 L 8,48" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-W2" data-mov="PED-W2" d="M 8,52 L 8,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E" data-mov="PED-E" d="M 92,30 L 92,48" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-E2" data-mov="PED-E2" d="M 92,52 L 92,70" />
         `;
         const getNESWPeds = (pfx) => `
             <g transform="rotate(45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW" data-mov="PED-SW" d="M 30,89 L 70,89" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW2" data-mov="PED-SW2" d="M 30,95 L 70,95" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE" data-mov="PED-NE" d="M 30,5 L 70,5" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE2" data-mov="PED-NE2" d="M 30,11 L 70,11" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW" data-mov="PED-SW" d="M 30,92 L 48,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SW2" data-mov="PED-SW2" d="M 52,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE" data-mov="PED-NE" d="M 30,8 L 48,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NE2" data-mov="PED-NE2" d="M 52,8 L 70,8" />
             </g>
         `;
         const getNWSEPeds = (pfx) => `
             <g transform="rotate(-45 50 50)">
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE" data-mov="PED-SE" d="M 30,89 L 70,89" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE2" data-mov="PED-SE2" d="M 30,95 L 70,95" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW" data-mov="PED-NW" d="M 30,5 L 70,5" />
-                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW2" data-mov="PED-NW2" d="M 30,11 L 70,11" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE" data-mov="PED-SE" d="M 30,92 L 48,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-SE2" data-mov="PED-SE2" d="M 52,92 L 70,92" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW" data-mov="PED-NW" d="M 30,8 L 48,8" />
+                <path class="ipd-arrow ipd-ped ipd-dashed" id="${pfx}-PED-NW2" data-mov="PED-NW2" d="M 52,8 L 70,8" />
             </g>
         `;
 
@@ -241,15 +241,15 @@ class InteractivePhaseDiagram {
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NWSE" data-mov="PED-NWSE" d="M 20,20 L 80,80" />
             <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-NESW" data-mov="PED-NESW" d="M 80,20 L 20,80" />
             
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,89 L 70,89" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S2" data-mov="PED-S2" d="M 30,95 L 70,95" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,5 L 70,5" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N2" data-mov="PED-N2" d="M 30,11 L 70,11" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S" data-mov="PED-S" d="M 30,92 L 48,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-S2" data-mov="PED-S2" d="M 52,92 L 70,92" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N" data-mov="PED-N" d="M 30,8 L 48,8" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-N2" data-mov="PED-N2" d="M 52,8 L 70,8" />
             
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 5,30 L 5,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W2" data-mov="PED-W2" d="M 11,30 L 11,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 89,30 L 89,70" />
-            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E2" data-mov="PED-E2" d="M 95,30 L 95,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W" data-mov="PED-W" d="M 8,30 L 8,48" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-W2" data-mov="PED-W2" d="M 8,52 L 8,70" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E" data-mov="PED-E" d="M 92,30 L 92,48" />
+            <path class="ipd-arrow ipd-ped ipd-dashed" id="${prefix}-PED-E2" data-mov="PED-E2" d="M 92,52 L 92,70" />
             `;
         }
         return html;
@@ -270,10 +270,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="SBT" x="32" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">4</text>
             <text class="ipd-text-label" data-mov="SBR" x="20" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">24</text>
             
-            <text class="ipd-text-label" data-mov="PED-W" x="-1" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
-            <text class="ipd-text-label" data-mov="PED-W2" x="15" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">124</text>
-            <text class="ipd-text-label" data-mov="PED-E" x="85" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
-            <text class="ipd-text-label" data-mov="PED-E2" x="101" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">128</text>
+            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="39" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
+            <text class="ipd-text-label" data-mov="PED-W2" x="-3" y="61" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">124</text>
+            <text class="ipd-text-label" data-mov="PED-E" x="103" y="39" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
+            <text class="ipd-text-label" data-mov="PED-E2" x="103" y="61" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">128</text>
         `;
         const getEWLabels = () => `
             <text class="ipd-text-label" data-mov="EBL" x="3" y="56" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">5</text>
@@ -286,10 +286,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="WBT" x="97" y="32" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">6</text>
             <text class="ipd-text-label" data-mov="WBR" x="97" y="20" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">26</text>
             
-            <text class="ipd-text-label" data-mov="PED-S" x="50" y="85" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
-            <text class="ipd-text-label" data-mov="PED-S2" x="50" y="100" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">122</text>
-            <text class="ipd-text-label" data-mov="PED-N" x="50" y="1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
-            <text class="ipd-text-label" data-mov="PED-N2" x="50" y="15" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">126</text>
+            <text class="ipd-text-label" data-mov="PED-S" x="39" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
+            <text class="ipd-text-label" data-mov="PED-S2" x="61" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">122</text>
+            <text class="ipd-text-label" data-mov="PED-N" x="39" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
+            <text class="ipd-text-label" data-mov="PED-N2" x="61" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">126</text>
         `;
 
         const getMultiNSLabels = () => `
@@ -316,10 +316,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="NET" x="72" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">14</text>
             <text class="ipd-text-label" data-mov="NER" x="62" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">34</text>
             
-            <text class="ipd-text-label" data-mov="PED-SW" x="25" y="75" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">110</text>
-            <text class="ipd-text-label" data-mov="PED-SW2" x="15" y="85" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">130</text>
-            <text class="ipd-text-label" data-mov="PED-NE" x="86" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
-            <text class="ipd-text-label" data-mov="PED-NE2" x="75" y="25" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">134</text>
+            <text class="ipd-text-label" data-mov="PED-SW" x="5" y="80" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">110</text>
+            <text class="ipd-text-label" data-mov="PED-SW2" x="20" y="95" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">130</text>
+            <text class="ipd-text-label" data-mov="PED-NE" x="78" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">114</text>
+            <text class="ipd-text-label" data-mov="PED-NE2" x="94" y="22" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">134</text>
             
             <text class="ipd-text-label" data-mov="SWDL" x="24" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
             <text class="ipd-text-label" data-mov="SWDR" x="32" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
@@ -337,10 +337,10 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="NWT" x="28" y="3" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">12</text>
             <text class="ipd-text-label" data-mov="NWR" x="38" y="-4" fill="#0ea5e9" font-size="5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">32</text>
             
-            <text class="ipd-text-label" data-mov="PED-SE" x="86" y="86" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">116</text>
-            <text class="ipd-text-label" data-mov="PED-SE2" x="75" y="75" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">136</text>
-            <text class="ipd-text-label" data-mov="PED-NW" x="14" y="14" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
-            <text class="ipd-text-label" data-mov="PED-NW2" x="25" y="25" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">132</text>
+            <text class="ipd-text-label" data-mov="PED-SE" x="80" y="95" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">116</text>
+            <text class="ipd-text-label" data-mov="PED-SE2" x="95" y="80" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">136</text>
+            <text class="ipd-text-label" data-mov="PED-NW" x="6" y="22" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">112</text>
+            <text class="ipd-text-label" data-mov="PED-NW2" x="22" y="6" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">132</text>
             
             <text class="ipd-text-label" data-mov="SEDL" x="76" y="94" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DL</text>
             <text class="ipd-text-label" data-mov="SEDR" x="67" y="101" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">DR</text>
@@ -359,15 +359,15 @@ class InteractivePhaseDiagram {
             <text class="ipd-text-label" data-mov="PED-NWSE" x="18" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">101</text>
             <text class="ipd-text-label" data-mov="PED-NESW" x="82" y="18" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">103</text>
             
-            <text class="ipd-text-label" data-mov="PED-S" x="50" y="85" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
-            <text class="ipd-text-label" data-mov="PED-S2" x="50" y="100" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">122</text>
-            <text class="ipd-text-label" data-mov="PED-N" x="50" y="1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
-            <text class="ipd-text-label" data-mov="PED-N2" x="50" y="15" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">126</text>
+            <text class="ipd-text-label" data-mov="PED-S" x="39" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">102</text>
+            <text class="ipd-text-label" data-mov="PED-S2" x="61" y="103" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">122</text>
+            <text class="ipd-text-label" data-mov="PED-N" x="39" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">106</text>
+            <text class="ipd-text-label" data-mov="PED-N2" x="61" y="-1" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" style="cursor:pointer;">126</text>
             
-            <text class="ipd-text-label" data-mov="PED-W" x="-1" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
-            <text class="ipd-text-label" data-mov="PED-W2" x="15" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">124</text>
-            <text class="ipd-text-label" data-mov="PED-E" x="85" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
-            <text class="ipd-text-label" data-mov="PED-E2" x="101" y="50" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">128</text>
+            <text class="ipd-text-label" data-mov="PED-W" x="-3" y="39" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">104</text>
+            <text class="ipd-text-label" data-mov="PED-W2" x="-3" y="61" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">124</text>
+            <text class="ipd-text-label" data-mov="PED-E" x="103" y="39" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">108</text>
+            <text class="ipd-text-label" data-mov="PED-E2" x="103" y="61" fill="#0ea5e9" font-size="4.5" font-weight="bold" text-anchor="middle" dominant-baseline="middle" style="cursor:pointer;">128</text>
             `;
         }
         
