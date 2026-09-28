@@ -974,6 +974,7 @@ function renderTodPlanInfoTable() {
 
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const pIdx = parseInt(UI.planIdx?.value) || 0;
+    const currentSlot = STATE.currentTodSlotIdx !== undefined ? STATE.currentTodSlotIdx : pIdx;
 
     STATE._todPlanGroup = STATE._todPlanGroup || 1;
     const group = STATE._todPlanGroup;
