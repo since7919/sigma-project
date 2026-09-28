@@ -1030,13 +1030,15 @@ function renderTodPlanInfoTable() {
                                 const inputStyle = `background:transparent; border:none; width:100%; text-align:center; font-family:monospace; outline:none; font-size:11px; padding:0; margin:0;`;
 
                                 return `
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer;">
-                                        <input type="text" data-day="${idx}" data-slot="${rIdx}" data-field="time" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
+                                    
+                                    <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer; position: relative;">
+                                        <div draggable="true" ondragstart="window.handlePhaseTodDragStart(event, ${idx}, ${rIdx})" style="cursor: grab; color: #555; position: absolute; left: 1px; top: 2px; font-size: 10px; padding: 2px; z-index: 10;" title="드래그하여 스케줄 복사">⠿</div>
+                                        <input type="text" data-day="${idx}" data-slot="${rIdx}" data-field="time" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} color:${fontColor}; padding-left: 10px; width: calc(100% - 10px);" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
                                     </td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; cursor: pointer;">
+                                    <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; cursor: pointer;">
                                         <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="cycle" class="sigma-input ${cycleCls}" value="${cycleVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
                                     </td>
-                                    <td onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; font-weight: bold; cursor: pointer;">
+                                    <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px; background: ${bg}; font-weight: bold; cursor: pointer;">
                                         <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="idx" class="sigma-input ${idxCls}" value="${idxVal}" placeholder="-" style="${inputStyle} color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'idx', this.value)">
                                     </td>
                                 `;
@@ -1377,3 +1379,93 @@ function applyPhaseTemplate(type) {
     alert(`${DAY_LABELS[smIdx]}에 ${templateName} 템플릿 데이터가 설정되었습니다. '변경사항 적용' 버튼을 눌러 확정하세요.`);
 }
 
+
+
+window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'phase-tod', dayIdx, slotIdx }));
+    e.dataTransfer.effectAllowed = 'copyMove';
+    // Highlight siblings
+    setTimeout(() => {
+        const container = document.getElementById('tod-summary-container');
+        if (container) {
+            container.querySelectorAll(`.phase-tod-cell[data-drop-day="${dayIdx}"][data-drop-slot="${slotIdx}"]`).forEach(el => {
+                el.style.opacity = '0.5';
+            });
+        }
+    }, 10);
+};
+
+// Global init for Phase TOD DnD
+(function initPhaseTodDnD() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('tod-summary-container');
+        if (!container) return;
+        
+        container.addEventListener('dragend', (e) => {
+            container.querySelectorAll('.phase-tod-cell').forEach(el => el.style.opacity = '1');
+            container.querySelectorAll('.drag-hover').forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+        });
+        
+        container.addEventListener('dragover', (e) => {
+            const td = e.target.closest('.phase-tod-cell');
+            if (!td) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            
+            const tgtDay = td.dataset.dropDay;
+            const tgtSlot = td.dataset.dropSlot;
+            
+            container.querySelectorAll('.drag-hover').forEach(el => {
+                if (el.dataset.dropDay !== tgtDay || el.dataset.dropSlot !== tgtSlot) {
+                    el.classList.remove('drag-hover');
+                    el.style.backgroundColor = '';
+                }
+            });
+            
+            container.querySelectorAll(`.phase-tod-cell[data-drop-day="${tgtDay}"][data-drop-slot="${tgtSlot}"]`).forEach(el => {
+                el.classList.add('drag-hover');
+                el.style.backgroundColor = 'rgba(0, 160, 255, 0.3)';
+            });
+        });
+        
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const td = e.target.closest('.phase-tod-cell');
+            if (!td) return;
+            
+            container.querySelectorAll('.drag-hover').forEach(el => {
+                el.classList.remove('drag-hover');
+                el.style.backgroundColor = '';
+            });
+            
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                if (data.type === 'phase-tod') {
+                    const srcDay = data.dayIdx;
+                    const srcSlot = data.slotIdx;
+                    const tgtDay = parseInt(td.dataset.dropDay);
+                    const tgtSlot = parseInt(td.dataset.dropSlot);
+                    
+                    if (srcDay === tgtDay && srcSlot === tgtSlot) return;
+                    
+                    const jid = STATE.activeJid;
+                    const j = STATE.junctions[jid];
+                    if (!j || !j.schedules) return;
+                    
+                    // Copy schedule
+                    j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
+                    
+                    // Re-render
+                    renderSummaryTable();
+                    debounceUpdateHeavyUI();
+                    if (tgtDay === STATE.currentJunctionDayTypeIdx && tgtSlot === parseInt(UI.planIdx.value)) {
+                        if (typeof renderRingTables === 'function') renderRingTables();
+                    }
+                }
+            } catch (err) {}
+        });
+    });
+})();
