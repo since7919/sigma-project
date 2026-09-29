@@ -131,6 +131,7 @@ function createArrows(jid) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
+    const activeMapMovs = new Set([...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number).filter(x => x > 0));
     const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
 
     // [개량] 편집 모드에서는 데이터 유무와 상관없이 1~16(차량) 및 101~116(보행) 화살표를 전수 노출
@@ -204,13 +205,15 @@ function createArrows(jid) {
             const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
             const walkCls = isPed ? 'walk-mode' : '';
             const isFocused = STATE.focusedArrow && STATE.focusedArrow.jid === jid && STATE.focusedArrow.m === m && STATE.focusedArrow.idx === idx;
+            const isUsedMov = activeMapMovs.has(m);
+            const defaultColor = (isEditingMode && isUsedMov) ? 'G' : 'R';
 
             const labelHtml = isEditing ? `<div class="mov-num-label">${m}</div>` : '';
 
             const icon = L.divIcon({
                 className: 'signal-arrow-container',
                 html: `
-                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible; ${!isEditing ? 'display:none;' : ''}">
+                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow ${defaultColor} ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible; ${!isEditing ? 'display:none;' : ''}">
                             ${isPed ? 'WALK' : arrowData.type}
                             ${labelHtml}
                             <div id="timer-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>

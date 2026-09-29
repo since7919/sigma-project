@@ -280,7 +280,7 @@ function renderRingTables() {
             tableId: 'info-combined-phase-mg-table',
             className: 'sigma-table',
             head: [{label: '구분/항목', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
-            rows: combinedRows
+            rows: movRows
         });
     }
 
