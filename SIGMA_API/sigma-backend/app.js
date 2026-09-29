@@ -692,7 +692,7 @@ const patchLocalCsvCache = async (updates) => {
         if (!fs.existsSync(scratchDir)) return false;
         
         let patchedAny = false;
-        const filesToPatch = ['db_L01.csv', 'db_L01_maps.csv', 'db_L01_tod_plans.csv', 'db_L01_stats.csv'];
+        const filesToPatch = ['db_L01_intersections.csv', 'db_L01_signal_maps.csv', 'db_L01_tod_plans.csv', 'db_L01_stats.csv'];
         
         for (const file of filesToPatch) {
             const cacheFilePath = path.join(scratchDir, 'cache_' + file);
@@ -702,10 +702,10 @@ const patchLocalCsvCache = async (updates) => {
             
             for (const update of updates) {
                 const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines } = update;
-                if (file === 'db_L01.csv' && interCsvLine) {
+                if (file === 'db_L01_intersections.csv' && interCsvLine) {
                     lines = lines.filter(l => !l.startsWith(jid + ','));
                     lines.push(interCsvLine);
-                } else if (file === 'db_L01_maps.csv' && mapCsvLines) {
+                } else if (file === 'db_L01_signal_maps.csv' && mapCsvLines) {
                     lines = lines.filter(l => !l.startsWith(jid + ','));
                     mapCsvLines.split(/\r?\n/).filter(l => l.trim()).forEach(l => lines.push(l));
                 } else if (file === 'db_L01_tod_plans.csv' && todCsvLines) {
@@ -842,7 +842,24 @@ app.get('/api/sim/data', async (req, res) => {
             
             let chunk = "";
             data.forEach(r => {
-                const line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police, r.office, r.group_id, r.flash_config, r.op_intervention, r.arrow_configs, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
+                // JSON to CSV string for arrow_configs
+                let arrowStr = "";
+                if (r.arrow_configs && typeof r.arrow_configs === 'object') {
+                    const arrs = [];
+                    Object.entries(r.arrow_configs).forEach(([m, val]) => {
+                        if (m === '_custom_angles' && typeof val === 'object') {
+                            Object.entries(val).forEach(([pfx, angle]) => {
+                                arrs.push(`_custom_angles:${pfx}:${angle}`);
+                            });
+                        } else if (Array.isArray(val)) {
+                            val.forEach(c => arrs.push(`${m}:${c.dLat}:${c.dLng}:${c.rot}`));
+                        }
+                    });
+                    arrowStr = arrs.join(';');
+                } else if (typeof r.arrow_configs === 'string') {
+                    arrowStr = r.arrow_configs;
+                }
+                const line = [r.id, r.region_cd, r.name, r.lat, r.lng, r.seq, r.police, r.office, r.group_id, r.flash_config, r.op_intervention, arrowStr, r.controller_type, r.diagram_order, r.weekly_plan, r.api_int_no].map(v => { let s = String(v ?? ""); if (s.includes(",") || s.includes('"')) s = '"' + s.replace(/"/g, '""') + '"'; return s; }).join(",");
                 chunk += line + "\n";
             });
             lastId = data[data.length - 1].id;
