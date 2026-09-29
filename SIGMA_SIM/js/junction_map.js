@@ -614,7 +614,7 @@ function createOverlayArrows(jid, targetMap) {
             renderConfigs.forEach((config, idx) => {
                 // [개선] 상세보기 미니맵에서는 지도 배율이 고정되어 있어 화살표가 겹치므로, 
                 // 시각적 가독성을 위해 중심점으로부터의 거리를 2.5배 띄워서 렌더링합니다.
-                const multi = 2.5; 
+                const multi = 7.0; 
                 const pos = [j.lat + config.dLat * multi, j.lng + config.dLng * multi];
                 const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
                 const walkCls = isPed ? 'walk-mode' : '';
