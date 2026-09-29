@@ -52,6 +52,18 @@ function initTableEventHandlers() {
         movContainer.addEventListener('keydown', (e) => {
             if (e.target.classList.contains('sigma-input')) handleTableKeyNavigation(e);
         });
+        
+        // 추가: NODE/LINK 탭의 이동류 복제 테이블 이벤트 처리
+        const infoMovContainer = document.getElementById('info-mov-table-wrapper');
+        if (infoMovContainer) {
+            infoMovContainer.addEventListener('change', (e) => {
+                if (e.target.dataset.type === 'mov') handleMovInput(e.target);
+            });
+            infoMovContainer.addEventListener('keydown', (e) => {
+                if (e.target.classList.contains('sigma-input')) handleTableKeyNavigation(e);
+            });
+        }
+        
         tableEventInitialized.mov = true;
     }
 

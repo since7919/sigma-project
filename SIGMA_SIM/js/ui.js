@@ -211,6 +211,9 @@ const AppStateMachine = {
             case CONFIG.APP_MODE.MAP_EDIT:
                 STATE.isMapEditMode = true;
                 this.refreshAllJunctions();
+                const movContainer = document.getElementById('info-mov-combined-container');
+                if (movContainer) movContainer.style.display = 'block';
+                if (typeof renderRingTables === 'function' && STATE.activeJid) renderRingTables();
                 break;
 
             case CONFIG.APP_MODE.ADD_NODE:
@@ -236,6 +239,8 @@ const AppStateMachine = {
                 STATE.isMapEditMode = false;
                 STATE.focusedArrow = null;
                 this.refreshAllJunctions();
+                const movContainerExit = document.getElementById('info-mov-combined-container');
+                if (movContainerExit) movContainerExit.style.display = 'none';
                 break;
 
             case CONFIG.APP_MODE.ADD_NODE:
