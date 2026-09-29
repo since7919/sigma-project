@@ -764,9 +764,7 @@ window.handleCompassPointerDown = function(e, jid, key) {
 
     // overlayMap is a global variable from overlay_ui.js
     const targetMap = window.overlayMap || (typeof overlayMap !== 'undefined' ? overlayMap : null);
-    if (targetMap && targetMap.dragging) {
-        targetMap.dragging.disable();
-    }
+    // overlayMap is static, no need to disable dragging
 
     const el = e.currentTarget;
     const compassOverlay = el.closest('.compass-center-overlay');
@@ -799,9 +797,7 @@ window.handleCompassPointerDown = function(e, jid, key) {
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
 
-        if (targetMap && targetMap.dragging) {
-            targetMap.dragging.enable();
-        }
+        // overlayMap is static, do not re-enable dragging
     };
 
     window.addEventListener('pointermove', onPointerMove);
