@@ -67,11 +67,7 @@ function toggleMapEdit() {
     } else {
         if (STATE.simTimer) pauseSim();
         AppStateMachine.setMode(CONFIG.APP_MODE.MAP_EDIT);
-        alert("교차로 및 신호등 위치 편집 모드가 활성화되었습니다.\n" +
-            "1. [우클릭+드래그] : 모든 신호등의 회전\n" +
-            "2. [좌클릭+드래그] : 신호등 위치 이동\n" +
-            "3. [Ctrl+왼클릭]  : 신호등 복사\n" +
-            "4. [더블클릭+우클릭 드래그]: 개별 신호등 회전");
+        openTab(null, 'tab-info');
     }
 }
 
