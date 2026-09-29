@@ -57,7 +57,7 @@ function openDetailOverlay(jid) {
     setTimeout(() => {
         if (overlayMap) {
             overlayMap.invalidateSize();
-            overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], STATE.overlayDisplayMode === 'arrow' ? 20 : 18);
+            overlayMap.setView([STATE.junctions[jid].lat, STATE.junctions[jid].lng], 18);
             
             // 중앙 원형 마커 그리기
             if (window._overlayCenterMarker) {
@@ -667,7 +667,7 @@ function toggleOverlaySignalMode() {
             createOverlayArrows(window._currentOverlayJid, overlayMap);
         }
         if (overlayMap) {
-            overlayMap.setZoom(STATE.overlayDisplayMode === 'arrow' ? 20 : 18);
+            // zoom is fixed at 18
         }
     }
 }
