@@ -176,23 +176,61 @@ class Analyzer {
   static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
     const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0;
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : null;
-    if (!sm) return null;
+    if (!sm) return [];
     const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
-    if (!tod) return null;
+    if (!tod) return [];
     const offset = (offsetOverride !== undefined) ? offsetOverride : (tod.offset || 0);
     const targetMov = (dir==='up') ? (axis==='ew'?2:4) : (axis==='ew'?6:8);
-    let ringIdx=-1, phaseIdx=-1;
-    const iA = (sm.movA||[]).indexOf(targetMov);
-    if (iA!==-1) { ringIdx=0; phaseIdx=iA; }
-    else { const iB=(sm.movB||[]).indexOf(targetMov); if(iB!==-1){ringIdx=1;phaseIdx=iB;} }
     
-    if (phaseIdx===-1) return null;
-    const splits=(ringIdx===0)?(tod.splitA||[]):(tod.splitB||[]);
-    const yellows=(ringIdx===0)?(sm.yellowA||[]):(sm.yellowB||[]);
-    let accT=0; for(let s=0;s<phaseIdx;s++) accT+=(splits[s]||0);
-    const gLen=Math.max(0,(splits[phaseIdx]||0)-(yellows[phaseIdx]||0));
-    if(gLen<=0) return null;
-    return { gStart:((offset+accT)%cycle+cycle)%cycle, gLen };
+    let targetIdxs = [];
+    let splits = [];
+    let yellows = [];
+
+    const idxsA = [];
+    (sm.movA || []).forEach((m, idx) => { if (m === targetMov) idxsA.push(idx); });
+    const idxsB = [];
+    (sm.movB || []).forEach((m, idx) => { if (m === targetMov) idxsB.push(idx); });
+
+    if (idxsA.length > 0) {
+        targetIdxs = idxsA; splits = tod.splitA || []; yellows = sm.yellowA || [];
+    } else if (idxsB.length > 0) {
+        targetIdxs = idxsB; splits = tod.splitB || []; yellows = sm.yellowB || [];
+    }
+    
+    if (targetIdxs.length === 0) return [];
+
+    const windows = [];
+    let i = 0;
+    while (i < targetIdxs.length) {
+        const startPhaseIdx = targetIdxs[i];
+        let accT = 0;
+        for (let s = 0; s < startPhaseIdx; s++) accT += (splits[s] || 0);
+        
+        let totalGreenDuration = 0;
+        let jIdx = i;
+        while (jIdx < targetIdxs.length) {
+            const currIdx = targetIdxs[jIdx];
+            const sTime = splits[currIdx] || 0;
+            const yTime = yellows[currIdx] || 0;
+            
+            const isNextSame = (jIdx < targetIdxs.length - 1 && targetIdxs[jIdx+1] === currIdx + 1);
+            if (isNextSame) {
+                totalGreenDuration += sTime;
+                jIdx++;
+            } else {
+                totalGreenDuration += Math.max(0, sTime - yTime);
+                break;
+            }
+        }
+        
+        if (totalGreenDuration > 0) {
+            const gStart = ((offset + accT) % cycle + cycle) % cycle;
+            windows.push({ gStart, gLen: totalGreenDuration });
+        }
+        
+        i = jIdx + 1;
+    }
+    return windows;
   }
   static calcBand(dir,axis,members,distances,totalDist,cycle,travelTimes,dayIdx,pIdx,offsets) {
     if(!members||members.length<2||cycle<=0) return {width:0,start:0,vc:0};
@@ -200,8 +238,8 @@ class Analyzer {
     const vn=[];
     for(let i=0;i<members.length;i++){
       const off = offsets[members[i].id] ? offsets[members[i].id][pIdx] : undefined;
-      const g=this.getGreenWindow(members[i],axis,dir,dayIdx,pIdx,cycle,off);
-      if(g) vn.push({idx:i,tt:travelTimes[i],green:g});
+      const greens = this.getGreenWindow(members[i],axis,dir,dayIdx,pIdx,cycle,off);
+      if(greens && greens.length>0) vn.push({idx:i,tt:travelTimes[i],greens:greens});
     }
     if(vn.length<2) return {width:0,start:0,vc:vn.length};
     let bW=0,bS=0;
@@ -210,11 +248,17 @@ class Analyzer {
       for(const n of vn){
         const tr=(dir==='up')?(n.tt):((totalTT-n.tt));
         const arr=((t+tr)%cycle+cycle)%cycle;
-        const gS=n.green.gStart, gE=(gS+n.green.gLen)%cycle;
-        const isG=(gS<gE)?(arr>=gS&&arr<gE):(arr>=gS||arr<gE);
-        if(!isG){ok=false;break;}
-        const rem=(gS<gE)?(gE-arr):(arr>=gS?cycle-arr+gE:gE-arr);
-        minR=Math.min(minR,rem);
+        let maxRem = -1;
+        for(const g of n.greens){
+            const gS=g.gStart, gE=(gS+g.gLen)%cycle;
+            const isG=(gS<gE)?(arr>=gS&&arr<gE):(arr>=gS||arr<gE);
+            if(isG){
+                const rem = (gS<gE)?(gE-arr):(arr>=gS?cycle-arr+gE:gE-arr);
+                if(rem>maxRem) maxRem = rem;
+            }
+        }
+        if(maxRem<0){ok=false;break;}
+        if(maxRem<minR) minR=maxRem;
       }
       if(ok&&minR>bW){bW=minR;bS=t;}
     }

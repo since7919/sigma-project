@@ -13,19 +13,17 @@ class TSDAnalyzer {
      * 특정 교차로의 연동 방향 녹색 시작/길이 반환
      * 폴백: 정확한 이동류가 없으면 Ring A의 최대 녹색 현시 선택
      */
-    static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle) {
+    static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
         const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0;
         const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : null;
-        if (!sm) return null;
+        if (!sm) return [];
 
         const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
-        if (!tod) return null;
-        const offset = tod.offset || 0;
+        if (!tod) return [];
+        const offset = (offsetOverride !== undefined) ? offsetOverride : (tod.offset || 0);
 
         const targetMov = (dir === 'up') ? (axis === 'ew' ? 2 : 4) : (axis === 'ew' ? 6 : 8);
 
-        // [개선] 특정 이동류가 포함된 모든 현시 인덱스 추출
-        let ringIdx = -1;
         let targetIdxs = [];
         let splits = [];
         let yellows = [];
@@ -36,49 +34,54 @@ class TSDAnalyzer {
         (sm.movB || []).forEach((m, idx) => { if (m === targetMov) idxsB.push(idx); });
 
         if (idxsA.length > 0) {
-            ringIdx = 0; targetIdxs = idxsA; splits = tod.splitA || []; yellows = sm.yellowA || [];
+            targetIdxs = idxsA; splits = tod.splitA || []; yellows = sm.yellowA || [];
         } else if (idxsB.length > 0) {
-            ringIdx = 1; targetIdxs = idxsB; splits = tod.splitB || []; yellows = sm.yellowB || [];
+            targetIdxs = idxsB; splits = tod.splitB || []; yellows = sm.yellowB || [];
         }
+        
+        if (targetIdxs.length === 0) return [];
 
-        if (targetIdxs.length === 0) return null;
-
-        // [핵심] 연속된 현시가 동일 이동류를 사용하는지 확인하여 밴드 확장
-        // 분석 효율을 위해 첫 번째 나타나는 묶음(Consecutive Block)을 기준으로 연동 대역 설정
-        const startPhaseIdx = targetIdxs[0];
-        let accT = 0;
-        for (let s = 0; s < startPhaseIdx; s++) accT += (splits[s] || 0);
-
-        let totalGreenDuration = 0;
-        for (let k = 0; k < targetIdxs.length; k++) {
-            const currIdx = targetIdxs[k];
+        const windows = [];
+        let i = 0;
+        while (i < targetIdxs.length) {
+            const startPhaseIdx = targetIdxs[i];
             
-            // 비연속적인 경우(예: 1,2현시 후 5현시에서 다시 나옴)는 별개 대역으로 간주하여 첫 블록만 합산
-            if (k > 0 && targetIdxs[k] !== targetIdxs[k-1] + 1) break;
-
-            const sTime = splits[currIdx] || 0;
-            const yTime = yellows[currIdx] || 0;
-
-            // 다음 현시도 동일 이동류라면 황색 시간을 빼지 않고 전체 합산
-            const isNextSame = (k < targetIdxs.length - 1 && targetIdxs[k+1] === currIdx + 1);
-            if (isNextSame) {
-                totalGreenDuration += sTime;
-            } else {
-                totalGreenDuration += Math.max(0, sTime - yTime);
+            let accT = 0;
+            for (let s = 0; s < startPhaseIdx; s++) accT += (splits[s] || 0);
+            
+            let totalGreenDuration = 0;
+            let jIdx = i;
+            while (jIdx < targetIdxs.length) {
+                const currIdx = targetIdxs[jIdx];
+                const sTime = splits[currIdx] || 0;
+                const yTime = yellows[currIdx] || 0;
+                
+                const isNextSame = (jIdx < targetIdxs.length - 1 && targetIdxs[jIdx+1] === currIdx + 1);
+                if (isNextSame) {
+                    totalGreenDuration += sTime;
+                    jIdx++;
+                } else {
+                    totalGreenDuration += Math.max(0, sTime - yTime);
+                    break;
+                }
             }
+            
+            if (totalGreenDuration > 0) {
+                const gStart = ((offset + accT) % cycle + cycle) % cycle;
+                windows.push({ gStart, gLen: totalGreenDuration });
+            }
+            
+            i = jIdx + 1;
         }
-
-        if (totalGreenDuration <= 0) return null;
-
-        const gStart = ((offset + accT) % cycle + cycle) % cycle;
-        return { gStart, gLen: totalGreenDuration };
+        
+        return windows;
     }
 
     /**
      * Max Band Brute-Force Sweep (유효 교차로만 대상)
      * null 교차로를 완전히 제외한 별도 배열로 계산
      */
-    static calculateBandwidth(dir, axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx) {
+    static calculateBandwidth(dir, axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, offsets) {
         if (!members || members.length < 2 || cycle <= 0)
             return { width: 0, start: 0, validCount: 0 };
 
@@ -86,9 +89,10 @@ class TSDAnalyzer {
 
         const validNodes = [];
         for (let i = 0; i < members.length; i++) {
-            const g = this.getGreenWindow(members[i], axis, dir, dayIdx, pIdx, cycle);
-            if (g) {
-                validNodes.push({ idx: i, tt: travelTimes[i], green: g });
+            const off = (offsets && offsets[members[i].id]) ? offsets[members[i].id][pIdx] : undefined;
+            const greens = this.getGreenWindow(members[i], axis, dir, dayIdx, pIdx, cycle, off);
+            if (greens && greens.length > 0) {
+                validNodes.push({ idx: i, tt: travelTimes[i], greens: greens });
             }
         }
         if (validNodes.length < 2) return { width: 0, start: 0, validCount: validNodes.length };
@@ -101,19 +105,28 @@ class TSDAnalyzer {
             for (const node of validNodes) {
                 const travel = (dir === 'up') ? node.tt : (totalTT - node.tt);
                 const arrival = ((t + travel) % cycle + cycle) % cycle;
-                const gS = node.green.gStart;
-                const gE = (gS + node.green.gLen) % cycle;
+                
+                let maxRemForThisNode = -1;
+                for (const g of node.greens) {
+                    const gS = g.gStart;
+                    const gE = (gS + g.gLen) % cycle;
 
-                const isGreen = (gS < gE)
-                    ? (arrival >= gS && arrival < gE)
-                    : (arrival >= gS || arrival < gE);
+                    const isGreen = (gS < gE)
+                        ? (arrival >= gS && arrival < gE)
+                        : (arrival >= gS || arrival < gE);
+                    
+                    if (isGreen) {
+                        const rem = (gS < gE)
+                            ? (gE - arrival)
+                            : (arrival >= gS ? cycle - arrival + gE : gE - arrival);
+                        if (rem > maxRemForThisNode) {
+                            maxRemForThisNode = rem;
+                        }
+                    }
+                }
 
-                if (!isGreen) { ok = false; break; }
-
-                const rem = (gS < gE)
-                    ? (gE - arrival)
-                    : (arrival >= gS ? cycle - arrival + gE : gE - arrival);
-                minR = Math.min(minR, rem);
+                if (maxRemForThisNode < 0) { ok = false; break; }
+                minR = Math.min(minR, maxRemForThisNode);
             }
             if (ok && minR > bestW) { bestW = minR; bestS = t; }
         }
