@@ -795,12 +795,12 @@ class TSDEngine {
         const planNo = (this.state.todIdx || 0) + 1;
 
         info.innerHTML = `
-            <div style="background:rgba(100,181,246,0.15); color:#64b5f6; padding:2px 8px; border-radius:4px;">[일계획 ${dayNo} #${planNo}]</div>
-            <div style="display:flex; align-items:center; gap:4px;"><span style="color:${this.config.trajectories.up}">●</span> 상행: ${upLabel}</div>
-            <div style="display:flex; align-items:center; gap:4px;"><span style="color:${this.config.trajectories.down}">●</span> 하행: ${downLabel}</div>
-            <div style="color:#aaa;">주기: <span style="color:#fff;">${c}s</span></div>
-            <div style="color:#aaa;">속도: <span style="color:#fff;">${speed}km/h</span></div>
-            <div style="opacity:0.6; font-size:10px;">분석: ${Math.max(vUp, vDown)}/${total}개</div>
+            <div style="background:rgba(100,181,246,0.15); color:#64b5f6; padding:2px 6px; border-radius:4px; font-size:10px;">[계획 ${dayNo} #${planNo}]</div>
+            <div style="display:flex; align-items:center; gap:3px;"><span style="color:${this.config.trajectories.up}">●</span> 상:${upLabel}</div>
+            <div style="display:flex; align-items:center; gap:3px;"><span style="color:${this.config.trajectories.down}">●</span> 하:${downLabel}</div>
+            <div style="color:#aaa;">C:<span style="color:#fff;">${c}</span></div>
+            <div style="color:#aaa;">V:<span style="color:#fff;">${speed}</span></div>
+            <div style="opacity:0.6; font-size:9px;">${Math.max(vUp, vDown)}/${total}개</div>
         `;
     }
 }
