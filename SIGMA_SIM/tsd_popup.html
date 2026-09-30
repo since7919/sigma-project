@@ -358,7 +358,7 @@ class PopupTSD {
     ctx.fillStyle='#1e2124'; ctx.fillRect(0,0,w,h);
 
     const cW=w-P.left-P.right, cH=h-P.top-P.bottom;
-    const cycle = this.state.cycle, tH = cycle * 2.5;
+    const cycle = this.state.cycle, tH = cycle * 3.5;
     const dayIdx = _parentState ? ((_parentState.currentGroupDayTypeIdx) || 0) : 0;
     const axis = getAxis();
     const offsets = this._getOffsets();
@@ -399,18 +399,43 @@ class PopupTSD {
       const off=this._getOffset(j.id,pIdx);
       ctx.fillStyle='rgba(30,33,36,0.95)';ctx.fillRect(0,y-26,P.left-2,52);
       ctx.textAlign='right';
-      ctx.fillStyle='#eeeeee';ctx.font='bold 11px "Outfit",sans-serif';
+      ctx.fillStyle='#eeeeee';ctx.font='bold 14px "Outfit",sans-serif';
       let nm=j.name||j.id; if(nm.length>9)nm=nm.substring(0,8)+'..';
-      ctx.fillText(nm,P.left-8,y-6);
-      ctx.fillStyle='#81c784';ctx.font='bold 9px "JetBrains Mono",monospace';
-      ctx.fillText(`▸${Math.round(this.state.distances[i])}m`,P.left-8,y+7);
-      ctx.fillStyle=off!==0?'#ffb74d':'#9e9e9e';ctx.font='bold 9px "JetBrains Mono",monospace';
-      ctx.fillText(`⊕${Math.round(off)}s`,P.left-8,y+19);
+      ctx.fillText(nm,P.left-12,y-8);
+      ctx.fillStyle='#81c784';ctx.font='bold 12px "JetBrains Mono",monospace';
+      ctx.fillText(`▸${Math.round(this.state.distances[i])}m`,P.left-12,y+8);
+      ctx.fillStyle=off!==0?'#ffb74d':'#9e9e9e';ctx.font='bold 12px "JetBrains Mono",monospace';
+      ctx.fillText(`⊕${Math.round(off)}s`,P.left-12,y+24);
     });
 
-    // Time axis
-    ctx.fillStyle='#aaaaaa';ctx.font='9px "JetBrains Mono",monospace';ctx.textAlign='center';
-    for(let t=0;t<tH;t+=20){const x=tToX(t);if(x>P.left&&x<w-P.right)ctx.fillText(`${Math.round(t)}s`,x,h-P.bottom+14);}
+    // Time axis & Grid
+    for(let t=0;t<=tH;t+=20){
+        const x=tToX(t);
+        if(x>P.left&&x<w-P.right){
+            if (t % cycle === 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+            } else {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x, P.top);
+            ctx.lineTo(x, h - P.bottom + 5);
+            ctx.stroke();
+            
+            ctx.textAlign='center';
+            if (t % cycle === 0) {
+                ctx.fillStyle = '#4fc3f7';
+                ctx.font = 'bold 14px "JetBrains Mono", monospace';
+                ctx.fillText(`${t}s (C${t/cycle})`, x, h - P.bottom + 22);
+            } else {
+                ctx.fillStyle = '#888888';
+                ctx.font = '12px "JetBrains Mono", monospace';
+                ctx.fillText(`${t}s`, x, h - P.bottom + 20);
+            }
+        }
+    }
 
     this._updateInfo(bUp,bDown,cycle);
   }

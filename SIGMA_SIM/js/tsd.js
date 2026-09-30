@@ -416,7 +416,7 @@ class TSDEngine {
         const chartW = w - cfg.padding.left - cfg.padding.right;
         const chartH = h - cfg.padding.top - cfg.padding.bottom;
         const cycle = this.state.cycle;
-        const timeHorizon = cycle * 2.5;
+        const timeHorizon = cycle * 3.5;
         
         const daySelector = document.getElementById('tsd-day-plan');
         const dayIdx = (daySelector) ? parseInt(daySelector.value) : (STATE.currentGroupDayTypeIdx || 0);
@@ -480,28 +480,50 @@ class TSDEngine {
             // 교차로명
             ctx.textAlign = 'right';
             ctx.fillStyle = '#eeeeee';
-            ctx.font = 'bold 12px "Outfit", "Inter", sans-serif';
+            ctx.font = 'bold 14px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
             if (name.length > 9) name = name.substring(0, 8) + '..';
-            ctx.fillText(name, cfg.padding.left - 8, y - 6);
+            ctx.fillText(name, cfg.padding.left - 12, y - 8);
 
             // 거리
             ctx.fillStyle = '#81c784';
-            ctx.font = 'bold 10px "JetBrains Mono", monospace';
-            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cfg.padding.left - 8, y + 8);
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cfg.padding.left - 12, y + 8);
 
             // 오프셋
             ctx.fillStyle = curOffset !== 0 ? '#ffb74d' : '#9e9e9e';
-            ctx.font = 'bold 10px "JetBrains Mono", monospace';
-            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 8, y + 22);
+            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 12, y + 24);
         });
 
-        // 시간축 눈금
-        ctx.fillStyle = '#aaaaaa'; ctx.font = cfg.font.mono; ctx.textAlign = 'center';
-        for (let t = 0; t < timeHorizon; t += 20) {
+        // 시간축 눈금 및 세로선 (주기별 강조)
+        for (let t = 0; t <= timeHorizon; t += 20) {
             const x = tToX(t);
-            if (x > cfg.padding.left && x < w - cfg.padding.right) {
-                ctx.fillText(`${Math.round(t)}s`, x, h - cfg.padding.bottom + 18);
+            if (x >= cfg.padding.left && x <= w - cfg.padding.right) {
+                // 세로선
+                if (t % cycle === 0) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.lineWidth = 1;
+                }
+                ctx.beginPath();
+                ctx.moveTo(x, cfg.padding.top);
+                ctx.lineTo(x, h - cfg.padding.bottom + 5);
+                ctx.stroke();
+
+                // 텍스트
+                ctx.textAlign = 'center';
+                if (t % cycle === 0) {
+                    ctx.fillStyle = '#4fc3f7';
+                    ctx.font = 'bold 14px "JetBrains Mono", monospace';
+                    ctx.fillText(`${t}s (C${t/cycle})`, x, h - cfg.padding.bottom + 22);
+                } else {
+                    ctx.fillStyle = '#888888';
+                    ctx.font = '12px "JetBrains Mono", monospace';
+                    ctx.fillText(`${t}s`, x, h - cfg.padding.bottom + 20);
+                }
             }
         }
 
