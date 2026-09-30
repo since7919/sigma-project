@@ -132,19 +132,19 @@ class TSDEngine {
         this.config = {
             padding: { top: 90, bottom: 60, left: 140, right: 60 },
             colors: {
-                bg: '#f5f5f5',
-                grid: 'rgba(0, 0, 0, 0.08)',
-                accent: '#0088cc',
-                green: '#22cc44',
-                yellow: '#ddaa00',
-                red: '#dd2222',
-                bandUp: 'rgba(0, 100, 220, 0.15)',
-                bandDown: 'rgba(0, 160, 220, 0.15)',
-                bandUpStroke: 'rgba(0, 80, 200, 0.90)',
-                bandDownStroke: 'rgba(0, 160, 220, 0.90)',
-                trajUp: 'rgba(0, 80, 200, 0.85)',
-                trajDown: 'rgba(0, 160, 220, 0.85)',
-                wait: '#dd2222'
+                bg: '#1e2124',
+                grid: 'rgba(255, 255, 255, 0.08)',
+                accent: '#1976d2',
+                green: '#2e7d32',
+                yellow: '#f9a825',
+                red: '#c62828',
+                bandUp: 'rgba(41, 182, 246, 0.2)',
+                bandDown: 'rgba(102, 187, 106, 0.2)',
+                bandUpStroke: 'rgba(41, 182, 246, 0.8)',
+                bandDownStroke: 'rgba(102, 187, 106, 0.8)',
+                trajUp: 'rgba(41, 182, 246, 0.7)',
+                trajDown: 'rgba(102, 187, 106, 0.7)',
+                wait: '#c62828'
             },
             trajectories: { up: '#0050c8', down: '#00a0dc' },
             font: {
@@ -165,7 +165,23 @@ class TSDEngine {
         };
 
         this.initEvents();
-        window.addEventListener('resize', () => this.render());
+                window.addEventListener('resize', () => this.render());
+
+        // 툴팁 초기화
+        this.tooltip = document.createElement('div');
+        this.tooltip.style.position = 'absolute';
+        this.tooltip.style.pointerEvents = 'none';
+        this.tooltip.style.backgroundColor = 'rgba(20, 20, 20, 0.9)';
+        this.tooltip.style.color = '#fff';
+        this.tooltip.style.padding = '8px 12px';
+        this.tooltip.style.borderRadius = '6px';
+        this.tooltip.style.fontSize = '12px';
+        this.tooltip.style.fontFamily = this.config.font.base;
+        this.tooltip.style.zIndex = '9999';
+        this.tooltip.style.display = 'none';
+        this.tooltip.style.boxShadow = '0 4px 6px rgba(0,0,0,0.5)';
+        this.tooltip.style.border = '1px solid rgba(255,255,255,0.1)';
+        document.body.appendChild(this.tooltip);
     }
 
     initEvents() {
@@ -180,12 +196,50 @@ class TSDEngine {
             return null;
         };
 
-        this.canvas.addEventListener('mousemove', (e) => {
-            if (this.state.isDragging || this.state.isDraggingOffset) return;
+                this.canvas.addEventListener('mousemove', (e) => {
+            if (this.state.isDragging || this.state.isDraggingOffset) {
+                if(this.tooltip) this.tooltip.style.display = 'none';
+                return;
+            }
             this.canvas.style.cursor = getHitJid(e) ? 'ew-resize' : 'grab';
+            
+            // 툴팁 처리 로직
+            if (this.tooltip && this.state.hitRegions) {
+                const rect = this.canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) / (this.canvas.clientWidth / (this.canvas.width / (window.devicePixelRatio || 1)));
+                const my = (e.clientY - rect.top) / (this.canvas.clientHeight / (this.canvas.height / (window.devicePixelRatio || 1)));
+                
+                // 역순으로 탐색 (나중에 그려진 것이 위쪽)
+                let found = null;
+                for (let i = this.state.hitRegions.length - 1; i >= 0; i--) {
+                    const r = this.state.hitRegions[i];
+                    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+                        found = r;
+                        break;
+                    }
+                }
+                
+                if (found && found.split > 0 && found.mov > 0) {
+                    this.tooltip.style.display = 'block';
+                    this.tooltip.style.left = (e.pageX + 15) + 'px';
+                    this.tooltip.style.top = (e.pageY + 15) + 'px';
+                    
+                    let typeText = "차량";
+                    if (found.mov >= 101 && found.mov <= 116) typeText = "보행";
+                    
+                    this.tooltip.innerHTML = `
+                        <div><strong>이동류:</strong> ${found.mov === 100 ? 'W' : found.mov} (${typeText})</div>
+                        <div><strong>총 현시:</strong> ${found.split}초</div>
+                        <div><strong>녹색:</strong> <span style="color:#81c784">${found.green}초</span></div>
+                        ${found.yellow > 0 ? `<div><strong>황색:</strong> <span style="color:#ffb74d">${found.yellow}초</span></div>` : ''}
+                    `;
+                } else {
+                    this.tooltip.style.display = 'none';
+                }
+            }
         });
 
-        this.canvas.addEventListener('mousedown', (e) => {
+        this.canvas.addEventListener(\'mouseleave\', () => { if(this.tooltip) this.tooltip.style.display = \'none\'; });\n        this.canvas.addEventListener(\'mousedown\', (e) => {
             if (e.button !== 0) return;
             const hitJid = getHitJid(e);
             this.state.lastX = e.clientX;
@@ -348,6 +402,7 @@ class TSDEngine {
         this.ctx.scale(dpr, dpr);
 
         const w = container.clientWidth, h = container.clientHeight;
+        this.state.hitRegions = [];
         const cfg = this.config, ctx = this.ctx;
         ctx.fillStyle = cfg.colors.bg;
         ctx.fillRect(0, 0, w, h);
@@ -418,30 +473,30 @@ class TSDEngine {
             const curOffset = (j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][pIdx]) ? (j.dayPlans[dayIdx][pIdx].offset || 0) : 0;
 
             // 라벨 배경
-            ctx.fillStyle = 'rgba(245,245,245,0.95)';
+            ctx.fillStyle = 'rgba(30,33,36,0.95)';
             ctx.fillRect(0, y - 26, cfg.padding.left - 2, 52);
 
             // 교차로명
             ctx.textAlign = 'right';
-            ctx.fillStyle = '#222222';
+            ctx.fillStyle = '#eeeeee';
             ctx.font = 'bold 12px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
             if (name.length > 9) name = name.substring(0, 8) + '..';
             ctx.fillText(name, cfg.padding.left - 8, y - 6);
 
             // 거리
-            ctx.fillStyle = '#2e7d32';
+            ctx.fillStyle = '#81c784';
             ctx.font = 'bold 10px "JetBrains Mono", monospace';
             ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cfg.padding.left - 8, y + 8);
 
             // 오프셋
-            ctx.fillStyle = curOffset !== 0 ? '#c75000' : '#888';
+            ctx.fillStyle = curOffset !== 0 ? '#ffb74d' : '#9e9e9e';
             ctx.font = 'bold 10px "JetBrains Mono", monospace';
             ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 8, y + 22);
         });
 
         // 시간축 눈금
-        ctx.fillStyle = '#555'; ctx.font = cfg.font.mono; ctx.textAlign = 'center';
+        ctx.fillStyle = '#aaaaaa'; ctx.font = cfg.font.mono; ctx.textAlign = 'center';
         for (let t = 0; t < timeHorizon; t += 20) {
             const x = tToX(t);
             if (x > cfg.padding.left && x < w - cfg.padding.right) {
@@ -469,7 +524,7 @@ class TSDEngine {
         const ctx = this.ctx, cfg = this.config;
 
         // 배경
-        ctx.fillStyle = "rgba(240,240,240,0.65)";
+        ctx.fillStyle = 'rgba(40,44,48,0.65)';
         ctx.fillRect(cfg.padding.left, y - ringH - gap - 1, chartW, (ringH + gap) * 2 + 2);
 
         const drawRing = (splits, yellows, movs, isBottom) => {
@@ -531,9 +586,19 @@ class TSDEngine {
                     }
 
                     const segW = xE - xS;
-                    if (segW > 14) this.drawPhaseArrow(xS + segW / 2, yPos + ringH / 2, curMov);
+                    // if (segW > 14) this.drawPhaseArrow(xS + segW / 2, yPos + ringH / 2, curMov); // Removed text for cleaner UI
+                    
+                    // 툴팁용 hit region 등록
+                    const dX = Math.max(cfg.padding.left, xS);
+                    const dW = Math.min(cfg.padding.left + chartW, xE) - dX;
+                    if (dW > 0 && this.state.hitRegions) {
+                        this.state.hitRegions.push({
+                            x: dX, y: yPos, w: dW, h: ringH,
+                            mov: curMov, split: splitTime, green: greenTime, yellow: yellowTime
+                        });
+                    }
 
-                    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
                     ctx.fillRect(xE - 0.5, yPos, 1, ringH);
                 }
                 currentT += splitTime;
@@ -662,7 +727,7 @@ class TSDEngine {
     drawPhaseArrow(x, y, m) {
         if (m <= 0) return;
         this.ctx.save();
-        this.ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        this.ctx.fillStyle = 'rgba(255,255,255,0.85)';
         this.ctx.font = 'bold 8px "JetBrains Mono", monospace';
         this.ctx.textAlign = 'center'; this.ctx.textBaseline = 'middle';
         this.ctx.fillText(m >= 100 ? 'W' : m, x, y);
