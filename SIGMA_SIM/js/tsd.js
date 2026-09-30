@@ -416,7 +416,7 @@ class TSDEngine {
         const chartW = w - cfg.padding.left - cfg.padding.right;
         const chartH = h - cfg.padding.top - cfg.padding.bottom;
         const cycle = this.state.cycle;
-        const timeHorizon = cycle * 3.5;
+        const timeHorizon = cycle * 4;
         
         const daySelector = document.getElementById('tsd-day-plan');
         const dayIdx = (daySelector) ? parseInt(daySelector.value) : (STATE.currentGroupDayTypeIdx || 0);
@@ -496,12 +496,17 @@ class TSDEngine {
             ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 12, y + 24);
         });
 
-        // 시간축 눈금 및 세로선 (주기별 강조)
-        for (let t = 0; t <= timeHorizon; t += 20) {
+        // 시간축 눈금 및 세로선 (주기 비율 기반)
+        const subDivisions = 4; // 1/4 주기 단위
+        const step = cycle / subDivisions;
+        
+        for (let t = 0; t <= timeHorizon; t += step) {
             const x = tToX(t);
             if (x >= cfg.padding.left && x <= w - cfg.padding.right) {
+                const isCycleEnd = (Math.round(t) % cycle === 0);
+                
                 // 세로선
-                if (t % cycle === 0) {
+                if (isCycleEnd) {
                     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
                     ctx.lineWidth = 2;
                 } else {
@@ -513,16 +518,16 @@ class TSDEngine {
                 ctx.lineTo(x, h - cfg.padding.bottom + 5);
                 ctx.stroke();
 
-                // 텍스트
+                // 텍스트 (실제 시간 표시)
                 ctx.textAlign = 'center';
-                if (t % cycle === 0) {
+                if (isCycleEnd) {
                     ctx.fillStyle = '#4fc3f7';
-                    ctx.font = 'bold 14px "JetBrains Mono", monospace';
-                    ctx.fillText(`${t}s (C${t/cycle})`, x, h - cfg.padding.bottom + 22);
+                    ctx.font = 'bold 13px "JetBrains Mono", monospace';
+                    ctx.fillText(`${Math.round(t)}s (C${Math.round(t/cycle)})`, x, h - cfg.padding.bottom + 22);
                 } else {
                     ctx.fillStyle = '#888888';
-                    ctx.font = '12px "JetBrains Mono", monospace';
-                    ctx.fillText(`${t}s`, x, h - cfg.padding.bottom + 20);
+                    ctx.font = '11px "JetBrains Mono", monospace';
+                    ctx.fillText(`${Math.round(t)}s`, x, h - cfg.padding.bottom + 20);
                 }
             }
         }

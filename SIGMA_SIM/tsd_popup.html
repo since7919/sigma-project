@@ -358,7 +358,7 @@ class PopupTSD {
     ctx.fillStyle='#1e2124'; ctx.fillRect(0,0,w,h);
 
     const cW=w-P.left-P.right, cH=h-P.top-P.bottom;
-    const cycle = this.state.cycle, tH = cycle * 3.5;
+    const cycle = this.state.cycle, tH = cycle * 4;
     const dayIdx = _parentState ? ((_parentState.currentGroupDayTypeIdx) || 0) : 0;
     const axis = getAxis();
     const offsets = this._getOffsets();
@@ -408,11 +408,14 @@ class PopupTSD {
       ctx.fillText(`⊕${Math.round(off)}s`,P.left-12,y+24);
     });
 
-    // Time axis & Grid
-    for(let t=0;t<=tH;t+=20){
+    // Time axis & Grid (주기 비율 기반)
+    const subDivisions = 4;
+    const step = cycle / subDivisions;
+    for(let t=0; t<=tH; t+=step){
         const x=tToX(t);
-        if(x>P.left&&x<w-P.right){
-            if (t % cycle === 0) {
+        if(x>P.left && x<w-P.right){
+            const isCycleEnd = (Math.round(t) % cycle === 0);
+            if (isCycleEnd) {
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.lineWidth = 2;
             } else {
@@ -425,14 +428,14 @@ class PopupTSD {
             ctx.stroke();
             
             ctx.textAlign='center';
-            if (t % cycle === 0) {
+            if (isCycleEnd) {
                 ctx.fillStyle = '#4fc3f7';
-                ctx.font = 'bold 14px "JetBrains Mono", monospace';
-                ctx.fillText(`${t}s (C${t/cycle})`, x, h - P.bottom + 22);
+                ctx.font = 'bold 13px "JetBrains Mono", monospace';
+                ctx.fillText(`${Math.round(t)}s (C${Math.round(t/cycle)})`, x, h - P.bottom + 22);
             } else {
                 ctx.fillStyle = '#888888';
-                ctx.font = '12px "JetBrains Mono", monospace';
-                ctx.fillText(`${t}s`, x, h - P.bottom + 20);
+                ctx.font = '11px "JetBrains Mono", monospace';
+                ctx.fillText(`${Math.round(t)}s`, x, h - P.bottom + 20);
             }
         }
     }
