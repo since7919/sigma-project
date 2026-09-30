@@ -1516,7 +1516,7 @@
                                 <div class="tsd-input-wrap">
                                     <input type="number" id="tsd-speed" value="50" step="5"
                                         onchange="renderTimeSpaceDiagram()"
-                                        style="width:44px; border:none; background:transparent; color:var(--accent); font-weight:800; font-size:11px; text-align:center; height:24px;">
+                                        style="width:40px; border:none; background:transparent; color:#64b5f6; font-weight:700; font-size:12px; text-align:center; height:24px; outline:none;">
                                     <span class="fs-9 text-dim-dark pr-8">km/h</span>
                                 </div>
                             </div>
@@ -1550,7 +1550,7 @@
                                     style="border-left-color: rgba(255,255,255,0.06);">
                                     <span class="tsd-label-tiny">분석 세트</span>
                                     <select id="tsd-config-set" onchange="renderTimeSpaceDiagram()" class="tsd-select"
-                                        style="color:var(--neon-magenta); border-color: rgba(255,0,255,0.2);">
+                                        style="color:#b388ff; border-color: rgba(179, 136, 255, 0.3);">
                                         <option value="0">SET 1</option>
                                         <option value="1">SET 2</option>
                                         <option value="2">SET 3</option>
@@ -1574,11 +1574,13 @@
                         <!-- 오른쪽: 버튼들 -->
                         <div class="flex-row gap-8 justify-end">
                             <button onclick="resetTsdOffsets()"
-                                style="background:#1e1610; color:#ff8a65; border:1px solid #55331a; padding:5px 13px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; transition:0.2s;"
-                                title="오프셋을 초기 상태로 초기화">↺ RESET</button>
+                                style="background:rgba(255, 82, 82, 0.1); color:#ff5252; border:1px solid rgba(255, 82, 82, 0.3); padding:5px 14px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:4px;"
+                                onmouseover="this.style.background='rgba(255, 82, 82, 0.2)'" onmouseout="this.style.background='rgba(255, 82, 82, 0.1)'"
+                                title="오프셋을 초기 상태로 초기화"><span style="font-size:13px;">↺</span> RESET</button>
                             <button onclick="openTsdPopup()"
-                                style="background:#0d1f14; color:#00e676; border:1px solid rgba(0,230,118,0.4); padding:5px 13px; border-radius:4px; font-size:11px; font-weight:800; cursor:pointer; transition:0.2s;"
-                                title="새 창에서 크게보기">⛶ 크게보기</button>
+                                style="background:rgba(0, 230, 118, 0.1); color:#00e676; border:1px solid rgba(0, 230, 118, 0.3); padding:5px 14px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:4px;"
+                                onmouseover="this.style.background='rgba(0, 230, 118, 0.2)'" onmouseout="this.style.background='rgba(0, 230, 118, 0.1)'"
+                                title="분석 팝업 열기"><span style="font-size:13px;">⛶</span> 크게보기</button>
                         </div>
                     </div>
                 </div>
