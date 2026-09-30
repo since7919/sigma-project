@@ -239,7 +239,8 @@ class TSDEngine {
             }
         });
 
-        this.canvas.addEventListener(\'mouseleave\', () => { if(this.tooltip) this.tooltip.style.display = \'none\'; });\n        this.canvas.addEventListener(\'mousedown\', (e) => {
+        this.canvas.addEventListener('mouseleave', () => { if(this.tooltip) this.tooltip.style.display = 'none'; });
+        this.canvas.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
             const hitJid = getHitJid(e);
             this.state.lastX = e.clientX;
