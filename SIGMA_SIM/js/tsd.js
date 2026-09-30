@@ -248,10 +248,7 @@ class TSDEngine {
                 this.state.isDraggingOffset = true;
                 this.state.dragJid = hitJid;
                 this.canvas.style.cursor = 'ew-resize';
-            } else {
-                this.state.isDragging = true;
-                this.canvas.style.cursor = 'grabbing';
-            }
+            } else { this.canvas.style.cursor = 'default'; }
             e.preventDefault();
         });
 
@@ -259,7 +256,7 @@ class TSDEngine {
             if (!this.state.isDragging && !this.state.isDraggingOffset) return;
             const deltaX = e.clientX - this.state.lastX;
             const chartW = this.canvas.clientWidth - this.config.padding.left - this.config.padding.right;
-            const timeDelta = (deltaX / chartW) * (this.state.cycle * 2.5);
+            const timeDelta = (deltaX / chartW) * (this.state.cycle * 4);
 
             if (this.state.isDraggingOffset) {
                 const j = STATE.junctions[this.state.dragJid];
@@ -272,8 +269,6 @@ class TSDEngine {
                     plan.offset = Math.round(newOff * 10) / 10;
                     if (typeof renderGroupTODTable === 'function') renderGroupTODTable();
                 }
-            } else {
-                this.state.viewOffsetT -= timeDelta;
             }
             this.state.lastX = e.clientX;
             this.render();
@@ -286,11 +281,7 @@ class TSDEngine {
             this.canvas.style.cursor = 'grab';
         });
 
-        this.canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            this.state.viewOffsetT += e.deltaY * 0.1;
-            this.render();
-        });
+        
     }
 
     update(gid) {
@@ -434,6 +425,7 @@ class TSDEngine {
 
         // 좌표 변환 헬퍼
         const xF = chartW / timeHorizon;
+        this.state.viewOffsetT = 0;
         const tToX = (t) => cfg.padding.left + (t - this.state.viewOffsetT) * xF;
         const ringMargin = 20; // 듀얼 링이 클리핑되지 않도록 상하 여백 확보
         const distToY = (d) => cfg.padding.top + ringMargin + (1 - d / (this.state.totalDist || 1)) * (chartH - ringMargin * 2);
