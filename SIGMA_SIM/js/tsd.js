@@ -130,7 +130,7 @@ class TSDEngine {
         this.ctx = this.canvas.getContext('2d');
 
         this.config = {
-            padding: { top: 90, bottom: 60, left: 140, right: 60 },
+            padding: { top: 50, bottom: 50, left: 140, right: 20 },
             colors: {
                 bg: '#1e2124',
                 grid: 'rgba(255, 255, 255, 0.08)',
@@ -398,6 +398,16 @@ class TSDEngine {
         const cfg = this.config, ctx = this.ctx;
         ctx.fillStyle = cfg.colors.bg;
         ctx.fillRect(0, 0, w, h);
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(0, 0, cfg.padding.left, h);
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cfg.padding.left, 0);
+        ctx.lineTo(cfg.padding.left, h);
+        ctx.stroke();
 
         if (this.state.members.length < 2) {
             this.drawMessage("교차로 순서를 설정하거나 그룹을 선택하세요.");

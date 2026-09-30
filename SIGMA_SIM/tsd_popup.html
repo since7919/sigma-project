@@ -231,7 +231,7 @@ class PopupTSD {
     this.infoId = infoId;
     this.editable = editable;
     this.cfg = {
-      pad: {top:70,bottom:40,left:140,right:40},
+      pad: {top:40, bottom:40, left:140, right:20},
       green:'#2e7d32', red:'#c62828', yellow:'#f9a825',
       blue:'rgba(60,130,200,0.70)', blueFill:'rgba(41, 182, 246, 0.2)',
       bandUpS:'rgba(41, 182, 246, 0.8)', bandDnS:'rgba(102, 187, 106, 0.8)',
@@ -354,6 +354,15 @@ class PopupTSD {
     const w=wrap.clientWidth, h=wrap.clientHeight;
     const ctx=this.ctx, P=this.cfg.pad;
     ctx.fillStyle='#1e2124'; ctx.fillRect(0,0,w,h);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.fillRect(0, 0, P.left, h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(P.left, 0);
+    ctx.lineTo(P.left, h);
+    ctx.stroke();
 
     const cW=w-P.left-P.right, cH=h-P.top-P.bottom;
     const cycle = this.state.cycle, tH = cycle * 4;
