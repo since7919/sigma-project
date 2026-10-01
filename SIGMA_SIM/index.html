@@ -1562,10 +1562,20 @@
             <div class="sigma-panel">
                 <div class="card-title">
                     <span style="font-weight: 700; letter-spacing: 0.5px;">📊 데이터 뷰 & 거시/미시 통찰 (Data & Insights)</span>
+                    <button class="action-btn" onclick="generateAIReport()" style="margin-left: 15px; background: rgba(100, 181, 246, 0.1); border: 1px solid #64b5f6; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: bold; cursor: pointer; color: #64b5f6; transition: all 0.2s;">🤖 AI 비교 분석 리포트 생성</button>
                 </div>
                 <div class="foldable-content">
                     <div id="stat-no-data" class="text-center p-50" style="color:#555;">데이터를 먼저 불러와주세요.</div>
                     <div id="stat-content" style="display:none;">
+
+                        <!-- [신규] AI 리포트 출력 박스 -->
+                        <div id="ai-report-box" class="sigma-panel mb-20" style="display:none; background: rgba(10, 25, 41, 0.8); border: 1px solid #1e4976; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #e0e0e0; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                                <div style="font-weight:bold; font-size:15px; color:#64b5f6;">🤖 SIGMA 교통정책 인사이트 리포트</div>
+                                <button onclick="document.getElementById('ai-report-box').style.display='none'" style="background:none; border:none; color:#999; cursor:pointer; font-size:16px;">&times;</button>
+                            </div>
+                            <div id="ai-report-content" style="white-space: pre-wrap;">데이터를 분석하고 있습니다... ⏳</div>
+                        </div>
 <!-- [신규] 통계 필터 (구청/경찰서) -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
                             <div class="flex-row gap-20">
