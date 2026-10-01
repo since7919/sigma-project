@@ -1008,20 +1008,24 @@ async function generateAIReport() {
     box.style.display = 'block';
     content.innerHTML = '<div style="text-align:center; padding: 20px; color:#aaa;">✨ 구글 Gemini AI가 통계 데이터를 분석하고 있습니다... (약 5~10초 소요) ⏳</div>';
     
-    // 현재 화면에 렌더링된 통계(타겟) 데이터 수집
-    // 편의상 화면의 select 값으로 기준을 정하거나, 서울 전체 통계와 현재 필터된 통계를 비교
-    const officeFilter = document.getElementById('stat-office-filter').value;
-    const policeFilter = document.getElementById('stat-police-filter').value;
+    const officeFilter = document.getElementById('stat-office-filter')?.value || 'ALL';
+    const policeFilter = document.getElementById('stat-police-filter')?.value || 'ALL';
     
-    // 전체 통계(Base) 계산
-    let baseIntersections = window.sigmaData.intersections || [];
+    // 1. Base 데이터 (전체)
+    let baseIntersections = Object.values(STATE.junctions || {});
     let baseStats = calculateStats(baseIntersections);
     
-    // 현재 필터된 통계(Target) 계산
-    let targetIntersections = window.filteredIntersections || baseIntersections;
+    // 2. Target 데이터 (필터 적용)
+    let targetIntersections = baseIntersections;
+    if (officeFilter !== 'ALL') {
+        targetIntersections = targetIntersections.filter(j => (j.office || "").trim() === officeFilter);
+    }
+    if (policeFilter !== 'ALL') {
+        targetIntersections = targetIntersections.filter(j => (j.police || "").trim() === policeFilter);
+    }
     let targetStats = calculateStats(targetIntersections);
     
-    const targetName = (officeFilter === 'ALL' && policeFilter === 'ALL') ? '현재 필터 상태' : `${officeFilter !== 'ALL' ? officeFilter : ''} ${policeFilter !== 'ALL' ? policeFilter : ''}`.trim();
+    const targetName = (officeFilter === 'ALL' && policeFilter === 'ALL') ? '현재 필터 상태(전체)' : `${officeFilter !== 'ALL' ? officeFilter : ''} ${policeFilter !== 'ALL' ? policeFilter : ''}`.trim();
     
     try {
         const response = await fetch('/api/ai/report', {
@@ -1038,11 +1042,11 @@ async function generateAIReport() {
         const data = await response.json();
         
         if (!response.ok) {
-            content.innerHTML = `<div style="color:#ef5350;">오류 발생: ${data.error || '알 수 없는 오류'}</div>`;
+            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px;">${data.error || '알 수 없는 오류'}</div>`;
             return;
         }
         
-        // Markdown 볼드 처리 등 간단한 파싱
+        // Markdown 파싱
         let formattedText = data.report.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ffb74d;">$1</strong>');
         formattedText = formattedText.replace(/^## (.*)/gm, '<h3 style="color:#90caf9; margin-top:15px; margin-bottom:5px;">$1</h3>');
         formattedText = formattedText.replace(/^### (.*)/gm, '<h4 style="color:#81d4fa; margin-top:15px; margin-bottom:5px;">$1</h4>');
@@ -1051,7 +1055,7 @@ async function generateAIReport() {
         content.innerHTML = formattedText;
         
     } catch (err) {
-        content.innerHTML = `<div style="color:#ef5350;">서버 통신 실패: ${err.message}</div>`;
+        content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px;">서버 통신 실패: ${err.message}</div>`;
     }
 }
 
