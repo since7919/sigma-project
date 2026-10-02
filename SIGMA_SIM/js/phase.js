@@ -1049,8 +1049,8 @@ function renderTodPlanInfoTable() {
                                 const inputStyle = `background:transparent; border:none; width:100%; text-align:center; font-family:monospace; outline:none; font-size:11px; padding:0; margin:0;`;
 
                                 return `
-                                    <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px 0; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer; position: relative;">
-                                        <div draggable="true" ondragstart="window.handlePhaseTodDragStart(event, ${idx}, ${rIdx})" style="cursor: grab; color: #777; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); font-size: 10px; padding: 4px 2px; z-index: 10;" title="드래그하여 스케줄 복사">⠿</div>
+                                    <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px 0; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: grab; position: relative;" draggable="true" ondragstart="window.handlePhaseTodDragStart(event, ${idx}, ${rIdx})">
+                                        
                                         <div style="display: flex; align-items: center; padding-left: 14px; padding-right: 2px;">
                                             <input type="text" data-day="${idx}" data-slot="${rIdx}" data-field="time" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} flex: 1.5; color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
                                             <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="cycle" class="sigma-input ${cycleCls}" value="${cycleVal}" placeholder="-" style="${inputStyle} flex: 1; color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
@@ -1410,18 +1410,24 @@ function applyPhaseTemplate(type) {
 
 
 window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
-    // 글로벌 변수에 드래그 데이터 저장 (브라우저 MIME 정책 우회)
     window.__DRAG_TOD = { type: 'phase-tod', dayIdx, slotIdx };
     const container = document.getElementById('tod-summary-container');
     if (container) container.classList.add('is-dragging-tod');
-    // 텍스트는 브라우저가 input에 자동 붙여넣기 하지 않도록 아주 짧은 공백 문자 하나만 전달
     e.dataTransfer.setData('text/plain', ' ');
     e.dataTransfer.effectAllowed = 'copyMove';
     
-    const td = e.target.closest('.phase-tod-cell');
-    if (td) {
-        e.dataTransfer.setDragImage(td, 10, 10);
+    // 강제로 깔끔한 커스텀 잔상(Drag Image) 생성하여 전체 패널이 통째로 캡처되는 브라우저 버그 방지
+    let dragImg = document.getElementById('custom-tod-drag-img');
+    if (!dragImg) {
+        dragImg = document.createElement('div');
+        dragImg.id = 'custom-tod-drag-img';
+        dragImg.style.cssText = "width: 120px; height: 30px; background: rgba(0, 120, 215, 0.9); color: white; display: flex; align-items: center; justify-content: center; position: absolute; top: -1000px; left: -1000px; border-radius: 4px; font-weight: bold; font-size: 12px; font-family: sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: -1;";
+        dragImg.innerText = "블록 복사 중...";
+        document.body.appendChild(dragImg);
     }
+    e.dataTransfer.setDragImage(dragImg, 60, 15);
+    
+    
     // Highlight siblings
     setTimeout(() => {
         const container = document.getElementById('tod-summary-container');
