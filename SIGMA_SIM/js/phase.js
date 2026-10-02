@@ -1496,8 +1496,6 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                 const data = window.__DRAG_TOD;
                 if (!data) return;
                 
-                // 공백 문자가 input에 들어갔을 수 있으므로 강제 blur 및 값 초기화 유도 (안해도 Re-render 되면서 사라짐)
-                
                 if (data.type === 'phase-tod') {
                     const srcDay = data.dayIdx;
                     const srcSlot = data.slotIdx;
@@ -1511,12 +1509,17 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                     if (!j || !j.schedules) return;
                     
                     if (!j.schedules[tgtDay]) j.schedules[tgtDay] = [];
-                    if (!j.schedules[srcDay] || !j.schedules[srcDay][srcSlot]) return;
                     
-                    j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
+                    // 빈 셀을 드래그하면 타겟 셀도 초기화
+                    if (!j.schedules[srcDay] || !j.schedules[srcDay][srcSlot]) {
+                        j.schedules[tgtDay][tgtSlot] = { h: -1, cycle: 0 };
+                    } else {
+                        j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
+                    }
                     
+                    // 빈 슬롯 채우기
                     for(let i=0; i<tgtSlot; i++) {
-                        if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0, idx: 1 };
+                        if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0 };
                     }
                     
                     if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
@@ -1530,7 +1533,7 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                     j._isDirty = true;
                     if (typeof updateDBButtonState === 'function') updateDBButtonState();
                     
-                    window.__DRAG_TOD = null; // 드롭 후 데이터 초기화
+                    window.__DRAG_TOD = null;
                 }
             } catch (err) {
                 console.error("Drop Parse Error", err);
