@@ -2756,7 +2756,7 @@ app.post('/api/ai/report', async (req, res) => {
 4. 💡 정책 제언 (Actionable Insights)`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.8-flash',
             contents: [
                 { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
             ],
