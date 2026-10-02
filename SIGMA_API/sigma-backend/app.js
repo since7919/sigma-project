@@ -2758,28 +2758,42 @@ app.post('/api/ai/report', async (req, res) => {
 3. 🚦 현시 및 이동류 구조 분석 (보호/비보호, 대각선 횡단 등 운영 방식의 정량적 차이)
 4. 💡 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 특이점 및 검토 필요 요소 도출)`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: [
-                { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
-            ],
-            config: {
-                temperature: 0.7,
+        
+        let response;
+        let retries = 3; // 최대 3번 자동 재시도
+        let delay = 3000; // 3초 대기
+
+        while (retries > 0) {
+            try {
+                response = await ai.models.generateContent({
+                    model: 'gemini-3.8-flash',
+                    contents: [
+                        { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
+                    ],
+                    config: { temperature: 0.7 }
+                });
+                break; // 성공 시 루프 탈출
+            } catch (err) {
+                if (err.status === 503 || err.message.includes('503') || err.message.toLowerCase().includes('high demand') || err.status === 429) {
+                    retries--;
+                    if (retries === 0) throw err; // 재시도 모두 실패 시 에러 던짐
+                    console.log(`[AI Retry] 구글 서버 과부하. ${delay}ms 후 재시도합니다. (남은 횟수: ${retries})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay += 2000; // 점진적으로 대기 시간 증가 (3초 -> 5초)
+                } else {
+                    throw err; // 다른 에러는 즉시 던짐
+                }
             }
-        });
+        }
+
 
         res.json({ report: response.text });
     } catch (error) {
         console.error('[AI Report Error]', error);
         
-        // 할당량(Quota) 초과 에러 처리
-        if (error.status === 429 || error.message.includes('quota') || error.message.includes('429')) {
-            return res.status(429).json({ error: '🚨 구글 AI 무료 할당량(토큰 한도)을 초과했습니다. 잠시 후 다시 시도해 주세요.' });
-        }
-        
-        // 503 서버 과부하 에러 처리
-        if (error.status === 503 || error.message.includes('503') || error.message.toLowerCase().includes('high demand') || error.message.includes('UNAVAILABLE')) {
-            return res.status(503).json({ error: '🚦 구글 AI 서버에 일시적인 트래픽 과부하가 발생했습니다 (무료 API 병목).\n약 3~5초 뒤 [다시 시도] 버튼을 눌러주시면 정상 작동합니다.' });
+        // 자동 재시도 3회를 모두 실패했을 때의 최종 에러 처리
+        if (error.status === 503 || error.status === 429 || error.message.includes('high demand') || error.message.includes('quota')) {
+            return res.status(503).json({ error: '🚦 구글 AI 서버 혼잡이 극심하여 자동 재시도에 실패했습니다.\n잠시 후 다시 시도해 주세요.' });
         }
         
         res.status(500).json({ error: 'AI 분석 중 오류가 발생했습니다: ' + error.message });
