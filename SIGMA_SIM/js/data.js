@@ -1018,7 +1018,7 @@ function generateAIReport() {
     
     // 사무소(구청) 목록 추출하여 셀렉트 박스 채우기
     const offices = new Set();
-    Object.values(window.STATE?.junctions || {}).forEach(j => {
+    Object.values(STATE.junctions || {}).forEach(j => {
         if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
     });
     const sortedOffices = Array.from(offices).sort();
@@ -1080,7 +1080,7 @@ async function startAIAnalysis() {
     }, 800);
     
     // 데이터 집계
-    let allIntersections = Object.values(window.STATE?.junctions || {});
+    let allIntersections = Object.values(STATE.junctions || {});
     
     let baseIntersections = baseVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === baseVal);
     let targetIntersections = targetVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === targetVal);
