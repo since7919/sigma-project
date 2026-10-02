@@ -335,6 +335,12 @@ function renderSignalMapButtons() {
             </div>`;
     });
     html += '</div></div>';
+    if (!document.getElementById('tod-dnd-css')) {
+        const style = document.createElement('style');
+        style.id = 'tod-dnd-css';
+        style.innerHTML = '.is-dragging-tod input { pointer-events: none !important; }';
+        document.head.appendChild(style);
+    }
     container.innerHTML = html;
 }
 
@@ -1406,6 +1412,8 @@ function applyPhaseTemplate(type) {
 window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
     // 글로벌 변수에 드래그 데이터 저장 (브라우저 MIME 정책 우회)
     window.__DRAG_TOD = { type: 'phase-tod', dayIdx, slotIdx };
+    const container = document.getElementById('tod-summary-container');
+    if (container) container.classList.add('is-dragging-tod');
     // 텍스트는 브라우저가 input에 자동 붙여넣기 하지 않도록 아주 짧은 공백 문자 하나만 전달
     e.dataTransfer.setData('text/plain', ' ');
     e.dataTransfer.effectAllowed = 'copyMove';
@@ -1432,11 +1440,17 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
         if (!container) return;
         
         container.addEventListener('dragend', (e) => {
+            container.classList.remove('is-dragging-tod');
             container.querySelectorAll('.phase-tod-cell').forEach(el => el.style.opacity = '1');
             container.querySelectorAll('.drag-hover').forEach(el => {
                 el.classList.remove('drag-hover');
                 el.style.backgroundColor = '';
             });
+        });
+        
+        container.addEventListener('dragenter', (e) => {
+            const td = e.target.closest('.phase-tod-cell');
+            if (td) e.preventDefault();
         });
         
         container.addEventListener('dragover', (e) => {
