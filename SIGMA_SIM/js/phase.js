@@ -1500,6 +1500,8 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                     if (tgtDay === (window.STATE ? window.STATE.currentJunctionDayTypeIdx : STATE.currentJunctionDayTypeIdx) && tgtSlot === parseInt(UI.planIdx.value)) {
                         if (typeof renderRingTables === 'function') renderRingTables();
                     }
+                    j._isDirty = true;
+                    if (typeof updateDBButtonState === 'function') updateDBButtonState();
                 }
             } catch (err) {
                 console.error("Drop Parse Error", err);
