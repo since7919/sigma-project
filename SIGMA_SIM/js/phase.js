@@ -1,19 +1,19 @@
 /**
  * phase.js
- * ─────────────────────────────────────────────
- * Phase/Split 테이블 렌더링, TOD 관리, 요일 전환,
- * 일괄 저장(saveSettingsAndApply), 요약 테이블
- * 의존: config.js, utils.js, ui.js
+ * ?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�?�
+ * Phase/Split ?�이�??�더�? TOD 관�? ?�일 ?�환,
+ * ?�괄 ?�??saveSettingsAndApply), ?�약 ?�이�?
+ * ?�존: config.js, utils.js, ui.js
  */
 
-/* ══════════════════════════════════════════
- *  듀얼링 테이블 렌더링
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  ?�?�링 ?�이�??�더�?
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function renderRingTables() {
     const jid = STATE.activeJid;
     const dayIdx = STATE.currentJunctionDayTypeIdx;
 
-    // 교차로 선택 여부에 따른 DB 버튼 제어
+    // 교차�??�택 ?��????�른 DB 버튼 ?�어
     const btnUpdate = document.getElementById('btn-junction-db-update');
     const btnRevert = document.getElementById('btn-junction-db-revert');
     if (btnUpdate && btnRevert) {
@@ -34,7 +34,7 @@ function renderRingTables() {
         }
     }
 
-    // 체크박스 상태 먼저 확인 (하단에서 사용됨)
+    // 체크박스 ?�태 먼�? ?�인 (?�단?�서 ?�용??
     const onlySplits = document.getElementById('chk-show-split-details')?.checked;
     const isDual = document.getElementById('chk-dual-ring')?.checked;
 
@@ -57,13 +57,13 @@ function renderRingTables() {
     
     const p = j.dayPlans ? j.dayPlans[dayIdx][pIdx] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
 
-    UI.todDisplayTime.innerText = s.h === -1 ? "M/F (미사용)" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
+    UI.todDisplayTime.innerText = s.h === -1 ? "M/F (미사??" : `${String(s.h).padStart(2, '0')}:${String(s.m).padStart(2, '0')}`;
     UI.todInpCycle.value = s.cycle || 100;
     UI.todInpOffset.value = p.offset;
 
-    // ── [Migration] signalMaps가 없으면 생성 ──
+    // ?�?� [Migration] signalMaps가 ?�으�??�성 ?�?�
     if (j.id && !j.signalMaps) {
-        // 기존 Plan 데이터에서 전적색, 황색 등 초기값 추출 (첫날 첫플랜 기준)
+        // 기존 Plan ?�이?�에???�적?? ?�색 ??초기�?추출 (첫날 첫플??기�?)
         const refP = (j.dayPlans && j.dayPlans[0]) ? j.dayPlans[0][0] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
 
         j.signalMaps = Array.from({ length: 6 }, () => ({
@@ -81,7 +81,7 @@ function renderRingTables() {
             pedDelayB: [...(refP.pedDelayB || [0, 2, 0, 2, 0, 0, 0, 0])],
             mainMovements: ['A0', 'B0']
         }));
-        // 기존 0번 맵에 데이터 복사
+        // 기존 0�?맵에 ?�이??복사
         j.signalMaps[0].movA = [...(j.movA || [0, 0, 0, 0, 0, 0, 0, 0])];
         j.signalMaps[0].movB = [...(j.movB || [0, 0, 0, 0, 0, 0, 0, 0])];
         j.signalMaps[0].pedMovA = [...(j.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0])];
@@ -102,7 +102,7 @@ function renderRingTables() {
     
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : fallbackMap;
 
-    // 동적 현시표 업데이트 연동
+    // ?�적 ?�시???�데?�트 ?�동
     if (window.ipdInstance && sm) {
         window.ipdInstance.loadFromSignalMap(sm);
     }
@@ -116,7 +116,7 @@ function renderRingTables() {
         { id: 'dir', label: 'Dir' },
         { id: 'mov', label: 'Mov' },
         { id: 'ped', label: '보행ID' },
-        { id: 'main', label: '주현시' }
+        { id: 'main', label: '주현?? }
     ];
 
     categories.forEach(cat => {
@@ -125,7 +125,7 @@ function renderRingTables() {
             const mainMovs = sm.mainMovements || [];
             const cells = [];
             cells.push({ content: cat.label, className: 'row-label', style: 'vertical-align:middle; text-align:center; font-weight:bold; background:rgba(0,0,0,0.2); width:40px;' });
-            cells.push({ content: '<span style="font-size:10px;">(통합)</span>', className: 'row-label', attr: { title: '1개 선택' }, style: 'width:40px;' });
+            cells.push({ content: '<span style="font-size:10px;">(?�합)</span>', className: 'row-label', attr: { title: '1�??�택' }, style: 'width:40px;' });
             [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
                 const isChecked = mainMovs.includes('A' + i) || mainMovs.includes('B' + i);
                 cells.push({ content: `<input type="checkbox" class="inp-main-mov" value="A${i}" ${isChecked ? 'checked' : ''} onchange="limitCheck(this)">` });
@@ -147,25 +147,25 @@ function renderRingTables() {
             }
             
             if (cat.id === 'dir') {
-                cells.push({ content: `${ring}링`, className: 'row-label', style: 'width:40px;' });
+                cells.push({ content: `${ring}�?, className: 'row-label', style: 'width:40px;' });
                 movs.forEach(m => {
                     const a = getVisualArrow(m);
                     cells.push({ content: `<div class="visual-arrow-icon" style="transform: rotate(${a.ang}deg); color: var(--accent)">${a.type}</div>` });
                 });
             } else if (cat.id === 'mov') {
-                cells.push({ content: `${ring}링`, className: 'row-label', style: 'width:40px;' });
+                cells.push({ content: `${ring}�?, className: 'row-label', style: 'width:40px;' });
                 (sm[movKey] || [0, 0, 0, 0, 0, 0, 0, 0]).forEach((v, i) => {
                     const valCls = v === 0 ? 'val-zero' : 'val-non-zero';
                     cells.push({ content: `<input type="number" class="sigma-input inp-${movKey} ${valCls}" data-type="mov" data-key="${movKey}" data-index="${i}" value="${v}">` });
                 });
             } else if (cat.id === 'ped') {
-                cells.push({ content: `${ring}링`, className: 'row-label', style: 'width:40px;' });
+                cells.push({ content: `${ring}�?, className: 'row-label', style: 'width:40px;' });
                 (sm[pedKey] || [0, 0, 0, 0, 0, 0, 0, 0]).forEach((v, i) => {
                     const valCls = v === 0 ? 'val-zero' : 'val-non-zero';
                     cells.push({ content: `<input type="number" class="sigma-input inp-${pedKey} ${valCls}" data-type="mov" data-key="${pedKey}" data-index="${i}" value="${v}">` });
                 });
             } else if (cat.id === 'main') {
-                cells.push({ content: `${ring}링`, className: 'row-label', attr: { title: '1개 선택' }, style: 'width:40px;' });
+                cells.push({ content: `${ring}�?, className: 'row-label', attr: { title: '1�??�택' }, style: 'width:40px;' });
                 [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
                     cells.push({ content: `<input type="checkbox" class="inp-main-mov" value="${ring}${i}" ${mainMovs.includes(ring + i) ? 'checked' : ''} onchange="limitCheck(this)">` });
                 });
@@ -177,25 +177,25 @@ function renderRingTables() {
 
     // movRows is collected here, but we will merge it with finalPhaseRows later.
 
-    // ── Phase/Split 테이블 (SigmaUI 사용) ──
+    // ?�?� Phase/Split ?�이�?(SigmaUI ?�용) ?�?�
 
-    // ── Phase/Split 테이블: B링 숨김은 Split 계열에만 적용 ──
-    // 현시계획(Map)의 Yellow/AllRed/Ped 등은 항상 A/B 모두 표시
+    // ?�?� Phase/Split ?�이�? B�??��??� Split 계열?�만 ?�용 ?�?�
+    // ?�시계획(Map)??Yellow/AllRed/Ped ?��? ??�� A/B 모두 ?�시
     const phaseCategories = [
-        { id: 'mg', label: 'MG (최소녹색)', keyA: 'minGreenA', keyB: 'minGreenB', clsA: 'c-green', clsB: 'c-green', isDetail: true,
+        { id: 'mg', label: 'MG (최소?�색)', keyA: 'minGreenA', keyB: 'minGreenB', clsA: 'c-green', clsB: 'c-green', isDetail: true,
           calcA: (i) => { if (!sm.movA?.[i]) return 0; const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0; return pA > 0 ? pA + arA + dlyA : 0; },
           calcB: (i) => { if (!sm.movB?.[i]) return 0; const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0; return pB > 0 ? pB + arB + dlyB : 0; },
-          calcTitle: '최소녹색시간 = 보행합계+전적색+보행지연'
+          calcTitle: '최소?�색?�간 = 보행?�계+?�적??보행지??
         },
         { id: 'allred', label: 'AllRed', keyA: 'allredA', keyB: 'allredB', clsA: 'c-red', clsB: 'c-red', isDetail: true },
         { id: 'yellow', label: 'Yellow', keyA: 'yellowA', keyB: 'yellowB', clsA: 'c-yellow', clsB: 'c-yellow', isDetail: true },
         { id: 'peddly', label: 'PedDly', keyA: 'pedDelayA', keyB: 'pedDelayB', clsA: '', clsB: '', isDetail: true },
-        { id: 'pedgreen', label: '보행녹색', keyA: 'pedGreenA', keyB: 'pedGreenB', clsA: '', clsB: '', isDetail: true },
-        { id: 'pedflash', label: '보행점멸', keyA: 'pedFlashA', keyB: 'pedFlashB', clsA: 'c-orange', clsB: 'c-orange', isDetail: true },
-        { id: 'pedtotal', label: '보행합계', keyA: 'pedA', keyB: 'pedB', clsA: 'c-green-bold', clsB: 'c-green-bold', isDetail: true,
+        { id: 'pedgreen', label: '보행?�색', keyA: 'pedGreenA', keyB: 'pedGreenB', clsA: '', clsB: '', isDetail: true },
+        { id: 'pedflash', label: '보행?�멸', keyA: 'pedFlashA', keyB: 'pedFlashB', clsA: 'c-orange', clsB: 'c-orange', isDetail: true },
+        { id: 'pedtotal', label: '보행?�계', keyA: 'pedA', keyB: 'pedB', clsA: 'c-green-bold', clsB: 'c-green-bold', isDetail: true,
           calcA: (i) => { return (sm.pedGreenA?.[i] || 0) + (sm.pedFlashA?.[i] || 0); },
           calcB: (i) => { return (sm.pedGreenB?.[i] || 0) + (sm.pedFlashB?.[i] || 0); },
-          calcTitle: '자동 계산 (보행녹색 + 보행점멸)'
+          calcTitle: '?�동 계산 (보행?�색 + 보행?�멸)'
         }
     ];
 
@@ -218,7 +218,7 @@ function renderRingTables() {
             const cls = isB ? cat.clsB : cat.clsA;
             const calc = isB ? cat.calcB : cat.calcA;
 
-            cells.push({ content: `${ring}링`, className: `row-label ${cls}`, style: 'width:40px; text-align:center;' });
+            cells.push({ content: `${ring}�?, className: `row-label ${cls}`, style: 'width:40px; text-align:center;' });
 
             [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => {
                 const isDisabled = (isB && !isDual) ? 'disabled' : '';
@@ -238,10 +238,10 @@ function renderRingTables() {
                     
                     if (val > 0 && val < mg) {
                         extraStyle = 'border: 2px solid #ff4d4d; box-shadow: 0 0 10px rgba(255,77,77,0.5); background: rgba(255,77,77,0.15); color: #ffffff !important; font-weight: bold;';
-                        tooltip = `안전감사 위기! 최소녹색시간(${mg}초) 미달`;
+                        tooltip = `?�전감사 ?�기! 최소?�색?�간(${mg}�? 미달`;
                     } else if (val > 0 && val < mgWithYellow) {
                         extraStyle = 'border: 2px solid #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.5); background: rgba(255,204,0,0.1); color: #ffffff !important; font-weight: bold;';
-                        tooltip = `안전감사 주의! 최소녹색+황색(${mgWithYellow}초) 미달`;
+                        tooltip = `?�전감사 주의! 최소?�색+?�색(${mgWithYellow}�? 미달`;
                     }
                 }
 
@@ -270,7 +270,7 @@ function renderRingTables() {
     SigmaUI.renderTable('mov-combined-container', {
         tableId: 'combined-phase-mg-table',
         className: 'sigma-table',
-        head: [{label: '구분/항목', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
+        head: [{label: '구분/??��', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
         rows: combinedRows
     });
 
@@ -279,7 +279,7 @@ function renderRingTables() {
         SigmaUI.renderTable('info-mov-table-wrapper', {
             tableId: 'info-combined-phase-mg-table',
             className: 'sigma-table',
-            head: [{label: '구분/항목', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
+            head: [{label: '구분/??��', colspan: 2}, 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'],
             rows: movRows
         });
     }
@@ -295,31 +295,31 @@ function renderRingTables() {
     updateJunctionDayUI();
     renderSignalMapButtons();
 
-    // 입력 이벤트 위임 및 내비게이션 초기화 (table_logic.js에서 처리)
+    // ?�력 ?�벤???�임 �??�비게이??초기??(table_logic.js?�서 처리)
     if (typeof initTableEventHandlers === 'function') initTableEventHandlers();
 }
 
-/** 플렉스타임맵 선택 버튼 렌더링 */
+/** ?�렉?��??�맵 ?�택 버튼 ?�더�?*/
 function renderSignalMapButtons() {
     const container = document.getElementById('signal-map-selector');
     if (!container) return;
 
     const jid = STATE.activeJid;
     const j = jid ? STATE.junctions[jid] : null;
-    const labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
+    const labels = ["?�반", "?�차1", "?�차2", "?�차3", "?�차4", "?�차5"];
 
     let html = '<div style="margin-bottom:8px;">';
 
-    // 헤더: 타이틀 + 복사 UI 통합 (높이 축소)
+    // ?�더: ?�?��? + 복사 UI ?�합 (?�이 축소)
     html += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:12px; font-weight:bold; color:var(--accent);">🚦 현시계획(Map) 설정</span>
+            <span style="font-size:12px; font-weight:bold; color:var(--accent);">?�� ?�시계획(Map) ?�정</span>
             <div style="display:flex; align-items:center; gap:4px;">
-                <button class="phase-action-btn phase-btn-purple" onclick="copySignalMap()" title="다른 현시계획 데이터 복사해오기">📋 가져오기</button>
+                <button class="phase-action-btn phase-btn-purple" onclick="copySignalMap()" title="?�른 ?�시계획 ?�이??복사?�오�?>?�� 가?�오�?/button>
             </div>
         </div>`;
 
-    // 본문: 6열 그리드 배치
+    // 본문: 6??그리??배치
     html += '<div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:5px;">';
     labels.forEach((lab, i) => {
         const isActive = (STATE.currentSignalMapIdx === i);
@@ -340,7 +340,7 @@ function renderSignalMapButtons() {
 
 
 
-/** 데이터 복사 공통 모달 UI */
+/** ?�이??복사 공통 모달 UI */
 function openCopyModal(type) {
     const jid = STATE.activeJid;
     if (!jid || !STATE.junctions[jid]) return;
@@ -348,14 +348,14 @@ function openCopyModal(type) {
     let toIdx, labels, title, desc;
     if (type === 'map') {
         toIdx = STATE.currentSignalMapIdx || 0;
-        labels = ["일반", "시차1", "시차2", "시차3", "시차4", "시차5"];
-        title = "현시계획 복사";
-        desc = `현재 <b>[${labels[toIdx]}]</b> 화면입니다.<br>데이터를 가져올 <b>원본 현시계획</b>을 선택하세요:`;
+        labels = ["?�반", "?�차1", "?�차2", "?�차3", "?�차4", "?�차5"];
+        title = "?�시계획 복사";
+        desc = `?�재 <b>[${labels[toIdx]}]</b> ?�면?�니??<br>?�이?��? 가?�올 <b>?�본 ?�시계획</b>???�택?�세??`;
     } else {
         toIdx = STATE.currentJunctionDayTypeIdx;
-        labels = DAY_LABELS; // 전역변수
-        title = "TOD 일계획 복사";
-        desc = `현재 <b>[${labels[toIdx]}]</b> 화면입니다.<br>데이터를 가져올 <b>원본 일계획</b>을 선택하세요:`;
+        labels = DAY_LABELS; // ?�역변??
+        title = "TOD ?�계??복사";
+        desc = `?�재 <b>[${labels[toIdx]}]</b> ?�면?�니??<br>?�이?��? 가?�올 <b>?�본 ?�계??/b>???�택?�세??`;
     }
 
     const overlay = document.createElement('div');
@@ -366,13 +366,13 @@ function openCopyModal(type) {
     
     let optsHtml = '';
     labels.forEach((lab, i) => {
-        if (i === toIdx) return; // 현재 보고 있는 화면은 원본에서 제외
+        if (i === toIdx) return; // ?�재 보고 ?�는 ?�면?� ?�본?�서 ?�외
         optsHtml += `<button class="modal-opt-btn" style="flex: 1 1 25%; margin:4px; padding:10px; background:#334155; color:#cbd5e1; border:1px solid #475569; border-radius:6px; cursor:pointer; transition:all 0.2s; font-size:13px;" data-val="${i}">${lab}</button>`;
     });
 
     modal.innerHTML = `
         <div style="background:#0f172a; padding:14px 18px; font-weight:bold; color:#f8fafc; border-bottom:1px solid #334155; font-size:15px; display:flex; align-items:center; gap:6px;">
-            📋 ${title}
+            ?�� ${title}
         </div>
         <div style="padding:20px; color:#94a3b8; font-size:14px; line-height:1.5;">
             ${desc}
@@ -382,7 +382,7 @@ function openCopyModal(type) {
         </div>
         <div style="padding:14px 18px; background:#0f172a; border-top:1px solid #334155; display:flex; justify-content:flex-end; gap:8px;">
             <button id="modal-btn-cancel" style="padding:8px 16px; background:#334155; color:#cbd5e1; border:none; border-radius:6px; cursor:pointer; font-size:13px;">취소</button>
-            <button id="modal-btn-confirm" style="padding:8px 16px; background:var(--accent, #10b981); color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:13px; opacity:0.5;" disabled>복사 적용</button>
+            <button id="modal-btn-confirm" style="padding:8px 16px; background:var(--accent, #10b981); color:#000; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:13px; opacity:0.5;" disabled>복사 ?�용</button>
         </div>
     `;
 
@@ -417,7 +417,7 @@ function openCopyModal(type) {
     document.getElementById('modal-btn-confirm').onclick = () => {
         if (selectedIdx === null) return;
         
-        if (!confirm(`'${labels[selectedIdx]}'의 데이터를 '${labels[toIdx]}' 화면으로 복사하여 덮어쓰시겠습니까?`)) return;
+        if (!confirm(`'${labels[selectedIdx]}'???�이?��? '${labels[toIdx]}' ?�면?�로 복사?�여 ??��?�시겠습?�까?`)) return;
         
         document.body.removeChild(overlay);
         
@@ -426,12 +426,12 @@ function openCopyModal(type) {
     };
 }
 
-/** 현시계획(Signal Map) 데이터 복사 진입점 */
+/** ?�시계획(Signal Map) ?�이??복사 진입??*/
 function copySignalMap() {
     openCopyModal('map');
 }
 
-/** 실제 현시계획 복사 실행 로직 */
+/** ?�제 ?�시계획 복사 ?�행 로직 */
 function executeCopySignalMap(fromIdx, toIdx) {
     const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
@@ -454,21 +454,21 @@ function executeCopySignalMap(fromIdx, toIdx) {
 
     renderRingTables();
     refreshVisibleArrows();
-    alert(`복사가 완료되었습니다. '변경사항 적용'을 눌러 확정하세요.`);
+    alert(`복사가 ?�료?�었?�니?? '변경사???�용'???�러 ?�정?�세??`);
 }
 
-/* ══════════════════════════════════════════
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
             if (!isDual && key.endsWith('A')) {
                 p[key.replace(/A$/, 'B')] = [...vals];
             }
         }
     });
 
-    // 4. 연동 값 (Plan 레벨)
+    // 4. ?�동 �?(Plan ?�벨)
     const todOffsetEl = document.getElementById('tod-inp-offset');
     if (todOffsetEl) p.offset = parseInt(todOffsetEl.value) || 0;
 
-    // 5. 점멸 설정 (Junction 레벨)
+    // 5. ?�멸 ?�정 (Junction ?�벨)
     const flashEnableEl = document.getElementById('flash-enable');
     if (flashEnableEl) {
         j.flashEnable = flashEnableEl.checked;
@@ -483,7 +483,7 @@ function executeCopySignalMap(fromIdx, toIdx) {
         }
     }
 
-    // 6. 운영자 개입 (Junction 레벨)
+    // 6. ?�영??개입 (Junction ?�벨)
     const opEnableEl = document.getElementById('op-enable');
     if (opEnableEl) {
         j.opIntervention = {
@@ -506,7 +506,7 @@ function executeCopySignalMap(fromIdx, toIdx) {
         }
     }
 
-    // 7. 주간계획 저장
+    // 7. 주간계획 ?�??
     const wpInputs = document.querySelectorAll('.inp-weekly-plan');
     if (wpInputs.length > 0) {
         const wpArr = Array.from(wpInputs)
@@ -519,17 +519,17 @@ function executeCopySignalMap(fromIdx, toIdx) {
     renderSummaryTable();
     refreshVisibleArrows();
 
-    alert("현재 교차로의 모든 변경사항이 엔진(STATE)에 적용되었습니다.\n전체 DB에 영구 반영하려면 'DB 업데이트' 또는 'DB 통합 저장'을 클릭하세요.");
+    alert("?�재 교차로의 모든 변경사??�� ?�진(STATE)???�용?�었?�니??\n?�체 DB???�구 반영?�려�?'DB ?�데?�트' ?�는 'DB ?�합 ?�?????�릭?�세??");
 }
 
-/* ══════════════════════════════════════════
- *  주현시 제한 체크
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  주현???�한 체크
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function limitCheck(el) {
     let checked = document.querySelectorAll('.inp-main-mov:checked');
     if (checked.length > 1) {
         el.checked = false;
-        alert("주현시는 1개의 현시만 선택할 수 있습니다.");
+        alert("주현?�는 1개의 ?�시�??�택?????�습?�다.");
         checked = document.querySelectorAll('.inp-main-mov:checked');
     }
     
@@ -544,7 +544,7 @@ function limitCheck(el) {
 }
 
 /**
- * 요약 테이블 렌더링 (SigmaUI 사용)
+ * ?�약 ?�이�??�더�?(SigmaUI ?�용)
  */
 function renderSummaryTable() {
     const jid = STATE.activeJid;
@@ -565,7 +565,7 @@ function renderSummaryTable() {
             const p = (plans && plans[i]) ? plans[i] : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
             const patternNum = i + 1;
             
-            // 모든 일계획(1~10)을 뒤져서 이 패턴(patternNum)이 한 번이라도 사용되었는지 확인 (유저 요청: 공통 적용)
+            // 모든 ?�계??1~10)???�져?????�턴(patternNum)????번이?�도 ?�용?�었?��? ?�인 (?��? ?�청: 공통 ?�용)
             let isUsedAnywhere = false;
             let firstGlobalSched = null;
             if (j.schedules) {
@@ -600,7 +600,7 @@ function renderSummaryTable() {
             const rowStyle = (isActive ? activeStyle : mismatchStyle) + unusedStyle;
 
             const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
-            const cycleTooltip = hasMismatch ? `주기 불일치 (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
+            const cycleTooltip = hasMismatch ? `주기 불일�?(A?�계:${Math.round(sumA)}, B?�계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
 
             let idCell = null;
             if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
@@ -630,7 +630,7 @@ function renderSummaryTable() {
                     style: "text-align:left; padding:1px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
                     content: `
                         <div style="display:flex; align-items:center; margin-bottom:0px; gap:4px;">
-                            <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A링 합계(${sumA})가 목표(${targetCycle})와 불일치` : ''}">A</span> 
+                            <span style="color:${isMatchA ? 'var(--accent)' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchA ? `A�??�계(${sumA})가 목표(${targetCycle})?� 불일�? : ''}">A</span> 
                             ${ Array.from({length: 8}).map((_, k) => {
                                 const v = p.splitA[k] || 0;
                                 const vCls = v === 0 ? 'val-zero' : '';
@@ -639,7 +639,7 @@ function renderSummaryTable() {
                             }).join('') }
                         </div>
                         <div style="display:flex; align-items:center; gap:4px;">
-                            <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B링 합계(${sumB})가 목표(${targetCycle})와 불일치` : ''}">B</span> 
+                            <span style="color:${isMatchB ? '#888' : '#ff4444'}; font-weight:700; width:12px; cursor:pointer;" onclick="jumpToTOD(${i})" title="${!isMatchB ? `B�??�계(${sumB})가 목표(${targetCycle})?� 불일�? : ''}">B</span> 
                             ${ Array.from({length: 8}).map((_, k) => {
                                 const v = p.splitB[k] || 0;
                                 const vCls = v === 0 ? 'val-zero' : '';
@@ -663,9 +663,9 @@ function renderSummaryTable() {
                         <tr style="background: rgba(255,255,255,0.05);">
                             <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
                             <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
-                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>` : ''}</th>
-                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
-                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">신호시간 (Split A / B)</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 ?�롯??주기�??�플�??�계�??�동 채�?">?�계</button>` : ''}</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">?�동</th>
+                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">?�호?�간 (Split A / B)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -698,7 +698,7 @@ function renderSummaryTable() {
 
 
 /**
- * [사용자 요청] 모든 TOD 슬롯의 주기를 스플릿 합계(A링 기준)로 자동 동기화
+ * [?�용???�청] 모든 TOD ?�롯??주기�??�플�??�계(A�?기�?)�??�동 ?�기??
  */
 function autoFillCycleFromSplits() {
     const jid = STATE.activeJid;
@@ -706,7 +706,7 @@ function autoFillCycleFromSplits() {
     const j = STATE.junctions[jid];
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     
-    if (!confirm("모든 슬롯의 주기를 현재 스플릿 합계로 변경하시겠습니까?")) return;
+    if (!confirm("모든 ?�롯??주기�??�재 ?�플�??�계�?변경하?�겠?�니�?")) return;
 
     for (let i = 0; i < 16; i++) {
         const p = j.dayPlans[dayIdx][i];
@@ -721,19 +721,19 @@ function autoFillCycleFromSplits() {
     }
     
     renderSummaryTable();
-    // 현재 선택된 슬롯의 UI도 갱신
+    // ?�재 ?�택???�롯??UI??갱신
     const curIdx = parseInt(UI.planIdx.value);
     const curSumA = (j.dayPlans[dayIdx][curIdx].splitA || []).reduce((a, b) => a + b, 0);
     if (curSumA > 0 && document.getElementById('tod-inp-cycle')) {
         document.getElementById('tod-inp-cycle').value = Math.round(curSumA);
     }
     
-    alert("모든 슬롯의 주기가 스플릿 합계와 동기화되었습니다.");
+    alert("모든 ?�롯??주기가 ?�플�??�계?� ?�기?�되?�습?�다.");
 }
 
-/* ══════════════════════════════════════════
- *  TOD 헬퍼 함수들
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  TOD ?�퍼 ?�수??
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function jumpToTOD(idx) { UI.planIdx.value = idx; renderRingTables(); }
 
 function updateSched(idx, f, v) {
@@ -783,7 +783,7 @@ function updateMov(k, i, v) {
 
     sm[k][i] = parseInt(v) || 0;
 
-    // [Sync Logic] Dual(각각입력)이 체크해제(!isDual) 상태에서 A링 데이터를 변경하면 B링도 자동으로 따라감
+    // [Sync Logic] Dual(각각?�력)??체크?�제(!isDual) ?�태?�서 A�??�이?��? 변경하�?B링도 ?�동?�로 ?�라�?
     if (!isDual && k.endsWith('A')) {
         const keyB = k.replace(/A$/, 'B');
         if (sm[keyB]) {
@@ -814,12 +814,12 @@ function updatePlanVal(k, i, v) {
     const idx = parseInt(UI.planIdx.value);
     const dayIdx = STATE.currentJunctionDayTypeIdx;
     const j = STATE.junctions[STATE.activeJid];
-    const isDual = document.getElementById('chk-dual-ring')?.checked; // Dual(각각입력) 체크 상태
+    const isDual = document.getElementById('chk-dual-ring')?.checked; // Dual(각각?�력) 체크 ?�태
 
-    // 현재 값 저장
+    // ?�재 �??�??
     j.dayPlans[dayIdx][idx][k][i] = parseInt(v) || 0;
 
-    // [Sync Logic] Dual(각각입력)이 체크해제(!isDual) 상태에서 A링 데이터를 변경하면 B링도 자동으로 따라감
+    // [Sync Logic] Dual(각각?�력)??체크?�제(!isDual) ?�태?�서 A�??�이?��? 변경하�?B링도 ?�동?�로 ?�라�?
     if (!isDual && k.endsWith('A')) {
         const keyB = k.replace(/A$/, 'B');
         if (j.dayPlans[dayIdx][idx][keyB]) {
@@ -831,16 +831,16 @@ function updatePlanVal(k, i, v) {
     renderSummaryTable();
 }
 
-/* ══════════════════════════════════════════
- *  요일 타입 전환
- * ══════════════════════════════════════════ */
+/* ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═
+ *  ?�일 ?�???�환
+ * ?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═?�═ */
 function changeJunctionDayType(idx) {
     STATE.currentJunctionDayTypeIdx = idx;
 
     const jid = STATE.activeJid;
     const j = (jid && STATE.junctions[jid]) ? STATE.junctions[jid] : null;
 
-    // [수정] 현시계획 맵의 기본 디폴트를 항상 '일반(0)'으로 설정 (사용자 요청)
+    // [?�정] ?�시계획 맵의 기본 ?�폴?��? ??�� '?�반(0)'?�로 ?�정 (?�용???�청)
     let targetMapIdx = 0;
     STATE.currentSignalMapIdx = targetMapIdx;
 
@@ -848,8 +848,8 @@ function changeJunctionDayType(idx) {
         let labelEl = document.getElementById('j-current-day-label');
         if (labelEl) {
             const planNum = idx + 1;
-            const mapType = planNum <= 5 ? "일반맵" : "시차맵";
-            labelEl.innerText = `${mapType} : 시간계획(${planNum})`;
+            const mapType = planNum <= 5 ? "?�반�? : "?�차�?;
+            labelEl.innerText = `${mapType} : ?�간계획(${planNum})`;
             labelEl.style.color = '#38bdf8';
             labelEl.style.fontWeight = 'bold';
             labelEl.style.fontSize = '13px';
@@ -867,17 +867,17 @@ function changeJunctionDayType(idx) {
         console.error("[changeJunctionDayType] Rendering failed", e);
     }
 
-    // UI 업데이트
+    // UI ?�데?�트
     const selMap = document.getElementById('sel-signal-map');
     if (selMap) selMap.value = STATE.currentSignalMapIdx;
 }
 
-/** 플렉스타임맵(현시맵) 전환 */
+/** ?�렉?��??�맵(?�시�? ?�환 */
 function changeSignalMap(idx) {
     const mapVal = parseInt(idx);
     STATE.currentSignalMapIdx = mapVal;
 
-    // [Fix] 현재 선택된 교차로의 특정 요일(DayIdx)에 이 맵 번호를 영구 매핑
+    // [Fix] ?�재 ?�택??교차로의 ?�정 ?�일(DayIdx)????�?번호�??�구 매핑
     const jid = STATE.activeJid;
     if (jid && STATE.junctions[jid]) {
         const j = STATE.junctions[jid];
@@ -889,20 +889,20 @@ function changeSignalMap(idx) {
     refreshVisibleArrows();
 }
 
-/** TOD 일계획 복사 진입점 */
+/** TOD ?�계??복사 진입??*/
 function copyJunctionTODDay() {
     openCopyModal('tod');
 }
 
-/** 실제 TOD 일계획 복사 실행 로직 */
+/** ?�제 TOD ?�계??복사 ?�행 로직 */
 function executeCopyTODDay(fromIdx, toIdx) {
     const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
 
-    // 1. DayPlans 복사 (연동/스플릿 등 깊은 복사)
+    // 1. DayPlans 복사 (?�동/?�플�???깊�? 복사)
     j.dayPlans[toIdx] = JSON.parse(JSON.stringify(j.dayPlans[fromIdx]));
 
-    // 2. Schedules 복사 (시작시간/주기 깊은 복사)
+    // 2. Schedules 복사 (?�작?�간/주기 깊�? 복사)
     if (j.group && STATE.groups[j.group]) {
         const groupScheds = STATE.groups[j.group].schedules;
         groupScheds[toIdx] = JSON.parse(JSON.stringify(groupScheds[fromIdx]));
@@ -912,7 +912,7 @@ function executeCopyTODDay(fromIdx, toIdx) {
 
     renderRingTables();
     renderSummaryTable();
-    alert(`복사가 완료되었습니다. '변경사항 적용'을 눌러 확정하세요.`);
+    alert(`복사가 ?�료?�었?�니?? '변경사???�용'???�러 ?�정?�세??`);
 }
 
 function updateJunctionDayUI() {
@@ -927,14 +927,14 @@ function renderWeeklyPlanTable() {
     const jid = STATE.activeJid;
     const j = jid ? STATE.junctions[jid] : null;
     const weeklyPlan = (j && j.weeklyPlan) ? j.weeklyPlan.split(';') : ["1", "1", "1", "1", "1", "2", "3"];
-    const weekLabels = ["월", "화", "수", "목", "금", "토", "일"];
+    const weekLabels = ["??, "??, "??, "�?, "�?, "??, "??];
     
     const dayOfWeek = (typeof STATE !== 'undefined' && STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
     const jsToWeeklyMap = [6, 0, 1, 2, 3, 4, 5];
     const currentDayIndex = jsToWeeklyMap[dayOfWeek];
 
     let html = `
-        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 일계획표</div>
+        <div style="color: #38bdf8; font-weight: bold; font-size: 13px; margin-bottom: 8px;">주간 ?�계?�표</div>
         <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; border: 1px solid rgba(255,255,255,0.08);">
             <thead>
                 <tr style="background: rgba(255,255,255,0.05);">
@@ -970,7 +970,7 @@ function renderTodPlanInfoTable() {
 
     const jid = STATE.activeJid;
     const j = jid ? STATE.junctions[jid] : null;
-    // 교차로가 선택되지 않았을 경우, 기본 상태(defaultSchedules)를 보여주고 수정 가능하도록 함
+    // 교차로�? ?�택?��? ?�았??경우, 기본 ?�태(defaultSchedules)�?보여주고 ?�정 가?�하?�록 ??
     let useSchedules = j ? j.schedules : null;
     if (!j) {
         if (!STATE.defaultSchedules) {
@@ -993,10 +993,10 @@ function renderTodPlanInfoTable() {
 
     let html = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획정보 (현재 조회: ${DAY_LABELS[dayIdx]})</span>
+            <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">TOD 계획?�보 (?�재 조회: ${DAY_LABELS[dayIdx]})</span>
             <div style="display: flex; gap: 5px;">
-                <button onclick="toggleTodPlanGroup(1)" style="background: ${group === 1 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">일반맵 (1~5)</button>
-                <button onclick="toggleTodPlanGroup(2)" style="background: ${group === 2 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">시차맵 (6~10)</button>
+                <button onclick="toggleTodPlanGroup(1)" style="background: ${group === 1 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">?�반�?(1~5)</button>
+                <button onclick="toggleTodPlanGroup(2)" style="background: ${group === 2 ? '#0ea5e9' : '#334155'}; color: #fff; border: none; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;">?�차�?(6~10)</button>
             </div>
         </div>
         <div style="overflow-x: auto; background: #0f172a; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
@@ -1044,7 +1044,7 @@ function renderTodPlanInfoTable() {
 
                                 return `
                                     <td class="phase-tod-cell" data-drop-day="${idx}" data-drop-slot="${rIdx}" onclick="selectTodPlanCell(${idx}, ${rIdx})" style="padding: 2px 0; border-left: 1px solid rgba(255,255,255,0.05); background: ${bg}; cursor: pointer; position: relative;">
-                                        <div draggable="true" ondragstart="window.handlePhaseTodDragStart(event, ${idx}, ${rIdx})" style="cursor: grab; color: #777; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); font-size: 10px; padding: 4px 2px; z-index: 10;" title="드래그하여 스케줄 복사">⠿</div>
+                                        <div draggable="true" ondragstart="window.handlePhaseTodDragStart(event, ${idx}, ${rIdx})" style="cursor: grab; color: #777; position: absolute; left: 2px; top: 50%; transform: translateY(-50%); font-size: 10px; padding: 4px 2px; z-index: 10;" title="?�래그하???��?�?복사">??/div>
                                         <div style="display: flex; align-items: center; padding-left: 14px; padding-right: 2px;">
                                             <input type="text" data-day="${idx}" data-slot="${rIdx}" data-field="time" class="sigma-input ${hCls}" value="${hVal}" placeholder="--:--" style="${inputStyle} flex: 1.5; color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'time', this.value)">
                                             <input type="number" data-day="${idx}" data-slot="${rIdx}" data-field="cycle" class="sigma-input ${cycleCls}" value="${cycleVal}" placeholder="-" style="${inputStyle} flex: 1; color:${fontColor};" onchange="handleTodPlanEdit(${idx}, ${rIdx}, 'cycle', this.value)">
@@ -1221,8 +1221,8 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
     let labelEl = document.getElementById('j-current-day-label');
     if (labelEl) {
         const planNum = dayIdx + 1;
-        const mapType = planNum <= 5 ? "일반맵" : "시차맵";
-        labelEl.innerText = `${mapType} : 시간계획(${planNum})`;
+        const mapType = planNum <= 5 ? "?�반�? : "?�차�?;
+        labelEl.innerText = `${mapType} : ?�간계획(${planNum})`;
         labelEl.style.color = '#38bdf8';
         labelEl.style.fontWeight = 'bold';
         labelEl.style.fontSize = '13px';
@@ -1246,7 +1246,7 @@ window.selectTodPlanCell = function(dayIdx, slotIdx) {
     }
 };
 
-/** [신규] DB 파일 관리 전용 패널 렌더링 (최상단 고정) */
+/** [?�규] DB ?�일 관�??�용 ?�널 ?�더�?(최상??고정) */
 function renderDBManagementPanel() {
     const container = document.getElementById('db-management-container');
     if (!container) return;
@@ -1255,12 +1255,12 @@ function renderDBManagementPanel() {
         <div class="card-neon neon-border" style="padding:10px 12px; background:linear-gradient(135deg, rgba(52,152,219,0.1), rgba(15,15,15,0.3)); border:1px solid rgba(52,152,219,0.3);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <div style="font-size:12px; font-weight:800; color:#3498db; display:flex; align-items:center; gap:6px; font-family:'Outfit'; letter-spacing:0.5px;">
-                    📂 DB 파일 관리 (Maps & Plans)
+                    ?�� DB ?�일 관�?(Maps & Plans)
                 </div>
                 <div style="display:flex; gap:6px;">
                      <button onclick="saveNormalizedDBFiles()" 
                             style="height:24px; padding:0 12px; background:rgba(241,196,15,0.25); color:var(--accent); border:1px solid rgba(241,196,15,0.5); border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.2s;">
-                        💾 작업 내용 내부 저장
+                        ?�� ?�업 ?�용 ?��? ?�??
                     </button>
                 </div>
             </div>
@@ -1268,17 +1268,17 @@ function renderDBManagementPanel() {
                 <button onclick="document.getElementById('file-load-inter').click()" 
                         style="flex:1; height:28px; background:rgba(52,152,219,0.1); color:#3498db; border:1px solid rgba(52,152,219,0.2); border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;"
                         onmouseover="this.style.background='rgba(52,152,219,0.2)'" onmouseout="this.style.background='rgba(52,152,219,0.1)'">
-                    📤 교차로 로드
+                    ?�� 교차�?로드
                 </button>
                 <button onclick="document.getElementById('file-load-maps').click()" 
                         style="flex:1; height:28px; background:rgba(255,255,255,0.04); color:#bbb; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;"
                         onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                    📤 신호맵 로드
+                    ?�� ?�호�?로드
                 </button>
                 <button onclick="document.getElementById('file-load-plans').click()" 
                         style="flex:1; height:28px; background:rgba(255,255,255,0.04); color:#bbb; border:1px solid rgba(255,255,255,0.1); border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;"
                         onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
-                    📤 TOD계획 로드
+                    ?�� TOD계획 로드
                 </button>
             </div>
             <input type="file" id="file-load-inter" style="display:none;" onchange="handleDBFileLoad(this, 'inter')">
@@ -1288,7 +1288,7 @@ function renderDBManagementPanel() {
     `;
 }
 
-/** 주간계획 데이터 실시간 모델 반영 */
+/** 주간계획 ?�이???�시�?모델 반영 */
 function updateWeeklyPlanData(idx, val) {
     const jid = STATE.activeJid;
     if (!jid || !STATE.junctions[jid]) return;
@@ -1298,89 +1298,89 @@ function updateWeeklyPlanData(idx, val) {
     wp[idx] = val;
     j.weeklyPlan = wp.join(';');
 
-    // 라벨 갱신
+    // ?�벨 갱신
     const label = document.getElementById(`wp-label-${idx}`);
-    if (label) label.innerText = DAY_LABELS[parseInt(val) - 1] || `일계획${val}`;
+    if (label) label.innerText = DAY_LABELS[parseInt(val) - 1] || `?�계??{val}`;
 
     console.log(`Weekly Plan Updated [${idx}]: ${val}`);
 }
 
 
-/* handleDBFileLoad 함수가 js/data.js로 이동되었습니다. */
+/* handleDBFileLoad ?�수가 js/data.js�??�동?�었?�니?? */
 
 
 /**
- * 템플릿 기반 현시 정보 적용
+ * ?�플�?기반 ?�시 ?�보 ?�용
  */
 function applyPhaseTemplate(type) {
     if (!STATE.activeJid) {
-        alert("교차로를 먼저 선택하세요.");
+        alert("교차로�? 먼�? ?�택?�세??");
         return;
     }
     const templateNames = {
-        'cross': '4지_동서', 'cross_v': '4지_남북',
-        't_bottom': '3지_북', 't_left': '3지_동', 't_top': '3지_남', 't_right': '3지_서',
-        'h_line': '단일_동서', 'v_line': '단일_남북'
+        'cross': '4지_?�서', 'cross_v': '4지_?�북',
+        't_bottom': '3지_�?, 't_left': '3지_??, 't_top': '3지_??, 't_right': '3지_??,
+        'h_line': '?�일_?�서', 'v_line': '?�일_?�북'
     };
     const templateName = templateNames[type] || type;
 
-    if (!confirm(`${templateName} 템플릿을 적용하시겠습니까? 기존 현시 구성 데이터가 덮어씌워집니다.`)) return;
+    if (!confirm(`${templateName} ?�플릿을 ?�용?�시겠습?�까? 기존 ?�시 구성 ?�이?��? ??��?�워집니??`)) return;
 
     const j = STATE.junctions[STATE.activeJid];
     const smIdx = STATE.currentSignalMapIdx || 0;
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : { movA: [], movB: [], pedMovA: [], pedMovB: [] };
 
-    // 기본 값 초기화
+    // 기본 �?초기??
     sm.movA = [0, 0, 0, 0, 0, 0, 0, 0];
     sm.movB = [0, 0, 0, 0, 0, 0, 0, 0];
     sm.pedMovA = [0, 0, 0, 0, 0, 0, 0, 0];
     sm.pedMovB = [0, 0, 0, 0, 0, 0, 0, 0];
 
-    // 템플릿별 데이터 정의 (사용자 요청: 6,5,8,7 / 2,1,4,3 구조)
+    // ?�플릿별 ?�이???�의 (?�용???�청: 6,5,8,7 / 2,1,4,3 구조)
     switch (type) {
-        case 'cross': // 4지 (+, 동서주방향)
+        case 'cross': // 4지 (+, ?�서주방??
             sm.movA = [6, 5, 8, 7, 0, 0, 0, 0];
             sm.movB = [2, 1, 4, 3, 0, 0, 0, 0];
             sm.pedMovA = [106, 0, 108, 0, 0, 0, 0, 0];
             sm.pedMovB = [102, 0, 104, 0, 0, 0, 0, 0];
             break;
-        case 'cross_v': // 4지 (+, 남북주방향)
+        case 'cross_v': // 4지 (+, ?�북주방??
             sm.movA = [8, 7, 6, 5, 0, 0, 0, 0];
             sm.movB = [4, 3, 2, 1, 0, 0, 0, 0];
             sm.pedMovA = [108, 0, 106, 0, 0, 0, 0, 0];
             sm.pedMovB = [104, 0, 102, 0, 0, 0, 0, 0];
             break;
-        case 't_bottom': // 3지 (ㅗ)
+        case 't_bottom': // 3지 (??
             sm.movA = [6, 5, 7, 0, 0, 0, 0, 0];
             sm.movB = [2, 18, 18, 0, 0, 0, 0, 0];
             sm.pedMovA = [106, 105, 107, 0, 0, 0, 0, 0];
             sm.pedMovB = [0, 0, 0, 0, 0, 0, 0, 0];
             break;
-        case 't_left': // 3지 (ㅏ)
+        case 't_left': // 3지 (??
             sm.movA = [8, 7, 18, 0, 0, 0, 0, 0];
             sm.movB = [4, 18, 1, 0, 0, 0, 0, 0];
             sm.pedMovA = [108, 107, 0, 0, 0, 0, 0, 0];
             sm.pedMovB = [0, 0, 101, 0, 0, 0, 0, 0];
             break;
-        case 't_top': // 3지 (ㅜ)
+        case 't_top': // 3지 (??
             sm.movA = [6, 18, 18, 0, 0, 0, 0, 0];
             sm.movB = [2, 1, 3, 0, 0, 0, 0, 0];
             sm.pedMovA = [0, 0, 0, 0, 0, 0, 0, 0];
             sm.pedMovB = [102, 101, 103, 0, 0, 0, 0, 0];
             break;
-        case 't_right': // 3지 (ㅓ)
+        case 't_right': // 3지 (??
             sm.movA = [8, 18, 5, 0, 0, 0, 0, 0];
             sm.movB = [4, 3, 18, 0, 0, 0, 0, 0];
             sm.pedMovA = [0, 0, 105, 0, 0, 0, 0, 0];
             sm.pedMovB = [104, 103, 0, 0, 0, 0, 0, 0];
             break;
-        case 'h_line': // 단일 (ㅡ)
+        case 'h_line': // ?�일 (??
             sm.movA = [6, 17, 0, 0, 0, 0, 0, 0];
             sm.movB = [2, 17, 0, 0, 0, 0, 0, 0];
             sm.pedMovA = [0, 108, 0, 0, 0, 0, 0, 0];
             sm.pedMovB = [0, 104, 0, 0, 0, 0, 0, 0];
             break;
-        case 'v_line': // 단일 (ㅣ)
+        case 'v_line': // ?�일 (??
             sm.movA = [8, 17, 0, 0, 0, 0, 0, 0];
             sm.movB = [4, 17, 0, 0, 0, 0, 0, 0];
             sm.pedMovA = [0, 106, 0, 0, 0, 0, 0, 0];
@@ -1388,7 +1388,7 @@ function applyPhaseTemplate(type) {
             break;
     }
 
-    // 0번(일반)인 경우 루트 값도 동기화 (하위 호환성)
+    // 0�??�반)??경우 루트 값도 ?�기??(?�위 ?�환??
     if (smIdx === 0) {
         j.movA = [...sm.movA];
         j.movB = [...sm.movB];
@@ -1398,13 +1398,13 @@ function applyPhaseTemplate(type) {
 
     renderRingTables();
     refreshVisibleArrows();
-    alert(`${DAY_LABELS[smIdx]}에 ${templateName} 템플릿 데이터가 설정되었습니다. '변경사항 적용' 버튼을 눌러 확정하세요.`);
+    alert(`${DAY_LABELS[smIdx]}??${templateName} ?�플�??�이?��? ?�정?�었?�니?? '변경사???�용' 버튼???�러 ?�정?�세??`);
 }
 
 
 
 window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'phase-tod', dayIdx, slotIdx }));
+    e.dataTransfer.setData('application/x-sigma-tod', JSON.stringify({ type: 'phase-tod', dayIdx, slotIdx }));
     e.dataTransfer.effectAllowed = 'copyMove';
     
     const td = e.target.closest('.phase-tod-cell');
@@ -1469,7 +1469,11 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
             });
             
             try {
-                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                // 커스텀 마임타입을 사용하여 브라우저 자동 텍스트 삽입 방지
+                const rawData = e.dataTransfer.getData('application/x-sigma-tod') || e.dataTransfer.getData('text/plain');
+                if (!rawData) return;
+                
+                const data = JSON.parse(rawData);
                 if (data.type === 'phase-tod') {
                     const srcDay = data.dayIdx;
                     const srcSlot = data.slotIdx;
@@ -1482,18 +1486,29 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                     const j = STATE.junctions[jid];
                     if (!j || !j.schedules) return;
                     
+                    // 안전한 배열 초기화
+                    if (!j.schedules[tgtDay]) j.schedules[tgtDay] = [];
+                    if (!j.schedules[srcDay] || !j.schedules[srcDay][srcSlot]) return;
+                    
                     // Copy schedule
                     j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
                     
+                    // 앞의 빈 슬롯 채우기
+                    for(let i=0; i<tgtSlot; i++) {
+                        if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0 };
+                    }
+                    
                     // Re-render
                     if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
-                    renderSummaryTable();
-                    debounceUpdateHeavyUI();
+                    if (typeof renderSummaryTable === 'function') renderSummaryTable();
+                    if (typeof debounceUpdateHeavyUI === 'function') debounceUpdateHeavyUI();
                     if (tgtDay === STATE.currentJunctionDayTypeIdx && tgtSlot === parseInt(UI.planIdx.value)) {
                         if (typeof renderRingTables === 'function') renderRingTables();
                     }
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.error("Drop Parse Error", err);
+            }
         });
     });
 })();
