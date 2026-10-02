@@ -1000,66 +1000,143 @@ todCsvLines: payload.todCsvLines
 
 
 // ── [신규] AI 리포트 생성 함수 ──
-async function generateAIReport() {
+
+
+// 헬퍼: 통계 계산 (data.js 기존 로직을 축약)
+
+
+
+// ── [신규] AI 리포트 UI 열기 및 셀렉트 박스 세팅 ──
+function generateAIReport() {
     const box = document.getElementById('ai-report-box');
+    const setup = document.getElementById('ai-report-setup');
     const content = document.getElementById('ai-report-content');
     
-    // UI 표시
     box.style.display = 'block';
-    content.innerHTML = '<div style="text-align:center; padding: 20px; color:#aaa;">✨ 구글 Gemini AI가 통계 데이터를 분석하고 있습니다... (약 5~10초 소요) ⏳</div>';
+    setup.style.display = 'block';
+    content.style.display = 'none';
     
-    const officeFilter = document.getElementById('stat-office-filter')?.value || 'ALL';
-    const policeFilter = document.getElementById('stat-police-filter')?.value || 'ALL';
+    // 사무소(구청) 목록 추출하여 셀렉트 박스 채우기
+    const offices = new Set();
+    Object.values(window.STATE?.junctions || {}).forEach(j => {
+        if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
+    });
+    const sortedOffices = Array.from(offices).sort();
     
-    // 1. Base 데이터 (전체)
-    let baseIntersections = Object.values(STATE.junctions || {});
+    const baseSel = document.getElementById('ai-base-select');
+    const targetSel = document.getElementById('ai-target-select');
+    
+    let optionsHtml = '<option value="ALL">서울시 전체</option>';
+    sortedOffices.forEach(o => {
+        optionsHtml += `<option value="${o}">${o}</option>`;
+    });
+    
+    baseSel.innerHTML = optionsHtml;
+    targetSel.innerHTML = optionsHtml;
+}
+
+// ── [신규] 실제 AI 분석 시작 (로딩 애니메이션 및 API 호출) ──
+async function startAIAnalysis() {
+    const setup = document.getElementById('ai-report-setup');
+    const content = document.getElementById('ai-report-content');
+    
+    const baseVal = document.getElementById('ai-base-select').value;
+    const targetVal = document.getElementById('ai-target-select').value;
+    
+    const baseName = baseVal === 'ALL' ? '서울시 전체' : baseVal;
+    const targetName = targetVal === 'ALL' ? '서울시 전체' : targetVal;
+    
+    setup.style.display = 'none';
+    content.style.display = 'block';
+    
+    // 시각적 로딩 애니메이션 (점진적 진행바 포함)
+    content.innerHTML = `
+        <div style="text-align:center; padding: 30px; font-size: 14px; color:#90caf9;">
+            <div style="font-size: 24px; margin-bottom: 15px;" class="loading-spinner">🔄</div>
+            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/>
+            <div style="margin-top: 15px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 4px; height: 6px; overflow: hidden;">
+                <div id="ai-progress-bar" style="width: 0%; height: 100%; background: #64b5f6; transition: width 0.5s ease;"></div>
+            </div>
+            <div style="margin-top: 10px; font-size: 11px; color: #78909c;" id="ai-loading-text">데이터 준비 중...</div>
+        </div>
+        <style>
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+            .loading-spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+        </style>
+    `;
+    
+    let progress = 0;
+    const pBar = document.getElementById('ai-progress-bar');
+    const pText = document.getElementById('ai-loading-text');
+    
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90; // API 완료 전까지는 90%에서 대기
+        if (pBar) pBar.style.width = progress + '%';
+        
+        if (progress > 20 && progress <= 50) pText.innerText = "전문가 분석 프롬프트 주입 중...";
+        if (progress > 50 && progress <= 80) pText.innerText = "거시적/미시적 특성 도출 중...";
+        if (progress > 80) pText.innerText = "정책 제언 및 시사점 요약 중...";
+    }, 800);
+    
+    // 데이터 집계
+    let allIntersections = Object.values(window.STATE?.junctions || {});
+    
+    let baseIntersections = baseVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === baseVal);
+    let targetIntersections = targetVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === targetVal);
+    
     let baseStats = calculateStats(baseIntersections);
-    
-    // 2. Target 데이터 (필터 적용)
-    let targetIntersections = baseIntersections;
-    if (officeFilter !== 'ALL') {
-        targetIntersections = targetIntersections.filter(j => (j.office || "").trim() === officeFilter);
-    }
-    if (policeFilter !== 'ALL') {
-        targetIntersections = targetIntersections.filter(j => (j.police || "").trim() === policeFilter);
-    }
     let targetStats = calculateStats(targetIntersections);
-    
-    const targetName = (officeFilter === 'ALL' && policeFilter === 'ALL') ? '현재 필터 상태(전체)' : `${officeFilter !== 'ALL' ? officeFilter : ''} ${policeFilter !== 'ALL' ? policeFilter : ''}`.trim();
     
     try {
         const response = await fetch('/api/ai/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                baseName: '서울시 전체',
+                baseName: baseName,
                 targetName: targetName,
                 baseStats: baseStats,
                 targetStats: targetStats
             })
         });
         
+        clearInterval(progressInterval);
+        if (pBar) pBar.style.width = '100%';
+        if (pText) pText.innerText = "분석 완료!";
+        
         const data = await response.json();
         
         if (!response.ok) {
-            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px;">${data.error || '알 수 없는 오류'}</div>`;
+            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${data.error || '알 수 없는 오류'}</div>
+            <div style="text-align:center; margin-top:10px;"><button onclick="document.getElementById('ai-report-setup').style.display='block'; document.getElementById('ai-report-content').style.display='none';" class="action-btn">다시 시도</button></div>`;
             return;
         }
         
-        // Markdown 파싱
-        let formattedText = data.report.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ffb74d;">$1</strong>');
-        formattedText = formattedText.replace(/^## (.*)/gm, '<h3 style="color:#90caf9; margin-top:15px; margin-bottom:5px;">$1</h3>');
-        formattedText = formattedText.replace(/^### (.*)/gm, '<h4 style="color:#81d4fa; margin-top:15px; margin-bottom:5px;">$1</h4>');
-        formattedText = formattedText.replace(/^\* (.*)/gm, '<li style="margin-left: 20px;">$1</li>');
-        
-        content.innerHTML = formattedText;
+        // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
+        setTimeout(() => {
+            let formattedText = data.report.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ffb74d;">$1</strong>');
+            formattedText = formattedText.replace(/^## (.*)/gm, '<h3 style="color:#90caf9; margin-top:15px; margin-bottom:5px; border-bottom: 1px solid rgba(144, 202, 249, 0.2); padding-bottom: 5px;">$1</h3>');
+            formattedText = formattedText.replace(/^### (.*)/gm, '<h4 style="color:#81d4fa; margin-top:15px; margin-bottom:5px;">$1</h4>');
+            formattedText = formattedText.replace(/^\* (.*)/gm, '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>');
+            formattedText = formattedText.replace(/^\d+\. (.*)/gm, '<div style="font-size: 15px; font-weight: bold; color: #bbdefb; margin-top: 20px; margin-bottom: 8px;">$&</div>');
+            
+            content.innerHTML = `
+                <div style="text-align: right; margin-bottom: 10px;">
+                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;">🔄 다시 분석하기</button>
+                </div>
+                ${formattedText}
+            `;
+        }, 500);
         
     } catch (err) {
-        content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px;">서버 통신 실패: ${err.message}</div>`;
+        clearInterval(progressInterval);
+        content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">서버 통신 실패: ${err.message}</div>
+        <div style="text-align:center; margin-top:10px;"><button onclick="document.getElementById('ai-report-setup').style.display='block'; document.getElementById('ai-report-content').style.display='none';" class="action-btn">다시 시도</button></div>`;
     }
 }
 
-// 헬퍼: 통계 계산 (data.js 기존 로직을 축약)
+
+// 헬퍼: 통계 계산
 function calculateStats(inters) {
     if (!inters || inters.length === 0) return { total: 0 };
     
@@ -1074,7 +1151,6 @@ function calculateStats(inters) {
             if (c > maxCycle) maxCycle = c;
         }
         if (j.dayPlans[0]?.[0]?.offset > 0) coordCount++;
-        // 간단한 플래그 계산 (실제 데이터 구조에 맞게)
         if (j.isPPLT) pplt++;
         if (j.isDiag) diag++;
         if (j.isPLeft) pLeft++;
@@ -1085,7 +1161,8 @@ function calculateStats(inters) {
     return {
         total_intersections: inters.length,
         coordinated_intersections: coordCount,
-        avg_cycle: avgCycle,
+        coord_rate_percent: ((coordCount / inters.length) * 100).toFixed(1) + '%',
+        avg_cycle: parseFloat(avgCycle),
         max_cycle: maxCycle,
         protected_left: pLeft,
         pplt: pplt,
