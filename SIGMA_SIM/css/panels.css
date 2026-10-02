@@ -1162,3 +1162,49 @@ body.left-sidebar-open #sim-controls {
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s, opacity 0.5s, left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+
+
+/* AI Report Markdown Styles (Dark Theme) */
+.ai-report-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 12px;
+    background: rgba(0,0,0,0.2);
+}
+.ai-report-markdown th, .ai-report-markdown td {
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 8px 10px;
+}
+.ai-report-markdown th {
+    background: rgba(100, 181, 246, 0.1);
+    color: #90caf9;
+    font-weight: bold;
+    text-align: left;
+}
+.ai-report-markdown td {
+    color: #e0e0e0;
+}
+.ai-report-markdown h3 {
+    color: #90caf9;
+    margin-top: 25px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(144, 202, 249, 0.2);
+    padding-bottom: 5px;
+    font-size: 16px;
+}
+.ai-report-markdown h4 {
+    color: #81d4fa;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+.ai-report-markdown strong {
+    color: #ffb74d;
+}
+.ai-report-markdown ul {
+    padding-left: 20px;
+}
+.ai-report-markdown li {
+    margin-bottom: 6px;
+}

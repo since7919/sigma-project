@@ -1114,15 +1114,20 @@ async function startAIAnalysis() {
         
         // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
         setTimeout(() => {
-            let formattedText = data.report.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ffb74d;">$1</strong>');
-            formattedText = formattedText.replace(/^## (.*)/gm, '<h3 style="color:#90caf9; margin-top:15px; margin-bottom:5px; border-bottom: 1px solid rgba(144, 202, 249, 0.2); padding-bottom: 5px;">$1</h3>');
-            formattedText = formattedText.replace(/^### (.*)/gm, '<h4 style="color:#81d4fa; margin-top:15px; margin-bottom:5px;">$1</h4>');
-            formattedText = formattedText.replace(/^\* (.*)/gm, '<li style="margin-left: 20px; margin-bottom: 4px;">$1</li>');
-            formattedText = formattedText.replace(/^\d+\. (.*)/gm, '<div style="font-size: 15px; font-weight: bold; color: #bbdefb; margin-top: 20px; margin-bottom: 8px;">$&</div>');
+            // marked.js를 활용한 마크다운 파싱 (테이블 등 완벽 지원)
+            let formattedText = marked.parse(data.report);
+            
+            // 다크 테마 표/텍스트 최적화를 위한 래퍼 추가
+            formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
+            
+            // 원본 텍스트(출력용) 전역 저장
+            window.__lastAIReportHTML = formattedText;
+            window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
             
             content.innerHTML = `
-                <div style="text-align: right; margin-bottom: 10px;">
-                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;">🔄 다시 분석하기</button>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;">
+                    <button onclick="printAIReport()" style="background: rgba(255,183,77,0.1); border: 1px solid #ffb74d; color: #ffb74d; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🖨️ PDF 출력</button>
+                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🔄 다시 분석하기</button>
                 </div>
                 ${formattedText}
             `;
