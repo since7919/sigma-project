@@ -1108,7 +1108,7 @@ async function startAIAnalysis() {
         
         if (!response.ok) {
             content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${data.error || '알 수 없는 오류'}</div>
-            <div style="text-align:center; margin-top:10px;"><button onclick="document.getElementById('ai-report-setup').style.display='block'; document.getElementById('ai-report-content').style.display='none';" class="action-btn">다시 시도</button></div>`;
+            <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
             return;
         }
         
@@ -1131,7 +1131,7 @@ async function startAIAnalysis() {
     } catch (err) {
         clearInterval(progressInterval);
         content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">서버 통신 실패: ${err.message}</div>
-        <div style="text-align:center; margin-top:10px;"><button onclick="document.getElementById('ai-report-setup').style.display='block'; document.getElementById('ai-report-content').style.display='none';" class="action-btn">다시 시도</button></div>`;
+        <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
     }
 }
 
