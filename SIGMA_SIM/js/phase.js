@@ -1404,7 +1404,10 @@ function applyPhaseTemplate(type) {
 
 
 window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
-    e.dataTransfer.setData('application/x-sigma-tod', JSON.stringify({ type: 'phase-tod', dayIdx, slotIdx }));
+    // 글로벌 변수에 드래그 데이터 저장 (브라우저 MIME 정책 우회)
+    window.__DRAG_TOD = { type: 'phase-tod', dayIdx, slotIdx };
+    // 텍스트는 브라우저가 input에 자동 붙여넣기 하지 않도록 아주 짧은 공백 문자 하나만 전달
+    e.dataTransfer.setData('text/plain', ' ');
     e.dataTransfer.effectAllowed = 'copyMove';
     
     const td = e.target.closest('.phase-tod-cell');
@@ -1469,10 +1472,12 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
             });
             
             try {
-                const rawData = e.dataTransfer.getData('application/x-sigma-tod') || e.dataTransfer.getData('text/plain');
-                if (!rawData) return;
+                // 커스텀 마임타입 대신, 드래그 시 저장한 글로벌 변수에서 데이터 읽기
+                const data = window.__DRAG_TOD;
+                if (!data) return;
                 
-                const data = JSON.parse(rawData);
+                // 공백 문자가 input에 들어갔을 수 있으므로 강제 blur 및 값 초기화 유도 (안해도 Re-render 되면서 사라짐)
+                
                 if (data.type === 'phase-tod') {
                     const srcDay = data.dayIdx;
                     const srcSlot = data.slotIdx;
@@ -1491,17 +1496,21 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                     j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
                     
                     for(let i=0; i<tgtSlot; i++) {
-                        if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0 };
+                        if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0, idx: 1 };
                     }
                     
                     if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
                     if (typeof renderSummaryTable === 'function') renderSummaryTable();
                     if (typeof debounceUpdateHeavyUI === 'function') debounceUpdateHeavyUI();
+                    
                     if (tgtDay === (window.STATE ? window.STATE.currentJunctionDayTypeIdx : STATE.currentJunctionDayTypeIdx) && tgtSlot === parseInt(UI.planIdx.value)) {
                         if (typeof renderRingTables === 'function') renderRingTables();
                     }
+                    
                     j._isDirty = true;
                     if (typeof updateDBButtonState === 'function') updateDBButtonState();
+                    
+                    window.__DRAG_TOD = null; // 드롭 후 데이터 초기화
                 }
             } catch (err) {
                 console.error("Drop Parse Error", err);
