@@ -56,7 +56,18 @@ function injectChatbotUI() {
             </div>
         </div>
         <button id="chatbot-toggle-btn" onclick="toggleChatbot()" style="width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff, #007bb5); border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 10px 40px rgba(0, 212, 255, 0.5); cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 32px; color: #fff; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-            🤖
+            
+<svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2C10.8954 2 10 2.89543 10 4V4.5C6.96243 4.5 4.5 6.96243 4.5 10V18C4.5 19.1046 5.39543 20 6.5 20H17.5C18.6046 20 19.5 19.1046 19.5 18V10C19.5 6.96243 17.0376 4.5 14 4.5V4C14 2.89543 13.1046 2 12 2Z" fill="#fff"/>
+  <path d="M7 10C7 8.89543 7.89543 8 9 8H15C16.1046 8 17 8.89543 17 10V12C17 13.1046 16.1046 14 15 14H9C7.89543 14 7 13.1046 7 12V10Z" fill="#0f172a"/>
+  <circle cx="10" cy="11" r="1.5" fill="#00d4ff"/>
+  <circle cx="14" cy="11" r="1.5" fill="#00d4ff"/>
+  <path d="M10 17H14" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M2.5 11C1.67157 11 1 11.6715 1 12.5C1 13.3284 1.67157 14 2.5 14H4.5V11H2.5Z" fill="#fff"/>
+  <path d="M21.5 11C22.3284 11 23 11.6715 23 12.5C23 13.3284 22.3284 14 21.5 14H19.5V11H21.5Z" fill="#fff"/>
+  <path d="M12 2C12.5523 2 13 2.44772 13 3C13 3.55228 12.5523 4 12 4C11.4477 4 11 3.55228 11 3C11 2.44772 11.4477 2 12 2Z" fill="#0f172a"/>
+</svg>
+
         </button>
     </div>
     `;
@@ -254,7 +265,7 @@ async function processAgentQuery(queryText) {
     addMessageToUI("<span style='color:#00d4ff;'><i>[데이터베이스 검색 및 AI 분석 중...]</i></span>", false);
     
     // 1. 프론트엔드에서 1차로 키워드를 바탕으로 관련 교차로 데이터를 검색(Retrieval)
-    const data = (typeof window.STATE !== 'undefined' && window.STATE.junctions) ? Object.values(window.STATE.junctions) : [];
+    const data = (typeof STATE !== 'undefined' && STATE.junctions) ? Object.values(STATE.junctions) : [];
     if (data.length === 0) {
         return { msg: "교차로 데이터가 준비되지 않았습니다.", action: null };
     }
