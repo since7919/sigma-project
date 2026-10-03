@@ -650,7 +650,7 @@ class TSDEngine {
                     }
 
                     const segW = xE - xS;
-                    // if (segW > 14) this.drawPhaseArrow(xS + segW / 2, yPos + ringH / 2, curMov); // Removed text for cleaner UI
+                    if (segW > 14) this.drawPhaseArrow(xS + segW / 2, yPos + ringH / 2, curMov);
                     
                     // 툴팁용 hit region 등록
                     const dX = Math.max(cfg.padding.left, xS);
