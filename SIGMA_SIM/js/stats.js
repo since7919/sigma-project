@@ -1367,7 +1367,7 @@ function renderAdvancedInsights(junctions) {
         const randomDelay = -(Math.random() * 12).toFixed(1);
         return `
         <div class="sigma-panel insight-box" ${id ? `onclick="showInsightDetail('${id}')" style="cursor: pointer;"` : 'style="cursor: default;"'} style="--box-color: ${color}; padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px; transition: background 0.2s;">
-            <div class="ambient-bg" style="animation-delay: ${randomDelay}s;"></div>
+            
             <div class="insight-content">
                 <div class="flex-row gap-10 align-center mb-8">
                     <span style="font-size: 20px;">${icon}</span>
