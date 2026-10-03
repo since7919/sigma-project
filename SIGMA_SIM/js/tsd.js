@@ -584,7 +584,7 @@ class TSDEngine {
 
         const proceedMovs = (axis === 'ew') ? [2, 6] : [4, 8];  // 진행 가능
         const blockedMovs = (axis === 'ew') ? [4, 8] : [2, 6];  // 진행 불가(교차 방향)
-        const ringH = 12, gap = 3;
+        const ringH = 12, gap = 1;
         const ctx = this.ctx, cfg = this.config;
 
         // 배경
@@ -791,9 +791,14 @@ class TSDEngine {
     drawPhaseArrow(x, y, m) {
         if (m <= 0) return;
         this.ctx.save();
-        this.ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        this.ctx.font = 'bold 8px "JetBrains Mono", monospace';
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = 'bold 10px "JetBrains Mono", monospace';
         this.ctx.textAlign = 'center'; this.ctx.textBaseline = 'middle';
+        
+        // Add text stroke for better visibility
+        this.ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeText(m >= 100 ? 'W' : m, x, y);
         this.ctx.fillText(m >= 100 ? 'W' : m, x, y);
         this.ctx.restore();
     }
