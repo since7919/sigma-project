@@ -1442,7 +1442,7 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
 // Global init for Phase TOD DnD
 (function initPhaseTodDnD() {
     document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('tod-summary-container');
+        const container = document.getElementById('tod-plan-info-container');
         if (!container) return;
         
         container.addEventListener('dragend', (e) => {
