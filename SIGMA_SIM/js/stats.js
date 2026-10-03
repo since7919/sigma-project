@@ -1361,48 +1361,7 @@ function renderAdvancedInsights(junctions) {
     // 컴포넌트 생성 유틸
     
     
-    // Add ambient animation styles once if not present
-    if (!document.getElementById('ambient-stats-style')) {
-        const style = document.createElement('style');
-        style.id = 'ambient-stats-style';
-        style.innerHTML = `
-            @keyframes ambientPulse {
-                0% { transform: translate(-5%, -5%) scale(0.8); opacity: 0.1; }
-                50% { transform: translate(5%, 5%) scale(1.3); opacity: 0.5; }
-                100% { transform: translate(-5%, -5%) scale(0.8); opacity: 0.1; }
-            }
-            @keyframes sweepScan {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(200%); }
-            }
-            .insight-box::after {
-                content: "";
-                position: absolute;
-                top: 0; left: 0; width: 100%; height: 2px;
-                background: linear-gradient(90deg, transparent, var(--box-color), transparent);
-                opacity: 0.7;
-                animation: sweepScan 6s linear infinite;
-                z-index: 2;
-            }
-            .insight-box {
-                position: relative;
-                overflow: hidden;
-            }
-            .ambient-bg {
-                position: absolute;
-                top: -50%; left: -50%; width: 200%; height: 200%;
-                background: radial-gradient(circle at center, var(--box-color) 0%, transparent 50%);
-                animation: ambientPulse 12s ease-in-out infinite;
-                pointer-events: none;
-                z-index: 0;
-            }
-            .insight-content {
-                position: relative;
-                z-index: 1;
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    
 
     const InsightBox = (id, title, mainVal, subText, desc, icon, color) => {
         const randomDelay = -(Math.random() * 12).toFixed(1);
