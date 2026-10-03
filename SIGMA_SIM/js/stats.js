@@ -1412,27 +1412,6 @@ function renderAdvancedInsights(junctions) {
         </div>
         `;
     };
-        document.head.appendChild(style);
-    }
-
-    const InsightBox = (id, title, mainVal, subText, desc, icon, color) => `
-        <div class="sigma-panel insight-box" ${id ? `onclick="showInsightDetail('${id}')" style="cursor: pointer;"` : 'style="cursor: default;"'} style="--box-color: ${color}; padding: 15px; margin: 0; background: rgba(0,0,0,0.3); border-left: 3px solid ${color}; border-radius: 4px; transition: background 0.2s;">
-            <div class="insight-content">
-                <div class="flex-row gap-10 align-center mb-8">
-                    <span style="font-size: 20px;">${icon}</span>
-                    <span class="fs-12 fw-800 text-white">${title}</span>
-                </div>
-                <div class="flex-row gap-8 align-end mb-8">
-                    <span class="fw-900" style="font-size: 24px; color: ${color}; line-height: 1;">${mainVal}</span>
-                    <span class="fs-11 text-dim" style="line-height: 1.4;">${subText}</span>
-                </div>
-                <div class="fs-11 flex-row-between" style="color: #999; line-height: 1.4;">
-                    <span style="flex:1;">${desc}</span>
-                </div>
-            </div>
-        </div>
-    `;
-
 
     const pct = (val) => totalJunctions > 0 ? (val / totalJunctions * 100).toFixed(1) : "0.0";
 
