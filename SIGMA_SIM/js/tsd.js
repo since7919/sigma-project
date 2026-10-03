@@ -584,7 +584,7 @@ class TSDEngine {
 
         const proceedMovs = (axis === 'ew') ? [2, 6] : [4, 8];  // 진행 가능
         const blockedMovs = (axis === 'ew') ? [4, 8] : [2, 6];  // 진행 불가(교차 방향)
-        const ringH = 12, gap = 1;
+        const ringH = 12, gap = 0.5;
         const ctx = this.ctx, cfg = this.config;
 
         // 배경
@@ -616,30 +616,30 @@ class TSDEngine {
 
                     if (proceedMovs.includes(curMov)) {
                         // 진행 가능 이동류: 녹색/청록 + 황색
-                        ctx.fillStyle = isBottom ? cfg.colors.accent : cfg.colors.green;
+                        ctx.fillStyle = isBottom ? '#42a5f5' : '#66bb6a'; // uniform brightness
                         if (isContinuous) {
                             // 연속 현시인 경우 황색 무시하고 전체 녹색
                             this.drawSegment(xS, yPos, xE - xS, ringH);
                         } else {
                             this.drawSegment(xS, yPos, xG - xS, ringH);
                             if (yellowTime > 0) {
-                                ctx.fillStyle = cfg.colors.yellow;
+                                ctx.fillStyle = '#ffee58';
                                 this.drawSegment(xG, yPos, xE - xG, ringH);
                             }
                         }
                     } else if (blockedMovs.includes(curMov)) {
                         // 교차 방향 이동류: 적색
-                        ctx.fillStyle = "rgba(220, 30, 30, 0.85)";
+                        ctx.fillStyle = '#ef5350'; // uniform brightness
                         this.drawSegment(xS, yPos, xE - xS, ringH);
                     } else if (curMov >= 1 && curMov <= 8) {
                         // 기타 차량(좌회전 등): 중성 청색
-                        ctx.fillStyle = "rgba(60, 130, 200, 0.70)";
+                        ctx.fillStyle = '#5c6bc0'; // uniform brightness
                         if (isContinuous) {
                             this.drawSegment(xS, yPos, xE - xS, ringH);
                         } else {
                             this.drawSegment(xS, yPos, xG - xS, ringH);
                             if (yellowTime > 0) {
-                                ctx.fillStyle = "rgba(200, 170, 0, 0.75)";
+                                ctx.fillStyle = '#ffee58'; // uniform brightness
                                 this.drawSegment(xG, yPos, xE - xG, ringH);
                             }
                         }
