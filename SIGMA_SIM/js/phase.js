@@ -1411,12 +1411,14 @@ function applyPhaseTemplate(type) {
 
 window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
     window.__DRAG_TOD = { type: 'phase-tod', dayIdx, slotIdx };
-    const container = document.getElementById('tod-summary-container');
+    
+    const container = document.getElementById('tod-plan-info-container');
     if (container) container.classList.add('is-dragging-tod');
+    
     e.dataTransfer.setData('text/plain', ' ');
     e.dataTransfer.effectAllowed = 'copyMove';
     
-    // 강제로 깔끔한 커스텀 잔상(Drag Image) 생성하여 전체 패널이 통째로 캡처되는 브라우저 버그 방지
+    // Create or reuse custom drag image to prevent full-panel ghosting
     let dragImg = document.getElementById('custom-tod-drag-img');
     if (!dragImg) {
         dragImg = document.createElement('div');
@@ -1427,10 +1429,8 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
     }
     e.dataTransfer.setDragImage(dragImg, 60, 15);
     
-    
     // Highlight siblings
     setTimeout(() => {
-        const container = document.getElementById('tod-summary-container');
         if (container) {
             container.querySelectorAll(`.phase-tod-cell[data-drop-day="${dayIdx}"][data-drop-slot="${slotIdx}"]`).forEach(el => {
                 el.style.opacity = '0.5';
@@ -1490,6 +1490,56 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
                 el.classList.remove('drag-hover');
                 el.style.backgroundColor = '';
             });
+            
+            try {
+                const data = window.__DRAG_TOD;
+                if (!data || data.type !== 'phase-tod') return;
+                
+                const srcDay = data.dayIdx;
+                const srcSlot = data.slotIdx;
+                const tgtDay = parseInt(td.dataset.dropDay);
+                const tgtSlot = parseInt(td.dataset.dropSlot);
+                
+                if (srcDay === tgtDay && srcSlot === tgtSlot) return;
+                
+                const j = STATE && STATE.activeJid ? STATE.junctions[STATE.activeJid] : null;
+                if (!j || !j.schedules) return;
+                
+                if (!j.schedules[tgtDay]) j.schedules[tgtDay] = [];
+                
+                // Copy or Clear logic
+                if (!j.schedules[srcDay] || !j.schedules[srcDay][srcSlot]) {
+                    j.schedules[tgtDay][tgtSlot] = { h: -1, cycle: 0 };
+                } else {
+                    j.schedules[tgtDay][tgtSlot] = JSON.parse(JSON.stringify(j.schedules[srcDay][srcSlot]));
+                }
+                
+                // Fill any skipped slots before the target slot
+                for(let i = 0; i < tgtSlot; i++) {
+                    if (!j.schedules[tgtDay][i]) j.schedules[tgtDay][i] = { h: -1, cycle: 0 };
+                }
+                
+                // Trigger UI Updates safely
+                if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
+                if (typeof renderSummaryTable === 'function') renderSummaryTable();
+                if (typeof debounceUpdateHeavyUI === 'function') debounceUpdateHeavyUI();
+                
+                if (STATE && tgtDay === STATE.currentJunctionDayTypeIdx) {
+                    const pIdxVal = (typeof UI !== 'undefined' && UI.planIdx) ? parseInt(UI.planIdx.value) : -1;
+                    if (tgtSlot === pIdxVal && typeof renderRingTables === 'function') {
+                        renderRingTables();
+                    }
+                }
+                
+                j._isDirty = true;
+                if (typeof updateDBButtonState === 'function') updateDBButtonState();
+                
+            } catch (err) {
+                console.error("Drop Error: ", err);
+            } finally {
+                window.__DRAG_TOD = null;
+            }
+        });
             
             try {
                 // 커스텀 마임타입 대신, 드래그 시 저장한 글로벌 변수에서 데이터 읽기
