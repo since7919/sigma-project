@@ -7,7 +7,7 @@ function drawJunction(jid, onlyStyle) {
 
     const isSelected = (jid === STATE.activeJid);
     const isMultiSelected = STATE.selectedJids.includes(jid);
-    const radius = (isMultiSelected ? 11 : 6) * STATE.nodeScale;
+    const radius = (isMultiSelected ? 8 : 6) * STATE.nodeScale;
     const t = parseInt(UI.timeSlider?.value) || 25200;
     const currentViewDay = (jid === STATE.activeJid) ? STATE.currentJunctionDayTypeIdx : 0;
     const cycle = getCurrentOperatingCycle(j, t, currentViewDay);
@@ -43,7 +43,7 @@ function drawJunction(jid, onlyStyle) {
         const jIcon = L.divIcon({
             className: 'junction-icon selected',
             html: `<div class="junction-inner" style="background-color:${color}; width:${size}px; height:${size}px; border:3px solid ${bColor}; border-radius:50%; box-shadow: 0 0 10px ${bColor}; display:flex; align-items:center; justify-content:center;">
-                    <div id="cycle-timer-${j.id}" style="display:${timerDisplay}; font-size:12px; font-weight:900; color:white; pointer-events:none; font-family:'Roboto Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"></div>
+                    <div id="cycle-timer-${j.id}" style="display:${timerDisplay}; font-size:15px; font-weight:900; color:white; pointer-events:none; font-family:'Roboto Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);"></div>
                    </div>`,
             iconSize: [0, 0],
             iconAnchor: [0, 0]
