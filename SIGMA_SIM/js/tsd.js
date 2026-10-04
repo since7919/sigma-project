@@ -14,11 +14,10 @@ class TSDAnalyzer {
      * 폴백: 정확한 이동류가 없으면 Ring A의 최대 녹색 현시 선택
      */
     static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
-        const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0;
-        const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : null;
+        const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
         if (!sm) return [];
 
-        const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+        const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
         if (!tod) return [];
         const offset = (offsetOverride !== undefined) ? offsetOverride : (tod.offset || 0);
 
@@ -297,7 +296,7 @@ class TSDEngine {
                 const dayIdx = STATE.currentGroupDayTypeIdx || 0;
                 const pIdx = this.state.todIdx;
                 if (j && j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][pIdx]) {
-                    const plan = j.dayPlans[dayIdx][pIdx];
+                    const plan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : j.dayPlans[dayIdx][pIdx];
                     let newOff = (plan.offset || 0) + timeDelta;
                     newOff = ((newOff % this.state.cycle) + this.state.cycle) % this.state.cycle;
                     plan.offset = Math.round(newOff * 10) / 10;
@@ -507,7 +506,8 @@ class TSDEngine {
         this.state.members.forEach((j, i) => {
             const y = distToY(this.state.distances[i]);
             const pIdx = this.state.todIdx;
-            const curOffset = (j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][pIdx]) ? (j.dayPlans[dayIdx][pIdx].offset || 0) : 0;
+            const _effPlan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : (j.dayPlans && j.dayPlans[dayIdx] ? j.dayPlans[dayIdx][pIdx] : null);
+            const curOffset = _effPlan ? (_effPlan.offset || 0) : 0;
 
             // 라벨 배경
             ctx.fillStyle = 'rgba(30,33,36,0.95)';
@@ -574,12 +574,11 @@ class TSDEngine {
     // ── 듀얼 링(Dual-Ring) ──
     drawDualRingBars(j, y, chartW, timeHorizon, xF, dayIdx, axis) {
         const pIdx = this.state.todIdx, cycle = this.state.cycle;
-        const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+        const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
         if (!tod) return;
         const offset = tod.offset || 0;
 
-        const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0;
-        const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : null;
+        const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
         if (!sm) return;
 
         const proceedMovs = (axis === 'ew') ? [2, 6] : [4, 8];  // 진행 가능

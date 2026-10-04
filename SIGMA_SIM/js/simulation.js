@@ -241,7 +241,7 @@ function updateSim() {
                 const isSchedValid = (sched?.[activeIdx] && sched[activeIdx].h !== -1);
                 
                 const currentPlanIdx = (editing && STATE.isManualPlanView) ? (parseInt(UI.planIdx?.value) || 0) : activeIdx;
-                const targetP = (j.dayPlans && j.dayPlans[useDayIdx]) ? j.dayPlans[useDayIdx][currentPlanIdx] : null;
+                const targetP = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, useDayIdx, currentPlanIdx) : ((j.dayPlans && j.dayPlans[useDayIdx]) ? j.dayPlans[useDayIdx][currentPlanIdx] : null);
                 
                 // [신뢰성 강화] 스플릿 합계가 0인 경우 등화 제외 (절대 타 계획으로 폴백 금지)
                 const splitSum = (targetP?.splitA || []).reduce((a, b) => a + b, 0);

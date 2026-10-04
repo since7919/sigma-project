@@ -309,7 +309,7 @@ function renderOverlayPlanInfo(jid) {
     const weekPlanArr = j.weeklyPlan ? String(j.weeklyPlan).split(';') : [1, 1, 1, 1, 1, 2, 3];
     const pIdx = context ? context.pIdx : 0;
     const dayIdx = context ? context.dayIdx : (parseInt(weekPlanArr[0]) - 1 || 0);
-    const plan = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+    const plan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
     const sched = (j.schedules && j.schedules[dayIdx]) ? j.schedules[dayIdx][pIdx] : null;
     const dayOfWeek = (typeof STATE !== 'undefined' && STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
     const jsToWeeklyMap = [6, 0, 1, 2, 3, 4, 5];
@@ -573,7 +573,7 @@ function renderOverlayPlanInfo(jid) {
                         </thead>
                         <tbody>
                             ${Array.from({length: 16}).map((_, rIdx) => {
-                                const p = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][rIdx] : null;
+                                const p = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, rIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][rIdx] : null);
                                 const s = (j.schedules && j.schedules[dayIdx]) ? j.schedules[dayIdx][rIdx] : null;
                                 const hasData = p && p.splitA && (p.splitA.reduce((a,b)=>a+b,0) > 0 || (p.splitB && p.splitB.reduce((a,b)=>a+b,0) > 0));
                                 const isActive = (sched && sched.idx === rIdx + 1);

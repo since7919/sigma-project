@@ -179,11 +179,10 @@ window.addEventListener('focus', () => { if (LEFT && RIGHT) refresh(); });
 // ── 공통 알고리즘 ──
 class Analyzer {
   static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
-        const smIdx = (j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0;
-        const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : null;
+        const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
         if (!sm) return [];
 
-        const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+        const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
         if (!tod) return [];
         const offset = (offsetOverride !== undefined) ? offsetOverride : (tod.offset || 0);
 
@@ -527,10 +526,9 @@ class PopupTSD {
 
   _drawRings(j,y,cW,xF,dayIdx,axis,cycle) {
     const pIdx=this.state.todIdx;
-    const tod=(j.dayPlans&&j.dayPlans[dayIdx])?j.dayPlans[dayIdx][pIdx]:null;
+    const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
     if(!tod) return;
-    const smIdx=(j.dayPlanMapIds&&j.dayPlanMapIds[dayIdx])?j.dayPlanMapIds[dayIdx]:0;
-    const sm=(j.signalMaps&&j.signalMaps[smIdx])?j.signalMaps[smIdx]:null;
+    const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
     if(!sm) return;
     const offset=this._getOffset(j.id,pIdx);
     const rH=12,gap=0.5,P=this.cfg.pad,ctx=this.ctx;

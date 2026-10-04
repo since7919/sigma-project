@@ -485,7 +485,7 @@ function renderStats() {
     // 4. 지표 계산
     let totalMovs = 0, totalPhases = 0, validIntegrityCount = 0, totalIntegrityCount = 0, offsetDev = 0;
     junctions.forEach(j => {
-        const plan = (j.dayPlans && j.dayPlans[primaryDayIdx]) ? j.dayPlans[primaryDayIdx][pIdx] : null;
+        const plan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, primaryDayIdx, pIdx) : ((j.dayPlans && j.dayPlans[primaryDayIdx]) ? j.dayPlans[primaryDayIdx][pIdx] : null);
         if (!plan) return;
         const activePhases = (plan.splitA || []).filter(s => s > 0).length;
         const activeMovs = [...new Set([...(j.movA || []), ...(j.movB || [])])].filter(m => m > 0).length;
@@ -1085,7 +1085,7 @@ function renderAdvancedInsights(junctions) {
                     if (Number(activeSched.cycle) > maxCycleForJ) maxCycleForJ = Number(activeSched.cycle);
                     
                     const tpIdx = activeSched.sIdx !== undefined ? activeSched.sIdx : ((activeSched.idx || 1) - 1);
-                    const activeDPlan = j.dayPlans && j.dayPlans[0] && j.dayPlans[0][tpIdx] ? j.dayPlans[0][tpIdx] : null;
+                    const activeDPlan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, 0, tpIdx) : (j.dayPlans && j.dayPlans[0] && j.dayPlans[0][tpIdx] ? j.dayPlans[0][tpIdx] : null);
 
                     // Always add cycle sum even if activeDPlan doesn't exist
                     jCycleSum += activeSched.cycle || (activeDPlan && activeDPlan.cycle) || 0;
