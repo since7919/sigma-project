@@ -1355,41 +1355,6 @@ function renderAdvancedInsights(junctions) {
     });
 
 
-    // Live Ticker Logic
-    setTimeout(() => {
-        const titleArea = document.querySelector('#tab-stats .card-title');
-        if (titleArea && !document.getElementById('live-ticker-container')) {
-            const ticker = document.createElement('div');
-            ticker.id = 'live-ticker-container';
-            ticker.style.cssText = 'flex: 1; display: flex; justify-content: center; align-items: center;';
-            ticker.innerHTML = '<div style="background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(46, 204, 113, 0.2);"><span class="live-indicator-dot"></span><span id="live-ticker-text" class="live-ticker-text">SYSTEM ACTIVE</span></div>';
-            
-            // Insert before the AI report button
-            const btn = titleArea.querySelector('button');
-            if (btn) titleArea.insertBefore(ticker, btn);
-            else titleArea.appendChild(ticker);
-
-            const messages = [
-                "Monitoring junction flows...",
-                "Synchronizing TOD schedules...",
-                "Analyzing corridor offsets...",
-                "Scanning pedestrian phases...",
-                "Checking network coordination...",
-                "SYSTEM ACTIVE"
-            ];
-            setInterval(() => {
-                const el = document.getElementById('live-ticker-text');
-                if(el) {
-                    el.style.opacity = '0';
-                    setTimeout(() => {
-                        el.textContent = messages[Math.floor(Math.random() * messages.length)];
-                        el.style.opacity = '1';
-                    }, 500);
-                }
-            }, 6000);
-        }
-    }, 500);
-
     // --- 기본 지표 계산 ---
     const totalPlans = totalJunctions * 10;
     
