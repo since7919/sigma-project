@@ -2753,8 +2753,9 @@ app.post('/api/ai/report', async (req, res) => {
 - 비교군: ${JSON.stringify(targetStats, null, 2)}
 
 위 데이터를 바탕으로 아래 목차에 따라 철저히 수치 비교 중심의 분석 리포트를 작성하십시오.
-1. 📊 통계 요약표 (주요 지표의 수치적 차이 및 증감률 요약)
-2. 📈 거시적 운영 특성 비교 (주기 및 연동망 규모의 통계적 차이 분석)
+1. 📊 핵심 지표 ASCII 그래프 비교 (총 교차로 수, 평균 신호주기 등 가장 중요한 3~4개 지표를 선정하여 █ 기호를 사용한 텍스트 기반 ASCII 막대 그래프로 시각화하여 제시)
+2. 📋 통계 요약표 (전체 지표의 수치적 차이 및 증감률 요약)
+3. 📈 거시적 운영 특성 비교 (주기 및 연동망 규모의 통계적 차이 분석)
 3. 🚦 현시 및 이동류 구조 분석 (보호/비보호, 대각선 횡단 등 운영 방식의 정량적 차이)
 4. 💡 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 특이점 및 검토 필요 요소 도출)`;
 
@@ -2766,7 +2767,7 @@ app.post('/api/ai/report', async (req, res) => {
         while (retries > 0) {
             try {
                 response = await ai.models.generateContent({
-                    model: 'gemini-3.8-flash',
+                    model: 'gemini-1.5-flash',
                     contents: [
                         { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
                     ],
