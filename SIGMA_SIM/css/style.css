@@ -645,7 +645,7 @@ td {
 
 .time-labels {
     position: absolute;
-    top: -24px;
+    bottom: -22px;\n    top: auto;
     left: 8px; /* Thumb radius compensation */
     right: 8px; /* Thumb radius compensation */
     height: 20px;
@@ -857,7 +857,7 @@ body.global-flash-on .signal-arrow.walk-mode.F {
 
 .signal-timer {
     position: absolute;
-    top: -24px;
+    bottom: -22px; top: auto;
     left: 50%;
     transform: translateX(-50%);
     color: #fff;

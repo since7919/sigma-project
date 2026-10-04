@@ -216,7 +216,7 @@ function createArrows(jid) {
                     <div id="icon-${jid}-${m}-${idx}" class="signal-arrow ${defaultColor} ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible; ${!isEditing ? 'display:none;' : ''}">
                             ${isPed ? 'WALK' : arrowData.type}
                             ${labelHtml}
-                            <div id="timer-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>
+                            <div id="timer-${jid}-${m}-${idx}" class="signal-timer" style="display:none; transform: translateX(-50%) rotate(${-currentRot}deg);"></div>
                     </div>
                 `,
                 iconSize: [0, 0],
@@ -624,7 +624,7 @@ function createOverlayArrows(jid, targetMap) {
                     html: `
                         <div id="icon-overlay-${jid}-${m}-${idx}" class="signal-arrow overlay-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
                                 ${isPed ? 'WALK' : arrowData.type}
-                                <div id="timer-overlay-${jid}-${m}-${idx}" class="signal-timer" style="display:none;"></div>
+                                <div id="timer-overlay-${jid}-${m}-${idx}" class="signal-timer" style="display:none; transform: translateX(-50%) rotate(${-currentRot}deg);"></div>
                         </div>
                     `,
                     iconSize: [0, 0],
