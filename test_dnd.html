@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+<div id="container" style="padding: 50px; background: #eee;">
+    <table>
+        <tr>
+            <td class="cell" data-val="1" style="border: 1px solid red; padding: 20px;">
+                <div draggable="true" ondragstart="startDrag(event)">DRAG ME</div>
+                <input type="text" value="Drop here">
+            </td>
+        </tr>
+    </table>
+</div>
+<script>
+    function startDrag(e) {
+        e.dataTransfer.setData('text/plain', 'hello');
+        window.DRAG_DATA = 'hello';
+    }
+    const container = document.getElementById('container');
+    container.addEventListener('dragover', e => {
+        e.preventDefault();
+    });
+    container.addEventListener('drop', e => {
+        e.preventDefault();
+        console.log("DROP FIRED ON CONTAINER!", e.target.tagName);
+    });
+</script>
+</body>
+</html>
