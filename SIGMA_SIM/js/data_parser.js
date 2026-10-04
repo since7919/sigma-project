@@ -684,17 +684,21 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             }
 
             if (optTod) {
-                // [4] 스케줄(schedules) 매핑: 일계획(dayPlansFound) 기준
-                for (let dK = 1; dK <= 5; dK++) {
-                    const daily = dayPlansFound[dK]; if (!daily) continue;
-                    const sysDayIndices = (dK === 1 ? [0, 5] : dK === 2 ? [1, 6] : dK === 3 ? [2, 7] : dK === 4 ? [3, 8] : dK === 5 ? [4, 9] : []);
-                    sysDayIndices.forEach(dIdx => {
-                        junction.dayPlanMapIds[dIdx] = (dK - 1);
-                        junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
-                            const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
-                            const [h, m] = s.time.split(':').map(Number);
-                            return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
-                        });
+                // [4] 스케줄(schedules) 매핑: 일계획(dayPlansFound) 기준 (1~10 지원)
+                for (let dK = 1; dK <= 10; dK++) {
+                    let daily = dayPlansFound[dK];
+                    // 만약 시차맵(6~10)이 엑셀에 없다면 일반맵(1~5)의 스케줄을 하위호환 복사
+                    if (!daily && dK > 5) {
+                        daily = dayPlansFound[dK - 5];
+                    }
+                    if (!daily) continue;
+                    
+                    const dIdx = dK - 1;
+                    junction.dayPlanMapIds[dIdx] = (dK > 5 ? dK - 6 : dK - 1);
+                    junction.schedules[dIdx] = Array.from({ length: 16 }, (_, sI) => {
+                        const s = daily[sI]; if (!s) return { h: -1, m: 0, cycle: 100, idx: sI + 1 };
+                        const [h, m] = s.time.split(':').map(Number);
+                        return { h: isNaN(h) ? -1 : h, m: isNaN(m) ? 0 : m, cycle: s.cycle, idx: s.tpIdx || (sI + 1) };
                     });
                 }
 
@@ -702,7 +706,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 for (let dIdx = 0; dIdx < 10; dIdx++) {
                     junction.dayPlans[dIdx] = Array.from({ length: 16 }, (_, sI) => {
                         const targetTpIdx = dIdx + 1; // 일반맵(0~4) -> 1~5, 시차맵(5~9) -> 6~10
-                        const tPlans = tpPlansDict[targetTpIdx] || tpPlansDict[1] || [];
+                        const tPlans = tpPlansDict[targetTpIdx] || [];
                         
                         // TOD 스케줄에서 해당 슬롯(sI)이 사용하는 패턴(idx)을 찾아 매핑 (Flattening)
                         const pl = tPlans[sI];
