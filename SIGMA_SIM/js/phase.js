@@ -589,7 +589,7 @@ function renderSummaryTable() {
             }
             const isUnused = !isUsedAnywhere;
             const firstUsedSched = firstGlobalSched;
-            const targetCycle = p.cycle || (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
+            const targetCycle = (p.cycle !== undefined && p.cycle !== null && p.cycle !== "") ? Number(p.cycle) : (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
 
             const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
             const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
@@ -720,7 +720,7 @@ function autoFillCycleFromSplits() {
         if (!p || !s) continue;
 
         const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
-        if (sumA > 0) {
+        if (sumA >= 0) {
             p.cycle = Math.round(sumA);
             if (s) s.cycle = Math.round(sumA);
         }
