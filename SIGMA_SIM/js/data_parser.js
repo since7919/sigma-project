@@ -631,7 +631,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                     const offL = parseInt(getVal(rA, offCL)) || 0;
                                     
                                     const splitColsL = [];
-                                    for (let sc = spCL; sc < spCL + 35 && splitColsL.length < 8; sc++) {
+                                    const maxL = (noCR > spCL) ? noCR : spCL + 15;
+                                    for (let sc = spCL; sc < maxL && splitColsL.length < 8; sc++) {
                                         const v = getVal(rA, sc);
                                         if (v !== null && v !== undefined && String(v).trim() !== '') splitColsL.push(sc);
                                     }
@@ -657,7 +658,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                                     const offR = parseInt(getVal(rA, offCR)) || 0;
 
                                     const splitColsR = [];
-                                    for (let sc = spCR; sc < spCR + 35 && splitColsR.length < 8; sc++) {
+                                    const maxR = spCR + 15;
+                                    for (let sc = spCR; sc < maxR && splitColsR.length < 8; sc++) {
                                         const v = getVal(rA, sc);
                                         if (v !== null && v !== undefined && String(v).trim() !== '') splitColsR.push(sc);
                                     }
