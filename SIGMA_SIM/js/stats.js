@@ -1023,7 +1023,7 @@ function renderAdvancedInsights(junctions) {
         worstPedJunctions: [],
         balanceWorst: []
     };
-    let html = '';
+    let html = '<div class="ambient-aurora"></div>';
 
     // --- 통계 집계 변수 ---
     const totalJunctions = junctions.length;
