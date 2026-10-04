@@ -711,7 +711,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         const tPlans = tpPlansDict[targetTpIdx] || [];
                         
                         // TOD 스케줄에서 해당 슬롯(sI)이 사용하는 패턴(idx)을 찾아 매핑 (Flattening)
-                        const pl = tPlans[sI];
+                        const s = junction.schedules && junction.schedules[dIdx] ? junction.schedules[dIdx][sI] : null; const pIdx = (s && s.idx) ? s.idx - 1 : sI; const pl = tPlans[pIdx];
                         const existingPlan = (junction.dayPlans && junction.dayPlans[dIdx] && junction.dayPlans[dIdx][sI]) 
                             ? junction.dayPlans[dIdx][sI] 
                             : { cycle: 100, offset: 0, splitA: Array(8).fill(0), splitB: Array(8).fill(0) };
