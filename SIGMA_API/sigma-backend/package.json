@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "node app.js",
-    "build": "cd ../sigma-frontend && npm install && npm run build",
-    "postinstall": "cd ../sigma-frontend && npm install && npm run build"
+    "build": "cd ../sigma-frontend && npm install && npm run build && rm -rf node_modules && cd ../sigma-backend && npm cache clean --force",
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",
