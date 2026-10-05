@@ -954,6 +954,7 @@ function checkTodMapIntegrity() {
         if (sm) {
             const hasTime = sm.startTime && sm.endTime && sm.startTime !== sm.endTime;
             const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
+                const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
             if (hasTime && hasMov) {
                 const dayPlanIdx = k + 4; // Day Plan 6~10
                 if (isDayPlanEmpty(dayPlanIdx)) {
@@ -990,10 +991,15 @@ function checkTodMapIntegrity() {
             const sm = j.signalMaps && j.signalMaps[mapIdx] ? j.signalMaps[mapIdx] : null;
             if (sm && mapIdx >= 0 && mapIdx <= 4) {
                 const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-                if (!hasMov) {
+                const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
+                if (!hasMov || !hasSteps) {
                     // 시간계획이 비어있어서 우회되는 경우면 에러를 띄울 필요 없음 (우회 로직이 처리하므로)
                     if (!isDayPlanEmpty(dayIdx)) {
-                        errorMessages.push(`⚠️ <b>[주의]</b> [시간계획 ${dayType}번]이 <b>[일반맵 ${mapIdx+1}번]</b>을 참조하고 있으나, 해당 맵의 화살표 데이터가 설정되지 않았습니다.`);
+                        if (!hasSteps) {
+                            errorMessages.push(`❌ <b>[오류]</b> [시간계획 ${dayType}번]이 참조하는 <b>[플랜 ${mapIdx+1} 시그널맵]</b> 데이터가 <b>완전히 비어있습니다.</b> (엑셀 파일에 시그널맵 표출용 데이터가 입력되지 않았거나 누락되었습니다.)`);
+                        } else {
+                            errorMessages.push(`⚠️ <b>[주의]</b> [시간계획 ${dayType}번]이 참조하는 <b>[플랜 ${mapIdx+1} 시그널맵]</b>에 이동류(화살표) ID가 설정되지 않았습니다.`);
+                        }
                     }
                 }
             }
