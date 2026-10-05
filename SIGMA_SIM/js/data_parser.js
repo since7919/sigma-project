@@ -331,7 +331,13 @@ async function handleExcelSignalLoad(input, isSingle = false) {
             
             if (isSingle) {
                 if (!STATE.activeJid || !STATE.junctions[STATE.activeJid]) {
-                    throw new Error("먼저 교차로를 선택해주세요.");
+                    console.warn(`[Excel Load] STATE.activeJid 가 비어있어 파일 내 교차로 번호(${jNo})로 유추합니다.`);
+                    const fallbackJid = `L01-${jNo}0`;
+                    if (STATE.junctions[fallbackJid]) {
+                        STATE.activeJid = fallbackJid;
+                    } else {
+                        throw new Error("먼저 교차로를 선택해주세요. (파일에서 교차로 번호도 찾을 수 없습니다.)");
+                    }
                 }
                 const activeSeq = parseInt(STATE.junctions[STATE.activeJid].seq);
                 const activeName = String(STATE.junctions[STATE.activeJid].name || "").trim();
