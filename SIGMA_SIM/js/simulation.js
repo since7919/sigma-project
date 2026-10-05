@@ -206,8 +206,22 @@ function updateSim() {
         
         // [수정] getSimContext를 사용하여 사용자의 계층적 선택 로직(오늘 요일 -> 주간계획 -> 맵)을 적용
         const simCtx = getSimContext(j, t);
-        let activeSignalMapIdx = simCtx.mapIdx;
         let useDayIdx = editing ? STATE.currentJunctionDayTypeIdx : simCtx.dayIdx;
+
+        // 1. TOD 스케줄 및 현재 플랜 먼저 계산 (시그널맵 Fallback 판단을 위해 필수)
+        const sched = getLinkedSchedule(j, useDayIdx) || (j.schedules ? j.schedules[useDayIdx] : null);
+        const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, t) : 0;
+        const isSchedValid = (sched?.[activeIdx] && sched[activeIdx].h !== -1);
+        const currentPlanIdx = (editing && STATE.isManualPlanView) ? (parseInt(UI.planIdx?.value) || 0) : activeIdx;
+        
+        // getEffectiveDayPlan은 주말/특수일 플랜이 비어있으면 1번 플랜으로 자동 우회함
+        const targetP = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, useDayIdx, currentPlanIdx) : ((j.dayPlans && j.dayPlans[useDayIdx]) ? j.dayPlans[useDayIdx][currentPlanIdx] : null);
+
+        // 2. 시그널맵 매핑 인덱스 계산 (일계획이 우회되었다면 시그널맵도 같이 우회되어야 함!)
+        let activeSignalMapIdx = simCtx.mapIdx;
+        if (typeof getEffectiveSignalMapIdx === "function") {
+            activeSignalMapIdx = getEffectiveSignalMapIdx(j, useDayIdx, currentPlanIdx);
+        }
 
         if (!isFlashActive) {
             // 시차맵 변경 감지 시 화살표 재생성
@@ -234,14 +248,6 @@ function updateSim() {
                     pedDelayA: activeMap.pedDelayA, pedDelayB: activeMap.pedDelayB
                 };
             } else {
-                const sched = getLinkedSchedule(j, useDayIdx) || (j.schedules ? j.schedules[useDayIdx] : null);
-                const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, t) : 0;
-                
-                // [신뢰성 강화] 시작시간이 -1인 경우 등화 연산 제외
-                const isSchedValid = (sched?.[activeIdx] && sched[activeIdx].h !== -1);
-                
-                const currentPlanIdx = (editing && STATE.isManualPlanView) ? (parseInt(UI.planIdx?.value) || 0) : activeIdx;
-                const targetP = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, useDayIdx, currentPlanIdx) : ((j.dayPlans && j.dayPlans[useDayIdx]) ? j.dayPlans[useDayIdx][currentPlanIdx] : null);
                 
                 // [신뢰성 강화] 스플릿 합계가 0인 경우 등화 제외 (절대 타 계획으로 폴백 금지)
                 const splitSum = (targetP?.splitA || []).reduce((a, b) => a + b, 0);
