@@ -356,54 +356,37 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 if (!junction) throw new Error(`시스템에 교차로(No. ${expectedSeq})가 없습니다.`);
             }
 
-            // [2] 먼저 시그널맵의 기준점(baseRowMapStart)을 정밀 탐색하여 행(Row) 밀림 오프셋을 계산합니다.
-            let baseRowMapStart = 247;
-            for (let r = 200; r < 350; r++) {
-                const rowArr = sheetData[r] || [];
-                const hasLSU1 = rowArr.some(c => String(c).toUpperCase().replace(/\s/g, '') === 'LSU1');
-                const hasMIN = rowArr.some(c => String(c).toUpperCase().replace(/\s/g, '') === 'MIN');
-                const hasEOP = rowArr.some(c => String(c).toUpperCase().replace(/\s/g, '') === 'EOP');
-                if (hasLSU1 && hasMIN && hasEOP) {
-                    baseRowMapStart = r;
-                    console.log(`[Auto-Detect] 시그널맵 시작 헤더 행을 ${r} (0-indexed) 로 동적 감지했습니다.`);
-                    break;
-                }
-            }
+            // [2] 시그널맵 분석 엔진 (사용자 규칙 기반)
+            // 사용자 확인: 엑셀에서 시그널맵의 행(Row) 위치와 열(Column) 위치는 항상 고정입니다.
+            // 단, 병합된 셀(Merged Cells)이나 숨겨진 열로 인해 실제 값이 들어있는 컬럼 인덱스가 1~2칸 차이날 수 있으므로,
+            // 주변 컬럼을 함께 검사하여 값을 추출합니다.
+            const baseRowMapStart = 247;
+            
+            // 행(Row) 밀림 보정값 (기본 위치인 247행 기준이므로 0)
+            const rMovA = 5;
+            const rMovB = 12;
 
-            // 행(Row) 밀림 보정값 (기본 위치인 247행 기준)
-            const shiftRows = baseRowMapStart - 247;
-            const rMovA = 5 + shiftRows;
-            const rMovB = 12 + shiftRows;
+            // 병합/숨김 열 대비 안전한 값 추출 함수
+            const getSafeVal = (r, cStart, cEnd) => {
+                for (let c = cStart; c <= cEnd; c++) {
+                    const v = getVal(r, c);
+                    if (v !== null && String(v).trim() !== "") return v;
+                }
+                return "";
+            };
 
             // [1] 이동류(Movement) ID 추출 (보정된 행 사용)
             const baseMovA = [], baseMovB = [];
             for (let c = 19; c <= 54; c += 5) {
-                baseMovA.push(parseInt(getVal(rMovA, c)) || 0);
-                baseMovB.push(parseInt(getVal(rMovB, c)) || 0);
+                // 값이 병합되어 c+1 에 있을 수도 있으므로 확인
+                let vA = getSafeVal(rMovA, c, c + 1);
+                let vB = getSafeVal(rMovB, c, c + 1);
+                baseMovA.push(parseInt(vA) || 0);
+                baseMovB.push(parseInt(vB) || 0);
             }
 
-            // [강력한 열(Column) 동적 탐색] 행 뿐만 아니라 열이 추가/삭제되어 밀린 경우까지 완벽 방어
-            const headerRow1 = sheetData[baseRowMapStart] || [];
-            const headerRow2 = sheetData[baseRowMapStart + 1] || [];
-            
-            let minCol = (headerRow1.findIndex(c => String(c).toUpperCase().replace(/\s/g, '') === 'MIN') + 1) || 53;
-            let maxCol = (headerRow1.findIndex(c => String(c).toUpperCase().replace(/\s/g, '') === 'MAX') + 1) || 55;
-            let eopCol = (headerRow1.findIndex(c => String(c).toUpperCase().replace(/\s/g, '') === 'EOP') + 1) || 57;
-
-            let lsuCols = Array(8).fill(null).map((_, i) => ({ v: 5 + i * 6, p: 8 + i * 6 }));
-            for (let lsu = 1; lsu <= 8; lsu++) {
-                const lsuStartIdx = headerRow1.findIndex(c => String(c).toUpperCase().replace(/\s/g, '') === `LSU${lsu}`);
-                if (lsuStartIdx !== -1) {
-                    let vFound = -1, pFound = -1;
-                    for (let c = lsuStartIdx; c < lsuStartIdx + 5 && c < headerRow2.length; c++) {
-                        const h2 = String(headerRow2[c] || "").toUpperCase().trim();
-                        if (h2 === "V") vFound = c + 1;
-                        if (h2 === "P") pFound = c + 1;
-                    }
-                    if (vFound !== -1) lsuCols[lsu - 1].v = vFound;
-                    if (pFound !== -1) lsuCols[lsu - 1].p = pFound;
-                }
-            }
+            const minCol = 53, maxCol = 55, eopCol = 57; // 기본값 (기존 넓은 양식)
+            const lsuCols = Array(8).fill(null).map((_, i) => ({ v: 5 + i * 6, p: 8 + i * 6 }));
 
             // [3] 시그널맵 분석 엔진
             const processRingData = (startRow, baseMovs, eopSourceRow = null) => {
@@ -427,8 +410,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     const eopRow = eopSourceRow ? eopSourceRow + s : r;
                     
                     // 빈 행 검사 (MIN, V1, V2 등이 모두 비어있으면 루프 종료 또는 빈값 처리)
-                    const minStr = String(getVal(r, minCol) || "").trim();
-                    const eopStr = String(getVal(eopRow, eopCol) || "").toUpperCase().trim();
+                    const minStr = String(getSafeVal(r, minCol, minCol + 1)).trim();
+                    const eopStr = String(getSafeVal(eopRow, eopCol, eopCol + 1)).toUpperCase().trim();
                     
                     const info = {
                         min: parseInt(minStr) || 0,
@@ -438,12 +421,12 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     const uticStep = {
                         stepNo: s + 1,
                         minTm: parseInt(minStr) || 0,
-                        maxTm: parseInt(String(getVal(r, maxCol) || "0").trim()) || 0,
+                        maxTm: parseInt(String(getSafeVal(r, maxCol, maxCol + 1) || "0").trim()) || 0,
                         eop: eopStr === 'Y' ? 1 : 0
                     };
                     for (let l = 0; l < 8; l++) {
-                        const vVal = parseInt(String(getVal(r, lsuCols[l].v) || "0").trim()) || 0;
-                        const pVal = parseInt(String(getVal(r, lsuCols[l].p) || "0").trim()) || 0;
+                        const vVal = parseInt(String(getSafeVal(r, lsuCols[l].v, lsuCols[l].v + 1) || "0").trim()) || 0;
+                        const pVal = parseInt(String(getSafeVal(r, lsuCols[l].p, lsuCols[l].p + 1) || "0").trim()) || 0;
                         info.sigsV.push(vVal);
                         info.sigsP.push(pVal);
                         uticStep[`car${l+1}`] = vVal;
