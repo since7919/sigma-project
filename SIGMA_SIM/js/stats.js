@@ -1033,6 +1033,7 @@ function renderAdvancedInsights(junctions) {
     let totalPhases = 0, maxPhases = 0, ptPhaseCount = 0, hasSignalMapCount = 0;
     let maxPedWaitTime = 0, sumPedWaitTime = 0, pedWaitJunctionCount = 0;
     let shortYellowCount = 0, longAllRedCount = 0;
+    let highCycleCount = 0, flashOpCount = 0;
 
     // 거시 지표
     let coordinatedJunctions = 0;
@@ -1194,9 +1195,11 @@ function renderAdvancedInsights(junctions) {
             shortYellowCount++;
             window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
         }
+
+        if (maxCycleForJ >= 160) highCycleCount++;
+        if (j.flashEnable) flashOpCount++;
     });
 
-        
     window.LATEST_INSIGHT_DYNAMIC.coordinatedJunctions = coordinatedJunctions;
     window.LATEST_INSIGHT_DYNAMIC.hasSignalMapCount = hasSignalMapCount;
     window.LATEST_INSIGHT_DYNAMIC.pedWaitJunctionCount = pedWaitJunctionCount;
@@ -1248,6 +1251,8 @@ function renderAdvancedInsights(junctions) {
     const mainRatio = (totalCycle > 0) ? ((totalMainSplit / totalCycle) * 100).toFixed(1) : 0;
     const avgPhases = (hasSignalMapCount > 0) ? (totalPhases / hasSignalMapCount).toFixed(1) : 0;
     const ptRatio = (hasSignalMapCount > 0) ? ((ptPhaseCount / hasSignalMapCount) * 100).toFixed(1) : 0;
+    const highCycleRatio = totalJunctions > 0 ? ((highCycleCount / totalJunctions) * 100).toFixed(1) : 0;
+    const flashOpRatio = totalJunctions > 0 ? ((flashOpCount / totalJunctions) * 100).toFixed(1) : 0;
     const avgPedWait = (pedWaitJunctionCount > 0) ? (sumPedWaitTime / pedWaitJunctionCount).toFixed(1) : 0;
     let pedLos = 'A';
     if (avgPedWait > 90) pedLos = 'F';
