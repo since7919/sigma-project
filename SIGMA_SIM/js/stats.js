@@ -1195,11 +1195,11 @@ function renderAdvancedInsights(junctions) {
             shortYellowCount++;
             window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
         }
-
         if (maxCycleForJ >= 160) highCycleCount++;
         if (j.flashEnable) flashOpCount++;
     });
 
+        
     window.LATEST_INSIGHT_DYNAMIC.coordinatedJunctions = coordinatedJunctions;
     window.LATEST_INSIGHT_DYNAMIC.hasSignalMapCount = hasSignalMapCount;
     window.LATEST_INSIGHT_DYNAMIC.pedWaitJunctionCount = pedWaitJunctionCount;
@@ -1417,8 +1417,8 @@ function renderAdvancedInsights(junctions) {
     html += InsightBox("macro_max_scale", "최대 연동축 규모", `${maxGroupScale}개`, "(단일 그룹 최대 교차로 수)", "가장 길게 끊기지 않고 연동되는 거대 간선도로의 규모", "🛣️", "#e74c3c");
     html += `</div>`;
     html += `<div class="grid-3col gap-15 mb-25">`;
-    html += InsightBox("micro_ratio", "주간선 vs 부간선 비율", `${mainRatio}%`, "주현시 녹색시간 비율", "통과 위주 간선 vs 측면 간섭 혼잡도", "🚕", "#1abc9c");
-    html += InsightBox("micro_phase", "현시 복잡도 및 비보호", `${avgPhases}현시`, `(비보호 ${ptRatio}% 적용)`, "운영 현시 분할 수준 및 효율화 기조", "🔄", "#3498db");
+    html += InsightBox("micro_high_cycle", "과포화 운영 (고주기)", `${highCycleCount}개소`, `(네트워크 내 ${highCycleRatio}%)`, "최대 주기 160초 이상 운영 교차로", "🚨", "#e74c3c");
+    html += InsightBox("micro_flash", "심야 점멸 운영", `${flashOpCount}개소`, `(네트워크 내 ${flashOpRatio}%)`, "심야 시간대 황색/적색 점멸 운영 비율", "🌙", "#f1c40f");
     html += InsightBox("micro_balance", "A/B링 길이 무결성", `${finalBalance}%`, "듀얼 링(Dual-Ring) 분할 합계 일치율", "시간 계획 상의 물리적/구조적 오류 부재 비율", "⚖️", "#8e44ad");
     html += `</div>`;
     
@@ -1490,18 +1490,18 @@ const INSIGHT_DETAILS = {
         calc: "연동 그룹(Group ID)별로 속한 교차로 수를 집계하여 가장 큰 값을 추출합니다.",
         meaning: "이 수치는 해당 도시에서 가장 길게 끊기지 않고 통행할 수 있는 주간선도로의 길이를 대변합니다. 수치가 클수록 대규모 관통 도로가 존재하며, 거시적인 소통 축이 뚜렷함을 의미합니다."
     },
-    "micro_ratio": {
-        title: "🚕 주간선 vs 부간선 비율 (Main vs Sub Split Ratio)",
-        def: "교차로의 전체 신호 주기(Cycle) 중 주현시(가장 통행량이 많은 주방향)에 할당된 녹색시간의 비율입니다.",
-        calc: "(주현시 녹색시간의 합 / 전체 신호 주기) × 100",
-        meaning: "이 비율이 60~70% 이상으로 유독 높다면 주방향 직진 통행량이 압도적으로 많은 통과 위주의 간선도로 교차로이며, 비율이 50%에 가까울수록 직진과 좌회전 등 측면 간섭이 심한 혼잡 교차로(예: 로터리형, 다지형)를 의미합니다."
-    },
-    "micro_phase": {
-        title: "🔄 현시 복잡도 및 비보호 (Phase Complexity & PT Ratio)",
-        def: "교차로 1주기를 구성하는 총 현시(Phase)의 평균 개수 및 그 중 비보호 좌회전이 적용된 비율입니다.",
-        calc: "평균 현시: (총 현시 수 / 전체 교차로 수)\n비보호 비율: (비보호 교차로 / 전체 교차로) × 100",
-        meaning: "현시 개수가 4현시, 5현시 등으로 잘게 쪼개질수록 차량의 대기시간이 비례하여 늘어납니다. 반면 비보호(PT) 좌회전을 적극 적용하면 현시수를 2~3개로 줄여 교차로 통과 효율을 극대화할 수 있습니다."
-    },
+    "micro_high_cycle": {
+          title: "🚨 과포화 운영 (Oversaturated / High-Cycle Ratio)",
+          def: "최대 주기가 160초 이상인 교차로의 비율을 나타냅니다.",
+          calc: "(최대주기 160초 이상 교차로 수 / 전체 교차로 수) × 100",
+          meaning: "통상적으로 160초 이상의 고주기 운영은 신호 최적화의 한계에 도달한 과포화 상태를 의미합니다. 이 비율이 높을 경우 신호 시간 조정만으로는 정체 해소가 어려울 수 있으며, 기하구조 개선(차로 확장, 입체화 등)이 필요할 수 있습니다. 주기가 160초를 넘어가면 대기 시간이 기하급수적으로 길어져 민원이 증가합니다."
+      },
+      "micro_flash": {
+          title: "🌙 심야 점멸 운영 (Late Night Flash Ratio)",
+          def: "교통량이 급감하는 심야 시간대에 황색 또는 적색 점멸 신호를 운영하는 교차로의 비율입니다.",
+          calc: "(심야 점멸 운영 교차로 수 / 전체 교차로 수) × 100",
+          meaning: "교통량이 적은 시간대 신호 대기를 없애 소통을 원활하게 하고 공회전에 의한 탄소 배출을 줄입니다. 다만, 점멸 운영 비율이 지나치게 높거나 주요 간선도로에 적용될 경우 심야 과속 및 추돌 사고 위험이 증가할 수 있습니다."
+      },
     "micro_ped": {
         title: "🚶 평균 보행자 지체 및 서비스수준 (Pedestrian Delay & LOS)",
         def: "한국도로용량편람(KHCM)의 신호횡단보도 분석 절차에 따라 산출한 보행자 1인당 평균 지체시간과 그에 따른 서비스수준(LOS)입니다.",
