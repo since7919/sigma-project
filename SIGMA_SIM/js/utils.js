@@ -668,10 +668,24 @@ function getEffectiveSignalMapIdx(j, dayIdx, pIdx) {
     let tod = j.dayPlans[dayIdx] ? j.dayPlans[dayIdx][pIdx] : null;
     const isEmpty = !tod || !tod.splitA || tod.splitA.reduce((a, b) => a + b, 0) === 0;
     
-    // 만약 플랜이 비어서 1번 플랜으로 우회했다면, 맵핑(Signal Map)도 1번 플랜의 것을 참조해야 함
+    // 1. 만약 플랜이 비어서 1번 플랜으로 우회했다면, 맵핑(Signal Map)도 1번 플랜의 것을 참조
     let effDayIdx = (dayIdx > 0 && isEmpty) ? 0 : dayIdx;
     
-    return (j.dayPlanMapIds && j.dayPlanMapIds[effDayIdx] !== undefined) ? j.dayPlanMapIds[effDayIdx] : 0;
+    let mapIdx = (j.dayPlanMapIds && j.dayPlanMapIds[effDayIdx] !== undefined) ? j.dayPlanMapIds[effDayIdx] : 0;
+    
+    // 2. 맵핑된 시그널맵 자체가 텅 빈 경우 (엑셀에서 주말용 시그널맵을 별도로 안 그린 경우), 1번 일반맵(0)으로 자동 우회
+    if (mapIdx > 0 && j.signalMaps && j.signalMaps[mapIdx]) {
+        const sm = j.signalMaps[mapIdx];
+        const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
+        const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
+        
+        // 엑셀은 steps가 없고 DB는 steps가 없을 수 있으므로 hasMov를 기준으로 판단
+        if (!hasMov) {
+            mapIdx = 0; // 화살표 데이터 자체가 없으면 무조건 1번 맵으로 폴백
+        }
+    }
+    
+    return mapIdx;
 }
 
 function getEffectiveSignalMap(j, dayIdx, pIdx) {

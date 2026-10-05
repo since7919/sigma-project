@@ -123,7 +123,15 @@ function createArrows(jid) {
     // ── [신규모드] 현재 인맥/상황에 맞는 시차맵(SignalMap) 데이터 추출 ──
     const t = parseInt(UI.timeSlider?.value) || 0;
     const isEditingMode = (jid === STATE.activeJid && STATE.isMapEditMode);
-    const smIdx = isEditingMode ? (STATE.currentSignalMapIdx || 0) : getActiveSignalMapIdx(j, t);
+    let smIdx = isEditingMode ? (STATE.currentSignalMapIdx || 0) : getActiveSignalMapIdx(j, t);
+    // [Fix] 시그널맵 매핑이 우회(Fallback)된 경우 해당 맵 인덱스를 사용하도록 강제 동기화
+    if (!isEditingMode && typeof getEffectiveSignalMapIdx === 'function') {
+        const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay() };
+        let useDayIdx = simCtx.dayIdx;
+        const sched = (typeof getLinkedSchedule === 'function') ? getLinkedSchedule(j, useDayIdx) : (j.schedules ? j.schedules[useDayIdx] : null);
+        const activeIdx = (sched && Array.isArray(sched)) ? (typeof findActiveSchedIdx === 'function' ? findActiveSchedIdx(sched, t) : 0) : 0;
+        smIdx = getEffectiveSignalMapIdx(j, useDayIdx, activeIdx);
+    }
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
         movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
         pedMovA: j.pedMovA || [0,0,0,0,0,0,0,0], pedMovB: j.pedMovB || [0,0,0,0,0,0,0,0]
