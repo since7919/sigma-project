@@ -2731,8 +2731,10 @@ app.get('/api/ai/models', async (req, res) => {
     try {
         const { GoogleGenAI } = require('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
         const models = await ai.models.list();
-        res.json({ models: models.map(m => m.name) });
+        res.json({ raw: typeof models, keys: Object.keys(models || {}), toString: String(models) });
+
     } catch (err) {
         res.status(500).json({ error: err.message, status: err.status });
     }
