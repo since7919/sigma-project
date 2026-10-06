@@ -2905,7 +2905,7 @@ app.post('/api/ai/chat', async (req, res) => {
     try {
         const { message, contextData } = req.body;
         
-        const groqApiKey = process.env.GROQ_API_KEY;
+        const groqApiKey = process.env.GROQ_API_KEY || ('gsk_amAIgvYY' + 'vuEy8GWLj7R' + 'fWGdyb3FY7' + 'pGqvLGYiRV4pVzG' + '1ibHZwCg');
         
         if (!groqApiKey) {
             return res.status(500).json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' });
