@@ -54,7 +54,7 @@ app.post('/api/ai/report', async (req, res) => {
         } else if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
             reportText = response.candidates[0].content.parts[0].text;
         } else {
-            reportText = JSON.stringify(response);
+            reportText = "응답 객체 파싱 불가";
         }
         res.json({ report: reportText });
 
