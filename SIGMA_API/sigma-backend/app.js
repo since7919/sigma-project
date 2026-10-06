@@ -2726,6 +2726,18 @@ app.get('/api/sim/safetyzone', async (req, res) => {
 // ── AI 통계 분석 리포트 API (Google Gemini 연동) ──
 const { GoogleGenAI } = require('@google/genai');
 
+
+app.get('/api/ai/models', async (req, res) => {
+    try {
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const models = await ai.models.list();
+        res.json({ models: models.map(m => m.name) });
+    } catch (err) {
+        res.status(500).json({ error: err.message, status: err.status });
+    }
+});
+
 app.post('/api/ai/report', async (req, res) => {
     try {
         const { targetStats, baseStats, targetName, baseName } = req.body;
