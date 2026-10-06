@@ -2745,9 +2745,6 @@ app.get('/api/ai/models', async (req, res) => {
     }
 });
 
-    }
-});
-
 
 
 
