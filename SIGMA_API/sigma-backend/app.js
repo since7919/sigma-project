@@ -2738,12 +2738,7 @@ app.get('/api/ai/models', async (req, res) => {
                 contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
             })
         });
-        const text = await response.text();
-        res.json({ status: response.status, body: text });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+
 
 
 
