@@ -2740,17 +2740,7 @@ app.get('/api/ai/models', async (req, res) => {
 
 
 
-        const modelNames = [];
-        for await (const m of ai.models.list()) {
-            modelNames.push(m.name);
-        }
-        res.json({ models: modelNames });
 
-
-    } catch (err) {
-        res.status(500).json({ error: err.message, status: err.status });
-    }
-});
 
 app.post('/api/ai/report', async (req, res) => {
     try {
