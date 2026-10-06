@@ -2752,7 +2752,25 @@ app.get('/api/ai/models', async (req, res) => {
 
 
 
+
+app.get('/api/ai/raw-test', async (req, res) => {
+    try {
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + process.env.GEMINI_API_KEY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
+            })
+        });
+        const text = await response.text();
+        res.json({ status: response.status, body: text });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/ai/report', async (req, res) => {
+
     try {
         const { targetStats, baseStats, targetName, baseName } = req.body;
         
