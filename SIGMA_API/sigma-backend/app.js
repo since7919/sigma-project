@@ -2767,7 +2767,7 @@ app.post('/api/ai/report', async (req, res) => {
         while (retries > 0) {
             try {
                 response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3.8-flash',
                     contents: [
                         { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
                     ],
@@ -2835,7 +2835,7 @@ ${JSON.stringify(contextData, null, 2)}`;
         while (retries > 0) {
             try {
                 response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3.8-flash',
                     contents: [
                         { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
                     ],
