@@ -732,7 +732,7 @@ const patchLocalCsvCache = async (updates) => {
                 for (const file of filesToPatch) {
                     const cacheFilePath = path.join(scratchDir, 'cache_' + file);
                     if (fs.existsSync(cacheFilePath)) {
-                        await uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`).catch(console.error);
+                        await uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`).catch(console.error);
                     }
                 }
             })();
@@ -870,7 +870,7 @@ app.get('/api/sim/data', async (req, res) => {
           }
           cacheStream.end(() => {
             if (global.SIGMA_DB_VERSION) {
-                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+                uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`);
             }
           });
           generationLocks[file] = false;
@@ -936,7 +936,7 @@ app.get('/api/sim/data', async (req, res) => {
           }
           cacheStream.end(() => {
             if (global.SIGMA_DB_VERSION) {
-                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+                uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`);
             }
           });
           generationLocks[file] = false;
@@ -1018,7 +1018,7 @@ app.get('/api/sim/data', async (req, res) => {
           }
           cacheStream.end(() => {
             if (global.SIGMA_DB_VERSION) {
-                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+                uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`);
             }
           });
           generationLocks[file] = false;
@@ -1073,7 +1073,7 @@ app.get('/api/sim/data', async (req, res) => {
           }
           cacheStream.end(() => {
             if (global.SIGMA_DB_VERSION) {
-                uploadToCDN(cacheFilePath, `cache_${file}_${global.SIGMA_DB_VERSION}.csv`);
+                uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`);
             }
           });
           generationLocks[file] = false;
