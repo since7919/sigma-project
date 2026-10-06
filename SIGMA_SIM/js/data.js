@@ -1089,7 +1089,7 @@ async function startAIAnalysis() {
     let targetStats = calculateStats(targetIntersections);
     
     try {
-        const response = await fetch('/api/ai/report', {
+        if (typeof recordAIRequest === 'function') recordAIRequest();\n        const response = await fetch('/api/ai/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1318,3 +1318,62 @@ function printAIReport() {
     `);
     printWindow.document.close();
 }
+
+
+// --- AI Quota Tracker ---
+const QUOTA_DAILY_LIMIT = 20;
+const QUOTA_MIN_LIMIT = 5;
+
+function getQuotaStats() {
+    let stats = { daily: [], minute: [] };
+    try {
+        stats = JSON.parse(localStorage.getItem('geminiQuotaStats') || '{"daily": [], "minute": []}');
+    } catch (e) {}
+    
+    const now = Date.now();
+    // Daily resets at UTC midnight (09:00 KST)
+    const currentUTCDate = new Date(now).toISOString().split('T')[0];
+    
+    // Filter out old timestamps
+    stats.daily = stats.daily.filter(t => new Date(t).toISOString().split('T')[0] === currentUTCDate);
+    stats.minute = stats.minute.filter(t => now - t < 60000);
+    
+    return stats;
+}
+
+function updateQuotaUI() {
+    const displayEl = document.getElementById('ai-quota-display');
+    if (!displayEl) return;
+    
+    const stats = getQuotaStats();
+    const minCount = stats.minute.length;
+    const dayCount = stats.daily.length;
+    
+    let minColor = minCount >= QUOTA_MIN_LIMIT ? "#ef5350" : "#81c784";
+    let dayColor = dayCount >= QUOTA_DAILY_LIMIT ? "#ef5350" : "#81c784";
+    
+    displayEl.innerHTML = `
+        <span>🕒 API 잔여량: </span>
+        <span style="color: ${dayColor}; font-weight: ${dayCount >= QUOTA_DAILY_LIMIT ? 'bold' : 'normal'};" title="일일 20회 한도 (매일 오전 9시 KST 초기화)">
+            일일 ${dayCount}/${QUOTA_DAILY_LIMIT}회
+        </span>
+        <span style="color: #666;">|</span>
+        <span style="color: ${minColor}; font-weight: ${minCount >= QUOTA_MIN_LIMIT ? 'bold' : 'normal'};" title="분당 5회 한도 (과부하 방지)">
+            분당 ${minCount}/${QUOTA_MIN_LIMIT}회
+        </span>
+    `;
+}
+
+function recordAIRequest() {
+    let stats = getQuotaStats();
+    stats.daily.push(Date.now());
+    stats.minute.push(Date.now());
+    localStorage.setItem('geminiQuotaStats', JSON.stringify(stats));
+    updateQuotaUI();
+}
+
+// Initial update and periodic refresh
+document.addEventListener('DOMContentLoaded', updateQuotaUI);
+setInterval(updateQuotaUI, 5000);
+// Export to window if needed
+window.updateQuotaUI = updateQuotaUI;
