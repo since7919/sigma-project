@@ -2788,7 +2788,19 @@ app.post('/api/ai/report', async (req, res) => {
         }
 
 
-        res.json({ report: response.text });
+        
+        let reportText = "";
+        if (typeof response.text === 'function') {
+            reportText = response.text();
+        } else if (typeof response.text === 'string') {
+            reportText = response.text;
+        } else if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
+            reportText = response.candidates[0].content.parts[0].text;
+        } else {
+            reportText = JSON.stringify(response);
+        }
+        res.json({ report: reportText });
+
     } catch (error) {
         console.error('[AI Report Error]', error);
         
