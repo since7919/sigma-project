@@ -2750,15 +2750,58 @@ app.get('/api/ai/models', async (req, res) => {
 
 
 
+
 app.get('/api/ai/raw-test', async (req, res) => {
     try {
-        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=' + process.env.GEMINI_API_KEY, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
-            })
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        
+        const systemPrompt = `당신은 교통 신호운영 통계 분석 전문가입니다...
+...
+3. 각 거시적 운영 특성 비교 (주기 및 연동선 규모의 통계적 차이 분석)
+3. 각 미시 및 연동망 구조 분석 (보호/비보호 대각선 횡단 등 운영 방식과 물량의 차이)
+4. 향후 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 인사이트와 검토 필요 요소 도출)`;
+
+        const userPrompt = `[비교 대상]
+기준(Base): 서울시
+비교(Target): 강북
+
+[통계 데이터]
+- 기준: {"test":1}
+- 비교: {"test":2}
+
+위 데이터를 바탕으로 아래 목차에 따라 철저하게 수치 비교 중심으로 분석 리포트를 작성하십시오.
+1. 핵심 지점 ASCII 그래프 비교 (총교차로수나 평균 신호주기 등 가장 중요한 3~4개 지표를 선정하여 바기호를 사용하여 텍스트 기반 ASCII 막대 그래프로 시각화하여 제시)
+2. 총 통계 요약표 (전체 지표의 수치상 차이 및 증감률 요약)
+3. 각 거시적 운영 특성 비교 (주기 및 연동선 규모의 통계적 차이 분석)
+3. 각 미시 및 연동망 구조 분석 (보호/비보호 대각선 횡단 등 운영 방식과 물량의 차이)
+4. 향후 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 인사이트와 검토 필요 요소 도출)`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: [
+                { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
+            ],
+            config: { temperature: 0.7 }
         });
+        
+        let reportText = "";
+        if (typeof response.text === 'function') {
+            reportText = response.text();
+        } else if (typeof response.text === 'string') {
+            reportText = response.text;
+        } else if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
+            reportText = response.candidates[0].content.parts[0].text;
+        } else {
+            reportText = "응답 객체 파싱 불가";
+        }
+
+        res.json({ status: 200, report: reportText });
+    } catch (err) {
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
         const text = await response.text();
         res.json({ status: response.status, body: text });
     } catch (err) {
