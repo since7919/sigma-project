@@ -2727,10 +2727,17 @@ app.get('/api/sim/safetyzone', async (req, res) => {
 const { GoogleGenAI } = require('@google/genai');
 
 
+
 app.get('/api/ai/models', async (req, res) => {
     try {
-        const { GoogleGenAI } = require('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + process.env.GEMINI_API_KEY);
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 
         const modelNames = [];
