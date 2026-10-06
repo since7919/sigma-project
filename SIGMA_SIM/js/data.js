@@ -1053,7 +1053,7 @@ async function startAIAnalysis() {
     content.innerHTML = `
         <div style="text-align:center; padding: 30px; font-size: 14px; color:#90caf9;">
             <div style="font-size: 24px; margin-bottom: 15px;" class="loading-spinner">🔄</div>
-            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Gemini 1.5 Flash (무료 API) 작동 중</span></div>
+            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Gemini 3.8 Flash (무료 API) 작동 중</span></div>
             <div style="margin-top: 15px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 4px; height: 6px; overflow: hidden;">
                 <div id="ai-progress-bar" style="width: 0%; height: 100%; background: #64b5f6; transition: width 0.5s ease;"></div>
             </div>
@@ -1104,13 +1104,20 @@ async function startAIAnalysis() {
         if (pBar) pBar.style.width = '100%';
         if (pText) pText.innerText = "분석 완료!";
         
-        const data = await response.json();
         
-        if (!response.ok) {
-            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${data.error || '알 수 없는 오류'}</div>
+        let data = {};
+        try {
+            data = await response.json();
+        } catch(e) {
+            data = { error: '서버가 올바른 JSON을 반환하지 않았습니다 (500 Error)' };
+        }
+        
+        if (!response.ok || !data || !data.report) {
+            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${(data && data.error) || '알수없는 오류 또는 빈 응답'}</div>
             <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
             return;
         }
+
         
         // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
         setTimeout(() => {
