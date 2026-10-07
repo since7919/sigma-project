@@ -2952,3 +2952,21 @@ ${JSON.stringify(contextData, null, 2)}`;
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Sigma Backend Server is running on http://${HOST}:${PORT}`);
 });
+
+app.get('/api/ai/raw-test2', async (req, res) => {
+    try {
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
+        });
+        res.json({ status: 200, report: typeof response.text === 'function' ? response.text() : response.text });
+    } catch (err) {
+        res.status(err.status || 500).json({ 
+            error: err.message, 
+            status: err.status,
+            details: err.details
+        });
+    }
+});
