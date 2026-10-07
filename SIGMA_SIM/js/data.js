@@ -1322,8 +1322,8 @@ function printAIReport() {
 
 
 // --- AI Quota Tracker ---
-const QUOTA_DAILY_LIMIT = 20;
-const QUOTA_MIN_LIMIT = 5;
+const QUOTA_DAILY_LIMIT = 14400;
+const QUOTA_MIN_LIMIT = 30;
 
 function getQuotaStats() {
     let stats = { daily: [], minute: [] };
@@ -1355,11 +1355,11 @@ function updateQuotaUI() {
     
     displayEl.innerHTML = `
         <span>🕒 API 잔여량: </span>
-        <span style="color: ${dayColor}; font-weight: ${dayCount >= QUOTA_DAILY_LIMIT ? 'bold' : 'normal'};" title="일일 20회 한도 (매일 오전 9시 KST 초기화)">
+        <span style="color: ${dayColor}; font-weight: ${dayCount >= QUOTA_DAILY_LIMIT ? 'bold' : 'normal'};" title="일일 14,400회 한도 (매일 자정 UTC 초기화)">
             일일 ${dayCount}/${QUOTA_DAILY_LIMIT}회
         </span>
         <span style="color: #666;">|</span>
-        <span style="color: ${minColor}; font-weight: ${minCount >= QUOTA_MIN_LIMIT ? 'bold' : 'normal'};" title="분당 5회 한도 (과부하 방지)">
+        <span style="color: ${minColor}; font-weight: ${minCount >= QUOTA_MIN_LIMIT ? 'bold' : 'normal'};" title="분당 30회 한도 (Groq API 제한)">
             분당 ${minCount}/${QUOTA_MIN_LIMIT}회
         </span>
     `;
