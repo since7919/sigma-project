@@ -30,7 +30,7 @@ function injectChatbotUI() {
         <div id="chatbot-window" style="display: none; width: 400px; height: 650px; background: rgba(15, 20, 25, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(0, 212, 255, 0.4); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); flex-direction: column; overflow: hidden; margin-bottom: 20px; transition: all 0.3s;">
             <div style="background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent); padding: 20px; border-bottom: 1px solid rgba(0, 212, 255, 0.3); display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="color: #00d4ff; font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(0,212,255,0.6);">SIGMA AI 챗봇 <span style="font-size: 10px; color: #4ade80; border: 1px solid #4ade80; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Powered by Groq & Llama3-70B</span></div>
+                    <div style="color: #00d4ff; font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(0,212,255,0.6);">SIGMA AI 챗봇 <span style="font-size: 10px; color: #4ade80; border: 1px solid #4ade80; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Powered by Groq & Llama3.3-70B</span></div>
                     <div style="color: #94a3b8; font-size: 10px; font-weight: 500;">v5.0 NLU (Slot Filling Engine)</div>
                 </div>
                 <button onclick="toggleChatbot()" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 24px; opacity: 0.6;">&times;</button>
