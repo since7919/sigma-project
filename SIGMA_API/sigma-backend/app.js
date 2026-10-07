@@ -2808,9 +2808,9 @@ app.post('/api/ai/report', async (req, res) => {
     try {
         const { targetStats, baseStats, targetName, baseName } = req.body;
         
-        const groqApiKey = process.env.GROQ_API_KEY;
-        if (!groqApiKey) {
-            return res.status(500).json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' });
+        const xaiApiKey = process.env.XAI_API_KEY;
+        if (!xaiApiKey) {
+            return res.status(500).json({ error: 'XAI_API_KEY가 설정되지 않았습니다.' });
         }
 
         const systemPrompt = `당신은 교통 신호운영 통계 분석 전문가입니다.
@@ -2843,14 +2843,14 @@ app.post('/api/ai/report', async (req, res) => {
 
         while (retries > 0) {
             try {
-                response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                response = await fetch('https://api.x.ai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${groqApiKey}`,
+                        'Authorization': `Bearer ${xaiApiKey}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'llama-3.3-70b-versatile',
+                        model: 'grok-4.7',
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userPrompt }
@@ -2886,7 +2886,7 @@ app.post('/api/ai/report', async (req, res) => {
     } catch (error) {
         console.error('AI Report Error:', error.message);
         if (error.status === 429 || String(error.message).toLowerCase().includes('rate')) {
-            return res.status(503).json({ error: '⏳ Groq API 분당 한도를 초과했습니다.\n잠시 후 다시 시도해 주세요.' });
+            return res.status(503).json({ error: '⏳ xAI API 분당 한도를 초과했습니다.\n잠시 후 다시 시도해 주세요.' });
         }
         res.status(500).json({ error: error.message });
     }
@@ -2898,10 +2898,10 @@ app.post('/api/ai/chat', async (req, res) => {
     try {
         const { message, contextData } = req.body;
         
-        const groqApiKey = process.env.GROQ_API_KEY;
+        const xaiApiKey = process.env.XAI_API_KEY;
         
-        if (!groqApiKey) {
-            return res.status(500).json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' });
+        if (!xaiApiKey) {
+            return res.status(500).json({ error: 'XAI_API_KEY가 설정되지 않았습니다.' });
         }
 
         const systemPrompt = `당신은 'SIGMA AI Copilot'이라는 이름의 신호운영 전문 어시스턴트입니다.
@@ -2917,14 +2917,14 @@ ${message}
 [시스템이 검색한 참고 데이터]
 ${JSON.stringify(contextData, null, 2)}`;
 
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${groqApiKey}`,
+                'Authorization': `Bearer ${xaiApiKey}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'grok-4.7',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
@@ -2938,7 +2938,7 @@ ${JSON.stringify(contextData, null, 2)}`;
         if (response.ok && data.choices && data.choices.length > 0) {
             res.json({ reply: data.choices[0].message.content });
         } else {
-            console.error('Groq Error:', data);
+            console.error('xAI Error:', data);
             res.status(500).json({ error: data.error?.message || 'AI 응답 처리에 실패했습니다.' });
         }
     } catch (error) {
