@@ -1089,7 +1089,8 @@ async function startAIAnalysis() {
     let targetStats = calculateStats(targetIntersections);
     
     try {
-        if (typeof recordAIRequest === 'function') recordAIRequest();\n        const response = await fetch('/api/ai/report', {
+        if (typeof recordAIRequest === 'function') recordAIRequest();
+        const response = await fetch('/api/ai/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
