@@ -2864,10 +2864,13 @@ app.post('/api/ai/report', async (req, res) => {
                 if (response.ok && data.choices && data.choices.length > 0) {
                     reportText = data.choices[0].message.content;
                     break;
-                } else if (data.error && data.error.message.includes('rate limit')) {
-                    throw { status: 429, message: data.error.message };
-                } else {
-                    throw new Error(data.error?.message || 'AI 응답 실패');
+                                } else {
+                    let errMsg = 'AI 응답 실패';
+                    if (data.error) errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+                    if (errMsg.toLowerCase().includes('rate limit')) {
+                        throw { status: 429, message: errMsg };
+                    }
+                    throw new Error(errMsg);
                 }
             } catch (err) {
                 if (err.status === 429 || String(err.message).toLowerCase().includes('rate')) {
@@ -2939,7 +2942,9 @@ ${JSON.stringify(contextData, null, 2)}`;
             res.json({ reply: data.choices[0].message.content });
         } else {
             console.error('xAI Error:', data);
-            res.status(500).json({ error: data.error?.message || 'AI 응답 처리에 실패했습니다.' });
+            let errMsg = 'AI 응답 처리에 실패했습니다.';
+            if (data.error) errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+            res.status(500).json({ error: errMsg });
         }
     } catch (error) {
         console.error('AI Chat Error:', error.message);
