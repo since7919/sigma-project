@@ -2805,94 +2805,92 @@ app.get('/api/ai/raw-test', async (req, res) => {
 });
 
 app.post('/api/ai/report', async (req, res) => {
-
     try {
         const { targetStats, baseStats, targetName, baseName } = req.body;
         
-        if (!process.env.GEMINI_API_KEY) {
-            return res.status(500).json({ error: 'GEMINI_API_KEY가 설정되지 않았습니다.' });
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
+            return res.status(500).json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' });
         }
 
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        
-        const systemPrompt = `당신은 교통 신호운영 통계 분석 시스템입니다.
-이 리포트를 읽는 사용자는 신호주기 및 현시를 직접 제어하는 '경찰공무원 및 최고 수준의 교통공학 전문가집단'입니다. 따라서 기초적인 교통공학 개념 설명이나 AI의 주관적이고 감정적인 평가(예: "너무 깁니다", "우려됩니다", "훌륭합니다")는 절대 배제하십시오.
+        const systemPrompt = `당신은 교통 신호운영 통계 분석 전문가입니다.
+이 리포트를 읽는 사용자는 신호주기 및 현시를 직접 제어하는 '경찰공무원 및 최고 수준의 교통공학 전문가집단'입니다. 따라서 기초적인 교통공학 개념 설명이나 AI의 주관적이고 감정적인 수사(예: "너무 깁니다", "우려됩니다", "좋습니다")는 모두 배제하십시오.
 
 [작성 지침]
-1. 완벽하게 건조하고 객관적인 통계 분석(수치 비교, 증감률, 편차 등) 위주로 서술할 것.
-2. 판단은 전문가(사용자)가 내리므로, AI는 두 지역 간의 데이터적 특이점과 수치적 차이에서 도출되는 '객관적 시사점'과 '시스템적 정책 제언'만 짧고 명확하게 제시할 것.
-3. 불필요한 서론/결론 인삿말을 생략하고 즉시 마크다운 리포트만 출력할 것.`;
+1. 완벽하게 건조하고 객관적인 통계 분석(수치 비교, 증감률, 편차 등) 위주로 서술할 것
+2. 판단은 전문가(사용자)가 내리므로, AI는 두 지역 간의 통계적 특이점과 수치의 차이에서 도출되는 '객관적 시사점', '시스템적 정책 제언'을 짧고 명확하게 제시할 것
+3. 불필요한 서론/결론 인사말을 생략하고 즉시 마크다운 리포트만 출력할 것`;
 
         const userPrompt = `[비교 대상]
-기준군(Base): ${baseName}
-비교군(Target): ${targetName}
+기준(Base): ${baseName}
+비교(Target): ${targetName}
 
 [통계 데이터]
-- 기준군: ${JSON.stringify(baseStats, null, 2)}
-- 비교군: ${JSON.stringify(targetStats, null, 2)}
+- 기준: ${JSON.stringify(baseStats, null, 2)}
+- 비교: ${JSON.stringify(targetStats, null, 2)}
 
-위 데이터를 바탕으로 아래 목차에 따라 철저히 수치 비교 중심의 분석 리포트를 작성하십시오.
-1. 📊 핵심 지표 ASCII 그래프 비교 (총 교차로 수, 평균 신호주기 등 가장 중요한 3~4개 지표를 선정하여 █ 기호를 사용한 텍스트 기반 ASCII 막대 그래프로 시각화하여 제시)
-2. 📋 통계 요약표 (전체 지표의 수치적 차이 및 증감률 요약)
-3. 📈 거시적 운영 특성 비교 (주기 및 연동망 규모의 통계적 차이 분석)
-3. 🚦 현시 및 이동류 구조 분석 (보호/비보호, 대각선 횡단 등 운영 방식의 정량적 차이)
-4. 💡 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 특이점 및 검토 필요 요소 도출)`;
+위 데이터를 바탕으로 아래 목차에 따라 철저하게 수치 비교 중심으로 분석 리포트를 작성하십시오.
+1. 핵심 지표 ASCII 그래프 비교 (총교차로수나 평균 신호주기 등 가장 중요한 3~4개 지표를 선정하여 바기호를 사용하여 텍스트 기반 ASCII 막대 그래프로 시각화하여 제시)
+2. 총 통계 요약표 (전체 지표의 수치상 차이 및 증감률 요약)
+3. 거시적 운영 특성 비교 (주기 및 연동선 규모의 통계적 차이 분석)
+4. 미시 및 연동망 구조 분석 (보호/비보호, 대각선 횡단 등 운영 방식과 물량의 차이)
+5. 향후 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 인사이트와 검토 필요 요소 도출)`;
 
-        
         let response;
-        let retries = 3; // 최대 3번 자동 재시도
-        let delay = 3000; // 3초 대기
+        let retries = 3;
+        let delay = 3000;
+        let reportText = "";
 
         while (retries > 0) {
             try {
-                response = await ai.models.generateContent({
-                    model: 'gemini-3.8-flash',
-                    contents: [
-                        { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
-                    ],
-                    config: { temperature: 0.7 }
+                response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'llama3-70b-8192',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.7
+                    })
                 });
-                break; // 성공 시 루프 탈출
-            } catch (err) {
-                if (err.status === 503 || err.message.includes('503') || err.message.toLowerCase().includes('high demand') || err.status === 429) {
-                    retries--;
-                    if (retries === 0) throw err; // 재시도 모두 실패 시 에러 던짐
-                    console.log(`[AI Retry] 구글 서버 과부하. ${delay}ms 후 재시도합니다. (남은 횟수: ${retries})`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay += 2000; // 점진적으로 대기 시간 증가 (3초 -> 5초)
+
+                const data = await response.json();
+                
+                if (response.ok && data.choices && data.choices.length > 0) {
+                    reportText = data.choices[0].message.content;
+                    break;
+                } else if (data.error && data.error.message.includes('rate limit')) {
+                    throw { status: 429, message: data.error.message };
                 } else {
-                    throw err; // 다른 에러는 즉시 던짐
+                    throw new Error(data.error?.message || 'AI 응답 실패');
+                }
+            } catch (err) {
+                if (err.status === 429 || String(err.message).toLowerCase().includes('rate')) {
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay += 2000;
+                } else {
+                    throw err;
                 }
             }
         }
 
-
-        
-        let reportText = "";
-        if (typeof response.text === 'function') {
-            reportText = response.text();
-        } else if (typeof response.text === 'string') {
-            reportText = response.text;
-        } else if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts[0]) {
-            reportText = response.candidates[0].content.parts[0].text;
-        } else {
-            reportText = "응답 객체 파싱 불가";
-        }
         res.json({ report: reportText });
 
     } catch (error) {
-        console.error('[AI Report Error]', error);
-        
-        // 자동 재시도 3회를 모두 실패했을 때의 최종 에러 처리
-        if (error.status === 503 || error.status === 429 || error.message.includes('high demand') || error.message.includes('quota')) {
-            return res.status(503).json({ error: '🚦 구글 AI 서버 혼잡이 극심하여 자동 재시도에 실패했습니다.\n잠시 후 다시 시도해 주세요.' });
+        console.error('AI Report Error:', error.message);
+        if (error.status === 429 || String(error.message).toLowerCase().includes('rate')) {
+            return res.status(503).json({ error: '⏳ Groq API 분당 한도를 초과했습니다.\n잠시 후 다시 시도해 주세요.' });
         }
-        
-        res.status(500).json({ error: 'AI 분석 중 오류가 발생했습니다: ' + error.message });
+        res.status(500).json({ error: error.message });
     }
 });
-
-
 // ==========================================
 // 🤖 2. AI 챗봇 (RAG 기반 경량 질의응답) 라우터
 // ==========================================
