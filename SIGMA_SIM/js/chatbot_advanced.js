@@ -1,7 +1,7 @@
 /**
  * chatbot_advanced.js
  * ----------------------------------------------------------------------
- * SIGMA AI Copilot Advanced Agent - v5.0 (NLU Tokenizer & Slot Filling)
+ * SIGMA AI 챗봇 Advanced Agent - v5.0 (NLU Tokenizer & Slot Filling)
  * (Corrupted encoding fully repaired)
  */
 
@@ -30,7 +30,7 @@ function injectChatbotUI() {
         <div id="chatbot-window" style="display: none; width: 400px; height: 650px; background: rgba(15, 20, 25, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(0, 212, 255, 0.4); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); flex-direction: column; overflow: hidden; margin-bottom: 20px; transition: all 0.3s;">
             <div style="background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent); padding: 20px; border-bottom: 1px solid rgba(0, 212, 255, 0.3); display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="color: #00d4ff; font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(0,212,255,0.6);">SIGMA AI COPILOT <span style="font-size: 10px; color: #4ade80; border: 1px solid #4ade80; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Powered by Groq</span></div>
+                    <div style="color: #00d4ff; font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(0,212,255,0.6);">SIGMA AI 챗봇 <span style="font-size: 10px; color: #4ade80; border: 1px solid #4ade80; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Powered by Groq & Llama3-70B</span></div>
                     <div style="color: #94a3b8; font-size: 10px; font-weight: 500;">v5.0 NLU (Slot Filling Engine)</div>
                 </div>
                 <button onclick="toggleChatbot()" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 24px; opacity: 0.6;">&times;</button>
@@ -46,7 +46,7 @@ function injectChatbotUI() {
             </div>
             <div id="chatbot-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; color: #eee; scrollbar-width: none;">
                 <div style="align-self: flex-start; background: rgba(0, 212, 255, 0.05); padding: 15px; border-radius: 12px; border-left: 4px solid #00d4ff; max-width: 90%; line-height: 1.6;">
-                    **SIGMA AI Copilot v5.0**에 오신 것을 환영합니다.<br><br>
+                    **SIGMA AI 챗봇 v5.0**에 오신 것을 환영합니다.<br><br>
                     보안이 적용된 **토크나이저(Tokenizer)와 슬롯 필링(Slot Filling)** 엔진이 내장되어, 질문의 핵심 의도[지역, 특성, 액션]를 빠르고 정확하게 파악합니다. 불용어(Stopwords)는 자동으로 제거됩니다.
                 </div>
             </div>
