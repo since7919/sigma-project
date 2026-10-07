@@ -2690,7 +2690,7 @@ app.post('/api/main-phases', async (req, res) => {
   }
 });
 
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+const HOST = '0.0.0.0';
 
 
 // --- 보호구역 API Proxy ---
@@ -2947,7 +2947,7 @@ ${JSON.stringify(contextData, null, 2)}`;
     }
 });
 
-app.listen(PORT, HOST, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Sigma Backend Server is running on http://${HOST}:${PORT}`);
 });
 
