@@ -1199,7 +1199,7 @@ function calculateStats(inters) {
         });
         
         // 연동 교차로 여부 (Plan 1 기준)
-        if (plans[0] && plans[0].offset > 0) coordCount++;
+        if (j.group && j.group !== 0 && j.group !== "") coordCount++;
     });
     
     const getAvg = (arr) => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : "0.0";
