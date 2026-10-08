@@ -183,7 +183,7 @@ function tokenizeAndFillSlots(rawText, validRegions) {
     slots.regions = [...new Set(slots.regions)];
 
     // 5. Logic & Property 추출
-    const logicDict = ["어린이보호구역", "스쿨존", "노인보호구역", "장애인보호구역", "보호구역", "좌회전감응제어", "감응제어", "PPLT", "보호비보호", "점멸", "비보호좌회전", "비보호", "보호좌회전", "단독", "민원", "어린이"];
+    const logicDict = ["대각선횡단보도", "대각선", "어린이보호구역", "스쿨존", "노인보호구역", "장애인보호구역", "보호구역", "좌회전감응제어", "감응제어", "PPLT", "보호비보호", "점멸", "비보호좌회전", "비보호", "보호좌회전", "단독", "민원", "어린이"];
     const propDict = ["신호주기", "주기", "녹색시간", "녹색", "최적화", "보행신호시간", "보행신호", "현시", "제어기", "통계", "그룹", "연동그룹", "그룹ID", "최소녹색시간", "최소녹색", "제한속도", "횡단보도길이"];
 
     logicDict.forEach(l => { if (text.includes(l)) slots.logics.push(l); });
@@ -218,6 +218,7 @@ function resolveSlotsToData(slots, data) {
         else if (logic.includes("장애인")) filtered = filtered.filter(j => JSON.stringify(j.extra||{}).includes("장애인"));
         else if (logic.includes("감응")) filtered = filtered.filter(j => (j.controller||"").includes("감응") || (j.extra||{})['감응제어']);
         else if (logic.includes("점멸")) filtered = filtered.filter(j => (j.extra||{})['점멸']);
+        else if (logic.includes("대각선")) filtered = filtered.filter(j => JSON.stringify(j.extra||{}).includes("대각선") || (j.name||"").includes("대각선"));
         else if (logic.includes("단독")) filtered = filtered.filter(j => !j.group || j.group === "");
         else if (logic.includes("PPLT") || logic.includes("보호비보호")) filtered = filtered.filter(j => (j.controller||"").includes("PPLT") || (j.controller||"").includes("보호비보호"));
         else if (logic === "비보호" || logic === "비보호좌회전") filtered = filtered.filter(j => (j.controller||"").includes("비보호") && !((j.controller||"").includes("PPLT") || (j.controller||"").includes("보호비보호")));
