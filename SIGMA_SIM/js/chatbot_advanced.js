@@ -38,16 +38,16 @@ function injectChatbotUI() {
             <div style="padding: 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <div style="color: #64748b; font-size: 10px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">💡 NLU 슬롯 필링 테스트</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span class="chat-chip" onclick="quickQuery('강남구 어린이보호구역 리스트')">지역+보호구역(LIST)</span>
+                    <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
                     <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
-                    <span class="chat-chip" onclick="quickQuery('종로구 마포구 감응제어 개수 비교해줘')">복합 슬롯(비교)</span>
-                    <span class="chat-chip" onclick="quickQuery('민원이 가장 많은 교차로 알려줘')">민원 분석</span>
+                    <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
+                    <span class="chat-chip" onclick="quickQuery('서초구 신호주기가 140초 이상인 곳 비교해줘')">📊 서초구 140초 이상 주기</span>
                 </div>
             </div>
             <div id="chatbot-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; color: #eee; scrollbar-width: none;">
                 <div style="align-self: flex-start; background: rgba(0, 212, 255, 0.05); padding: 15px; border-radius: 12px; border-left: 4px solid #00d4ff; max-width: 90%; line-height: 1.6;">
-                    **SIGMA AI 챗봇 v5.0**에 오신 것을 환영합니다.<br><br>
-                    보안이 적용된 **토크나이저(Tokenizer)와 슬롯 필링(Slot Filling)** 엔진이 내장되어, 질문의 핵심 의도[지역, 특성, 액션]를 빠르고 정확하게 파악합니다. 불용어(Stopwords)는 자동으로 제거됩니다.
+                    **SIGMA AI 챗봇 (Groq GPT-OSS 120B)**에 오신 것을 환영합니다.<br><br>
+                    최신 초거대 AI 모델과 실시간 NLU 엔진이 연결되어 있습니다. 특정 교차로의 시간대별 연동(Offset), 신호배분, 민원 건수, 대각선횡단보도 등 복잡한 조건도 완벽하게 검색하고 답변해 드립니다.
                 </div>
             </div>
             <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 10px; background: rgba(0,0,0,0.4);">
