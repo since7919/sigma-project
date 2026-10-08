@@ -219,6 +219,7 @@ function resolveSlotsToData(slots, data) {
         else if (logic.includes("감응")) filtered = filtered.filter(j => (j.controller||"").includes("감응") || (j.extra||{})['감응제어']);
         else if (logic.includes("점멸")) filtered = filtered.filter(j => (j.extra||{})['점멸']);
         else if (logic.includes("대각선")) filtered = filtered.filter(j => JSON.stringify(j.extra||{}).includes("대각선") || (j.name||"").includes("대각선"));
+        else if (logic.includes("민원")) filtered = filtered.filter(j => JSON.stringify(j.extra||{}).includes("민원") || (j.extra||{})['민원'] || (j.extra||{})['민원건수']);
         else if (logic.includes("단독")) filtered = filtered.filter(j => !j.group || j.group === "");
         else if (logic.includes("PPLT") || logic.includes("보호비보호")) filtered = filtered.filter(j => (j.controller||"").includes("PPLT") || (j.controller||"").includes("보호비보호"));
         else if (logic === "비보호" || logic === "비보호좌회전") filtered = filtered.filter(j => (j.controller||"").includes("비보호") && !((j.controller||"").includes("PPLT") || (j.controller||"").includes("보호비보호")));
@@ -241,6 +242,26 @@ function resolveSlotsToData(slots, data) {
             if (isLTE) return val <= th;
             return val === th;
         });
+    }
+
+    if (slots.mathOp === "MAX" || slots.mathOp === "MIN") {
+        let sortKey = slots.logics[0] || (slots.properties.length > 0 ? slots.properties[0] : null);
+        if (sortKey) {
+            filtered.sort((a, b) => {
+                let valA = 0; let valB = 0;
+                if (sortKey.includes("민원")) {
+                    const matchA = JSON.stringify(a.extra||{}).match(/민원.*?(\d+)/);
+                    const matchB = JSON.stringify(b.extra||{}).match(/민원.*?(\d+)/);
+                    valA = matchA ? parseInt(matchA[1]) : (parseInt((a.extra||{})['민원'] || (a.extra||{})['민원건수']) || 0);
+                    valB = matchB ? parseInt(matchB[1]) : (parseInt((b.extra||{})['민원'] || (b.extra||{})['민원건수']) || 0);
+                } else if (sortKey.includes("주기")) {
+                    valA = a.cyc || 0; valB = b.cyc || 0;
+                }
+                return slots.mathOp === "MAX" ? valB - valA : valA - valB;
+            });
+        }
+        // Top 5 only so it fits in context easily and answers MAX/MIN
+        filtered = filtered.slice(0, 5);
     }
 
     // 이름으로 직접 검색
@@ -293,6 +314,7 @@ async function processAgentQuery(queryText) {
                     return `[${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}시작] 주기:${p.cycle}초, 연동(Offset):${p.offset}초, 신호배분(Splits):${splits}`;
                 }).join(" | ") : (j.cyc ? '주기 ' + j.cyc + '초' : "시간대별 정보 없음"),
             controller: j.controller,
+              minwon_count: (JSON.stringify(j.extra||{}).match(/민원.*?(\d+)/) ? JSON.stringify(j.extra||{}).match(/민원.*?(\d+)/)[1] : ((j.extra||{})['민원'] || (j.extra||{})['민원건수'] || "0")) + "건",
             features: Object.keys(j.extra || {}).join(", ")
         }));
     } else {
