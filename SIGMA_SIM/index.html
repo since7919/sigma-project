@@ -17,14 +17,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=1791495621793">
+    <link rel="stylesheet" href="css/style.css?v=1791495854382">
     <link rel="stylesheet" href="css/tables.css">
     <link rel="stylesheet" href="css/panels.css">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
     <script src="js/dashboard_map.js"></script>
-    <link rel="stylesheet" href="css/modals.css?v=1791495621793">
+    <link rel="stylesheet" href="css/modals.css?v=1791495854382">
 
     <style>
         .phase-action-btn {
@@ -1615,35 +1615,7 @@
                         <!-- [신규] AI 리포트 출력 박스 -->
                         
                         
-<!-- [복구] 기존 통계 필터 -->
-<div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
-    <div class="flex-row gap-20">
-        <div style="flex: 1;">
-            <div class="text-dim fs-11 mb-8">🏢 구청 필터</div>
-            <select id="stat-office-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                <option value="ALL">전체 구청</option>
-            </select>
-        </div>
-        <div style="flex: 1;">
-            <div class="text-dim fs-11 mb-8">👮 경찰서 필터</div>
-            <select id="stat-police-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                <option value="ALL">전체 경찰서</option>
-            </select>
-        </div>
-        <div style="flex: 1;">
-            <div class="text-dim fs-11 mb-8">⏱️ 시간대 필터</div>
-            <select id="stat-time-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
-                <option value="ALL">전체 (24시간)</option>
-                <option value="AM_PEAK">오전 첨두 (07~09시)</option>
-                <option value="PM_PEAK">오후 첨두 (17~19시)</option>
-                <option value="NORMAL">비첨두 (09~17시)</option>
-                <option value="NIGHT">심야 (20~06시)</option>
-            </select>
-        </div>
-    </div>
-</div>
-
-                        <!-- [신규] AI 리포트 출력 및 설정 박스 -->
+<!-- [신규] AI 리포트 출력 및 설정 박스 -->
                         <div id="ai-report-box" class="sigma-panel mb-20" style="display:none; background: rgba(10, 25, 41, 0.9); border: 1px solid #1e4976; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #e0e0e0; box-shadow: 0 4px 20px rgba(0,0,0,0.6);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                                 <div style="font-weight:bold; font-size:15px; color:#64b5f6;">🤖 SIGMA AI 비교 분석 리포트</div>
@@ -1675,9 +1647,33 @@
 
                             <!-- 로딩 및 결과 영역 -->
                             <div id="ai-report-content" style="display:none; white-space: pre-wrap; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;"></div>
-                        </div>
-
-                        <div id="stat-unified-dashboard" class="mb-30"></div>
+                        </div>\n\n<!-- [복구] 기존 통계 필터 -->
+<div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
+    <div class="flex-row gap-20">
+        <div style="flex: 1;">
+            <div class="text-dim fs-11 mb-8">🏢 구청 필터</div>
+            <select id="stat-office-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                <option value="ALL">전체 구청</option>
+            </select>
+        </div>
+        <div style="flex: 1;">
+            <div class="text-dim fs-11 mb-8">👮 경찰서 필터</div>
+            <select id="stat-police-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                <option value="ALL">전체 경찰서</option>
+            </select>
+        </div>
+        <div style="flex: 1;">
+            <div class="text-dim fs-11 mb-8">⏱️ 시간대 필터</div>
+            <select id="stat-time-filter" onchange="renderStats()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                <option value="ALL">전체 (24시간)</option>
+                <option value="AM_PEAK">오전 첨두 (07~09시)</option>
+                <option value="PM_PEAK">오후 첨두 (17~19시)</option>
+                <option value="NORMAL">비첨두 (09~17시)</option>
+                <option value="NIGHT">심야 (20~06시)</option>
+            </select>
+        </div>
+    </div>
+</div>\n\n                        <div id="stat-unified-dashboard" class="mb-30"></div>
                         <!-- [신규] 일계획 다중 선택바 -->
                         <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
                             <div class="text-dim fs-11 mb-8">📊 비교 분석 일계획 선택 (다중 선택 가능)</div>
@@ -1912,41 +1908,41 @@
          모듈화된 JS 파일 (의존성 순서대로 로드)
          ═══════════════════════════════════════════════════ -->
     <!-- Dashboard & Visualization -->
-    <script src="js/security.js?v=1791495621793"></script>
+    <script src="js/security.js?v=1791495854382"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-    <script src="js/dashboard.js?v=1791495621793"></script>
-    <script src="js/auth.js?v=1791495621793"></script>
-    <script src="js/ui_components.js?v=1791495621793"></script>
-    <script src="js/config.js?v=1791495621793"></script>
-    <script src="js/utils.js?v=1791495621793"></script>
-    <script src="js/ui.js?v=1791495621793"></script>
-    <script src="js/safetyzone.js?v=1791495621793"></script>
-    <script src="js/table_popup.js?v=1791495621793"></script>
-    <script src="js/map.js?v=1791495621793"></script>
-    <script src="js/junction_map.js?v=1791495621793"></script>
-    <script src="js/junction.js?v=1791495621793"></script>
-    <script src="js/data_parser.js?v=1791495621793"></script>
-    <script src="js/data.js?v=1791495621793"></script>
-    <script src="js/phase.js?v=1791495621793"></script>
-    <script src="js/sigmap_tab.js?v=1791495621793"></script>
-    <script src="js/group_parser.js?v=1791495621793"></script>
-    <script src="js/group_map.js?v=1791495621793"></script>
-    <script src="js/group.js?v=1791495621793"></script>
-    <script src="js/tsd.js?v=1791495621793"></script>
-    <script src="js/simulation.js?v=1791495621793"></script> <!-- 이 부분이 핵심입니다 -->
-    <script src="js/stats.js?v=1791495621793"></script>
-    <script src="js/api_layers.js?v=1791495621793"></script>
-    <script src="js/intersection_search.js?v=1791495621793"></script>
-    <script src="js/junction_optimizer.js?v=1791495621793"></script>
-    <script src="js/civil.js?v=1791495621793"></script>
-    <script src="js/home.js?v=1791495621793"></script>
-    <script src="js/rng_road_network.js?v=1791495621793"></script>
-    <script src="js/table_logic.js?v=1791495621793"></script>
-    <script src="js/phase_diagram_interactive.js?v=1791495621793"></script>\n    <script src="js/init.js?v=1791495621793"></script>
-    <script src="js/auto_load.js?v=1791495621793"></script>
-    <script src="js/minigame.js?v=1791495621793"></script>
-    <script src="js/chatbot_advanced.js?v=1791495621793"></script>
+    <script src="js/dashboard.js?v=1791495854382"></script>
+    <script src="js/auth.js?v=1791495854382"></script>
+    <script src="js/ui_components.js?v=1791495854382"></script>
+    <script src="js/config.js?v=1791495854382"></script>
+    <script src="js/utils.js?v=1791495854382"></script>
+    <script src="js/ui.js?v=1791495854382"></script>
+    <script src="js/safetyzone.js?v=1791495854382"></script>
+    <script src="js/table_popup.js?v=1791495854382"></script>
+    <script src="js/map.js?v=1791495854382"></script>
+    <script src="js/junction_map.js?v=1791495854382"></script>
+    <script src="js/junction.js?v=1791495854382"></script>
+    <script src="js/data_parser.js?v=1791495854382"></script>
+    <script src="js/data.js?v=1791495854382"></script>
+    <script src="js/phase.js?v=1791495854382"></script>
+    <script src="js/sigmap_tab.js?v=1791495854382"></script>
+    <script src="js/group_parser.js?v=1791495854382"></script>
+    <script src="js/group_map.js?v=1791495854382"></script>
+    <script src="js/group.js?v=1791495854382"></script>
+    <script src="js/tsd.js?v=1791495854382"></script>
+    <script src="js/simulation.js?v=1791495854382"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/stats.js?v=1791495854382"></script>
+    <script src="js/api_layers.js?v=1791495854382"></script>
+    <script src="js/intersection_search.js?v=1791495854382"></script>
+    <script src="js/junction_optimizer.js?v=1791495854382"></script>
+    <script src="js/civil.js?v=1791495854382"></script>
+    <script src="js/home.js?v=1791495854382"></script>
+    <script src="js/rng_road_network.js?v=1791495854382"></script>
+    <script src="js/table_logic.js?v=1791495854382"></script>
+    <script src="js/phase_diagram_interactive.js?v=1791495854382"></script>\n    <script src="js/init.js?v=1791495854382"></script>
+    <script src="js/auto_load.js?v=1791495854382"></script>
+    <script src="js/minigame.js?v=1791495854382"></script>
+    <script src="js/chatbot_advanced.js?v=1791495854382"></script>
 
     <!-- Security: Allowed for Debugging -->
     <script>
@@ -2209,8 +2205,8 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1791495621793"></script>
-    <script src="js/db_report.js?v=1791495621793"></script>
+    <script src="js/overlay_ui.js?v=1791495854382"></script>
+    <script src="js/db_report.js?v=1791495854382"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
