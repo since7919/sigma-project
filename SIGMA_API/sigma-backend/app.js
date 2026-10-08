@@ -2751,39 +2751,11 @@ app.get('/api/ai/raw-test', async (req, res) => {
         const { GoogleGenAI } = require('@google/genai');
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         
-        const systemPrompt = `당신은 대한민국 경찰청 및 지자체 교통정보센터 소속의 '수석 신호운영 분석관'입니다.
-이 리포트는 관할 지방경찰청장 및 교통공학 전문가들에게 실제 결재 및 보고용으로 올라가는 공문서입니다.
-
-[공문서 작성 지침]
-1. 문체는 반드시 '~함', '~임', '~개소', '~초' 등의 건조하고 명확한 개조식(공문서체)을 사용할 것.
-2. 주관적이거나 감정적인 수사("우려됩니다", "눈에 띕니다", "좋습니다", "안타깝게도")는 절대 금지.
-3. 철저하게 통계(수치, 증감률, 편차)에 기반하여 팩트만 나열하고, 결과에 대한 원인 분석도 통계적 근거를 바탕으로 서술할 것.
-4. 불필요한 인사말이나 서론, 결론을 생략하고 즉시 [보고서 본문]만 출력할 것.`;
-
-        const userPrompt = `[비교 대상]
-기준(Base): ${baseName}
-비교(Target): ${targetName}
-
-[통계 데이터]
-- 기준: ${JSON.stringify(baseStats, null, 2)}
-- 비교: ${JSON.stringify(targetStats, null, 2)}
-
-위 데이터를 바탕으로 아래 목차(공문서 양식)에 따라 분석 리포트를 작성하십시오. (반드시 글(서술)이 먼저 나오고, 이를 뒷받침하는 표와 그래프가 뒤따르도록 작성)
-
-1. 거시적 운영 특성 분석
-   - 두 지역의 전체 교차로 수, 평균 신호주기, 연동화율 등 거시적 지표의 차이를 개조식으로 서술.
-   - 통계적 차이가 발생하는 시스템적/지역적 원인을 추론.
-
-2. 미시 및 연동망 구조 분석
-   - 보호/비보호 좌회전 비율, 대각선 횡단보도, 감응신호 등 세부 운영 방식의 차이를 서술.
-   - 이러한 차이가 교통 흐름 및 보행자 안전에 미치는 영향을 객관적으로 분석.
-
-3. 통계 요약표 및 핵심 지표 시각화 (근거 자료)
-   - 위 1, 2항의 서술을 뒷받침할 수 있도록 전체 지표의 증감률 요약표(Markdown Table)를 제시.
-   - 가장 핵심적인 지표(예: 평균 신호주기 비교 등) 1~2개를 선정하여 Markdown의 mermaid 문법(xyChart 등)을 활용해 시각화 코드(```mermaid) 출력.
-
-4. 종합 결론 및 정책 제언
-   - 통계적 차이에서 도출되는 시사점 및 향후 시스템 개선을 위한 정책적 고려사항을 짧고 명확하게 제언.`;
+        const systemPrompt = `당신은 교통 신호운영 통계 분석 전문가입니다...
+...
+3. 각 거시적 운영 특성 비교 (주기 및 연동선 규모의 통계적 차이 분석)
+3. 각 미시 및 연동망 구조 분석 (보호/비보호 대각선 횡단 등 운영 방식과 물량의 차이)
+4. 향후 운영 시사점 및 정책적 고려사항 (데이터 기반의 객관적 인사이트와 검토 필요 요소 도출)`;
 
         const userPrompt = `[비교 대상]
 기준(Base): 서울시
@@ -2803,9 +2775,7 @@ app.get('/api/ai/raw-test', async (req, res) => {
         const response = await ai.models.generateContent({
             model: 'gemini-3.8-flash',
             contents: [
-                { role: 'user', parts: [{ text: systemPrompt + "
-
-" + userPrompt }] }
+                { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
             ],
             config: { temperature: 0.7 }
         });
@@ -2872,7 +2842,7 @@ app.post('/api/ai/report', async (req, res) => {
 
 3. 통계 요약표 및 핵심 지표 시각화 (근거 자료)
    - 위 1, 2항의 서술을 뒷받침할 수 있도록 전체 지표의 증감률 요약표(Markdown Table)를 제시.
-   - 가장 핵심적인 지표(예: 평균 신호주기 비교 등) 1~2개를 선정하여 Markdown의 mermaid 문법(xyChart 등)을 활용해 시각화 코드(```mermaid) 출력.
+   - 가장 핵심적인 지표(예: 평균 신호주기 비교 등) 1~2개를 선정하여 Markdown의 mermaid 문법(xyChart 등)을 활용해 시각화 코드를 출력.
 
 4. 종합 결론 및 정책 제언
    - 통계적 차이에서 도출되는 시사점 및 향후 시스템 개선을 위한 정책적 고려사항을 짧고 명확하게 제언.`;
