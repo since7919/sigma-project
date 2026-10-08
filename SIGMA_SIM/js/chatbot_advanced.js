@@ -285,7 +285,7 @@ async function processAgentQuery(queryText) {
             name: j.name,
             office: j.office,
             police: j.police,
-            cycle: j.cyc || (j.dayPlans && j.dayPlans[0] && j.dayPlans[0][0] ? j.dayPlans[0][0].cycle : 0),
+            tod_plans: (j.schedules && j.schedules[0]) ? j.schedules[0].filter(s => s && s.h !== -1).map(s => `${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}부터 ${s.cycle}초`).join(", ") : (j.cyc ? j.cyc + '초' : "시간대별 주기 정보 없음"),
             controller: j.controller,
             features: Object.keys(j.extra || {}).join(", ")
         }));
