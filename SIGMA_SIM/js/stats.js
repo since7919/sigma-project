@@ -1001,7 +1001,7 @@ window.processStatsCSV = _loadStatsCsv; // 통합 DB 로더 연동용 노출
 /* ══════════════════════════════════════════
  *  심층 통계 및 인사이트 (Advanced Insights)
  * ══════════════════════════════════════════ */
-function renderAdvancedInsights(junctions) {
+function renderAdvancedInsights(junctions, noRender = false) {
     const container = document.getElementById('stat-unified-dashboard');
     if (!container) return;
     if (!junctions || junctions.length === 0) {
@@ -1369,6 +1369,14 @@ function renderAdvancedInsights(junctions) {
     
     
 
+    
+    if (noRender) {
+        return {
+            totalJunctions, yeondeungCount, avgCycle, maxCycle, baseCycle, baseCycleRate, coordRate, avgGroupScale, maxGroupScale,
+            highCycleCount, flashOpCount, finalBalance, cntLeftProt, cntLeftUnprot, cntPplt, cntDiagonal, cntRightSig, cntLpi,
+            avgPedWait, pedLos, maxPedWaitTime, shortYellowCount
+        };
+    }
     const InsightBox = (id, title, mainVal, subText, desc, icon, color) => {
         const randomDelay = -(Math.random() * 12).toFixed(1);
         return `
