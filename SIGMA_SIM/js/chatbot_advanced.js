@@ -285,7 +285,12 @@ async function processAgentQuery(queryText) {
             name: j.name,
             office: j.office,
             police: j.police,
-            tod_plans: (j.schedules && j.schedules[0]) ? j.schedules[0].filter(s => s && s.h !== -1).map(s => `${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}부터 ${s.cycle}초`).join(", ") : (j.cyc ? j.cyc + '초' : "시간대별 주기 정보 없음"),
+            tod_plans: (j.schedules && j.schedules[0] && j.dayPlans && j.dayPlans[0]) ? j.schedules[0].filter(s => s && s.h !== -1).map(s => {
+                    const p = j.dayPlans[0][s.idx - 1];
+                    if (!p) return `${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}부터 주기${s.cycle}초`;
+                    const splits = p.splitA ? p.splitA.filter(x => x > 0).join('/') : '';
+                    return `[${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}시작] 주기:${p.cycle}초, 연동(Offset):${p.offset}초, 신호배분(Splits):${splits}`;
+                }).join(" | ") : (j.cyc ? '주기 ' + j.cyc + '초' : "시간대별 정보 없음"),
             controller: j.controller,
             features: Object.keys(j.extra || {}).join(", ")
         }));
