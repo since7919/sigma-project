@@ -2758,7 +2758,9 @@ app.get('/api/ai/raw-test', async (req, res) => {
 1. 문체는 반드시 '~함', '~임', '~개소', '~초' 등의 건조하고 명확한 개조식(공문서체)을 사용할 것.
 2. 주관적이거나 감정적인 수사("우려됩니다", "눈에 띕니다", "좋습니다", "안타깝게도")는 절대 금지.
 3. 철저하게 통계(수치, 증감률, 편차)에 기반하여 팩트만 나열하고, 결과에 대한 원인 분석도 통계적 근거를 바탕으로 서술할 것.
-4. 불필요한 인사말이나 서론, 결론을 생략하고 즉시 [보고서 본문]만 출력할 것.`;\n\n        const userPrompt = `[비교 대상]
+4. 불필요한 인사말이나 서론, 결론을 생략하고 즉시 [보고서 본문]만 출력할 것.`;
+
+        const userPrompt = `[비교 대상]
 기준(Base): ${baseName}
 비교(Target): ${targetName}
 
@@ -2801,7 +2803,9 @@ app.get('/api/ai/raw-test', async (req, res) => {
         const response = await ai.models.generateContent({
             model: 'gemini-3.8-flash',
             contents: [
-                { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }
+                { role: 'user', parts: [{ text: systemPrompt + "
+
+" + userPrompt }] }
             ],
             config: { temperature: 0.7 }
         });
@@ -2846,7 +2850,9 @@ app.post('/api/ai/report', async (req, res) => {
 1. 문체는 반드시 '~함', '~임', '~개소', '~초' 등의 건조하고 명확한 개조식(공문서체)을 사용할 것.
 2. 주관적이거나 감정적인 수사("우려됩니다", "눈에 띕니다", "좋습니다", "안타깝게도")는 절대 금지.
 3. 철저하게 통계(수치, 증감률, 편차)에 기반하여 팩트만 나열하고, 결과에 대한 원인 분석도 통계적 근거를 바탕으로 서술할 것.
-4. 불필요한 인사말이나 서론, 결론을 생략하고 즉시 [보고서 본문]만 출력할 것.`;\n\n        const userPrompt = `[비교 대상]
+4. 불필요한 인사말이나 서론, 결론을 생략하고 즉시 [보고서 본문]만 출력할 것.`;
+
+        const userPrompt = `[비교 대상]
 기준(Base): ${baseName}
 비교(Target): ${targetName}
 
