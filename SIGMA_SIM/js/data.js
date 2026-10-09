@@ -1177,9 +1177,15 @@ async function startAIAnalysis() {
                 // Completely normalize all whitespace (including newlines) into single spaces
                 s = s.replace(/\s+/g, ' ');
                 
-                // Now strictly format it
+                // Now strictly format keywords
                 s = s.replace(/xychart-beta/gi, 'xychart-beta\n');
-                s = s.replace(/\s*title\s+/gi, '\ntitle ');
+                
+                // CRITICAL FIX: Mermaid xychart-beta requires Korean/spaced titles to be enclosed in DOUBLE QUOTES!
+                s = s.replace(/\s*title\s+(?:"([^"]*)"|([^\[\n\r]+?))(?=\s*(?:x-axis|y-axis|bar|line|$))/gi, (m, p1, p2) => {
+                    let t = (p1 || p2 || '').trim().replace(/^["']+|["']+$/g, '');
+                    return '\ntitle "' + t + '"\n';
+                });
+                
                 s = s.replace(/\s*x-axis\s*/gi, '\nx-axis ');
                 s = s.replace(/\s*y-axis\s*/gi, '\ny-axis ');
                 s = s.replace(/\s*bar\s*/gi, '\nbar ');
@@ -1189,7 +1195,7 @@ async function startAIAnalysis() {
                 s = s.replace(/(bar|line)\s*\[\s*(?:"[^"]*"|'[^']*')\s*,\s*/gi, '$1 [');
                 
                 // Clean up any double newlines
-                s = s.replace(/\n+/g, '\n');
+                s = s.replace(/\n\s*\n/g, '\n');
                 return s.trim();
             };
 formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => {
@@ -1333,17 +1339,21 @@ function printAIReport() {
                           document.querySelectorAll('.mermaid').forEach(el => {
                               let s = el.textContent;
                               s = s.replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ');
-                              s = s.replace(/xychart-beta/gi, 'xychart-beta\n').replace(/\s*title\s+/gi, '\ntitle ').replace(/\s*x-axis\s*/gi, '\nx-axis ').replace(/\s*y-axis\s*/gi, '\ny-axis ').replace(/\s*bar\s*/gi, '\nbar ').replace(/\s*line\s*/gi, '\nline ');
-                              s = s.replace(/(bar|line)\s*\[\s*(?:"[^"]*"|'[^']*')\s*,\s*/gi, '$1 [').replace(/\n+/g, '\n');
+                              s = s.replace(/xychart-beta/gi, 'xychart-beta\n');
+                              s = s.replace(/\s*title\s+(?:"([^"]*)"|([^\[\n\r]+?))(?=\s*(?:x-axis|y-axis|bar|line|$))/gi, (m, p1, p2) => {
+                                  let t = (p1 || p2 || '').trim().replace(/^["']+|["']+$/g, '');
+                                  return '\ntitle "' + t + '"\n';
+                              });
+                              s = s.replace(/\s*x-axis\s*/gi, '\nx-axis ').replace(/\s*y-axis\s*/gi, '\ny-axis ').replace(/\s*bar\s*/gi, '\nbar ').replace(/\s*line\s*/gi, '\nline ');
+                              s = s.replace(/(bar|line)\s*\[\s*(?:"[^"]*"|'[^']*')\s*,\s*/gi, '$1 [').replace(/\n\s*\n/g, '\n');
                               el.textContent = s.trim();
                           });
                           mermaid.run({ querySelector: '.mermaid' }); 
-                      } catch(e) {}
+                    } catch(e) {}
                     setTimeout(() => {
                         window.print();
                     }, 800);
-                }, 500);
-                }
+                };
             </script>
         </body>
         </html>
