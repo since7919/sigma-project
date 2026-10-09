@@ -1216,7 +1216,12 @@ formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\
             
             setTimeout(() => {
                 if (typeof mermaid !== 'undefined') {
-                    try { mermaid.run({ querySelector: '.mermaid' }); } catch(e) { console.error('Mermaid error', e); }
+                    try {
+                          document.querySelectorAll('.mermaid').forEach(el => {
+                              el.textContent = enforceMermaidNewlines(el.textContent);
+                          });
+                          mermaid.run({ querySelector: '.mermaid' }); 
+                      } catch(e) { console.error('Mermaid error', e); }
                 }
             }, 100);
         }, 500);
@@ -1324,7 +1329,16 @@ function printAIReport() {
             <script>
                 // 이미지가 모두 로드된 후 인쇄 다이얼로그 호출
                 window.onload = function() {
-                    try { mermaid.run({ querySelector: '.mermaid' }); } catch(e) {}
+                    try { 
+                          document.querySelectorAll('.mermaid').forEach(el => {
+                              let s = el.textContent;
+                              s = s.replace(/<br\s*\/?>/gi, '\n').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ');
+                              s = s.replace(/xychart-beta/gi, 'xychart-beta\n').replace(/\s*title\s+/gi, '\ntitle ').replace(/\s*x-axis\s*/gi, '\nx-axis ').replace(/\s*y-axis\s*/gi, '\ny-axis ').replace(/\s*bar\s*/gi, '\nbar ').replace(/\s*line\s*/gi, '\nline ');
+                              s = s.replace(/(bar|line)\s*\[\s*(?:"[^"]*"|'[^']*')\s*,\s*/gi, '$1 [').replace(/\n+/g, '\n');
+                              el.textContent = s.trim();
+                          });
+                          mermaid.run({ querySelector: '.mermaid' }); 
+                      } catch(e) {}
                     setTimeout(() => {
                         window.print();
                     }, 800);
