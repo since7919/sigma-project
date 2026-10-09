@@ -235,7 +235,13 @@ function resolveSlotsToData(slots, data) {
         let prop = slots.properties[0];
         filtered = filtered.filter(j => {
             let val = null;
-            if (prop.includes("주기")) val = j.cyc || (j.dayPlans && j.dayPlans[0] && j.dayPlans[0][0] ? j.dayPlans[0][0].cycle : 0);
+            if (prop.includes("주기")) {
+                val = j.cyc;
+                if (!val && j.dayPlans && j.dayPlans[0]) {
+                    val = 0;
+                    for(let p of j.dayPlans[0]) { if (p && p.cycle > val) val = p.cycle; }
+                }
+            }
             
             if (val === null) return true; 
             if (isGTE) return val >= th;
@@ -255,7 +261,15 @@ function resolveSlotsToData(slots, data) {
                     valA = matchA ? parseInt(matchA[1]) : (parseInt((a.extra||{})['민원'] || (a.extra||{})['민원건수']) || 0);
                     valB = matchB ? parseInt(matchB[1]) : (parseInt((b.extra||{})['민원'] || (b.extra||{})['민원건수']) || 0);
                 } else if (sortKey.includes("주기")) {
-                    valA = a.cyc || 0; valB = b.cyc || 0;
+                    const getMaxC = (j) => {
+                        if (j.cyc) return j.cyc;
+                        let mx = 0;
+                        if (j.dayPlans && j.dayPlans[0]) {
+                            for(let p of j.dayPlans[0]) { if (p && p.cycle > mx) mx = p.cycle; }
+                        }
+                        return mx;
+                    };
+                    valA = getMaxC(a); valB = getMaxC(b);
                 }
                 return slots.mathOp === "MAX" ? valB - valA : valA - valB;
             });
