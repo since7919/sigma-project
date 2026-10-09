@@ -1621,9 +1621,13 @@
                         <div id="ai-report-box" class="sigma-panel mb-20" style="display:none; background: rgba(10, 25, 41, 0.9); border: 1px solid #1e4976; padding: 20px; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #e0e0e0; box-shadow: 0 4px 20px rgba(0,0,0,0.6);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                                 <div style="font-weight:bold; font-size:15px; color:#64b5f6;">🤖 SIGMA AI 비교 분석 리포트</div>
-                                <button onclick="document.getElementById('ai-report-box').style.display='none'" style="background:none; border:none; color:#999; cursor:pointer; font-size:16px;">&times;</button>
+                                <div style="display: flex; gap: 15px; align-items: center;">
+                                    <button onclick="const body = document.getElementById('ai-report-wrapper'); if(body.style.display==='none'){body.style.display='block'; this.innerHTML='&#9650; 접어두기';}else{body.style.display='none'; this.innerHTML='&#9660; 펼치기';}" style="background:none; border:1px solid #444; border-radius:4px; padding: 2px 8px; color:#aaa; cursor:pointer; font-size:11px;" title="보고서 내용을 임시로 접어둡니다">&#9650; 접어두기</button>
+                                    <button onclick="document.getElementById('ai-report-box').style.display='none'" style="background:none; border:none; color:#999; cursor:pointer; font-size:18px;" title="완전히 닫기">&times;</button>
+                                </div>
                             </div>
                             
+                            <div id="ai-report-wrapper">
                             <!-- 설정 영역 -->
                             <div id="ai-report-setup" style="padding: 10px 0;">
                                 <div style="margin-bottom: 15px; color: #b0bec5; font-size: 12px;">분석할 두 구청(또는 지역)을 선택하세요.</div>
