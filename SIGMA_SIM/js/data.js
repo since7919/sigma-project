@@ -1148,6 +1148,7 @@ async function startAIAnalysis() {
         setTimeout(() => {
             let formattedText = marked.parse(data.report);
             formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, '<div class="mermaid">$1</div>');
+            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, '<div class="mermaid">$1$2</div>');
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
             window.__lastAIReportHTML = formattedText;
             window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
@@ -1177,7 +1178,20 @@ async function startAIAnalysis() {
 function calculateStats(inters) {
     if (typeof renderAdvancedInsights === 'function') {
         const stats = renderAdvancedInsights(inters, true);
-        if (stats) return stats;
+        if (stats) {
+            return {
+                "총_교차로_수": stats.totalJunctions,
+                "연동그룹_교차로_비율_퍼센트": stats.coordRate + "%",
+                "연등_교차로_수_제어기없음": stats.yeondeungCount,
+                "평균_신호주기_초": stats.avgCycle,
+                "최대_신호주기_초": stats.maxCycle,
+                "심야_점멸운영_교차로_수": stats.flashOpCount,
+                "평균_보행자_대기시간_초": stats.avgPedWait,
+                "대각선_횡단보도_수": stats.cntDiagonal,
+                "보호좌회전_운영수": stats.cntLeftProt,
+                "비보호겸용_운영수": stats.cntPplt
+            };
+        }
     }
     return { error: "Stats engine unavailable" };
 }
