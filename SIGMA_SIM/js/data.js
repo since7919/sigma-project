@@ -1147,29 +1147,37 @@ async function startAIAnalysis() {
 
         setTimeout(() => {
             
-            
             // --- AI Mermaid Hallucination Cleanup ---
             if (data.report) {
-                // Fix missing newlines before keywords
+                // If AI uses <br> tags instead of newlines, replace them first
+                data.report = data.report.replace(/<br\s*\/?>/gi, '\n');
+                // If AI output things in a single line, forcibly add newlines before keywords
                 data.report = data.report.replace(/xychart-betatitle/g, 'xychart-beta\ntitle');
-                data.report = data.report.replace(/xychart-beta\s+title/g, 'xychart-beta\ntitle');
-                data.report = data.report.replace(/([^\n])\s*(x-axis\s*\[)/g, '$1\n$2');
-                data.report = data.report.replace(/([^\n])\s*(y-axis\s*\[)/g, '$1\n$2');
-                data.report = data.report.replace(/([^\n])\s*(y-axis\s*".*?"\s*\[)/g, '$1\n$2');
-                data.report = data.report.replace(/([^\n])\s*(bar\s*\[)/g, '$1\n$2');
-                data.report = data.report.replace(/([^\n])\s*(line\s*\[)/g, '$1\n$2');
+                data.report = data.report.replace(/xychart-beta\s*title/g, 'xychart-beta\ntitle');
+                // Use robust replacement by just matching keywords globally and prepending newline
+                data.report = data.report.replace(/\s+x-axis/g, '\nx-axis');
+                data.report = data.report.replace(/\)\s*x-axis/g, ')\nx-axis');
+                data.report = data.report.replace(/\]\s*y-axis/g, ']\ny-axis');
+                data.report = data.report.replace(/\]\s*bar/g, ']\nbar');
+                data.report = data.report.replace(/\]\s*line/g, ']\nline');
                 
-                // Fix AI putting strings inside bar/line arrays (e.g. line ["Name", 1, 2] -> line [1, 2])
+                // Fix AI putting strings inside bar/line arrays
                 data.report = data.report.replace(/(bar|line)\s*\[\s*"[^"]*"\s*,\s*/g, '$1 [');
                 data.report = data.report.replace(/(bar|line)\s*\[\s*'[^']*'\s*,\s*/g, '$1 [');
             }
             
             let formattedText = marked.parse(data.report);
-            
             const unescapeHtml = (text) => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => '<pre class="mermaid">\n' + unescapeHtml(p1).trim() + '\n</pre>');
-            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => '<pre class="mermaid">\n' + unescapeHtml(p1 + p2).trim() + '\n</pre>');
-
+            
+            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => {
+                let codeText = unescapeHtml(p1).trim();
+                return '<pre class="mermaid">\n' + codeText + '\n</pre>';
+            });
+            
+            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => {
+                let codeText = unescapeHtml(p1 + "\n" + p2).trim();
+                return '<pre class="mermaid">\n' + codeText + '\n</pre>';
+            });
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
             window.__lastAIReportHTML = formattedText;
             window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
@@ -1199,20 +1207,7 @@ async function startAIAnalysis() {
 function calculateStats(inters) {
     if (typeof renderAdvancedInsights === 'function') {
         const stats = renderAdvancedInsights(inters, true);
-        if (stats) {
-            return {
-                "총_교차로_수": stats.totalJunctions,
-                "연동그룹_교차로_비율_퍼센트": stats.coordRate + "%",
-                "연등_교차로_수_제어기없음": stats.yeondeungCount,
-                "평균_신호주기_초": stats.avgCycle,
-                "최대_신호주기_초": stats.maxCycle,
-                "심야_점멸운영_교차로_수": stats.flashOpCount,
-                "평균_보행자_대기시간_초": stats.avgPedWait,
-                "대각선_횡단보도_수": stats.cntDiagonal,
-                "보호좌회전_운영수": stats.cntLeftProt,
-                "비보호겸용_운영수": stats.cntPplt
-            };
-        }
+        if (stats) return stats;
     }
     return { error: "Stats engine unavailable" };
 }
