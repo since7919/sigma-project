@@ -1146,6 +1146,24 @@ async function startAIAnalysis() {
         }
 
         setTimeout(() => {
+            
+            
+            // --- AI Mermaid Hallucination Cleanup ---
+            if (data.report) {
+                // Fix missing newlines before keywords
+                data.report = data.report.replace(/xychart-betatitle/g, 'xychart-beta\ntitle');
+                data.report = data.report.replace(/xychart-beta\s+title/g, 'xychart-beta\ntitle');
+                data.report = data.report.replace(/([^\n])\s*(x-axis\s*\[)/g, '$1\n$2');
+                data.report = data.report.replace(/([^\n])\s*(y-axis\s*\[)/g, '$1\n$2');
+                data.report = data.report.replace(/([^\n])\s*(y-axis\s*".*?"\s*\[)/g, '$1\n$2');
+                data.report = data.report.replace(/([^\n])\s*(bar\s*\[)/g, '$1\n$2');
+                data.report = data.report.replace(/([^\n])\s*(line\s*\[)/g, '$1\n$2');
+                
+                // Fix AI putting strings inside bar/line arrays (e.g. line ["Name", 1, 2] -> line [1, 2])
+                data.report = data.report.replace(/(bar|line)\s*\[\s*"[^"]*"\s*,\s*/g, '$1 [');
+                data.report = data.report.replace(/(bar|line)\s*\[\s*'[^']*'\s*,\s*/g, '$1 [');
+            }
+            
             let formattedText = marked.parse(data.report);
             
             const unescapeHtml = (text) => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
