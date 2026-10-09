@@ -1147,6 +1147,7 @@ async function startAIAnalysis() {
 
         setTimeout(() => {
             let formattedText = marked.parse(data.report);
+            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, '<div class="mermaid">$1</div>');
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
             window.__lastAIReportHTML = formattedText;
             window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
@@ -1158,6 +1159,12 @@ async function startAIAnalysis() {
                 </div>
                 ${formattedText}
             `;
+            
+            setTimeout(() => {
+                if (typeof mermaid !== 'undefined') {
+                    try { mermaid.run({ querySelector: '.mermaid' }); } catch(e) { console.error('Mermaid error', e); }
+                }
+            }, 100);
         }, 500);
         
     } catch (err) {
@@ -1201,6 +1208,8 @@ function printAIReport() {
         <head>
             <title>SIGMA AI Report - ${window.__lastAIReportTitle}</title>
             <meta charset="utf-8">
+              <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+              <script>mermaid.initialize({startOnLoad: false, theme: "default"});</script>
             <style>
                 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
                 body {
@@ -1261,9 +1270,11 @@ function printAIReport() {
             <script>
                 // 이미지가 모두 로드된 후 인쇄 다이얼로그 호출
                 window.onload = function() {
+                    try { mermaid.run({ querySelector: '.mermaid' }); } catch(e) {}
                     setTimeout(() => {
                         window.print();
-                    }, 500);
+                    }, 800);
+                }, 500);
                 }
             </script>
         </body>
