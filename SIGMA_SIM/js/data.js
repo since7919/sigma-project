@@ -1151,6 +1151,165 @@ async function startAIAnalysis() {
 
 // 헬퍼: 통계 계산
 function calculateStats(inters) {
+    if (typeof renderAdvancedInsights === 'function') {
+        const stats = renderAdvancedInsights(inters, true);
+        if (stats) return stats;
+    }
+    return { error: "Stats engine unavailable" };
+}
+
+// ── [신규] AI 리포트 생성 함수 ──
+
+
+// 헬퍼: 통계 계산 (data.js 기존 로직을 축약)
+
+
+
+// ── [신규] AI 리포트 UI 열기 및 셀렉트 박스 세팅 ──
+function generateAIReport() {
+    const box = document.getElementById('ai-report-box');
+    const setup = document.getElementById('ai-report-setup');
+    const content = document.getElementById('ai-report-content');
+    
+    box.style.display = 'block';
+    setup.style.display = 'block';
+    content.style.display = 'none';
+    
+    // 사무소(구청) 목록 추출하여 셀렉트 박스 채우기
+    const offices = new Set();
+    Object.values(STATE.junctions || {}).forEach(j => {
+        if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
+    });
+    const sortedOffices = Array.from(offices).sort();
+    
+    const baseSel = document.getElementById('ai-base-select');
+    const targetSel = document.getElementById('ai-target-select');
+    
+    let optionsHtml = '<option value="ALL">서울시 전체</option>';
+    sortedOffices.forEach(o => {
+        optionsHtml += `<option value="${o}">${o}</option>`;
+    });
+    
+    baseSel.innerHTML = optionsHtml;
+    targetSel.innerHTML = optionsHtml;
+}
+
+// ── [신규] 실제 AI 분석 시작 (로딩 애니메이션 및 API 호출) ──
+async function startAIAnalysis() {
+    const setup = document.getElementById('ai-report-setup');
+    const content = document.getElementById('ai-report-content');
+    
+    const baseVal = document.getElementById('ai-base-select').value;
+    const targetVal = document.getElementById('ai-target-select').value;
+    
+    const baseName = baseVal === 'ALL' ? '서울시 전체' : baseVal;
+    const targetName = targetVal === 'ALL' ? '서울시 전체' : targetVal;
+    
+    setup.style.display = 'none';
+    content.style.display = 'block';
+    
+    // 시각적 로딩 애니메이션 (점진적 진행바 포함)
+    content.innerHTML = `
+        <div style="text-align:center; padding: 30px; font-size: 14px; color:#90caf9;">
+            <div style="font-size: 24px; margin-bottom: 15px;" class="loading-spinner">🔄</div>
+            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Gemini 3.8 Flash (무료 API) 작동 중</span></div>
+            <div style="margin-top: 15px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 4px; height: 6px; overflow: hidden;">
+                <div id="ai-progress-bar" style="width: 0%; height: 100%; background: #64b5f6; transition: width 0.5s ease;"></div>
+            </div>
+            <div style="margin-top: 10px; font-size: 11px; color: #78909c;" id="ai-loading-text">데이터 준비 중...</div>
+        </div>
+        <style>
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+            .loading-spinner { display: inline-block; animation: spin 1.5s linear infinite; }
+        </style>
+    `;
+    
+    let progress = 0;
+    const pBar = document.getElementById('ai-progress-bar');
+    const pText = document.getElementById('ai-loading-text');
+    
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90; // API 완료 전까지는 90%에서 대기
+        if (pBar) pBar.style.width = progress + '%';
+        
+        if (progress > 20 && progress <= 50) pText.innerText = "전문가 분석 프롬프트 주입 중...";
+        if (progress > 50 && progress <= 80) pText.innerText = "거시적/미시적 특성 도출 중...";
+        if (progress > 80) pText.innerText = "정책 제언 및 시사점 요약 중...";
+    }, 800);
+    
+    // 데이터 집계
+    let allIntersections = Object.values(STATE.junctions || {});
+    
+    let baseIntersections = baseVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === baseVal);
+    let targetIntersections = targetVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === targetVal);
+    
+    let baseStats = calculateStats(baseIntersections);
+    let targetStats = calculateStats(targetIntersections);
+    
+    try {
+        if (typeof recordAIRequest === 'function') recordAIRequest();
+        const response = await fetch('/api/ai/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                baseName: baseName,
+                targetName: targetName,
+                baseStats: baseStats,
+                targetStats: targetStats
+            })
+        });
+        
+        clearInterval(progressInterval);
+        if (pBar) pBar.style.width = '100%';
+        if (pText) pText.innerText = "분석 완료!";
+        
+        
+        let data = {};
+        try {
+            data = await response.json();
+        } catch(e) {
+            data = { error: '서버가 올바른 JSON을 반환하지 않았습니다 (500 Error)' };
+        }
+        
+        if (!response.ok || !data || !data.report) {
+            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${(data && data.error) || '알수없는 오류 또는 빈 응답'}</div>
+            <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
+            return;
+        }
+
+        
+        // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
+        setTimeout(() => {
+            // marked.js를 활용한 마크다운 파싱 (테이블 등 완벽 지원)
+            let formattedText = marked.parse(data.report);
+            
+            // 다크 테마 표/텍스트 최적화를 위한 래퍼 추가
+            formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
+            
+            // 원본 텍스트(출력용) 전역 저장
+            window.__lastAIReportHTML = formattedText;
+            window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
+            
+            content.innerHTML = `
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;">
+                    <button onclick="printAIReport()" style="background: rgba(255,183,77,0.1); border: 1px solid #ffb74d; color: #ffb74d; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🖨️ PDF 출력</button>
+                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🔄 다시 분석하기</button>
+                </div>
+                ${formattedText}
+            `;
+        }, 500);
+        
+    } catch (err) {
+        clearInterval(progressInterval);
+        content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">서버 통신 실패: ${err.message}</div>
+        <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
+    }
+}
+
+
+// 헬퍼: 통계 계산
+function calculateStats(inters) {
     if (!inters || inters.length === 0) return { total_intersections: 0 };
     
     let cycles = { ALL: [], AM_PEAK: [], PM_PEAK: [], NORMAL: [], NIGHT: [] };
