@@ -1016,26 +1016,32 @@ function generateAIReport() {
     setup.style.display = 'block';
     content.style.display = 'none';
     
-    // 사무소(구청) 목록 추출하여 셀렉트 박스 채우기
     const offices = new Set();
+    const polices = new Set();
     Object.values(STATE.junctions || {}).forEach(j => {
         if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
+        if (j.police && j.police.trim() !== '') polices.add(j.police.trim());
     });
     const sortedOffices = Array.from(offices).sort();
+    const sortedPolices = Array.from(polices).sort();
     
     const baseSel = document.getElementById('ai-base-select');
     const targetSel = document.getElementById('ai-target-select');
     
     let optionsHtml = '<option value="ALL">서울시 전체</option>';
-    sortedOffices.forEach(o => {
-        optionsHtml += `<option value="${o}">${o}</option>`;
-    });
+    
+    optionsHtml += '<optgroup label="구청(District)">';
+    sortedOffices.forEach(o => { optionsHtml += `<option value="office|${o}">[구청] ${o}</option>`; });
+    optionsHtml += '</optgroup>';
+    
+    optionsHtml += '<optgroup label="경찰서(Police)">';
+    sortedPolices.forEach(p => { optionsHtml += `<option value="police|${p}">[경찰서] ${p}</option>`; });
+    optionsHtml += '</optgroup>';
     
     baseSel.innerHTML = optionsHtml;
     targetSel.innerHTML = optionsHtml;
 }
 
-// ── [신규] 실제 AI 분석 시작 (로딩 애니메이션 및 API 호출) ──
 async function startAIAnalysis() {
     const setup = document.getElementById('ai-report-setup');
     const content = document.getElementById('ai-report-content');
@@ -1043,17 +1049,22 @@ async function startAIAnalysis() {
     const baseVal = document.getElementById('ai-base-select').value;
     const targetVal = document.getElementById('ai-target-select').value;
     
-    const baseName = baseVal === 'ALL' ? '서울시 전체' : baseVal;
-    const targetName = targetVal === 'ALL' ? '서울시 전체' : targetVal;
+    const getLabel = (val) => {
+        if (val === 'ALL') return '서울시 전체';
+        const parts = val.split('|');
+        return parts.length === 2 ? parts[1] : val;
+    };
+    
+    const baseName = getLabel(baseVal);
+    const targetName = getLabel(targetVal);
     
     setup.style.display = 'none';
     content.style.display = 'block';
     
-    // 시각적 로딩 애니메이션 (점진적 진행바 포함)
     content.innerHTML = `
         <div style="text-align:center; padding: 30px; font-size: 14px; color:#90caf9;">
             <div style="font-size: 24px; margin-bottom: 15px;" class="loading-spinner">🔄</div>
-            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Groq GPT-OSS 120B (무료 API) 작동 중</span></div>
+            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Groq GPT-OSS 120B 작동 중</span></div>
             <div style="margin-top: 15px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 4px; height: 6px; overflow: hidden;">
                 <div id="ai-progress-bar" style="width: 0%; height: 100%; background: #64b5f6; transition: width 0.5s ease;"></div>
             </div>
@@ -1071,20 +1082,36 @@ async function startAIAnalysis() {
     
     const progressInterval = setInterval(() => {
         progress += Math.random() * 15;
-        if (progress > 90) progress = 90; // API 완료 전까지는 90%에서 대기
+        if (progress > 90) progress = 90;
         if (pBar) pBar.style.width = progress + '%';
         
         if (progress > 20 && progress <= 50) pText.innerText = "전문가 분석 프롬프트 주입 중...";
         if (progress > 50 && progress <= 80) pText.innerText = "거시적/미시적 특성 도출 중...";
-        if (progress > 80) pText.innerText = "정책 제언 및 시사점 요약 중...";
+        if (progress > 80) pText.innerText = "데이터 기반 객관적 요약 중...";
     }, 800);
     
-    // 데이터 집계
     let allIntersections = Object.values(STATE.junctions || {});
     
-    let baseIntersections = baseVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === baseVal);
-    let targetIntersections = targetVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === targetVal);
+    const filterIntersections = (val) => {
+        if (val === 'ALL') return allIntersections;
+        const [type, name] = val.split('|');
+        if (type === 'office') return allIntersections.filter(j => (j.office || "").trim() === name);
+        if (type === 'police') return allIntersections.filter(j => (j.police || "").trim() === name);
+        return allIntersections;
+    };
     
+    let baseIntersections = filterIntersections(baseVal);
+    let targetIntersections = filterIntersections(targetVal);
+    
+    // UI의 시간대 필터를 동일하게 적용하기 위해 window.STAT_VALID_HOURS 상태를 가져옴
+    const timeFilter = document.getElementById('stat-time-filter')?.value || 'ALL';
+    if (timeFilter === 'ALL') window.STAT_VALID_HOURS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+    else if (timeFilter === 'AM_PEAK') window.STAT_VALID_HOURS = [7, 8, 9];
+    else if (timeFilter === 'PM_PEAK') window.STAT_VALID_HOURS = [17, 18];
+    else if (timeFilter === 'NORMAL') window.STAT_VALID_HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
+    else if (timeFilter === 'NIGHT') window.STAT_VALID_HOURS = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
+    else window.STAT_VALID_HOURS = [parseInt(timeFilter)];
+
     let baseStats = calculateStats(baseIntersections);
     let targetStats = calculateStats(targetIntersections);
     
@@ -1105,7 +1132,6 @@ async function startAIAnalysis() {
         if (pBar) pBar.style.width = '100%';
         if (pText) pText.innerText = "분석 완료!";
         
-        
         let data = {};
         try {
             data = await response.json();
@@ -1119,16 +1145,9 @@ async function startAIAnalysis() {
             return;
         }
 
-        
-        // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
         setTimeout(() => {
-            // marked.js를 활용한 마크다운 파싱 (테이블 등 완벽 지원)
             let formattedText = marked.parse(data.report);
-            
-            // 다크 테마 표/텍스트 최적화를 위한 래퍼 추가
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
-            
-            // 원본 텍스트(출력용) 전역 저장
             window.__lastAIReportHTML = formattedText;
             window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
             
@@ -1148,8 +1167,6 @@ async function startAIAnalysis() {
     }
 }
 
-
-// 헬퍼: 통계 계산
 function calculateStats(inters) {
     if (typeof renderAdvancedInsights === 'function') {
         const stats = renderAdvancedInsights(inters, true);
@@ -1166,230 +1183,6 @@ function calculateStats(inters) {
 
 
 // ── [신규] AI 리포트 UI 열기 및 셀렉트 박스 세팅 ──
-function generateAIReport() {
-    const box = document.getElementById('ai-report-box');
-    const setup = document.getElementById('ai-report-setup');
-    const content = document.getElementById('ai-report-content');
-    
-    box.style.display = 'block';
-    setup.style.display = 'block';
-    content.style.display = 'none';
-    
-    // 사무소(구청) 목록 추출하여 셀렉트 박스 채우기
-    const offices = new Set();
-    Object.values(STATE.junctions || {}).forEach(j => {
-        if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
-    });
-    const sortedOffices = Array.from(offices).sort();
-    
-    const baseSel = document.getElementById('ai-base-select');
-    const targetSel = document.getElementById('ai-target-select');
-    
-    let optionsHtml = '<option value="ALL">서울시 전체</option>';
-    sortedOffices.forEach(o => {
-        optionsHtml += `<option value="${o}">${o}</option>`;
-    });
-    
-    baseSel.innerHTML = optionsHtml;
-    targetSel.innerHTML = optionsHtml;
-}
-
-// ── [신규] 실제 AI 분석 시작 (로딩 애니메이션 및 API 호출) ──
-async function startAIAnalysis() {
-    const setup = document.getElementById('ai-report-setup');
-    const content = document.getElementById('ai-report-content');
-    
-    const baseVal = document.getElementById('ai-base-select').value;
-    const targetVal = document.getElementById('ai-target-select').value;
-    
-    const baseName = baseVal === 'ALL' ? '서울시 전체' : baseVal;
-    const targetName = targetVal === 'ALL' ? '서울시 전체' : targetVal;
-    
-    setup.style.display = 'none';
-    content.style.display = 'block';
-    
-    // 시각적 로딩 애니메이션 (점진적 진행바 포함)
-    content.innerHTML = `
-        <div style="text-align:center; padding: 30px; font-size: 14px; color:#90caf9;">
-            <div style="font-size: 24px; margin-bottom: 15px;" class="loading-spinner">🔄</div>
-            <strong style="color: #fff; font-size: 16px;">${baseName}</strong>와(과) <strong style="color: #fff; font-size: 16px;">${targetName}</strong>의 통계를 비교분석 중입니다...<br/><div style="margin-top: 12px;"><span style="background: rgba(156, 39, 176, 0.2); border: 1px solid #9c27b0; color: #e1bee7; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold;">⚡ Groq GPT-OSS 120B (무료 API) 작동 중</span></div>
-            <div style="margin-top: 15px; width: 100%; background: rgba(0,0,0,0.5); border-radius: 4px; height: 6px; overflow: hidden;">
-                <div id="ai-progress-bar" style="width: 0%; height: 100%; background: #64b5f6; transition: width 0.5s ease;"></div>
-            </div>
-            <div style="margin-top: 10px; font-size: 11px; color: #78909c;" id="ai-loading-text">데이터 준비 중...</div>
-        </div>
-        <style>
-            @keyframes spin { 100% { transform: rotate(360deg); } }
-            .loading-spinner { display: inline-block; animation: spin 1.5s linear infinite; }
-        </style>
-    `;
-    
-    let progress = 0;
-    const pBar = document.getElementById('ai-progress-bar');
-    const pText = document.getElementById('ai-loading-text');
-    
-    const progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90; // API 완료 전까지는 90%에서 대기
-        if (pBar) pBar.style.width = progress + '%';
-        
-        if (progress > 20 && progress <= 50) pText.innerText = "전문가 분석 프롬프트 주입 중...";
-        if (progress > 50 && progress <= 80) pText.innerText = "거시적/미시적 특성 도출 중...";
-        if (progress > 80) pText.innerText = "정책 제언 및 시사점 요약 중...";
-    }, 800);
-    
-    // 데이터 집계
-    let allIntersections = Object.values(STATE.junctions || {});
-    
-    let baseIntersections = baseVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === baseVal);
-    let targetIntersections = targetVal === 'ALL' ? allIntersections : allIntersections.filter(j => (j.office || "").trim() === targetVal);
-    
-    let baseStats = calculateStats(baseIntersections);
-    let targetStats = calculateStats(targetIntersections);
-    
-    try {
-        if (typeof recordAIRequest === 'function') recordAIRequest();
-        const response = await fetch('/api/ai/report', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                baseName: baseName,
-                targetName: targetName,
-                baseStats: baseStats,
-                targetStats: targetStats
-            })
-        });
-        
-        clearInterval(progressInterval);
-        if (pBar) pBar.style.width = '100%';
-        if (pText) pText.innerText = "분석 완료!";
-        
-        
-        let data = {};
-        try {
-            data = await response.json();
-        } catch(e) {
-            data = { error: '서버가 올바른 JSON을 반환하지 않았습니다 (500 Error)' };
-        }
-        
-        if (!response.ok || !data || !data.report) {
-            content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">${(data && data.error) || '알수없는 오류 또는 빈 응답'}</div>
-            <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
-            return;
-        }
-
-        
-        // 렌더링 지연 (애니메이션이 100% 차는 것을 보여주기 위함)
-        setTimeout(() => {
-            // marked.js를 활용한 마크다운 파싱 (테이블 등 완벽 지원)
-            let formattedText = marked.parse(data.report);
-            
-            // 다크 테마 표/텍스트 최적화를 위한 래퍼 추가
-            formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
-            
-            // 원본 텍스트(출력용) 전역 저장
-            window.__lastAIReportHTML = formattedText;
-            window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
-            
-            content.innerHTML = `
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;">
-                    <button onclick="printAIReport()" style="background: rgba(255,183,77,0.1); border: 1px solid #ffb74d; color: #ffb74d; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🖨️ PDF 출력</button>
-                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🔄 다시 분석하기</button>
-                </div>
-                ${formattedText}
-            `;
-        }, 500);
-        
-    } catch (err) {
-        clearInterval(progressInterval);
-        content.innerHTML = `<div style="color:#ef5350; font-weight:bold; padding: 10px; text-align:center;">서버 통신 실패: ${err.message}</div>
-        <div style="text-align:center; margin-top:10px;"><button onclick="startAIAnalysis()" class="action-btn">다시 시도</button></div>`;
-    }
-}
-
-
-// 헬퍼: 통계 계산
-function calculateStats(inters) {
-    if (!inters || inters.length === 0) return { total_intersections: 0 };
-    
-    let cycles = { ALL: [], AM_PEAK: [], PM_PEAK: [], NORMAL: [], NIGHT: [] };
-    let coordCount = 0;
-    let pplt = 0, diag = 0, pLeft = 0;
-    
-    // 보행자 관련 지표
-    let totalPedWait = 0, pedWaitCount = 0;
-
-    inters.forEach(j => {
-        if (!j.dayPlans || !j.schedules) return;
-        
-        // 1. 교차로 레벨 고정 특성 (대각선, PPLT 등)
-        if (j.isPPLT) pplt++;
-        if (j.isDiag) diag++;
-        if (j.isPLeft) pLeft++;
-
-        const scheds = j.schedules[0] || [];
-        const plans = j.dayPlans[0] || [];
-
-        // 2. 시간대별(TOD) 분석
-        scheds.forEach(sched => {
-            if (!sched || sched.h < 0) return;
-            const h = sched.h;
-            const tpIdx = sched.sIdx !== undefined ? sched.sIdx : ((sched.idx || 1) - 1);
-            const plan = plans[tpIdx];
-            
-            if (plan && plan.cycle > 0) {
-                const c = plan.cycle;
-                cycles.ALL.push(c);
-                
-                // 시간대 분류
-                if (h >= 7 && h <= 9) cycles.AM_PEAK.push(c);
-                else if (h >= 17 && h <= 19) cycles.PM_PEAK.push(c);
-                else if (h >= 22 || h <= 5) cycles.NIGHT.push(c);
-                else cycles.NORMAL.push(c);
-                
-                // 보행자 대기시간 추정 (단순화: 주기 - 주도로 보행녹색시간(통상 직진과 연동))
-                const mainGreen = plan.splitA && plan.splitA[0] ? plan.splitA[0] : (c * 0.3);
-                const pedWait = c - mainGreen; // 횡단보도 적색시간(대기시간)
-                if (pedWait > 0) {
-                    totalPedWait += pedWait;
-                    pedWaitCount++;
-                }
-            }
-        });
-        
-        // 연동 교차로 여부 (Plan 1 기준)
-        if (j.group && j.group !== 0 && j.group !== "") coordCount++;
-    });
-    
-    const getAvg = (arr) => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : "0.0";
-    const getMax = (arr) => arr.length ? Math.max(...arr) : 0;
-    const getMin = (arr) => arr.length ? Math.min(...arr) : 0;
-
-    return {
-        총_교차로수: inters.length,
-        연동_교차로수: coordCount,
-        연동화율: ((coordCount / inters.length) * 100).toFixed(1) + '%',
-        신호주기_통계: {
-            전체_평균주기: parseFloat(getAvg(cycles.ALL)),
-            최대주기_Max: getMax(cycles.ALL),
-            최소주기_Min: getMin(cycles.ALL),
-            시간대별_평균주기: {
-                오전첨두_AM_PEAK: parseFloat(getAvg(cycles.AM_PEAK)),
-                낮시간_NORMAL: parseFloat(getAvg(cycles.NORMAL)),
-                오후첨두_PM_PEAK: parseFloat(getAvg(cycles.PM_PEAK)),
-                심야시간_NIGHT: parseFloat(getAvg(cycles.NIGHT))
-            }
-        },
-        현시_및_보행신호_특성: {
-            보호좌회전_교차로: pLeft,
-            비보호좌회전겸용_PPLT: pplt,
-            대각선_횡단보도_운영: diag,
-            평균_보행자_대기시간_추정: pedWaitCount ? parseFloat((totalPedWait / pedWaitCount).toFixed(1)) : 0
-        }
-    };
-}
-
-// ── [신규] AI 리포트 인쇄/PDF 출력 함수 ──
 function printAIReport() {
     if (!window.__lastAIReportHTML) {
         alert('리포트 데이터가 없습니다. 먼저 분석을 진행해주세요.');
