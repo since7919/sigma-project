@@ -1149,8 +1149,8 @@ async function startAIAnalysis() {
             let formattedText = marked.parse(data.report);
             
             const unescapeHtml = (text) => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => '<div class="mermaid">' + unescapeHtml(p1) + '</div>');
-            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => '<div class="mermaid">' + unescapeHtml(p1 + p2) + '</div>');
+            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => '<pre class="mermaid">\n' + unescapeHtml(p1).trim() + '\n</pre>');
+            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => '<pre class="mermaid">\n' + unescapeHtml(p1 + p2).trim() + '\n</pre>');
 
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
             window.__lastAIReportHTML = formattedText;
