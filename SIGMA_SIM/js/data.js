@@ -1169,15 +1169,39 @@ async function startAIAnalysis() {
             let formattedText = marked.parse(data.report);
             const unescapeHtml = (text) => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
             
-            formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => {
-                let codeText = unescapeHtml(p1).trim();
-                return '<pre class="mermaid">\n' + codeText + '\n</pre>';
-            });
             
-            formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => {
-                let codeText = unescapeHtml(p1 + "\n" + p2).trim();
-                return '<pre class="mermaid">\n' + codeText + '\n</pre>';
-            });
+            const enforceMermaidNewlines = (code) => {
+                let s = code;
+                s = s.replace(/<br\s*\/?>/gi, '\n');
+                s = s.replace(/&nbsp;/gi, ' ');
+                // Completely normalize all whitespace (including newlines) into single spaces
+                s = s.replace(/\s+/g, ' ');
+                
+                // Now strictly format it
+                s = s.replace(/xychart-beta/gi, 'xychart-beta\n');
+                s = s.replace(/\s*title\s+/gi, '\ntitle ');
+                s = s.replace(/\s*x-axis\s*/gi, '\nx-axis ');
+                s = s.replace(/\s*y-axis\s*/gi, '\ny-axis ');
+                s = s.replace(/\s*bar\s*/gi, '\nbar ');
+                s = s.replace(/\s*line\s*/gi, '\nline ');
+                
+                // Strip strings from arrays: bar ["Name", 123] -> bar [123]
+                s = s.replace(/(bar|line)\s*\[\s*(?:"[^"]*"|'[^']*')\s*,\s*/gi, '$1 [');
+                
+                // Clean up any double newlines
+                s = s.replace(/\n+/g, '\n');
+                return s.trim();
+            };
+formattedText = formattedText.replace(/<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g, (match, p1) => {
+                  let codeText = unescapeHtml(p1).trim();
+                  codeText = enforceMermaidNewlines(codeText);
+                  return '<pre class="mermaid">\n' + codeText + '\n</pre>';
+              });
+              formattedText = formattedText.replace(/<pre><code>\s*(xychart-beta|xychart|pie|graph|sequenceDiagram|gantt|classDiagram)([\s\S]*?)<\/code><\/pre>/g, (match, p1, p2) => {
+                  let codeText = unescapeHtml(p1 + " " + p2).trim();
+                  codeText = enforceMermaidNewlines(codeText);
+                  return '<pre class="mermaid">\n' + codeText + '\n</pre>';
+              });
             formattedText = `<div class="ai-report-markdown">${formattedText}</div>`;
             window.__lastAIReportHTML = formattedText;
             window.__lastAIReportTitle = `${baseName} vs ${targetName} 교통운영 통계 분석 리포트`;
