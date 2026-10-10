@@ -309,19 +309,21 @@ window.renderReservationPlan = function() {
     }
 
     let html = `
-    <div style="margin-top: 15px;">
-        <div style="font-size: 13px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">🕒 예약계획 (특수기능)</div>
-        <table class="sigma-table" style="width:100%; font-size:10px; table-layout: fixed; border-collapse: collapse;">
+    <div class="sigma-panel" style="margin-top: 15px; padding: 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 8px;">
+        <div style="font-size: 13px; font-weight: bold; color: var(--accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            🕒 <span>예약계획 (특수기능)</span>
+        </div>
+        <table class="sigma-table" style="width:100%; font-size:10.5px; table-layout: fixed; border-collapse: collapse;">
             <thead>
                 <tr style="background: rgba(255,255,255,0.05);">
-                    <th style="width:30px; border:1px solid #334155; padding:4px;">항목</th>
-                    <th style="width:40px; border:1px solid #334155; padding:4px;">월</th>
-                    <th style="width:40px; border:1px solid #334155; padding:4px;">일</th>
-                    <th style="width:45px; border:1px solid #334155; padding:4px;">요일</th>
-                    <th style="width:75px; border:1px solid #334155; padding:4px;">시작(시:분)</th>
-                    <th style="width:75px; border:1px solid #334155; padding:4px;">종료(시:분)</th>
-                    <th style="width:40px; border:1px solid #334155; padding:4px;">기능</th>
-                    <th style="width:45px; border:1px solid #334155; padding:4px;">시차맵</th>
+                    <th class="res-td" style="width:30px;">항목</th>
+                    <th class="res-td" style="width:35px;">월</th>
+                    <th class="res-td" style="width:35px;">일</th>
+                    <th class="res-td" style="width:45px;">요일</th>
+                    <th class="res-td" style="width:75px;">시작(시:분)</th>
+                    <th class="res-td" style="width:75px;">종료(시:분)</th>
+                    <th class="res-td" style="width:40px;">기능</th>
+                    <th class="res-td" style="width:45px;">시차맵</th>
                 </tr>
             </thead>
             <tbody>
@@ -331,11 +333,11 @@ window.renderReservationPlan = function() {
         const r = j.reservations[i];
         html += `
         <tr>
-            <td style="text-align:center; border:1px solid #334155; padding:2px;">${i+1}</td>
-            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-month" value="${r.month||''}" min="1" max="12" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
-            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-day" value="${r.day||''}" min="1" max="31" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
-            <td style="border:1px solid #334155; padding:2px;">
-                <select id="res-${i}-dow" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none;" onchange="updateReservation(${i})">
+            <td class="res-td" style="text-align:center;">${i+1}</td>
+            <td class="res-td"><input type="number" id="res-${i}-month" class="res-input" value="${r.month||''}" min="1" max="12" onchange="updateReservation(${i})"></td>
+            <td class="res-td"><input type="number" id="res-${i}-day" class="res-input" value="${r.day||''}" min="1" max="31" onchange="updateReservation(${i})"></td>
+            <td class="res-td">
+                <select id="res-${i}-dow" class="res-select" onchange="updateReservation(${i})">
                     <option value="0" ${r.dow===0?'selected':''}>0</option>
                     <option value="1" ${r.dow===1?'selected':''}>1</option>
                     <option value="2" ${r.dow===2?'selected':''}>2</option>
@@ -346,20 +348,20 @@ window.renderReservationPlan = function() {
                     <option value="7" ${r.dow===7?'selected':''}>7</option>
                 </select>
             </td>
-            <td style="border:1px solid #334155; padding:2px;">
-                <div style="display:flex;">
-                    <input type="number" id="res-${i}-sh" value="${r.startH!==undefined?r.startH:''}" min="0" max="23" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">:
-                    <input type="number" id="res-${i}-sm" value="${r.startM!==undefined?r.startM:''}" min="0" max="59" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">
+            <td class="res-td">
+                <div style="display:flex; gap:2px; align-items:center;">
+                    <input type="number" id="res-${i}-sh" class="res-input res-input-half" value="${r.startH!==undefined?r.startH:''}" min="0" max="23" onchange="updateReservation(${i})"><span style="color:#64748b;">:</span>
+                    <input type="number" id="res-${i}-sm" class="res-input res-input-half" value="${r.startM!==undefined?r.startM:''}" min="0" max="59" onchange="updateReservation(${i})">
                 </div>
             </td>
-            <td style="border:1px solid #334155; padding:2px;">
-                <div style="display:flex;">
-                    <input type="number" id="res-${i}-eh" value="${r.endH!==undefined?r.endH:''}" min="0" max="23" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">:
-                    <input type="number" id="res-${i}-em" value="${r.endM!==undefined?r.endM:''}" min="0" max="59" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">
+            <td class="res-td">
+                <div style="display:flex; gap:2px; align-items:center;">
+                    <input type="number" id="res-${i}-eh" class="res-input res-input-half" value="${r.endH!==undefined?r.endH:''}" min="0" max="23" onchange="updateReservation(${i})"><span style="color:#64748b;">:</span>
+                    <input type="number" id="res-${i}-em" class="res-input res-input-half" value="${r.endM!==undefined?r.endM:''}" min="0" max="59" onchange="updateReservation(${i})">
                 </div>
             </td>
-            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-func" value="${r.func!==undefined?r.func:''}" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
-            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-map" value="${r.mapIdx!==undefined?r.mapIdx:''}" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
+            <td class="res-td"><input type="number" id="res-${i}-func" class="res-input" value="${r.func!==undefined?r.func:''}" onchange="updateReservation(${i})"></td>
+            <td class="res-td"><input type="number" id="res-${i}-map" class="res-input" value="${r.mapIdx!==undefined?r.mapIdx:''}" onchange="updateReservation(${i})"></td>
         </tr>
         `;
     }

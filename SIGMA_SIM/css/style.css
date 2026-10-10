@@ -1313,3 +1313,30 @@ details.footer-section summary::marker { content: ''; }
 /* 보호구역 줌레벨 제어 */
 /* Removed safetyzone-tooltip hide rule since it is now hover-only */
 \n\n/* 연동구간 두께 강제 제어 */\npath.group-line { stroke-width: var(--group-line-weight, 5.5px) !important; }
+/* 예약계획(Reservation Plan) 테이블 전용 스타일 */
+.res-td {
+    border: 1px solid #334155; 
+    padding: 2px;
+}
+.res-input {
+    width: 100%; 
+    background: rgba(0,0,0,0.5); 
+    color: #fff; 
+    border: none; 
+    text-align: center;
+    border-radius: 2px;
+}
+.res-input:focus {
+    outline: 1px solid var(--accent);
+    background: rgba(0,0,0,0.8);
+}
+.res-input-half {
+    width: 50%;
+}
+.res-select {
+    width: 100%; 
+    background: rgba(0,0,0,0.5); 
+    color: #fff; 
+    border: none;
+    text-align: center;
+}
