@@ -70,17 +70,38 @@
             margin-bottom: 8px;
             font-size: 15px;
         }
+        .priority-list {
+            list-style: none;
+            padding: 0;
+        }
+        .priority-list li {
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 10px;
+            padding: 12px 15px;
+            border-left: 4px solid #38bdf8;
+            display: flex;
+            align-items: center;
+        }
+        .priority-list li span.badge {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 12px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>SIGMA 시뮬레이터 매뉴얼 (도움말)</h1>
+    <h1>SIGMA 시뮬레이터 도움말</h1>
 
     <div class="card">
-        <h2>1. 특수기능 예약 처리 방법 (시차계획 설정)</h2>
-        <p style="color: #cbd5e1;">경찰청 교통신호기 설치운영 업무편람(3.2.1.2.4)의 <strong>특수기능 예약 처리 규격</strong>에 따라, 현시계획(Signal Map)의 시차계획을 특정 시간 및 조건에 맞춰 예약 운영할 수 있습니다.</p>
+        <h2>1. 특수기능 예약계획 (시차제어 / 점멸 / 소등)</h2>
+        <p style="color: #cbd5e1;">경찰청 교통신호기 설치운영 업무편람 기준에 따라, 특정 날짜 및 시간에 특수기능을 강제로 운영하는 예약 시스템입니다. 바이트(DATA 필드) 규격의 HIGH NIBBLE / LOW NIBBLE 처리 방식을 완벽히 준수합니다.</p>
         
-        <h3>예약 운영 조건 설정 기준</h3>
+        <h3>조건 설정 (날짜/요일) 우선순위</h3>
         <table>
             <thead>
                 <tr>
@@ -90,35 +111,68 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><strong>날짜(월/일)</strong> 설정 O, <strong>요일</strong> <code>'0' (무관)</code></td>
+                    <td><strong>날짜(월/일)</strong> 지정 O, <strong>요일</strong> <code>'0' (무관)</code></td>
                     <td>요일에 관계없이 <strong>지정된 해당 날짜</strong>의 시간에 제어 수행</td>
                 </tr>
                 <tr>
-                    <td><strong>날짜(월/일)</strong> 설정 X, <strong>요일</strong> <code>'0' (무관)</code></td>
+                    <td><strong>날짜(월/일)</strong> 지정 X, <strong>요일</strong> <code>'0' (무관)</code></td>
                     <td>해당 시간대에 <strong>매일 무조건</strong> 수행</td>
                 </tr>
                 <tr>
-                    <td><strong>날짜(월/일)</strong> 설정 X, <strong>요일</strong> 지정 O</td>
+                    <td><strong>날짜(월/일)</strong> 지정 X, <strong>요일</strong> 지정 O</td>
                     <td>날짜에 상관없이 <strong>해당 요일</strong>의 시간에 제어 수행</td>
                 </tr>
                 <tr>
-                    <td><strong>날짜(월/일)</strong> 설정 O, <strong>요일</strong> 지정 O</td>
+                    <td><strong>날짜(월/일)</strong> 지정 O, <strong>요일</strong> 지정 O</td>
                     <td>해당 <strong>날짜와 요일이 모두 일치</strong>하는 날의 시간에 제어 수행</td>
                 </tr>
             </tbody>
         </table>
 
-        <h3>입력 항목 설명</h3>
+        <h3>NIBBLE 매핑 (기능 및 시차플랜)</h3>
+        <p>예약 테이블의 <code>기능(LOW)</code>과 <code>시차플랜(HIGH)</code>은 실제 제어기 8번 바이트의 NIBBLE 값을 직관적으로 매핑한 것입니다.</p>
         <ul>
-            <li><strong>월 (Month)</strong>: <code>1 ~ 12</code> (빈칸 또는 0 입력 시 매월 적용)</li>
-            <li><strong>일 (Day)</strong>: <code>1 ~ 31</code> (빈칸 또는 0 입력 시 매일 적용)</li>
-            <li><strong>요일 (Day of Week)</strong>: <code>0 (무관)</code>, <code>1 (일요일) ~ 7 (토요일)</code> 순으로 지정</li>
-            <li><strong>시간 (Time)</strong>: <code>0~23시</code>, <code>0~59분</code> 형태로 시작/종료 시간을 지정합니다.</li>
+            <li><strong>기능 (LOW NIBBLE)</strong>: 예약 시 어떤 특수기능을 수행할지 지시합니다.<br>
+                <code>1: 조광제어</code>, <code>2: 점멸제어</code>, <code>3: 소등제어</code>, <code>4: 시차제어</code>, <code>5: 감응제어</code>, <code>6: 보행활성</code>, <code>7: 음향발생</code>
+            </li>
+            <li><strong>시차플랜 (HIGH NIBBLE)</strong>: 기능 값이 <strong>4 (시차제어)</strong>일 때만 활성화되며, 강제로 운영될 시차제 일계획 플랜 번호(6~10)를 지시합니다. <code>0</code>을 입력하면 기본적으로 6번 플랜이 지정됩니다.</li>
         </ul>
         <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 12px 15px; margin-top: 20px; font-size: 13px; color: #bae6fd;">
-            * 시뮬레이터는 기본적으로 6개의 시그널맵(일반, 시차1~시차5)을 보관하여 스케줄을 처리합니다.<br>
-            * 예약 제어 조건에 부합하는 시차계획이 여러 개일 경우, 설정된 인덱스 순서에 따라 활성화됩니다.
+            * 예시: 기능(LOW)을 '4'로 설정하고 시차플랜(HIGH)을 '7'로 설정하면, 해당 시간대에 주간계획을 무시하고 강제로 <strong>'7번 일계획'</strong>으로 동작합니다. 이후 시간계획(TOD)과 시그널맵 매핑은 7번 일계획에 등록된 데이터를 자연스럽게 따라갑니다.
         </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 신호 시뮬레이터 등화 결정 우선순위</h2>
+        <p style="color: #cbd5e1;">시뮬레이터는 교차로의 여러 설정(주간계획, 특수기능, 점멸 등)이 겹칠 경우 다음의 엄격한 우선순위에 따라 최종 표출될 시그널맵을 결정합니다.</p>
+        
+        <ul class="priority-list">
+            <li>
+                <span class="badge">1순위</span> 
+                <div><strong>특수기능 (점멸/소등) 예약</strong><br>
+                <span style="font-size:13px; color:#94a3b8;">예약계획의 기능이 2(점멸) 또는 3(소등)으로 설정된 시간이면, 다른 모든 계획을 무시하고 무조건 교차로를 점멸(황색/적색) 또는 소등 상태로 전환합니다. (통상 점멸 스케줄 기능도 이에 포함됩니다.)</span></div>
+            </li>
+            <li>
+                <span class="badge">2순위</span> 
+                <div><strong>특수기능 (시차제) 예약</strong><br>
+                <span style="font-size:13px; color:#94a3b8;">예약계획의 기능이 4(시차제어)로 설정된 시간이면, 주간계획(요일)을 무시하고 시차플랜(HIGH NIBBLE, 6~10번)으로 지정된 <strong>일계획(Day Plan)</strong>을 최우선으로 강제 적용합니다.</span></div>
+            </li>
+            <li>
+                <span class="badge">3순위</span> 
+                <div><strong>주간계획 (Weekly Plan)</strong><br>
+                <span style="font-size:13px; color:#94a3b8;">예약계획이 없는 일반 시간대에는 교차로에 설정된 주간계획표(월~일)에 따라 현재 요일에 맞는 <strong>기본 일계획(1~10번)</strong>을 선택합니다.</span></div>
+            </li>
+            <li>
+                <span class="badge">4순위</span> 
+                <div><strong>시간계획 (TOD Schedule)</strong><br>
+                <span style="font-size:13px; color:#94a3b8;">선택된 일계획(Day Plan) 내에서, 현재 시간에 해당하는 시간계획 플랜(1~16번)을 탐색하여 활성화합니다.</span></div>
+            </li>
+            <li>
+                <span class="badge">5순위</span> 
+                <div><strong>시그널맵 자동 우회 (Fallback)</strong><br>
+                <span style="font-size:13px; color:#94a3b8;">최종 결정된 시간계획에 매핑된 시그널맵(1~6번)을 불러옵니다. 단, 해당 시그널맵이 비어있거나 화살표 데이터가 그려져 있지 않은 경우, 시뮬레이터는 시스템 안정성을 위해 <strong>무조건 1번 일반 시그널맵(플랜1)으로 우회(Fallback)</strong>하여 표출합니다.</span></div>
+            </li>
+        </ul>
     </div>
 
 </body>
