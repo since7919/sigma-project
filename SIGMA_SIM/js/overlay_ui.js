@@ -123,6 +123,13 @@ function openDetailOverlay(jid) {
 
 function closeDetailOverlay() {
     document.getElementById('detail-overlay-modal').style.display = 'none';
+    
+    // Move sigmap-table-container back to main UI
+    const sigmapContainer = document.getElementById('sigmap-table-container');
+    const loadingIndicator = document.getElementById('sigmap-loading-indicator');
+    if (sigmapContainer && loadingIndicator && loadingIndicator.parentElement) {
+        loadingIndicator.parentElement.appendChild(sigmapContainer);
+    }
 }
 
 function switchOverlayTab(tabName) {
