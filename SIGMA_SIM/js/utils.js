@@ -503,15 +503,48 @@ function syncJunctionOpStats(j) {
     j.opStats[13] = flashList.includes('시간제점멸');
 }
 
-/** 현재 시간 기준 활성 시차맵(MapIdx 0~5) 가져오기 */
+/** 현재 시간 기준 활성 시차맵(MapIdx 0~5) 가져오기 (특수기능 예약 운영조건 반영) */
 function getActiveSignalMapIdx(j, t) {
     if (!j || !j.signalMaps) return 0;
+    
+    // 시뮬레이터 요일 (0:일 ~ 6:토)
+    const curDowJs = (STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
+    const curDow = curDowJs + 1; // 업무편람 기준 1:일 ~ 7:토
+    
+    // 시뮬레이터 월/일 (미구현 시 오늘 날짜 기준)
+    const d = new Date();
+    const curMonth = d.getMonth() + 1;
+    const curDay = d.getDate();
+
     for (let k = 1; k <= 5; k++) {
         const sm = j.signalMaps[k];
-        if (sm && isTimeInRange(sm.startTime, sm.endTime, t)) {
-            // [Fix] 시차맵에 실제 데이터(이동류)가 담겨 있을 때만 활성화 (빈 맵 방지)
-            const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-            if (hasMov) return k;
+        if (sm) {
+            let matchDate = true;
+            let matchDow = true;
+            
+            let dateCond = (sm.month > 0 || sm.day > 0);
+            let dowCond = (sm.dow > 0);
+            
+            if (dateCond) {
+                if (sm.month > 0 && sm.month !== curMonth) matchDate = false;
+                if (sm.day > 0 && sm.day !== curDay) matchDate = false;
+            }
+            if (dowCond && sm.dow !== curDow) {
+                matchDow = false;
+            }
+
+            // 업무편람 예약조건 판단
+            let isDayMatched = false;
+            if (!dateCond && !dowCond) isDayMatched = true; // 무조건 수행
+            else if (dateCond && !dowCond) isDayMatched = matchDate; // 요일 관계없이 날짜 수행
+            else if (!dateCond && dowCond) isDayMatched = matchDow; // 날짜 상관없이 요일 수행
+            else isDayMatched = (matchDate && matchDow); // 해당 날짜와 요일 일치
+
+            if (isDayMatched && isTimeInRange(sm.startTime, sm.endTime, t)) {
+                // 시차맵에 실제 데이터(이동류)가 담겨 있을 때만 활성화 (빈 맵 방지)
+                const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
+                if (hasMov) return k;
+            }
         }
     }
     return 0;
