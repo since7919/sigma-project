@@ -191,8 +191,17 @@ function updateSim() {
 
         // 1. 점멸 상태 체크
         let isFlashActive = false;
+        let isBlackoutActive = false;
+        
         if (j.flashEnable && j.flashTimes) {
             isFlashActive = j.flashTimes.some(tf => isTimeInRange(tf.s, tf.e, t));
+        }
+        
+        // 예약계획(특수기능)에 의한 강제 기능 제어
+        const activeRes = (typeof getActiveReservation === 'function') ? getActiveReservation(j, t) : null;
+        if (activeRes) {
+            if (activeRes.func === 2) isFlashActive = true; // 2: 점멸제어
+            else if (activeRes.func === 3) isBlackoutActive = true; // 3: 소등제어
         }
 
         // 2. 운영자 개입 활성 체크
@@ -223,7 +232,7 @@ function updateSim() {
             activeSignalMapIdx = getEffectiveSignalMapIdx(j, useDayIdx, currentPlanIdx);
         }
 
-        if (!isFlashActive) {
+        if (!isFlashActive && !isBlackoutActive) {
             // 시차맵 변경 감지 시 화살표 재생성
             if (activeSignalMapIdx !== j._lastMapIdx) {
                 if (typeof createArrows === 'function') createArrows(j.id);
@@ -236,7 +245,7 @@ function updateSim() {
             pedGreenA: [], pedGreenB: [], pedFlashA: [], pedFlashB: []
         };
 
-        if (!isFlashActive) {
+        if (!isFlashActive && !isBlackoutActive) {
             if (isOpActive) {
                 p = {
                     splitA: opRow.splitA, splitB: opRow.splitB, offset: opRow.offset,
@@ -297,7 +306,11 @@ function updateSim() {
         });
 
         // 2. 현재 상태(점멸/정상/편집)에 따른 현시별 상태 계산
-        if (isFlashActive) {
+        if (isBlackoutActive) {
+            Object.keys(j.arrows).forEach(mStr => {
+                activeStates[parseInt(mStr)] = { st: 'Off', rem: 0 };
+            });
+        } else if (isFlashActive) {
             (j.flashYellows || []).forEach(m => activeStates[m] = { st: 'Y-flash', rem: 0 });
             (j.flashReds || []).forEach(m => activeStates[m] = { st: 'R-flash', rem: 0 });
         } else if (editing && STATE.isMapEditMode) {
@@ -684,7 +697,7 @@ function updateSim() {
             const cTimer = document.getElementById(`cycle-timer-${j.id}`);
             if (cTimer) {
                 // STATE.showSignalArrows 조건이 참일 때만 표시하도록 함
-                if (STATE.showSignalArrows && isMultiSelected && !isFlashActive && j._simCycle > 0) {
+                if (STATE.showSignalArrows && isMultiSelected && !isFlashActive && !isBlackoutActive && j._simCycle > 0) {
                     const remCycle = Math.max(0, j._simCycle - (j._simPos || 0));
                     cTimer.innerText = Math.round(remCycle);
                     cTimer.style.display = 'block';
