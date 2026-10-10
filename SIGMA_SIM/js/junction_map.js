@@ -128,9 +128,7 @@ function createArrows(jid) {
         smIdx = STATE.currentSignalMapIdx || 0;
     } else {
         const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
-        if (typeof getActiveReservation === 'function' && getActiveReservation(j, t)) {
-            smIdx = 0; // 예약계획은 시그널맵 1번 고정
-        } else if (typeof getEffectiveSignalMapIdx === 'function') {
+        if (typeof getEffectiveSignalMapIdx === 'function') {
             smIdx = getEffectiveSignalMapIdx(j, simCtx.dayIdx, simCtx.pIdx);
         } else {
             smIdx = simCtx.mapIdx;
@@ -554,9 +552,7 @@ function createOverlayArrows(jid, targetMap) {
     const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
     let smIdx = 0;
     const simCtx2 = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
-    if (typeof getActiveReservation === 'function' && getActiveReservation(j, t)) {
-        smIdx = 0;
-    } else if (typeof getEffectiveSignalMapIdx === 'function') {
+    if (typeof getEffectiveSignalMapIdx === 'function') {
         smIdx = getEffectiveSignalMapIdx(j, simCtx2.dayIdx, simCtx2.pIdx);
     } else {
         smIdx = simCtx2.mapIdx;

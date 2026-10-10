@@ -210,7 +210,7 @@ function updateSim() {
 
         // 1. TOD 스케줄 및 현재 플랜 먼저 계산 (시그널맵 Fallback 판단을 위해 필수)
         const sched = getLinkedSchedule(j, useDayIdx) || (j.schedules ? j.schedules[useDayIdx] : null);
-        const activeIdx = (!editing && typeof getActiveReservation === 'function' && getActiveReservation(j, t)) ? simCtx.pIdx : ((sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, t) : 0);
+        const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, t) : 0;
         const isSchedValid = (sched?.[activeIdx] && sched[activeIdx].h !== -1);
         const currentPlanIdx = (editing && STATE.isManualPlanView) ? (parseInt(UI.planIdx?.value) || 0) : activeIdx;
         

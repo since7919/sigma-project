@@ -322,8 +322,8 @@ window.renderReservationPlan = function() {
                     <th class="res-td" style="width:45px;">요일</th>
                     <th class="res-td" style="width:75px;">시작(시:분)</th>
                     <th class="res-td" style="width:75px;">종료(시:분)</th>
-                    <th class="res-td" style="width:50px;">일계획</th>
-                    <th class="res-td" style="width:55px;">시간계획</th>
+                    <th class="res-td" style="width:75px;">기능(LOW)</th>
+                    <th class="res-td" style="width:65px;">시차플랜(HIGH)</th>
                 </tr>
             </thead>
             <tbody>
@@ -361,15 +361,25 @@ window.renderReservationPlan = function() {
                 </div>
             </td>
             <td class="res-td">
-                <select id="res-${i}-func" class="res-select" onchange="updateReservation(${i})">
+                <select id="res-${i}-func" class="res-select" style="font-size: 9px;" onchange="updateReservation(${i})">
                     <option value="0" ${r.func===0||!r.func?'selected':''}>-</option>
-                    ${Array.from({length: 10}, (_, k) => `<option value="${k+1}" ${r.func===(k+1)?'selected':''}>${k+1}</option>`).join('')}
+                    <option value="1" ${r.func===1?'selected':''}>1:조광</option>
+                    <option value="2" ${r.func===2?'selected':''}>2:점멸</option>
+                    <option value="3" ${r.func===3?'selected':''}>3:소등</option>
+                    <option value="4" ${r.func===4?'selected':''}>4:시차</option>
+                    <option value="5" ${r.func===5?'selected':''}>5:감응</option>
+                    <option value="6" ${r.func===6?'selected':''}>6:보행</option>
+                    <option value="7" ${r.func===7?'selected':''}>7:음향</option>
                 </select>
             </td>
             <td class="res-td">
                 <select id="res-${i}-map" class="res-select" onchange="updateReservation(${i})">
                     <option value="0" ${r.mapIdx===0||!r.mapIdx?'selected':''}>-</option>
-                    ${Array.from({length: 16}, (_, k) => `<option value="${k+1}" ${r.mapIdx===(k+1)?'selected':''}>${k+1}</option>`).join('')}
+                    <option value="6" ${r.mapIdx===6?'selected':''}>6번</option>
+                    <option value="7" ${r.mapIdx===7?'selected':''}>7번</option>
+                    <option value="8" ${r.mapIdx===8?'selected':''}>8번</option>
+                    <option value="9" ${r.mapIdx===9?'selected':''}>9번</option>
+                    <option value="10" ${r.mapIdx===10?'selected':''}>10번</option>
                 </select>
             </td>
         </tr>
@@ -379,7 +389,7 @@ window.renderReservationPlan = function() {
     html += `
             </tbody>
         </table>
-        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 예약 시간 동안 지정된 일계획/시간계획으로 강제 운영 (※ 예약 적용 시 시그널맵은 1번으로 고정)</div>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 기능(LOW NIBBLE): 1(조광), 2(점멸), 3(소등), 4(시차), 5(감응), 6(보행), 7(음향) / 시차플랜(HIGH NIBBLE): 시차제 플랜 6~10 (기능이 4일때만 적용)</div>
     </div>`;
 
     container.innerHTML = html;

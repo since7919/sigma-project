@@ -518,7 +518,7 @@ function getActiveReservation(j, t) {
         for (let i = 0; i < j.reservations.length; i++) {
             const r = j.reservations[i];
             // 기능(func)이 지정된 경우만 처리
-            if (!r || r.func === undefined || r.func === '' || r.func === 0 || String(r.func) === '0') continue;
+            if (!r || r.func === undefined || r.func === '' || r.func === 0 || String(r.func) === '0' || r.func > 7) continue;
             
             let dateCond = (r.month > 0 || r.day > 0);
             let dowCond = (r.dow > 0);
@@ -557,9 +557,7 @@ function getActiveReservation(j, t) {
 function getActiveSignalMapIdx(j, t) {
     if (!j) return 0;
     
-    // 예약계획이 활성화되어 있으면 시그널맵은 무조건 1번(0)
-    const res = getActiveReservation(j, t);
-    if (res) return 0;
+    
     
     // 호환성 유지: 기존 signalMaps에 스케줄이 박혀있는 경우 (이전 UI 데이터)
     if (j.signalMaps) {
@@ -594,49 +592,47 @@ function getSimContext(j, t) {
 
     // 3. 예약계획(특수기능)에 의한 강제 Override 적용
     const activeRes = getActiveReservation(j, t);
-    let isReservationActive = false;
-
     if (activeRes) {
-        let targetDayPlan = parseInt(activeRes.func); // 기능 = 일계획(1~99)
-        let targetTimePlan = parseInt(activeRes.mapIdx); // 시차맵 = 시간계획(1~16)
-
-        if (!isNaN(targetDayPlan) && targetDayPlan > 0) {
+        if (activeRes.func === 4) {
+            // 시차제어: HIGH NIBBLE(mapIdx) 값으로 일계획(6~10)을 강제 적용
+            let targetDayPlan = parseInt(activeRes.mapIdx);
+            if (!targetDayPlan || targetDayPlan < 6 || targetDayPlan > 10) {
+                targetDayPlan = 6; // 0이면 6번 플랜
+            }
             useDayIdx = targetDayPlan - 1; // 0-indexed
-            isReservationActive = true;
         }
-        if (!isNaN(targetTimePlan) && targetTimePlan > 0) {
-            activePIdx = targetTimePlan - 1; // 0-indexed
-            activeSignalMapIdx = 0; // 예약계획 시 시그널맵은 1번(0) 고정
-            isReservationActive = true;
-        }
-    }
-
-    // 4. 예약계획이 활성화되지 않은 경우, 일반 시간표 탐색 진행
-    if (!isReservationActive) {
+    } else {
         // 기존 호환성 로직 (예전 UI에서의 시차맵 Override)
         const timedMapIdx = getActiveSignalMapIdx(j, t);
-        if (timedMapIdx > 0 && !activeRes) {
+        if (timedMapIdx > 0) {
             activeSignalMapIdx = timedMapIdx;
             useDayIdx = timedMapIdx + 4; // 구형 로직: 시차맵1이면 Day6으로 매핑
         }
+    }
 
-        // 현재 시뮬레이션 시간(t)에 맞는 TOD 플랜(pIdx) 찾기
-        const scheds = (typeof getLinkedSchedule === 'function') ? getLinkedSchedule(j, useDayIdx) : (j.schedules ? j.schedules[useDayIdx] : null);
-        if (scheds && Array.isArray(scheds)) {
-            const tMins = Math.floor(t / 60);
-            let lastValidPIdx = 0;
-            for (let i = 0; i < 16; i++) {
-                const sc = scheds[i];
-                if (!sc || sc.h === -1) break;
-                const scMins = sc.h * 60 + sc.m;
-                if (tMins >= scMins) {
-                    lastValidPIdx = i;
-                } else {
-                    break;
-                }
+    // 4. 결정된 useDayIdx를 바탕으로 TOD 시간표 탐색 (예약계획 시에도 동일하게 TOD 탐색 진행)
+    const scheds = (typeof getLinkedSchedule === 'function') ? getLinkedSchedule(j, useDayIdx) : (j.schedules ? j.schedules[useDayIdx] : null);
+    if (scheds && Array.isArray(scheds)) {
+        const tMins = Math.floor(t / 60);
+        let lastValidPIdx = 0;
+        for (let i = 0; i < 16; i++) {
+            const sc = scheds[i];
+            if (!sc || sc.h === -1) break;
+            const scMins = sc.h * 60 + sc.m;
+            if (tMins >= scMins) {
+                lastValidPIdx = i;
+            } else {
+                break;
             }
-            activePIdx = lastValidPIdx;
         }
+        activePIdx = lastValidPIdx;
+    }
+
+    // 5. 시그널맵 매핑 재확인 (getEffectiveSignalMapIdx 호환)
+    if (typeof getEffectiveSignalMapIdx === 'function') {
+        activeSignalMapIdx = getEffectiveSignalMapIdx(j, useDayIdx, activePIdx);
+    } else if (j.dayPlanMapIds && j.dayPlanMapIds[useDayIdx] !== undefined) {
+        activeSignalMapIdx = j.dayPlanMapIds[useDayIdx];
     }
 
     return { dayIdx: useDayIdx, mapIdx: activeSignalMapIdx, pIdx: activePIdx };
