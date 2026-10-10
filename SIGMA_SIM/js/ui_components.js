@@ -322,8 +322,8 @@ window.renderReservationPlan = function() {
                     <th class="res-td" style="width:45px;">요일</th>
                     <th class="res-td" style="width:75px;">시작(시:분)</th>
                     <th class="res-td" style="width:75px;">종료(시:분)</th>
-                    <th class="res-td" style="width:40px;">기능(일계획)</th>
-                    <th class="res-td" style="width:60px;">시차맵(시간계획)</th>
+                    <th class="res-td" style="width:50px;">일계획</th>
+                    <th class="res-td" style="width:55px;">시간계획</th>
                 </tr>
             </thead>
             <tbody>
@@ -360,8 +360,18 @@ window.renderReservationPlan = function() {
                     <input type="number" id="res-${i}-em" class="res-input res-input-half" value="${r.endM!==undefined?r.endM:''}" min="0" max="59" onchange="updateReservation(${i})">
                 </div>
             </td>
-            <td class="res-td"><input type="number" id="res-${i}-func" class="res-input" value="${r.func!==undefined?r.func:''}" onchange="updateReservation(${i})"></td>
-            <td class="res-td"><input type="number" id="res-${i}-map" class="res-input" value="${r.mapIdx!==undefined?r.mapIdx:''}" onchange="updateReservation(${i})"></td>
+            <td class="res-td">
+                <select id="res-${i}-func" class="res-select" onchange="updateReservation(${i})">
+                    <option value="0" ${r.func===0||!r.func?'selected':''}>-</option>
+                    ${Array.from({length: 10}, (_, k) => `<option value="${k+1}" ${r.func===(k+1)?'selected':''}>${k+1}</option>`).join('')}
+                </select>
+            </td>
+            <td class="res-td">
+                <select id="res-${i}-map" class="res-select" onchange="updateReservation(${i})">
+                    <option value="0" ${r.mapIdx===0||!r.mapIdx?'selected':''}>-</option>
+                    ${Array.from({length: 16}, (_, k) => `<option value="${k+1}" ${r.mapIdx===(k+1)?'selected':''}>${k+1}</option>`).join('')}
+                </select>
+            </td>
         </tr>
         `;
     }
@@ -369,7 +379,7 @@ window.renderReservationPlan = function() {
     html += `
             </tbody>
         </table>
-        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 기능: 일계획 번호 (예: 4) / 시차맵: 시간계획(TOD) 번호 (예: 6) (※ 예약 적용 시 시그널맵은 1번으로 자동 고정)</div>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 예약 시간 동안 지정된 일계획/시간계획으로 강제 운영 (※ 예약 적용 시 시그널맵은 1번으로 고정)</div>
     </div>`;
 
     container.innerHTML = html;
