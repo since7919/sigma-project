@@ -232,6 +232,7 @@ function selectJunction(jid, isMulti = false) {
 
     renderCivilStats(jid);
 
+    if (typeof renderReservationPlan === 'function') renderReservationPlan();
     updateNameStyles();
     
     if (j.marker) {

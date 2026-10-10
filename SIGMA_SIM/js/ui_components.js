@@ -288,3 +288,109 @@ function renderActuationGroups() {
 
 
 
+
+
+window.renderReservationPlan = function() {
+    const container = document.getElementById('reservation-plan-container');
+    if (!container) return;
+
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) {
+        container.innerHTML = '';
+        return;
+    }
+    const j = STATE.junctions[jid];
+    
+    // Initialize reservations array if missing
+    if (!j.reservations) {
+        j.reservations = Array.from({length: 10}, () => ({
+            month: 0, day: 0, dow: 0, startH: '', startM: '', endH: '', endM: '', func: 0, mapIdx: 0
+        }));
+    }
+
+    let html = `
+    <div style="margin-top: 15px;">
+        <div style="font-size: 13px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">🕒 예약계획 (특수기능)</div>
+        <table class="sigma-table" style="width:100%; font-size:10px; table-layout: fixed; border-collapse: collapse;">
+            <thead>
+                <tr style="background: rgba(255,255,255,0.05);">
+                    <th style="width:30px; border:1px solid #334155; padding:4px;">항목</th>
+                    <th style="width:40px; border:1px solid #334155; padding:4px;">월</th>
+                    <th style="width:40px; border:1px solid #334155; padding:4px;">일</th>
+                    <th style="width:45px; border:1px solid #334155; padding:4px;">요일</th>
+                    <th style="width:75px; border:1px solid #334155; padding:4px;">시작(시:분)</th>
+                    <th style="width:75px; border:1px solid #334155; padding:4px;">종료(시:분)</th>
+                    <th style="width:40px; border:1px solid #334155; padding:4px;">기능</th>
+                    <th style="width:45px; border:1px solid #334155; padding:4px;">시차맵</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (let i = 0; i < 10; i++) {
+        const r = j.reservations[i];
+        html += `
+        <tr>
+            <td style="text-align:center; border:1px solid #334155; padding:2px;">${i+1}</td>
+            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-month" value="${r.month||''}" min="1" max="12" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
+            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-day" value="${r.day||''}" min="1" max="31" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
+            <td style="border:1px solid #334155; padding:2px;">
+                <select id="res-${i}-dow" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none;" onchange="updateReservation(${i})">
+                    <option value="0" ${r.dow===0?'selected':''}>0</option>
+                    <option value="1" ${r.dow===1?'selected':''}>1</option>
+                    <option value="2" ${r.dow===2?'selected':''}>2</option>
+                    <option value="3" ${r.dow===3?'selected':''}>3</option>
+                    <option value="4" ${r.dow===4?'selected':''}>4</option>
+                    <option value="5" ${r.dow===5?'selected':''}>5</option>
+                    <option value="6" ${r.dow===6?'selected':''}>6</option>
+                    <option value="7" ${r.dow===7?'selected':''}>7</option>
+                </select>
+            </td>
+            <td style="border:1px solid #334155; padding:2px;">
+                <div style="display:flex;">
+                    <input type="number" id="res-${i}-sh" value="${r.startH!==undefined?r.startH:''}" min="0" max="23" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">:
+                    <input type="number" id="res-${i}-sm" value="${r.startM!==undefined?r.startM:''}" min="0" max="59" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">
+                </div>
+            </td>
+            <td style="border:1px solid #334155; padding:2px;">
+                <div style="display:flex;">
+                    <input type="number" id="res-${i}-eh" value="${r.endH!==undefined?r.endH:''}" min="0" max="23" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">:
+                    <input type="number" id="res-${i}-em" value="${r.endM!==undefined?r.endM:''}" min="0" max="59" style="width:50%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})">
+                </div>
+            </td>
+            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-func" value="${r.func!==undefined?r.func:''}" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
+            <td style="border:1px solid #334155; padding:2px;"><input type="number" id="res-${i}-map" value="${r.mapIdx!==undefined?r.mapIdx:''}" style="width:100%; background:rgba(0,0,0,0.5); color:#fff; border:none; text-align:center;" onchange="updateReservation(${i})"></td>
+        </tr>
+        `;
+    }
+
+    html += `
+            </tbody>
+        </table>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 기능: 4(시차제어) / 시차맵: 1~5 (1:시차1, 2:시차2...)</div>
+    </div>`;
+
+    container.innerHTML = html;
+};
+
+window.updateReservation = function(idx) {
+    const jid = STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) return;
+    const j = STATE.junctions[jid];
+    if (!j.reservations) return;
+    
+    const r = j.reservations[idx];
+    r.month = parseInt(document.getElementById(`res-${idx}-month`).value) || 0;
+    r.day = parseInt(document.getElementById(`res-${idx}-day`).value) || 0;
+    r.dow = parseInt(document.getElementById(`res-${idx}-dow`).value) || 0;
+    
+    r.startH = document.getElementById(`res-${idx}-sh`).value;
+    r.startM = document.getElementById(`res-${idx}-sm`).value;
+    r.endH = document.getElementById(`res-${idx}-eh`).value;
+    r.endM = document.getElementById(`res-${idx}-em`).value;
+    
+    r.func = parseInt(document.getElementById(`res-${idx}-func`).value) || 0;
+    r.mapIdx = parseInt(document.getElementById(`res-${idx}-map`).value) || 0;
+    
+    if (typeof updateActiveJunctionToDB === 'function') updateActiveJunctionToDB();
+};

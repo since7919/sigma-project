@@ -334,50 +334,6 @@ function renderSignalMapButtons() {
                 </button>
             </div>`;
     });
-    html += '</div>';
-
-    // [신규] 특수기능(시차계획) 예약 운영 조건 설정 UI
-    if (j && j.signalMaps && STATE.currentSignalMapIdx > 0) {
-        const sm = j.signalMaps[STATE.currentSignalMapIdx];
-        
-        let sh='', sm_m='', eh='', em='';
-        if (sm.startTime) { const p = sm.startTime.split(':'); sh = p[0]||''; sm_m = p[1]||''; }
-        if (sm.endTime) { const p = sm.endTime.split(':'); eh = p[0]||''; em = p[1]||''; }
-        
-        html += `
-        <div style="margin-top: 8px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 6px; font-weight: bold; display: flex; justify-content: space-between;">
-                <span>📅 예약 운영 조건 (${labels[STATE.currentSignalMapIdx]})</span>
-                <span style="font-size:10px; color:#64748b; font-weight:normal;">* 빈칸 또는 '0'은 매일/매월 무관을 의미</span>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 11px; color: #94a3b8;">
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    <input type="number" id="sm-month" value="${sm.month || ''}" placeholder="월" min="1" max="12" style="width:36px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()">월
-                    <input type="number" id="sm-day" value="${sm.day || ''}" placeholder="일" min="1" max="31" style="width:36px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()">일
-                </div>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    요일:
-                    <select id="sm-dow" style="background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px 4px; height: 22px;" onchange="updateSignalMapSchedule()">
-                        <option value="0" ${!sm.dow ? 'selected' : ''}>무관(0)</option>
-                        <option value="1" ${sm.dow == 1 ? 'selected' : ''}>일(1)</option>
-                        <option value="2" ${sm.dow == 2 ? 'selected' : ''}>월(2)</option>
-                        <option value="3" ${sm.dow == 3 ? 'selected' : ''}>화(3)</option>
-                        <option value="4" ${sm.dow == 4 ? 'selected' : ''}>수(4)</option>
-                        <option value="5" ${sm.dow == 5 ? 'selected' : ''}>목(5)</option>
-                        <option value="6" ${sm.dow == 6 ? 'selected' : ''}>금(6)</option>
-                        <option value="7" ${sm.dow == 7 ? 'selected' : ''}>토(7)</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    시간:
-                    <input type="number" id="sm-sh" value="${sh}" placeholder="시" min="0" max="23" style="width:32px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()">:
-                    <input type="number" id="sm-sm" value="${sm_m}" placeholder="분" min="0" max="59" style="width:32px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()"> ~
-                    <input type="number" id="sm-eh" value="${eh}" placeholder="시" min="0" max="23" style="width:32px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()">:
-                    <input type="number" id="sm-em" value="${em}" placeholder="분" min="0" max="59" style="width:32px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #334155; border-radius:4px; padding:2px; text-align:center;" onchange="updateSignalMapSchedule()">
-                </div>
-            </div>
-        </div>`;
-    }
     html += '</div></div>';
     if (!document.getElementById('tod-dnd-css')) {
         const style = document.createElement('style');
@@ -1692,27 +1648,3 @@ window.handlePhaseTodDragStart = function(e, dayIdx, slotIdx) {
     });
 })();
 
-window.updateSignalMapSchedule = function() {
-    const jid = STATE.activeJid;
-    if (!jid || !STATE.junctions[jid]) return;
-    const j = STATE.junctions[jid];
-    if (STATE.currentSignalMapIdx > 0 && j.signalMaps) {
-        const sm = j.signalMaps[STATE.currentSignalMapIdx];
-        sm.month = parseInt(document.getElementById('sm-month').value) || 0;
-        sm.day = parseInt(document.getElementById('sm-day').value) || 0;
-        sm.dow = parseInt(document.getElementById('sm-dow').value) || 0;
-        
-        const sh = document.getElementById('sm-sh').value;
-        const sM = document.getElementById('sm-sm').value;
-        const eh = document.getElementById('sm-eh').value;
-        const eM = document.getElementById('sm-em').value;
-        
-        if (sh && sM) sm.startTime = String(sh).padStart(2,'0') + ':' + String(sM).padStart(2,'0');
-        else sm.startTime = '';
-        
-        if (eh && eM) sm.endTime = String(eh).padStart(2,'0') + ':' + String(eM).padStart(2,'0');
-        else sm.endTime = '';
-        
-        if (typeof updateActiveJunctionToDB === 'function') updateActiveJunctionToDB();
-    }
-};

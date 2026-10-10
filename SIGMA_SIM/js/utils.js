@@ -505,7 +505,7 @@ function syncJunctionOpStats(j) {
 
 /** 현재 시간 기준 활성 시차맵(MapIdx 0~5) 가져오기 (특수기능 예약 운영조건 반영) */
 function getActiveSignalMapIdx(j, t) {
-    if (!j || !j.signalMaps) return 0;
+    if (!j) return 0;
     
     // 시뮬레이터 요일 (0:일 ~ 6:토)
     const curDowJs = (STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
@@ -516,37 +516,61 @@ function getActiveSignalMapIdx(j, t) {
     const curMonth = d.getMonth() + 1;
     const curDay = d.getDate();
 
-    for (let k = 1; k <= 5; k++) {
-        const sm = j.signalMaps[k];
-        if (sm) {
+    if (j.reservations && j.reservations.length > 0) {
+        for (let i = 0; i < j.reservations.length; i++) {
+            const r = j.reservations[i];
+            if (!r || r.func !== 4) continue;
+            
+            const mapIdx = r.mapIdx;
+            if (!mapIdx || mapIdx < 1 || mapIdx > 5 || !j.signalMaps || !j.signalMaps[mapIdx]) continue;
+            
+            const sm = j.signalMaps[mapIdx];
+            
             let matchDate = true;
             let matchDow = true;
             
-            let dateCond = (sm.month > 0 || sm.day > 0);
-            let dowCond = (sm.dow > 0);
+            let dateCond = (r.month > 0 || r.day > 0);
+            let dowCond = (r.dow > 0);
             
             if (dateCond) {
-                if (sm.month > 0 && sm.month !== curMonth) matchDate = false;
-                if (sm.day > 0 && sm.day !== curDay) matchDate = false;
+                if (r.month > 0 && r.month !== curMonth) matchDate = false;
+                if (r.day > 0 && r.day !== curDay) matchDate = false;
             }
-            if (dowCond && sm.dow !== curDow) {
+            if (dowCond && r.dow !== curDow) {
                 matchDow = false;
             }
 
-            // 업무편람 예약조건 판단
             let isDayMatched = false;
-            if (!dateCond && !dowCond) isDayMatched = true; // 무조건 수행
-            else if (dateCond && !dowCond) isDayMatched = matchDate; // 요일 관계없이 날짜 수행
-            else if (!dateCond && dowCond) isDayMatched = matchDow; // 날짜 상관없이 요일 수행
-            else isDayMatched = (matchDate && matchDow); // 해당 날짜와 요일 일치
+            if (!dateCond && !dowCond) isDayMatched = true; 
+            else if (dateCond && !dowCond) isDayMatched = matchDate; 
+            else if (!dateCond && dowCond) isDayMatched = matchDow; 
+            else isDayMatched = (matchDate && matchDow); 
 
-            if (isDayMatched && isTimeInRange(sm.startTime, sm.endTime, t)) {
-                // 시차맵에 실제 데이터(이동류)가 담겨 있을 때만 활성화 (빈 맵 방지)
+            const sTime = (r.startH !== undefined && r.startH !== '' && r.startM !== undefined && r.startM !== '') 
+                ? String(r.startH).padStart(2,'0') + ':' + String(r.startM).padStart(2,'0') : '';
+            const eTime = (r.endH !== undefined && r.endH !== '' && r.endM !== undefined && r.endM !== '') 
+                ? String(r.endH).padStart(2,'0') + ':' + String(r.endM).padStart(2,'0') : '';
+
+            if (isDayMatched && sTime && eTime && isTimeInRange(sTime, eTime, t)) {
                 const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-                if (hasMov) return k;
+                if (hasMov) return mapIdx;
             }
         }
     }
+    
+    // 호환성 유지: 기존 signalMaps에 스케줄이 박혀있는 경우 (이전 UI 데이터)
+    if (j.signalMaps) {
+        for (let k = 1; k <= 5; k++) {
+            const sm = j.signalMaps[k];
+            if (sm && sm.startTime && sm.endTime) {
+                if (isTimeInRange(sm.startTime, sm.endTime, t)) {
+                    const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
+                    if (hasMov) return k;
+                }
+            }
+        }
+    }
+
     return 0;
 }
 
