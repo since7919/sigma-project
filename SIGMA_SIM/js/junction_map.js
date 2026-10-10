@@ -123,14 +123,18 @@ function createArrows(jid) {
     // ── [신규모드] 현재 인맥/상황에 맞는 시차맵(SignalMap) 데이터 추출 ──
     const t = parseInt(UI.timeSlider?.value) || 0;
     const isEditingMode = (jid === STATE.activeJid && STATE.isMapEditMode);
-    let smIdx = isEditingMode ? (STATE.currentSignalMapIdx || 0) : getActiveSignalMapIdx(j, t);
-    // [Fix] 시그널맵 매핑이 우회(Fallback)된 경우 해당 맵 인덱스를 사용하도록 강제 동기화
-    if (!isEditingMode && typeof getEffectiveSignalMapIdx === 'function') {
-        const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay() };
-        let useDayIdx = simCtx.dayIdx;
-        const sched = (typeof getLinkedSchedule === 'function') ? getLinkedSchedule(j, useDayIdx) : (j.schedules ? j.schedules[useDayIdx] : null);
-        const activeIdx = (sched && Array.isArray(sched)) ? (typeof findActiveSchedIdx === 'function' ? findActiveSchedIdx(sched, t) : 0) : 0;
-        smIdx = getEffectiveSignalMapIdx(j, useDayIdx, activeIdx);
+    let smIdx = 0;
+    if (isEditingMode) {
+        smIdx = STATE.currentSignalMapIdx || 0;
+    } else {
+        const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
+        if (typeof getActiveReservation === 'function' && getActiveReservation(j, t)) {
+            smIdx = 0; // 예약계획은 시그널맵 1번 고정
+        } else if (typeof getEffectiveSignalMapIdx === 'function') {
+            smIdx = getEffectiveSignalMapIdx(j, simCtx.dayIdx, simCtx.pIdx);
+        } else {
+            smIdx = simCtx.mapIdx;
+        }
     }
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
         movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
@@ -548,7 +552,15 @@ function createOverlayArrows(jid, targetMap) {
     if (!j || !targetMap) return;
 
     const t = parseInt(typeof UI !== 'undefined' && UI.timeSlider ? UI.timeSlider.value : 0);
-    const smIdx = (typeof getActiveSignalMapIdx === 'function') ? getActiveSignalMapIdx(j, t) : 0;
+    let smIdx = 0;
+    const simCtx2 = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
+    if (typeof getActiveReservation === 'function' && getActiveReservation(j, t)) {
+        smIdx = 0;
+    } else if (typeof getEffectiveSignalMapIdx === 'function') {
+        smIdx = getEffectiveSignalMapIdx(j, simCtx2.dayIdx, simCtx2.pIdx);
+    } else {
+        smIdx = simCtx2.mapIdx;
+    }
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
         movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
         pedMovA: j.pedMovA || [0,0,0,0,0,0,0,0], pedMovB: j.pedMovB || [0,0,0,0,0,0,0,0]

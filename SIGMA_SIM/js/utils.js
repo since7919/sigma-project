@@ -503,15 +503,13 @@ function syncJunctionOpStats(j) {
     j.opStats[13] = flashList.includes('시간제점멸');
 }
 
-/** 현재 시간 기준 활성 시차맵(MapIdx 0~5) 가져오기 (특수기능 예약 운영조건 반영) */
-function getActiveSignalMapIdx(j, t) {
-    if (!j) return 0;
+/** 특수기능 예약운영조건에서 현재 시간에 일치하는 예약 객체를 반환 */
+function getActiveReservation(j, t) {
+    if (!j) return null;
     
-    // 시뮬레이터 요일 (0:일 ~ 6:토)
     const curDowJs = (STATE.simDayOfWeek !== undefined) ? STATE.simDayOfWeek : new Date().getDay();
-    const curDow = curDowJs + 1; // 업무편람 기준 1:일 ~ 7:토
+    const curDow = curDowJs + 1; // 1:일 ~ 7:토
     
-    // 시뮬레이터 월/일 (미구현 시 오늘 날짜 기준)
     const d = new Date();
     const curMonth = d.getMonth() + 1;
     const curDay = d.getDate();
@@ -519,18 +517,14 @@ function getActiveSignalMapIdx(j, t) {
     if (j.reservations && j.reservations.length > 0) {
         for (let i = 0; i < j.reservations.length; i++) {
             const r = j.reservations[i];
-            if (!r || r.func !== 4) continue;
-            
-            const mapIdx = r.mapIdx;
-            if (!mapIdx || mapIdx < 1 || mapIdx > 5 || !j.signalMaps || !j.signalMaps[mapIdx]) continue;
-            
-            const sm = j.signalMaps[mapIdx];
-            
-            let matchDate = true;
-            let matchDow = true;
+            // 기능(func)이 지정된 경우만 처리
+            if (!r || r.func === undefined || r.func === '' || r.func === 0 || String(r.func) === '0') continue;
             
             let dateCond = (r.month > 0 || r.day > 0);
             let dowCond = (r.dow > 0);
+            
+            let matchDate = true;
+            let matchDow = true;
             
             if (dateCond) {
                 if (r.month > 0 && r.month !== curMonth) matchDate = false;
@@ -552,11 +546,20 @@ function getActiveSignalMapIdx(j, t) {
                 ? String(r.endH).padStart(2,'0') + ':' + String(r.endM).padStart(2,'0') : '';
 
             if (isDayMatched && sTime && eTime && isTimeInRange(sTime, eTime, t)) {
-                const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-                if (hasMov) return mapIdx;
+                return r; // 활성화된 예약 반환
             }
         }
     }
+    return null;
+}
+
+/** 현재 시간 기준 활성 시차맵(MapIdx) 가져오기 (하위 호환성 및 예약 반영) */
+function getActiveSignalMapIdx(j, t) {
+    if (!j) return 0;
+    
+    // 예약계획이 활성화되어 있으면 시그널맵은 무조건 1번(0)
+    const res = getActiveReservation(j, t);
+    if (res) return 0;
     
     // 호환성 유지: 기존 signalMaps에 스케줄이 박혀있는 경우 (이전 UI 데이터)
     if (j.signalMaps) {
@@ -570,12 +573,11 @@ function getActiveSignalMapIdx(j, t) {
             }
         }
     }
-
     return 0;
 }
 
 /** 
- * 현재 시뮬레이션 시간(t)과 교차로 설정에 따라 사용할 요일 인덱스(0~9)와 시그널맵 인덱스(0~5)를 계산합니다.
+ * 현재 시뮬레이션 시간(t)과 교차로 설정에 따라 사용할 요일 인덱스(0~9), 시그널맵 인덱스(0~5), 시간계획 인덱스(pIdx)를 계산합니다.
  */
 function getSimContext(j, t) {
     // 1. 요일정보 (선택된 요일 우선, 없으면 오늘 요일 0:일 ~ 6:토)
@@ -587,35 +589,54 @@ function getSimContext(j, t) {
     const baseDayType = weeklyIdxs[jsToWeeklyMap[dayOfWeek]] || 1;
     
     let useDayIdx = (baseDayType - 1); // 0-indexed (0:평일, 1:토, 2:일...)
-    
-    // 3. 해당 일계획(TOD)에 설정된 기본 시그널맵 인덱스 찾기
     let activeSignalMapIdx = (j.dayPlanMapIds && j.dayPlanMapIds[useDayIdx] !== undefined) ? j.dayPlanMapIds[useDayIdx] : 0;
+    let activePIdx = 0;
 
-    // 4. 시차맵(1-5) 시간 범위(startTime/endTime)에 따른 Override 체크
-    const timedMapIdx = getActiveSignalMapIdx(j, t);
-    if (timedMapIdx > 0) {
-        activeSignalMapIdx = timedMapIdx;
-        // 시차맵이 활성화된 경우 일계획도 해당 시차일계획(Day 6-10)으로 전환
-        useDayIdx = timedMapIdx + 4; 
+    // 3. 예약계획(특수기능)에 의한 강제 Override 적용
+    const activeRes = getActiveReservation(j, t);
+    let isReservationActive = false;
+
+    if (activeRes) {
+        let targetDayPlan = parseInt(activeRes.func); // 기능 = 일계획(1~99)
+        let targetTimePlan = parseInt(activeRes.mapIdx); // 시차맵 = 시간계획(1~16)
+
+        if (!isNaN(targetDayPlan) && targetDayPlan > 0) {
+            useDayIdx = targetDayPlan - 1; // 0-indexed
+            isReservationActive = true;
+        }
+        if (!isNaN(targetTimePlan) && targetTimePlan > 0) {
+            activePIdx = targetTimePlan - 1; // 0-indexed
+            activeSignalMapIdx = 0; // 예약계획 시 시그널맵은 1번(0) 고정
+            isReservationActive = true;
+        }
     }
 
-    // 5. 현재 시뮬레이션 시간(t)에 맞는 TOD 플랜(pIdx) 찾기
-    let activePIdx = 0;
-    if (j.schedules && j.schedules[useDayIdx]) {
-        const scheds = j.schedules[useDayIdx];
-        const tMins = Math.floor(t / 60);
-        let lastValidPIdx = 0;
-        for (let i = 0; i < 16; i++) {
-            const sc = scheds[i];
-            if (!sc || sc.h === -1) break;
-            const scMins = sc.h * 60 + sc.m;
-            if (tMins >= scMins) {
-                lastValidPIdx = i;
-            } else {
-                break;
-            }
+    // 4. 예약계획이 활성화되지 않은 경우, 일반 시간표 탐색 진행
+    if (!isReservationActive) {
+        // 기존 호환성 로직 (예전 UI에서의 시차맵 Override)
+        const timedMapIdx = getActiveSignalMapIdx(j, t);
+        if (timedMapIdx > 0 && !activeRes) {
+            activeSignalMapIdx = timedMapIdx;
+            useDayIdx = timedMapIdx + 4; // 구형 로직: 시차맵1이면 Day6으로 매핑
         }
-        activePIdx = lastValidPIdx;
+
+        // 현재 시뮬레이션 시간(t)에 맞는 TOD 플랜(pIdx) 찾기
+        const scheds = (typeof getLinkedSchedule === 'function') ? getLinkedSchedule(j, useDayIdx) : (j.schedules ? j.schedules[useDayIdx] : null);
+        if (scheds && Array.isArray(scheds)) {
+            const tMins = Math.floor(t / 60);
+            let lastValidPIdx = 0;
+            for (let i = 0; i < 16; i++) {
+                const sc = scheds[i];
+                if (!sc || sc.h === -1) break;
+                const scMins = sc.h * 60 + sc.m;
+                if (tMins >= scMins) {
+                    lastValidPIdx = i;
+                } else {
+                    break;
+                }
+            }
+            activePIdx = lastValidPIdx;
+        }
     }
 
     return { dayIdx: useDayIdx, mapIdx: activeSignalMapIdx, pIdx: activePIdx };

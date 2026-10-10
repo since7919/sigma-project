@@ -322,8 +322,8 @@ window.renderReservationPlan = function() {
                     <th class="res-td" style="width:45px;">요일</th>
                     <th class="res-td" style="width:75px;">시작(시:분)</th>
                     <th class="res-td" style="width:75px;">종료(시:분)</th>
-                    <th class="res-td" style="width:40px;">기능</th>
-                    <th class="res-td" style="width:45px;">시차맵</th>
+                    <th class="res-td" style="width:40px;">기능(일계획)</th>
+                    <th class="res-td" style="width:60px;">시차맵(시간계획)</th>
                 </tr>
             </thead>
             <tbody>
@@ -369,7 +369,7 @@ window.renderReservationPlan = function() {
     html += `
             </tbody>
         </table>
-        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 기능: 4(시차제어) / 시차맵: 1~5 (1:시차1, 2:시차2...)</div>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px;">* 기능: 일계획 번호 (예: 4) / 시차맵: 시간계획(TOD) 번호 (예: 6) (※ 예약 적용 시 시그널맵은 1번으로 자동 고정)</div>
     </div>`;
 
     container.innerHTML = html;

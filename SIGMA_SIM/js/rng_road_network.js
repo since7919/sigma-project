@@ -177,7 +177,7 @@ class RoadNetworkManager {
                 // [Fix] 스케줄표의 고정값이 아닌, 실제 구동되는 스플릿의 합계를 추적합니다.
                 const ctx = getSimContext(j, targetSec);
                 const sched = getLinkedSchedule(j, ctx.dayIdx) || (j.schedules ? j.schedules[ctx.dayIdx] : null);
-                const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, targetSec) : 0;
+                const activeIdx = (typeof getActiveReservation === 'function' && getActiveReservation(j, targetSec)) ? ctx.pIdx : ((sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, targetSec) : 0);
                 
                 const p = (j.dayPlans && j.dayPlans[ctx.dayIdx]) ? j.dayPlans[ctx.dayIdx][activeIdx] : null;
                 if (p && p.splitA) {
