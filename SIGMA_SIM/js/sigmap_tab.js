@@ -269,23 +269,20 @@ async function fetchAndCopyUTICSignalMap() {
             return;
         }
 
-        // UTIC 데이터의 계획 번호가 0부터 시작할 경우, 시그마 맵번호(1~6)에 맞추기 위해 1을 더해줍니다.
-        const offset = planKeys[0] === 0 ? 1 : 0;
-
+        // UTIC 데이터의 플랜 번호가 1,2,3... 순차적이지 않을 수 있으므로(예: 10, 27, 29), 정렬된 순서대로 인덱스를 매칭합니다.
         let appliedPlans = [];
-        planKeys.forEach(pNo => {
+        planKeys.forEach((pNo, index) => {
             const pData = plansData[pNo];
             pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
             pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
 
-            // 맵번호(1~6)에 매칭하여 signalMaps[0~5]에 저장. 
-            let mIdx = (pNo + offset) - 1;
+            let mIdx = index;
             if (mIdx >= 0 && mIdx < 6) {
                 const sm = j.signalMaps[mIdx];
                 sm.stepsA = pData.ringA;
                 sm.stepsB = pData.ringB;
                 parseStepsToSignalMap(sm, pData.ringA, pData.ringB);
-                appliedPlans.push(pNo + offset); // 저장된 시그마 맵번호 기준
+                appliedPlans.push(mIdx + 1); // 저장된 시그마 맵번호(1~6) 기준
             }
         });
 
