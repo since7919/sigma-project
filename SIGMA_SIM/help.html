@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SIGMA 시뮬레이터 도움말</title>
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            line-height: 1.6;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #38bdf8;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #f472b6;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        h3 {
+            color: #fbbf24;
+            font-size: 16px;
+            margin-top: 25px;
+        }
+        .card {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        code {
+            background-color: #0f172a;
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #334155;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #0f172a;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: rgba(255,255,255,0.02);
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>SIGMA 시뮬레이터 매뉴얼 (도움말)</h1>
+
+    <div class="card">
+        <h2>1. 특수기능 예약 처리 방법 (시차계획 설정)</h2>
+        <p style="color: #cbd5e1;">경찰청 교통신호기 설치운영 업무편람(3.2.1.2.4)의 <strong>특수기능 예약 처리 규격</strong>에 따라, 현시계획(Signal Map)의 시차계획을 특정 시간 및 조건에 맞춰 예약 운영할 수 있습니다.</p>
+        
+        <h3>예약 운영 조건 설정 기준</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>조건 설정 상태</th>
+                    <th>제어 수행 방식</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>날짜(월/일)</strong> 설정 O, <strong>요일</strong> <code>'0' (무관)</code></td>
+                    <td>요일에 관계없이 <strong>지정된 해당 날짜</strong>의 시간에 제어 수행</td>
+                </tr>
+                <tr>
+                    <td><strong>날짜(월/일)</strong> 설정 X, <strong>요일</strong> <code>'0' (무관)</code></td>
+                    <td>해당 시간대에 <strong>매일 무조건</strong> 수행</td>
+                </tr>
+                <tr>
+                    <td><strong>날짜(월/일)</strong> 설정 X, <strong>요일</strong> 지정 O</td>
+                    <td>날짜에 상관없이 <strong>해당 요일</strong>의 시간에 제어 수행</td>
+                </tr>
+                <tr>
+                    <td><strong>날짜(월/일)</strong> 설정 O, <strong>요일</strong> 지정 O</td>
+                    <td>해당 <strong>날짜와 요일이 모두 일치</strong>하는 날의 시간에 제어 수행</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>입력 항목 설명</h3>
+        <ul>
+            <li><strong>월 (Month)</strong>: <code>1 ~ 12</code> (빈칸 또는 0 입력 시 매월 적용)</li>
+            <li><strong>일 (Day)</strong>: <code>1 ~ 31</code> (빈칸 또는 0 입력 시 매일 적용)</li>
+            <li><strong>요일 (Day of Week)</strong>: <code>0 (무관)</code>, <code>1 (일요일) ~ 7 (토요일)</code> 순으로 지정</li>
+            <li><strong>시간 (Time)</strong>: <code>0~23시</code>, <code>0~59분</code> 형태로 시작/종료 시간을 지정합니다.</li>
+        </ul>
+        <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 12px 15px; margin-top: 20px; font-size: 13px; color: #bae6fd;">
+            * 시뮬레이터는 기본적으로 6개의 시그널맵(일반, 시차1~시차5)을 보관하여 스케줄을 처리합니다.<br>
+            * 예약 제어 조건에 부합하는 시차계획이 여러 개일 경우, 설정된 인덱스 순서에 따라 활성화됩니다.
+        </div>
+    </div>
+
+</body>
+</html>
