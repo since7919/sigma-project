@@ -70,9 +70,9 @@ function renderSignalMapTab() {
             if (checkVal === 2 || checkVal === 20) return 'cell-yellow';
             if (checkVal === 8) return 'cell-red';
         } else {
-            if (checkVal === 1 || checkVal === 10 || checkVal === 11 || checkVal === 4) return 'cell-green';
+            // [Fix] 보행점멸(5)도 보행녹색과 동일한 녹색으로 표시 (깜빡임 제거)
+            if (checkVal === 1 || checkVal === 10 || checkVal === 11 || checkVal === 4 || checkVal === 5) return 'cell-green';
             if (checkVal === 2 || checkVal === 8 || checkVal === 20) return 'cell-red';
-            if (checkVal === 5) return 'cell-flash';
         }
         
         return 'cell-gray';
