@@ -337,8 +337,6 @@ function renderSignalMapButtons() {
     html += '</div>';
 
     // [신규] 특수기능(시차계획) 예약 운영 조건 설정 UI
-    const jid = STATE.activeJid;
-    const j = jid ? STATE.junctions[jid] : null;
     if (j && j.signalMaps && STATE.currentSignalMapIdx > 0) {
         const sm = j.signalMaps[STATE.currentSignalMapIdx];
         
