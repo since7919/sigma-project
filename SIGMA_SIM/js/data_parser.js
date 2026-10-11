@@ -13,6 +13,9 @@ function serializeArrows(j) {
             arrs.push(`_custom_angles:${pfx}:${angle}`);
         });
     }
+    if (j.reservations && Array.isArray(j.reservations)) {
+        arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(j.reservations))}`);
+    }
     return arrs.join(';');
 }
 
@@ -125,6 +128,9 @@ async function processSignalMapCSV(csv) {
                     if (!STATE.junctions[jid]) continue;
                     const sm = STATE.junctions[jid].signalMaps[midx];
                     Object.assign(sm, mapData);
+                    if (midx === 0 && mapData.reservations) {
+                        STATE.junctions[jid].reservations = mapData.reservations;
+                    }
                 }
                 worker.terminate();
                 resolve();
@@ -727,6 +733,77 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                 }
             }
             
+            // [6] 특수기능 예약계획(10개 항목) 분석 및 적재
+            let reservationsFound = null;
+            for (let r = 1; r <= Math.min(60, sheetData.length); r++) {
+                for (let c = 1; c <= 40; c++) {
+                    const cellVal = String(getVal(r, c) || '').replace(/\s/g, '');
+                    if (cellVal.includes('예약계획')) {
+                        let itemCol = -1, monthCol = -1, dayCol = -1, dowCol = -1, startCol = -1, endCol = -1, funcCol = -1, mapCol = -1;
+                        for (let col = c; col <= c + 25; col++) {
+                            const h = String(getVal(r + 1, col) || '').replace(/\s/g, '');
+                            if (h.includes('항목')) itemCol = col;
+                            else if (h.includes('월')) monthCol = col;
+                            else if (h.includes('요일')) dowCol = col;
+                            else if (h.includes('일')) dayCol = col;
+                            else if (h.includes('시작')) startCol = col;
+                            else if (h.includes('종료')) endCol = col;
+                            else if (h.includes('기능')) funcCol = col;
+                            else if (h.includes('시차')) mapCol = col;
+                        }
+
+                        if (itemCol === -1) itemCol = c;
+                        if (monthCol === -1) monthCol = c + 2;
+                        if (dayCol === -1) dayCol = c + 4;
+                        if (dowCol === -1) dowCol = c + 6;
+                        if (startCol === -1) startCol = c + 8;
+                        if (endCol === -1) endCol = c + 10;
+                        if (funcCol === -1) funcCol = c + 12;
+                        if (mapCol === -1) mapCol = c + 16;
+
+                        const parseTime = (v) => {
+                            if (v === null || v === undefined || v === '') return { h: '', m: '' };
+                            if (typeof v === 'number') {
+                                const tot = Math.round(v * 1440);
+                                return { h: Math.floor(tot / 60), m: tot % 60 };
+                            }
+                            const parts = String(v).trim().split(':');
+                            if (parts.length >= 2) {
+                                const h = parseInt(parts[0]);
+                                const m = parseInt(parts[1]);
+                                return { h: isNaN(h) ? '' : h, m: isNaN(m) ? '' : m };
+                            }
+                            return { h: '', m: '' };
+                        };
+
+                        reservationsFound = [];
+                        for (let k = 0; k < 10; k++) {
+                            const rowIdx = r + 2 + k;
+                            const sT = parseTime(getVal(rowIdx, startCol));
+                            const eT = parseTime(getVal(rowIdx, endCol));
+                            reservationsFound.push({
+                                month: parseInt(getVal(rowIdx, monthCol)) || 0,
+                                day: parseInt(getVal(rowIdx, dayCol)) || 0,
+                                dow: parseInt(getVal(rowIdx, dowCol)) || 0,
+                                startH: sT.h,
+                                startM: sT.m,
+                                endH: eT.h,
+                                endM: eT.m,
+                                func: parseInt(getVal(rowIdx, funcCol)) || 0,
+                                mapIdx: parseInt(getVal(rowIdx, mapCol)) || 0
+                            });
+                        }
+                        break;
+                    }
+                }
+                if (reservationsFound) break;
+            }
+
+            if (reservationsFound) {
+                junction.reservations = reservationsFound;
+                console.log(`[Excel Load] 교차로 [${junction.name || junction.id}] 예약계획 10개 적재 완료`);
+            }
+
             junction._isDirty = true;
             junction._detailLoaded = true;
             successCount++;
@@ -843,6 +920,8 @@ function parseExtraConfigs(j, row) {
             const parts = conf.split(':');
             if (parts.length >= 3 && parts[0] === '_custom_angles') {
                 j.customAngles[parts[1]] = parseInt(parts[2]) || 0;
+            } else if (parts[0] === '_reservations') {
+                try { j.reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
             } else if (parts.length >= 4) {
                 const mov = parseInt(parts[0]);
                 if (!j.arrowConfigs[mov]) j.arrowConfigs[mov] = [];

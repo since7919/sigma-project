@@ -851,6 +851,8 @@ app.get('/api/sim/data', async (req, res) => {
                             Object.entries(val).forEach(([pfx, angle]) => {
                                 arrs.push(`_custom_angles:${pfx}:${angle}`);
                             });
+                        } else if (m === '_reservations') {
+                            arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(val))}`);
                         } else if (Array.isArray(val)) {
                             val.forEach(c => arrs.push(`${m}:${c.dLat}:${c.dLng}:${c.rot}`));
                         }
@@ -1505,9 +1507,17 @@ app.get('/api/sim/revert-junction', async (req, res) => {
       // arrowConfigs 복원
       let arrowStr = "";
       if (jRow.arrow_configs && typeof jRow.arrow_configs === 'object') {
-        arrowStr = Object.entries(jRow.arrow_configs).flatMap(([mov, configs]) => 
-          (configs || []).map(c => `${mov}:${c.dLat}:${c.dLng}:${c.rot}`)
-        ).join(';');
+        const arrs = [];
+        Object.entries(jRow.arrow_configs).forEach(([mov, configs]) => {
+          if (mov === '_custom_angles' && typeof configs === 'object') {
+            Object.entries(configs).forEach(([pfx, angle]) => arrs.push(`_custom_angles:${pfx}:${angle}`));
+          } else if (mov === '_reservations') {
+            arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(configs))}`);
+          } else if (Array.isArray(configs)) {
+            configs.forEach(c => arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`));
+          }
+        });
+        arrowStr = arrs.join(';');
       }
 
       const interLine = [
@@ -1630,6 +1640,8 @@ app.post('/api/sim/update-junction', async (req, res) => {
               if (parts.length >= 3 && parts[0] === '_custom_angles') {
                 if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
                 arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+              } else if (parts[0] === '_reservations') {
+                try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
               } else if (parts.length >= 4) {
                 const mov = parts[0];
                 if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
@@ -2005,6 +2017,8 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
                 if (parts.length >= 3 && parts[0] === '_custom_angles') {
                   if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
                   arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+                } else if (parts[0] === '_reservations') {
+                  try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
                 } else if (parts.length >= 4) {
                   const mov = parts[0];
                   if (!arrowConfigs[mov]) arrowConfigs[mov] = [];

@@ -346,6 +346,8 @@ window.renderReservationPlan = function() {
                     <option value="5" ${r.dow===5?'selected':''}>5</option>
                     <option value="6" ${r.dow===6?'selected':''}>6</option>
                     <option value="7" ${r.dow===7?'selected':''}>7</option>
+                    <option value="8" ${r.dow===8?'selected':''}>8</option>
+                    <option value="9" ${r.dow===9?'selected':''}>9</option>
                 </select>
             </td>
             <td class="res-td">

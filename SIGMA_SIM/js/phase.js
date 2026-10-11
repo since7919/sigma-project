@@ -1023,6 +1023,9 @@ function checkTodMapIntegrity() {
     } else {
         errorPanel.style.display = 'none';
     }
+    if (typeof renderReservationPlan === 'function') {
+        renderReservationPlan();
+    }
 }
 
 function updateJunctionDayUI() {

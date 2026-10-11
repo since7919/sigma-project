@@ -68,6 +68,7 @@ function parseSignalMaps(csv) {
                 if (rs && rs.stepsA) mapData.stepsA = rs.stepsA;
                 if (rs && rs.stepsB) mapData.stepsB = rs.stepsB;
                 if (rs && rs.ipdCustomArrows) mapData.ipdCustomArrows = rs.ipdCustomArrows;
+                if (rs && rs.reservations) mapData.reservations = rs.reservations;
             } catch(e) {
                 // ignore
             }
