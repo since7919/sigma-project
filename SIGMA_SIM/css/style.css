@@ -810,6 +810,16 @@ td {
     filter: drop-shadow(0 0 8px rgba(255, 87, 34, 0.4));
 }
 
+.signal-arrow.editing.focused {
+    border: 3px solid #00d4ff !important;
+    box-shadow: 0 0 15px #00d4ff !important;
+}
+
+.arrow-edit-marker-container {
+    z-index: 3000 !important;
+    pointer-events: auto !important;
+}
+
 /* 점멸 신호 스타일 (전역 동기화) */
 .signal-arrow.Y-flash {
     color: #ffcc00 !important;

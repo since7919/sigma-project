@@ -86,6 +86,11 @@ function selectJunction(jid, isMulti = false) {
         createArrows(sjid);
     });
 
+    // 편집 모드 상태에서 교차로 선택 시 편집 전용 레이어도 해당 교차로로 즉시 전환
+    if (STATE.isMapEditMode && window.ArrowEditManager) {
+        window.ArrowEditManager.enter(jid);
+    }
+
     // Sidebar List Highlight
     document.querySelectorAll('.j-list-item').forEach(el => {
         el.classList.toggle('active', STATE.selectedJids.includes(el.dataset.id));
@@ -327,6 +332,9 @@ function selectJunction(jid, isMulti = false) {
  *  교차로 선택 해제
  * ══════════════════════════════════════════ */
 function deselectJunction() {
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive()) {
+        window.ArrowEditManager.exit(true);
+    }
     const oldJids = [...STATE.selectedJids];
     STATE.activeJid = null;
     STATE.selectedJids = [];

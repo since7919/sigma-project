@@ -524,6 +524,11 @@ function updateSim() {
         }
 
         // 3. 캐시를 사용한 실제 DOM 업데이트 (변경된 경우만)
+        // [간섭 원천 차단] 현재 교차로가 ArrowEditManager에 의해 편집 중인 경우 시뮬레이션 DOM 업데이트를 완전히 스킵
+        if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === j.id) {
+            return;
+        }
+
         if (j.elemCache) {
             Object.entries(j.elemCache).forEach(([key, cache]) => {
                 const m = parseInt(key.split('-')[0]);

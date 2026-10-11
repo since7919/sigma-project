@@ -210,8 +210,8 @@ const AppStateMachine = {
 
             case CONFIG.APP_MODE.MAP_EDIT:
                 STATE.isMapEditMode = true;
-                if (STATE.activeJid && typeof createArrows === 'function') {
-                    createArrows(STATE.activeJid);
+                if (STATE.activeJid && window.ArrowEditManager) {
+                    window.ArrowEditManager.enter(STATE.activeJid);
                 }
                 this.refreshAllJunctions();
                 const movContainer = document.getElementById('info-mov-combined-container');
@@ -241,8 +241,8 @@ const AppStateMachine = {
             case CONFIG.APP_MODE.MAP_EDIT:
                 STATE.isMapEditMode = false;
                 STATE.focusedArrow = null;
-                if (STATE.activeJid && typeof createArrows === 'function') {
-                    createArrows(STATE.activeJid);
+                if (window.ArrowEditManager) {
+                    window.ArrowEditManager.exit(true);
                 }
                 this.refreshAllJunctions();
                 const movContainerExit = document.getElementById('info-mov-combined-container');

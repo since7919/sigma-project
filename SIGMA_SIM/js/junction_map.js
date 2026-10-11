@@ -114,26 +114,438 @@ function drawJunction(jid, onlyStyle) {
     });
 }
 
+/* ══════════════════════════════════════════════════════════
+ *  ArrowEditManager (신호등 편집 전용 샌드박스 레이어 관리자)
+ * ──────────────────────────────────────────────────────────
+ *  일반 시뮬레이션 레이어(j.arrows)와 완전히 분리된 전용 L.layerGroup()을
+ *  사용하여, 시뮬레이션 루프나 뷰포트 최적화의 방해 없이 독립적인
+ *  드래그, 회전, 복제, 삭제 인터랙션을 제공합니다.
+ * ══════════════════════════════════════════════════════════ */
+const ArrowEditManager = {
+    layerGroup: null,
+    activeJid: null,
+    focusedArrow: null, // { m, idx }
+    markers: {}, // key: `${m}-${idx}` => L.marker
+
+    init() {
+        if (!this.layerGroup && typeof L !== 'undefined') {
+            this.layerGroup = L.layerGroup();
+        }
+    },
+
+    isActive() {
+        return !!(STATE.isMapEditMode && this.activeJid);
+    },
+
+    enter(jid) {
+        if (!jid || !STATE.junctions || !STATE.junctions[jid]) return;
+        this.init();
+
+        if (this.activeJid && this.activeJid !== jid) {
+            this.exit(true);
+        }
+
+        this.activeJid = jid;
+        this.focusedArrow = null;
+        this.markers = {};
+
+        // 1. 해당 교차로의 일반 시뮬레이션 화살표는 숨김(제거) 처리
+        if (typeof removeArrows === 'function') {
+            removeArrows(jid);
+        }
+
+        // 2. 편집 전용 레이어를 Leaflet 맵에 마운트
+        if (this.layerGroup && typeof map !== 'undefined') {
+            if (!map.hasLayer(this.layerGroup)) {
+                this.layerGroup.addTo(map);
+            }
+            this.layerGroup.clearLayers();
+        }
+
+        // 3. 편집 마커 렌더링
+        this.render();
+    },
+
+    exit(save = true) {
+        if (!this.activeJid) return;
+        const jid = this.activeJid;
+        const j = STATE.junctions ? STATE.junctions[jid] : null;
+
+        if (save && j) {
+            j._isDirty = true;
+        }
+
+        // 편집 레이어 정리 및 맵에서 분리
+        if (this.layerGroup) {
+            this.layerGroup.clearLayers();
+            if (typeof map !== 'undefined' && map.hasLayer(this.layerGroup)) {
+                map.removeLayer(this.layerGroup);
+            }
+        }
+
+        this.activeJid = null;
+        this.focusedArrow = null;
+        this.markers = {};
+
+        // 편집 종료 후 일반 시뮬레이션 화살표 복원
+        if (STATE.showSignalArrows && typeof createArrows === 'function' && j) {
+            createArrows(jid);
+            if (typeof updateSim === 'function') updateSim();
+        }
+    },
+
+    render() {
+        if (!this.activeJid) return;
+        const jid = this.activeJid;
+        const j = STATE.junctions[jid];
+        if (!j) return;
+
+        this.init();
+        if (this.layerGroup && typeof map !== 'undefined' && !map.hasLayer(this.layerGroup)) {
+            this.layerGroup.addTo(map);
+        }
+        this.layerGroup.clearLayers();
+        this.markers = {};
+
+        // 편집 모드: 차량 1~16 및 보행 101~116을 전수 표출
+        const vehicleRange = Array.from({ length: 16 }, (_, i) => i + 1);
+        const pedRange = Array.from({ length: 16 }, (_, i) => i + 101);
+        const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number);
+
+        const smIdx = STATE.currentSignalMapIdx || 0;
+        const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
+            movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
+            pedMovA: j.pedMovA || [0,0,0,0,0,0,0,0], pedMovB: j.pedMovB || [0,0,0,0,0,0,0,0]
+        };
+        const pMovA = sm.pedMovA || [0,0,0,0,0,0,0,0];
+        const pMovB = sm.pedMovB || [0,0,0,0,0,0,0,0];
+        const activeMapMovs = new Set([...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number).filter(x => x > 0));
+        const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+
+        const allMovs = [...new Set([...configuredMovs, ...vehicleRange, ...pedRange])].filter(m => m > 0);
+        const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
+
+        if (!j.arrowConfigs) j.arrowConfigs = {};
+
+        allMovs.forEach(m => {
+            const isPed = (m >= 101 && m <= 116) || pedSet.has(m);
+            const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrow(m);
+
+            if (j.arrowConfigs[m] && !Array.isArray(j.arrowConfigs[m])) {
+                j.arrowConfigs[m] = [j.arrowConfigs[m]];
+            }
+            let configs = j.arrowConfigs[m] || [];
+            const validConfigs = configs.filter(c => c && typeof c.dLat === 'number' && typeof c.dLng === 'number' && !isNaN(c.dLat) && !isNaN(c.dLng) && !(c.dLat === 0 && c.dLng === 0));
+
+            if (validConfigs.length === 0) {
+                let ang = 0;
+                if (isPed && m > 100 && m <= 116) {
+                    const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
+                    if (pedAngMap[m] !== undefined) {
+                        ang = pedAngMap[m];
+                    } else {
+                        const refM = m - 100;
+                        ang = defPosAngles[(refM - 1) % 16] || 0;
+                        if (refM % 2 !== 0) ang += 22;
+                        else ang -= 22;
+                    }
+                } else {
+                    ang = defPosAngles[(m - 1) % 16] || 0;
+                    if (!isPed && m <= 16) {
+                        if (m % 2 !== 0) ang += 7;
+                        else ang -= 7;
+                    }
+                }
+                const offset = isPed ? 0.00022 : ((m > 8) ? 0.00018 : 0.00014);
+                const pos = [j.lat + Math.cos(ang * Math.PI / 180) * offset, j.lng + Math.sin(ang * Math.PI / 180) * offset];
+                const cfg = { dLat: pos[0] - j.lat, dLng: pos[1] - j.lng, rot: arrowData.ang };
+                j.arrowConfigs[m] = [cfg];
+                configs = [cfg];
+            } else {
+                configs = validConfigs;
+                j.arrowConfigs[m] = configs;
+            }
+
+            configs.forEach((config, idx) => {
+                const pos = [j.lat + config.dLat, j.lng + config.dLng];
+                const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
+                const walkCls = isPed ? 'walk-mode' : '';
+                const isFocused = this.focusedArrow && this.focusedArrow.m === m && this.focusedArrow.idx === idx;
+                const isUsedMov = activeMapMovs.has(m);
+                const defaultColor = isUsedMov ? 'G' : 'R';
+
+                const icon = L.divIcon({
+                    className: 'signal-arrow-container arrow-edit-marker-container',
+                    html: `
+                        <div id="edit-icon-${jid}-${m}-${idx}" class="signal-arrow ${defaultColor} ${walkCls} editing ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:move; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible;">
+                            ${isPed ? 'WALK' : arrowData.type}
+                            <div class="mov-num-label">${m}</div>
+                        </div>
+                    `,
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0]
+                });
+
+                const arrowMarker = L.marker(pos, {
+                    icon: icon,
+                    draggable: true,
+                    zIndexOffset: 3000,
+                    interactive: true
+                });
+
+                this.bindMarkerEvents(arrowMarker, jid, m, idx, config, arrowData);
+
+                arrowMarker.addTo(this.layerGroup);
+                this.markers[`${m}-${idx}`] = arrowMarker;
+            });
+        });
+    },
+
+    bindMarkerEvents(arrowMarker, jid, m, idx, config, arrowData) {
+        const j = STATE.junctions[jid];
+
+        arrowMarker.on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            if (this.focusedArrow && this.focusedArrow.m === m && this.focusedArrow.idx === idx) {
+                this.focusedArrow = null;
+                this.render();
+            }
+        });
+
+        arrowMarker.on('dblclick', (e) => {
+            L.DomEvent.stopPropagation(e);
+            if (this.focusedArrow && this.focusedArrow.m === m && this.focusedArrow.idx === idx) {
+                this.focusedArrow = null;
+            } else {
+                this.focusedArrow = { m, idx };
+            }
+            this.render();
+        });
+
+        arrowMarker.on('contextmenu', (e) => {
+            L.DomEvent.preventDefault(e);
+            L.DomEvent.stopPropagation(e);
+        });
+
+        arrowMarker.on('drag', (e) => {
+            const newPos = e.target.getLatLng();
+            config.dLat = newPos.lat - j.lat;
+            config.dLng = newPos.lng - j.lng;
+            j._isDirty = true;
+            L.DomEvent.stopPropagation(e);
+        });
+
+        arrowMarker.on('mousedown', (e) => {
+            // Ctrl + 좌클릭: 복제
+            if (e.originalEvent.button === 0 && e.originalEvent.ctrlKey) {
+                this.duplicate(m, idx);
+                L.DomEvent.stopPropagation(e);
+                return;
+            }
+            // Ctrl + 우클릭: 삭제
+            if (e.originalEvent.button === 2 && e.originalEvent.ctrlKey) {
+                this.delete(m, idx);
+                L.DomEvent.stopPropagation(e);
+                L.DomEvent.preventDefault(e);
+                return;
+            }
+
+            // 우클릭 드래그: 회전
+            if (e.originalEvent.button === 2) {
+                L.DomEvent.preventDefault(e);
+                L.DomEvent.stopPropagation(e);
+                map.dragging.disable();
+
+                const isFocused = (this.focusedArrow && this.focusedArrow.m === m && this.focusedArrow.idx === idx);
+                let initialMouseAngle = 0;
+                let initialSnapshot = JSON.parse(JSON.stringify(j.arrowConfigs));
+                Object.keys(initialSnapshot).forEach(k => {
+                    const kMov = parseInt(k);
+                    const kData = (kMov >= 101 && kMov <= 116) ? { ang: 0 } : getVisualArrow(kMov);
+                    initialSnapshot[k].forEach(cfg => {
+                        if (cfg.rot === undefined) cfg.rot = kData.ang;
+                    });
+                });
+
+                if (isFocused) {
+                    const pivotPoint = map.latLngToContainerPoint([j.lat + config.dLat, j.lng + config.dLng]);
+                    initialMouseAngle = Math.atan2(e.originalEvent.clientY - pivotPoint.y, e.originalEvent.clientX - pivotPoint.x);
+                } else {
+                    const pivotPoint = map.latLngToContainerPoint([j.lat, j.lng]);
+                    initialMouseAngle = Math.atan2(e.originalEvent.clientY - pivotPoint.y, e.originalEvent.clientX - pivotPoint.x);
+                }
+
+                const onMouseMove = (me) => {
+                    if (!this.isActive() || this.activeJid !== jid) return;
+
+                    if (!isFocused) {
+                        const pivotPoint = map.latLngToContainerPoint([j.lat, j.lng]);
+                        const currentAngle = Math.atan2(me.clientY - pivotPoint.y, me.clientX - pivotPoint.x);
+                        const deltaRad = currentAngle - initialMouseAngle;
+                        const deltaDeg = deltaRad * 180 / Math.PI;
+
+                        Object.keys(j.arrowConfigs).forEach(mStr => {
+                            const mKey = parseInt(mStr);
+                            if (!initialSnapshot[mStr]) return;
+
+                            j.arrowConfigs[mKey].forEach((cfg, cIdx) => {
+                                const base = initialSnapshot[mStr][cIdx];
+                                if (!base) return;
+
+                                cfg.dLat = base.dLat * Math.cos(deltaRad) - base.dLng * Math.sin(deltaRad);
+                                cfg.dLng = base.dLat * Math.sin(deltaRad) + base.dLng * Math.cos(deltaRad);
+                                cfg.rot = (base.rot + deltaDeg) % 360;
+
+                                const iconEl = document.getElementById(`edit-icon-${jid}-${mKey}-${cIdx}`);
+                                if (iconEl) {
+                                    iconEl.style.transform = `translate(-50%, -50%) rotate(${cfg.rot}deg) scale(var(--arrow-scale))`;
+                                }
+                            });
+                        });
+                        this.updateMarkerPositions();
+                    } else {
+                        const pivotPoint = map.latLngToContainerPoint([j.lat + config.dLat, j.lng + config.dLng]);
+                        const currentAngle = Math.atan2(me.clientY - pivotPoint.y, me.clientX - pivotPoint.x);
+                        const deltaRad = currentAngle - initialMouseAngle;
+                        const deltaDeg = deltaRad * 180 / Math.PI;
+
+                        const base = initialSnapshot[m]?.[idx];
+                        if (base) {
+                            config.rot = (base.rot + deltaDeg) % 360;
+                            const iconEl = document.getElementById(`edit-icon-${jid}-${m}-${idx}`);
+                            if (iconEl) {
+                                iconEl.style.transform = `translate(-50%, -50%) rotate(${config.rot}deg) scale(var(--arrow-scale))`;
+                            }
+                        }
+                    }
+                    j._isDirty = true;
+                };
+
+                const onMouseUp = () => {
+                    map.dragging.enable();
+                    window.removeEventListener('mousemove', onMouseMove);
+                    window.removeEventListener('mouseup', onMouseUp);
+                };
+
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            }
+        });
+    },
+
+    updateMarkerPositions() {
+        if (!this.markers || !this.activeJid) return;
+        const j = STATE.junctions[this.activeJid];
+        if (!j || !j.arrowConfigs) return;
+        Object.keys(this.markers).forEach(key => {
+            const [m, idx] = key.split('-').map(Number);
+            const marker = this.markers[key];
+            const cfg = j.arrowConfigs?.[m]?.[idx];
+            if (marker && cfg) {
+                marker.setLatLng([j.lat + cfg.dLat, j.lng + cfg.dLng]);
+            }
+        });
+    },
+
+    duplicate(m, idx) {
+        if (!this.activeJid) return;
+        const j = STATE.junctions[this.activeJid];
+        if (!j || !j.arrowConfigs) return;
+        if (!j.arrowConfigs[m]) j.arrowConfigs[m] = [];
+        if (j.arrowConfigs[m].length >= 2) {
+            alert("해당 번호의 신호등은 최대 2개까지만 설치할 수 있습니다.");
+            return;
+        }
+        const original = j.arrowConfigs[m][idx] || { dLat: 0.0001, dLng: 0.0001, rot: 0 };
+        j.arrowConfigs[m].push({
+            dLat: (original.dLat || 0.0001) + 0.00002,
+            dLng: (original.dLng || 0.0001) + 0.00002,
+            rot: original.rot || 0
+        });
+        j._isDirty = true;
+
+        const inp = document.querySelector(`.inp-arrow-count[data-mov="${m}"]`);
+        if (inp) inp.value = j.arrowConfigs[m].length;
+
+        this.render();
+    },
+
+    delete(m, idx) {
+        if (!this.activeJid) return;
+        const j = STATE.junctions[this.activeJid];
+        if (!j || !j.arrowConfigs) return;
+        if (!j.arrowConfigs[m] || j.arrowConfigs[m].length <= 1) {
+            alert("마지막 하나 남은 화살표는 삭제할 수 없습니다.");
+            return;
+        }
+        j.arrowConfigs[m].splice(idx, 1);
+        j._isDirty = true;
+
+        const inp = document.querySelector(`.inp-arrow-count[data-mov="${m}"]`);
+        if (inp) inp.value = j.arrowConfigs[m].length;
+
+        this.render();
+    },
+
+    rotateAll(angleDeg) {
+        if (!this.activeJid) return;
+        const j = STATE.junctions[this.activeJid];
+        if (!j || !j.arrowConfigs) return;
+        const rad = angleDeg * Math.PI / 180;
+
+        Object.keys(j.arrowConfigs).forEach(m => {
+            const configs = j.arrowConfigs[m];
+            if (configs && Array.isArray(configs)) {
+                configs.forEach(cfg => {
+                    const oldDLat = cfg.dLat;
+                    const oldDLng = cfg.dLng;
+                    cfg.dLat = oldDLat * Math.cos(rad) - oldDLng * Math.sin(rad);
+                    cfg.dLng = oldDLat * Math.sin(rad) + oldDLng * Math.cos(rad);
+                    if (cfg.rot !== undefined) cfg.rot = (cfg.rot + angleDeg) % 360;
+                });
+            }
+        });
+        j._isDirty = true;
+        this.render();
+    },
+
+    reset() {
+        if (!this.activeJid) return;
+        if (!confirm("현재 교차로의 모든 화살표 위치와 수량을 기본값(1개)으로 초기화하겠습니까?")) return;
+        const j = STATE.junctions[this.activeJid];
+        if (!j) return;
+        j.arrowConfigs = {};
+        j._isDirty = true;
+        this.render();
+        alert("화살표 위치 및 수량이 초기화되었습니다.");
+    }
+};
+
+window.ArrowEditManager = ArrowEditManager;
+
+/* ══════════════════════════════════════════════════════════
+ *  createArrows (일반 신호 시뮬레이션 표출 전용 함수)
+ * ──────────────────────────────────────────────────────────
+ *  순수 시뮬레이션 상태(G/Y/R/F 등)를 표출하며 드래그나 편집 이벤트 없이
+ *  최적화된 형태로 렌더링합니다.
+ * ══════════════════════════════════════════════════════════ */
 function createArrows(jid) {
     const j = STATE.junctions[jid];
     if (!j) return;
-    const isEditing = (jid === STATE.activeJid && STATE.isMapEditMode);
-    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
 
-    // ── [신규모드] 현재 인맥/상황에 맞는 시차맵(SignalMap) 데이터 추출 ──
-    const t = parseInt(UI.timeSlider?.value) || 0;
-    const isEditingMode = (jid === STATE.activeJid && STATE.isMapEditMode);
-    let smIdx = 0;
-    if (isEditingMode) {
-        smIdx = STATE.currentSignalMapIdx || 0;
-    } else {
-        const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
-        if (typeof getEffectiveSignalMapIdx === 'function') {
-            smIdx = getEffectiveSignalMapIdx(j, simCtx.dayIdx, simCtx.pIdx);
-        } else {
-            smIdx = simCtx.mapIdx;
-        }
+    // 만약 해당 교차로가 ArrowEditManager에 의해 편집 중이라면 시뮬레이션 화살표 생성 스킵
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        return;
     }
+
+    if (!STATE.showSignalArrows) return;
+    if (map.getZoom() < CONFIG.MIN_ZOOM_FOR_ARROWS) return;
+
+    // ── 현재 시간/시차맵(SignalMap) 데이터 추출 ──
+    const t = parseInt(UI.timeSlider?.value) || 0;
+    const simCtx = (typeof getSimContext === 'function') ? getSimContext(j, t) : { dayIdx: new Date().getDay(), pIdx: 0, mapIdx: 0 };
+    const smIdx = (typeof getEffectiveSignalMapIdx === 'function') ? getEffectiveSignalMapIdx(j, simCtx.dayIdx, simCtx.pIdx) : simCtx.mapIdx;
+    
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : {
         movA: j.movA || [0,0,0,0,0,0,0,0], movB: j.movB || [0,0,0,0,0,0,0,0],
         pedMovA: j.pedMovA || [0,0,0,0,0,0,0,0], pedMovB: j.pedMovB || [0,0,0,0,0,0,0,0]
@@ -141,31 +553,15 @@ function createArrows(jid) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
-    const activeMapMovs = new Set([...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number).filter(x => x > 0));
     const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
-
-    // [개량] 편집 모드에서는 데이터 유무와 상관없이 1~16(차량) 및 101~116(보행) 화살표를 전수 노출
-    let allMovs;
-    if (isEditingMode) {
-        const vehicleRange = Array.from({ length: 16 }, (_, i) => i + 1); // 1-16
-        const pedRange = Array.from({ length: 16 }, (_, i) => i + 101); // 101-116
-        const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number);
-        const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
-        allMovs = [...new Set([...mapMovs, ...configuredMovs, ...vehicleRange, ...pedRange])].filter(m => m > 0);
-    } else {
-        // 일반 등화 모드: 무브먼트가 기록된(메모리 관리용) 화살표만 나타남
-        const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
-        allMovs = [...new Set(mapMovs)].filter(m => m > 0);
-    }
+    const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
+    const allMovs = [...new Set(mapMovs)].filter(m => m > 0);
 
     removeArrows(jid);
     j.arrows = {};
-    j._isRenderedEditMode = isEditing;
-
-    if (!STATE.showSignalArrows && !isEditing) return;
-    if (map.getZoom() < CONFIG.MIN_ZOOM_FOR_ARROWS && !isEditing) return;
 
     if (!j.arrowConfigs) j.arrowConfigs = {};
+    const defPosAngles = [90, 270, 180, 0, 270, 90, 0, 180, 45, 225, 135, 315, 225, 45, 315, 135];
 
     allMovs.forEach(m => {
         const isPed = (m >= 101 && m <= 116) || pedSet.has(m);
@@ -175,14 +571,11 @@ function createArrows(jid) {
             j.arrowConfigs[m] = [j.arrowConfigs[m]];
         }
         let configs = j.arrowConfigs[m] || [];
-
-        // 좌표 유효성 검사 (NaN이거나 0,0으로 중심에 묻힌 경우 기본 위치로 보정)
         const validConfigs = configs.filter(c => c && typeof c.dLat === 'number' && typeof c.dLng === 'number' && !isNaN(c.dLat) && !isNaN(c.dLng) && !(c.dLat === 0 && c.dLng === 0));
 
         if (validConfigs.length === 0) {
             let ang = 0;
             if (isPed && m > 100 && m <= 116) {
-                // 보행신호(101~108...)는 대응하는 차량신호(1~8...)의 각도를 기준으로 배치
                 const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
                 if (pedAngMap[m] !== undefined) {
                     ang = pedAngMap[m];
@@ -194,7 +587,6 @@ function createArrows(jid) {
                 }
             } else {
                 ang = defPosAngles[(m - 1) % 16] || 0;
-                // 차량신호: 좌회전(홀수 1,3,7...)은 왼쪽(+7), 직진(짝수 2,4,8...)은 오른쪽(-7)
                 if (!isPed && m <= 16) {
                     if (m % 2 !== 0) ang += 7;
                     else ang -= 7;
@@ -216,18 +608,12 @@ function createArrows(jid) {
             const pos = [j.lat + config.dLat, j.lng + config.dLng];
             const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
             const walkCls = isPed ? 'walk-mode' : '';
-            const isFocused = STATE.focusedArrow && STATE.focusedArrow.jid === jid && STATE.focusedArrow.m === m && STATE.focusedArrow.idx === idx;
-            const isUsedMov = activeMapMovs.has(m);
-            const defaultColor = (isEditingMode && isUsedMov) ? 'G' : 'R';
-
-            const labelHtml = isEditing ? `<div class="mov-num-label">${m}</div>` : '';
 
             const icon = L.divIcon({
                 className: 'signal-arrow-container',
                 html: `
-                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow ${defaultColor} ${walkCls} ${isEditing ? 'editing' : ''} ${isFocused ? 'focused' : ''}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:${isEditing ? 'move' : 'pointer'}; font-size:${isPed ? '11px' : '24px'}; border:${isFocused ? '3px solid #00d4ff' : 'none'}; box-shadow:${isFocused ? '0 0 15px #00d4ff' : 'none'}; overflow:visible; ${!isEditing ? 'display:none;' : ''}">
+                    <div id="icon-${jid}-${m}-${idx}" class="signal-arrow R ${walkCls}" style="transform: translate(-50%, -50%) rotate(${currentRot}deg) scale(var(--arrow-scale)); cursor:pointer; font-size:${isPed ? '11px' : '24px'}; overflow:visible;">
                             ${isPed ? 'WALK' : arrowData.type}
-                            ${labelHtml}
                             <div id="timer-${jid}-${m}-${idx}" class="signal-timer" style="display:none; transform: translateX(-50%) rotate(${-currentRot}deg);"></div>
                     </div>
                 `,
@@ -237,18 +623,17 @@ function createArrows(jid) {
 
             const arrowMarker = L.marker(pos, {
                 icon: icon,
-                draggable: STATE.isMapEditMode,
-                zIndexOffset: STATE.isMapEditMode ? 1100 : 500,
+                draggable: false,
+                zIndexOffset: 500,
                 interactive: true
             }).addTo(map);
 
-            // [성능최적화] 엘리먼트 캐시 초기화
             if (!j.elemCache) j.elemCache = {};
             const cacheKey = `${m}-${idx}`;
             j.elemCache[cacheKey] = {
                 arrow: null,
                 timer: null,
-                lastState: null, // [성능 최적화] 이전 상태 비교값 (null로 초기화하여 첫 업데이트 강제)
+                lastState: null,
                 lastTimer: null
             };
 
@@ -263,155 +648,19 @@ function createArrows(jid) {
 
             arrowMarker.on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
-                if (!STATE.isMapEditMode) { selectJunction(jid); return; }
-                if (STATE.focusedArrow && STATE.focusedArrow.m === m && STATE.focusedArrow.idx === idx) {
-                    STATE.focusedArrow = null;
-                    createArrows(jid);
-                }
+                selectJunction(jid);
             });
 
-            arrowMarker.on('dblclick', (e) => {
-                L.DomEvent.stopPropagation(e);
-                if (!STATE.isMapEditMode) return;
-                if (STATE.focusedArrow && STATE.focusedArrow.m === m && STATE.focusedArrow.idx === idx) {
-                    STATE.focusedArrow = null;
-                } else {
-                    STATE.focusedArrow = { jid, m, idx };
-                }
-                createArrows(jid);
-            });
-
-            // 우클릭 메뉴(contextmenu) 차단
-            arrowMarker.on('contextmenu', (e) => {
-                if (STATE.isMapEditMode) L.DomEvent.preventDefault(e);
-            });
-
-            // 회전 / 복제 / 삭제 마우스 핸들러
-            let isGlobalRotating = false;
-            let isIndivRotating = false;
-            let initialMouseAngle = 0;
-            let initialSnapshot = null;
-
-            arrowMarker.on('mousedown', (e) => {
-                if (!STATE.isMapEditMode) return;
-
-                // Ctrl + 좌클릭: 복제
-                if (e.originalEvent.button === 0 && e.originalEvent.ctrlKey) {
-                    duplicateArrow(jid, m, idx);
-                    L.DomEvent.stopPropagation(e);
-                    return;
-                }
-                // Ctrl + 우클릭: 삭제
-                if (e.originalEvent.button === 2 && e.originalEvent.ctrlKey) {
-                    deleteArrow(jid, m, idx);
-                    L.DomEvent.stopPropagation(e);
-                    L.DomEvent.preventDefault(e);
-                    return;
-                }
-
-                // 우클릭 드래그: 회전
-                if (e.originalEvent.button === 2) {
-                    L.DomEvent.preventDefault(e);
-                    L.DomEvent.stopPropagation(e);
-                    map.dragging.disable();
-
-                    if (isFocused) {
-                        isIndivRotating = true;
-                        const pivotPoint = map.latLngToContainerPoint([j.lat + config.dLat, j.lng + config.dLng]);
-                        initialMouseAngle = Math.atan2(e.originalEvent.clientY - pivotPoint.y, e.originalEvent.clientX - pivotPoint.x);
-                    } else {
-                        isGlobalRotating = true;
-                        const pivotPoint = map.latLngToContainerPoint([j.lat, j.lng]);
-                        initialMouseAngle = Math.atan2(e.originalEvent.clientY - pivotPoint.y, e.originalEvent.clientX - pivotPoint.x);
-                    }
-                    
-                    // 현재 상태 딥카피 (초기값 보장)
-                    initialSnapshot = JSON.parse(JSON.stringify(j.arrowConfigs));
-                    // 각 설정에 rot 값이 없으면 기본값(arrowData.ang) 대입
-                    Object.keys(initialSnapshot).forEach(k => {
-                        initialSnapshot[k].forEach(cfg => {
-                            if (cfg.rot === undefined) cfg.rot = arrowData.ang;
-                        });
-                    });
-
-                    const onMouseMove = (me) => {
-                        if (!STATE.isMapEditMode || STATE.activeJid !== jid) return;
-
-                        if (isGlobalRotating) {
-                            const pivotPoint = map.latLngToContainerPoint([j.lat, j.lng]);
-                            const currentAngle = Math.atan2(me.clientY - pivotPoint.y, me.clientX - pivotPoint.x);
-                            const deltaRad = currentAngle - initialMouseAngle;
-                            const deltaDeg = deltaRad * 180 / Math.PI;
-
-                            Object.keys(j.arrowConfigs).forEach(mStr => {
-                                const mKey = parseInt(mStr);
-                                if (!initialSnapshot[mStr]) return;
-                                
-                                j.arrowConfigs[mKey].forEach((cfg, cIdx) => {
-                                    const base = initialSnapshot[mStr][cIdx];
-                                    if (!base) return;
-                                    
-                                    // 위치 회전
-                                    cfg.dLat = base.dLat * Math.cos(deltaRad) - base.dLng * Math.sin(deltaRad);
-                                    cfg.dLng = base.dLat * Math.sin(deltaRad) + base.dLng * Math.cos(deltaRad);
-                                    // 각도 회전
-                                    cfg.rot = (base.rot + deltaDeg) % 360;
-                                    
-                                    const iconEl = document.getElementById(`icon-${jid}-${mKey}-${cIdx}`);
-                                    if (iconEl) {
-                                        iconEl.style.transform = `translate(-50%, -50%) rotate(${cfg.rot}deg) scale(var(--arrow-scale))`;
-                                    }
-                                });
-                            });
-                            updateArrowsPosition(jid);
-                        }
-
-                        if (isIndivRotating && isFocused) {
-                            const pivotPoint = map.latLngToContainerPoint([j.lat + config.dLat, j.lng + config.dLng]);
-                            const currentAngle = Math.atan2(me.clientY - pivotPoint.y, me.clientX - pivotPoint.x);
-                            const deltaRad = currentAngle - initialMouseAngle;
-                            const deltaDeg = deltaRad * 180 / Math.PI;
-
-                            const base = initialSnapshot[m][idx];
-                            if (base) {
-                                config.rot = (base.rot + deltaDeg) % 360;
-                                const iconEl = document.getElementById(`icon-${jid}-${m}-${idx}`);
-                                if (iconEl) {
-                                    iconEl.style.transform = `translate(-50%, -50%) rotate(${config.rot}deg) scale(var(--arrow-scale))`;
-                                }
-                            }
-                        }
-                    };
-
-                    const onMouseUp = () => {
-                        isGlobalRotating = false;
-                        isIndivRotating = false;
-                        map.dragging.enable();
-                        window.removeEventListener('mousemove', onMouseMove);
-                        window.removeEventListener('mouseup', onMouseUp);
-                    };
-
-                    window.addEventListener('mousemove', onMouseMove);
-                    window.addEventListener('mouseup', onMouseUp);
-                }
-            });
-
-            arrowMarker.on('drag', (e) => {
-                const newPos = e.target.getLatLng();
-                config.dLat = newPos.lat - j.lat;
-                config.dLng = newPos.lng - j.lng;
-                L.DomEvent.stopPropagation(e);
-            });
-
-            arrowMarker.on('contextmenu click mousedown', (e) => { 
-                if (STATE.isMapEditMode) L.DomEvent.stopPropagation(e); 
-            });
             j.arrows[m].push(arrowMarker);
         });
     });
 }
 
 function duplicateArrow(jid, m, idx) {
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        window.ArrowEditManager.duplicate(m, idx);
+        return;
+    }
     const j = STATE.junctions[jid];
     if (!j || !j.arrowConfigs) return;
     if (!j.arrowConfigs[m]) j.arrowConfigs[m] = [];
@@ -425,6 +674,7 @@ function duplicateArrow(jid, m, idx) {
         dLng: (original.dLng || 0.0001) + 0.00002,
         rot: original.rot || 0
     });
+    j._isDirty = true;
 
     if (jid === STATE.activeJid) {
         const inp = document.querySelector(`.inp-arrow-count[data-mov="${m}"]`);
@@ -434,6 +684,10 @@ function duplicateArrow(jid, m, idx) {
 }
 
 function deleteArrow(jid, m, idx) {
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        window.ArrowEditManager.delete(m, idx);
+        return;
+    }
     const j = STATE.junctions[jid];
     if (!j || !j.arrowConfigs) return;
     if (!j.arrowConfigs[m] || j.arrowConfigs[m].length <= 1) {
@@ -441,6 +695,7 @@ function deleteArrow(jid, m, idx) {
         return;
     }
     j.arrowConfigs[m].splice(idx, 1);
+    j._isDirty = true;
 
     if (jid === STATE.activeJid) {
         const inp = document.querySelector(`.inp-arrow-count[data-mov="${m}"]`);
@@ -474,23 +729,23 @@ function refreshVisibleArrows() {
         const nextLimit = Math.min(idx + chunkSize, junctions.length);
         for (; idx < nextLimit; idx++) {
             const j = junctions[idx];
-            const isSelected = STATE.selectedJids.includes(j.id);
+            
+            // [편집 전용 레이어 보호] 편집 중인 교차로는 ArrowEditManager 전용이므로 시뮬레이션 화살표 관리에서 완전 제외
+            if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === j.id) {
+                continue;
+            }
+
             const isVisible = bounds && zoom >= CONFIG.MIN_ZOOM_FOR_ARROWS && bounds.contains([j.lat, j.lng]);
-            const shouldShow = isVisible && (STATE.showSignalArrows || (isSelected && STATE.isMapEditMode));
-            const isEditingThis = (j.id === STATE.activeJid && STATE.isMapEditMode);
-            const needsRecreate = !j.arrows || Object.keys(j.arrows).length === 0 || (j._isRenderedEditMode !== isEditingThis);
+            const shouldShow = isVisible && STATE.showSignalArrows;
+            const needsRecreate = !j.arrows || Object.keys(j.arrows).length === 0;
 
             if (shouldShow) {
-                // 이미 그려져 있는 경우 중복 생성 방지하되 모드 변경 시 즉시 재생성
                 if (needsRecreate) {
                     createArrows(j.id);
                 }
             } else {
-                // 제거 대상 (화면 밖이거나 기능 꺼짐)
                 if (j.arrows && Object.keys(j.arrows).length > 0) {
-                    if (!isSelected || !isVisible || (!STATE.showSignalArrows && !STATE.isMapEditMode)) {
-                        removeArrows(j.id);
-                    }
+                    removeArrows(j.id);
                 }
             }
         }
@@ -500,7 +755,6 @@ function refreshVisibleArrows() {
         } else {
             _arrowRefreshTask = null;
             if (typeof refreshVisibleTooltips === 'function') refreshVisibleTooltips();
-            // [성능 최적화] 모든 화살표 생성이 완료된 후 즉시 신호 상태 업데이트
             if (typeof updateSim === 'function') updateSim();
         }
     }
@@ -509,12 +763,19 @@ function refreshVisibleArrows() {
 
 function updateArrowsPosition(jid) {
     const j = STATE.junctions[jid];
-    if (!j || !j.arrows || !j.arrowConfigs) return;
+    if (!j || !j.arrowConfigs) return;
+
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        window.ArrowEditManager.updateMarkerPositions();
+        return;
+    }
+
+    if (!j.arrows) return;
     Object.keys(j.arrows).forEach(m => {
         const configs = j.arrowConfigs[m];
         if (configs && Array.isArray(configs)) {
             configs.forEach((config, idx) => {
-                if (j.arrows[m][idx]) {
+                if (j.arrows[m] && j.arrows[m][idx]) {
                     j.arrows[m][idx].setLatLng([j.lat + config.dLat, j.lng + config.dLng]);
                 }
             });
@@ -523,6 +784,10 @@ function updateArrowsPosition(jid) {
 }
 
 function rotateAllArrows(jid, angleDeg) {
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        window.ArrowEditManager.rotateAll(angleDeg);
+        return;
+    }
     const j = STATE.junctions[jid];
     if (!j || !j.arrowConfigs) return;
     const rad = angleDeg * Math.PI / 180;
@@ -539,14 +804,21 @@ function rotateAllArrows(jid, angleDeg) {
             });
         }
     });
+    j._isDirty = true;
     createArrows(jid);
 }
 
 function resetArrowPositions() {
     if (!STATE.activeJid) return;
+    if (window.ArrowEditManager && window.ArrowEditManager.isActive()) {
+        window.ArrowEditManager.reset();
+        return;
+    }
     if (!confirm("현재 교차로의 모든 화살표 위치와 수량을 초기 상태(1개)로 초기화하겠습니까?")) return;
     const j = STATE.junctions[STATE.activeJid];
+    if (!j) return;
     j.arrowConfigs = {};
+    j._isDirty = true;
     createArrows(STATE.activeJid);
     if (typeof updateSim === 'function') updateSim();
     alert("화살표 위치 및 수량이 초기화되었습니다.");
