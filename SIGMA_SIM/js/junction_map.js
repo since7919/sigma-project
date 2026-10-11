@@ -167,8 +167,8 @@ const ArrowEditManager = {
         // 3. 편집 마커 렌더링
         this.render();
 
-        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
-        if (guideWrapper) guideWrapper.style.display = 'block';
+        const movContainer = document.getElementById('info-mov-combined-container');
+        if (movContainer) movContainer.style.display = 'block';
     },
 
     exit(save = true) {
@@ -188,8 +188,8 @@ const ArrowEditManager = {
             }
         }
 
-        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
-        if (guideWrapper) guideWrapper.style.display = 'none';
+        const movContainer = document.getElementById('info-mov-combined-container');
+        if (movContainer) movContainer.style.display = 'none';
 
         this.activeJid = null;
         this.focusedArrow = null;

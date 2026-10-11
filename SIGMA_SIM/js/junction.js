@@ -314,13 +314,10 @@ function selectJunction(jid, isMulti = false) {
             try { syncConfigEditUI(); } catch(e) {}
         }
 
-        // [추가] 교차로 선택 시 Node/Link 탭의 이동류 및 신호화살표 컨테이너 표시
+        // [수정] 이동류 및 신호화살표 컨테이너는 화살표 편집 모드일 때만 표시
         const movContainer = document.getElementById('info-mov-combined-container');
-        if (movContainer) movContainer.style.display = 'block';
-
-        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
-        if (guideWrapper) {
-            guideWrapper.style.display = (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT) ? 'block' : 'none';
+        if (movContainer) {
+            movContainer.style.display = (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT) ? 'block' : 'none';
         }
 
         if (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT && window.ArrowEditManager) {
@@ -350,8 +347,6 @@ function deselectJunction() {
     }
     const movContainer = document.getElementById('info-mov-combined-container');
     if (movContainer) movContainer.style.display = 'none';
-    const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
-    if (guideWrapper) guideWrapper.style.display = 'none';
     const oldJids = [...STATE.selectedJids];
     STATE.activeJid = null;
     STATE.selectedJids = [];

@@ -140,11 +140,7 @@ function openTab(evt, tabName) {
     if (tabName === 'tab-info') {
         const movContainer = document.getElementById('info-mov-combined-container');
         if (movContainer) {
-            movContainer.style.display = (STATE.activeJid || STATE.isMapEditMode) ? 'block' : 'none';
-        }
-        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
-        if (guideWrapper) {
-            guideWrapper.style.display = STATE.isMapEditMode ? 'block' : 'none';
+            movContainer.style.display = STATE.isMapEditMode ? 'block' : 'none';
         }
         if (typeof renderRingTables === 'function' && STATE.activeJid) {
             renderRingTables();
@@ -260,12 +256,8 @@ const AppStateMachine = {
                     window.ArrowEditManager.exit(true);
                 }
                 this.refreshAllJunctions();
-                const guideWrapperExit = document.getElementById('arrow-edit-guide-wrapper');
-                if (guideWrapperExit) guideWrapperExit.style.display = 'none';
                 const movContainerExit = document.getElementById('info-mov-combined-container');
-                if (movContainerExit) {
-                    movContainerExit.style.display = STATE.activeJid ? 'block' : 'none';
-                }
+                if (movContainerExit) movContainerExit.style.display = 'none';
                 break;
 
             case CONFIG.APP_MODE.ADD_NODE:
