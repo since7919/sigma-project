@@ -564,18 +564,60 @@ function createArrows(jid) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
-    const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+    const pedSet = new Set();
+    const configuredMovsSet = new Set();
+
+    // 1. 현재(시뮬레이션 시간대 또는 지정된) 시그널맵의 이동류
+    [...(sm.movA || []), ...(sm.movB || [])].forEach(m => {
+        const n = Number(m);
+        if (n > 0) configuredMovsSet.add(n);
+    });
+    [...pMovA, ...pMovB].forEach(m => {
+        const n = Number(m);
+        if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+    });
+
+    // 2. 0번 표준 일반 시그널맵의 이동류 (현재 맵에 일부 현시만 있거나 폴백되는 경우)
     const baseSm = j.signalMaps?.[0];
-    const baseMovs = baseSm ? [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].map(Number) : [];
     if (baseSm) {
-        [...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].filter(x => x > 0).forEach(x => pedSet.add(x));
+        [...(baseSm.movA || []), ...(baseSm.movB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) configuredMovsSet.add(n);
+        });
+        [...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+        });
     }
-    const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
-    const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number).filter(m => m > 0);
-    let allMovs = [...new Set([...mapMovs, ...baseMovs, ...configuredMovs])].filter(m => m > 0);
-    if (allMovs.length === 0) {
-        allMovs = [1, 2, 3, 4, 5, 6, 7, 8, 102, 104, 106, 108];
+
+    // 3. 만약 위에서 아무것도 나오지 않은 경우, 교차로 전체 signalMaps 배열 탐색
+    if (configuredMovsSet.size === 0 && Array.isArray(j.signalMaps)) {
+        j.signalMaps.forEach(mapObj => {
+            if (!mapObj) return;
+            [...(mapObj.movA || []), ...(mapObj.movB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0) configuredMovsSet.add(n);
+            });
+            [...(mapObj.pedMovA || []), ...(mapObj.pedMovB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+            });
+        });
     }
+
+    // 4. 루트 레벨 j.movA / j.movB 폴백
+    if (configuredMovsSet.size === 0) {
+        [...(j.movA || []), ...(j.movB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) configuredMovsSet.add(n);
+        });
+        [...(j.pedMovA || []), ...(j.pedMovB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+        });
+    }
+
+    const allMovs = Array.from(configuredMovsSet);
 
     removeArrows(jid);
     j.arrows = {};
@@ -864,18 +906,60 @@ function createOverlayArrows(jid, targetMap) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
-    const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+    const pedSet = new Set();
+    const configuredMovsSet = new Set();
+
+    // 1. 현재(시뮬레이션 시간대 또는 지정된) 시그널맵의 이동류
+    [...(sm.movA || []), ...(sm.movB || [])].forEach(m => {
+        const n = Number(m);
+        if (n > 0) configuredMovsSet.add(n);
+    });
+    [...pMovA, ...pMovB].forEach(m => {
+        const n = Number(m);
+        if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+    });
+
+    // 2. 0번 표준 일반 시그널맵의 이동류 (현재 맵에 일부 현시만 있거나 폴백되는 경우)
     const baseSm = j.signalMaps?.[0];
-    const baseMovs = baseSm ? [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].map(Number) : [];
     if (baseSm) {
-        [...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].filter(x => x > 0).forEach(x => pedSet.add(x));
+        [...(baseSm.movA || []), ...(baseSm.movB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) configuredMovsSet.add(n);
+        });
+        [...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+        });
     }
-    const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
-    const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number).filter(m => m > 0);
-    let allMovs = [...new Set([...mapMovs, ...baseMovs, ...configuredMovs])].filter(m => m > 0);
-    if (allMovs.length === 0) {
-        allMovs = [1, 2, 3, 4, 5, 6, 7, 8, 102, 104, 106, 108];
+
+    // 3. 만약 위에서 아무것도 나오지 않은 경우, 교차로 전체 signalMaps 배열 탐색
+    if (configuredMovsSet.size === 0 && Array.isArray(j.signalMaps)) {
+        j.signalMaps.forEach(mapObj => {
+            if (!mapObj) return;
+            [...(mapObj.movA || []), ...(mapObj.movB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0) configuredMovsSet.add(n);
+            });
+            [...(mapObj.pedMovA || []), ...(mapObj.pedMovB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+            });
+        });
     }
+
+    // 4. 루트 레벨 j.movA / j.movB 폴백
+    if (configuredMovsSet.size === 0) {
+        [...(j.movA || []), ...(j.movB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) configuredMovsSet.add(n);
+        });
+        [...(j.pedMovA || []), ...(j.pedMovB || [])].forEach(m => {
+            const n = Number(m);
+            if (n > 0) { configuredMovsSet.add(n); pedSet.add(n); }
+        });
+    }
+
+    const allMovs = Array.from(configuredMovsSet);
 
     if (window._currentOverlayJid && window._currentOverlayJid !== jid) {
         const oldJ = STATE.junctions[window._currentOverlayJid];

@@ -355,11 +355,6 @@ function updateSim() {
         } else if (isFlashActive) {
             (j.flashYellows || []).forEach(m => activeStates[m] = { st: 'Y-flash', rem: 0 });
             (j.flashReds || []).forEach(m => activeStates[m] = { st: 'R-flash', rem: 0 });
-        } else if (editing && STATE.isMapEditMode) {
-            // [추가] 신호등 편집 모드 시에는 모든 화살표를 적색으로 고정 (위치 조정 편의)
-            Object.keys(activeStates).forEach(mStr => {
-                activeStates[parseInt(mStr)] = { st: 'R', rem: 0 };
-            });
         } else if (STATE.signalSource === 'REALTIME' && j._realtimeItems && j._realtimeItems.length > 0) {
             // [API 연동] UTIC 실시간 시그널맵 데이터 반영 (PLAN_TP: "0" 기준)
             const steps = j._realtimeItems.filter(item => item.PLAN_TP === "0" && parseInt(item.MIN_TM) > 0);
@@ -610,16 +605,9 @@ function updateSim() {
             const rem = stateObj.rem;
             const walk = m >= 100 ? 'walk-mode' : '';
             
-            // [편집 모드 고정] 맵 편집 모드에서는 시뮬레이션(애니메이션) 색상 변경을 중지하고, 
-            // 현재 교차로 시차맵에 등록된 화살표(이동류)는 항상 녹색(G), 미등록 화살표는 적색(R)으로 고정하여 보여줍니다.
-            if (editing) {
-                const mapMovs = [...(activeMap.movA || []), ...(activeMap.movB || []), ...(activeMap.pedMovA || []), ...(activeMap.pedMovB || [])].map(Number);
-                st = mapMovs.includes(m) ? 'G' : 'R';
-            }
-            
             // 클래스 업데이트 (성능을 위해 변경 시에만)
             if (cache.lastState !== st) {
-                cache.arrow.className = `signal-arrow ${st} ${walk} ${editing ? 'editing' : ''}`;
+                cache.arrow.className = `signal-arrow ${st} ${walk}`;
                 
                 // [수정] 적색 신호(R)일 때 숨기면 사용자가 고장인지 전적색인지 알 수 없으므로 항상 표출하도록 수정
                 cache.arrow.style.display = '';
