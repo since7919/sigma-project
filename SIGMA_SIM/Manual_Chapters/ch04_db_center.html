@@ -99,6 +99,31 @@
                         <tr><td style="color:#2ecc71; font-weight:bold;">mapId</td><td>Integer</td><td>교차로 마스터의 SignalMap 0~7 중 어떤 맵을 사용할지 결정합니다.</td></tr>
                     </tbody>
                 </table>
+
+                <h3 style="margin-top:35px; color:var(--accent);">4.4 신호 시뮬레이터의 기본 기능 및 데이터 연결 메커니즘 (Data Pipeline)</h3>
+                <p>시뮬레이터는 통합 DB의 정적/동적 데이터를 바탕으로 <b>시간계획(TOD) → 일계획(Day Plan) → 시그널맵(Signal Map) → 등화 연산(calc) → 화면 표출(Rendering)</b>의 5단계 파이프라인을 통해 방향별 화살표와 신호등에 실시간 녹색불을 켜주는 핵심 엔진입니다.</p>
+
+                <div class="logic-box" style="background:rgba(15, 23, 42, 0.7); border:1px solid var(--accent); padding:18px; border-radius:12px; margin-bottom:20px;">
+                    <h4 style="color:#00d4ff; margin-top:0;">🔗 5단계 실시간 제어 파이프라인</h4>
+                    <ol style="font-size:13px; color:#ddd; line-height:1.8; margin-bottom:0; padding-left:20px;">
+                        <li><b>1단계: 시간계획 (TOD Schedule / schedules):</b> 시뮬레이터 현재 시각(t)이 속한 시간대 슬롯을 탐색하여 운영할 플랜 번호(<code>pIdx</code>)를 결정합니다.</li>
+                        <li><b>2단계: 일계획 (Day Plan / dayPlans):</b> 주간계획 및 요일(평일/토/일)에 따라 해당 플랜의 현시별 스플릿 초수(<code>splitA</code>, <code>splitB</code>)와 총 주기(Cycle)를 산출합니다. (※ 주말 계획이 비어있는 경우 자동으로 1번 기본 일계획으로 우회).</li>
+                        <li><b>3단계: 시그널맵 (Signal Map / signalMaps):</b> 각 현시 진행 시 점등될 방향별 이동류 번호(<code>movA</code>, <code>movB</code>), 보행 신호(<code>pedMov</code>), 황색 및 전적색 시간을 매핑합니다. (※ 맵 데이터가 불완전하거나 결측된 경우 0번 기본 일반맵으로 자동 안전 폴백).</li>
+                        <li><b>4단계: 시뮬레이션 연산 엔진 (calc / simulation.js):</b> 주기 내 경과 시간(<code>pos = t % Cycle</code>)을 계산하여 현재 현시에 해당하는 이동류에 <b>녹색('G')</b> 또는 황색('Y') 신호를 부여하고 잔여 시간을 산출합니다.</li>
+                        <li><b>5단계: 그래픽 표출 및 DOM 제어 (junction_map.js):</b> 모든 차량 이동류와 보행자 신호(<code>pedSet</code>)를 식별하여 지도 상의 SVG 화살표 및 신호등 DOM 색상을 실시간 녹색(#10b981)으로 전환합니다.</li>
+                    </ol>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div class="logic-box" style="margin:0; border-color:#2ecc71;">
+                        <h4 style="color:#2ecc71; margin-top:0;">🛡️ 빈 일계획 자동 우회 (Plan Fallback)</h4>
+                        <p style="font-size:12px; color:#bbb; line-height:1.6;">주말/공휴일(Day 2~5) 일계획이 비어있거나 스플릿 합산이 0초인 경우, 신호 소등을 원천 방지하기 위해 <b>1번 평일 기본 일계획(Day 1)</b>으로 자동 우회하여 시뮬레이션을 중단 없이 유지합니다.</p>
+                    </div>
+                    <div class="logic-box" style="margin:0; border-color:#e67e22;">
+                        <h4 style="color:#e67e22; margin-top:0;">🛡️ 불완전 시그널맵 안전 폴백 (Map Fallback)</h4>
+                        <p style="font-size:12px; color:#bbb; line-height:1.6;">시차맵(1~4번)에 1현시만 정의되어 있거나(세종대로사거리 케이스 등) 황색시간이 누락된 경우, 자동으로 <b>0번 표준 일반 시그널맵</b>으로 우회하고 결측 현시 이동류를 기본 맵에서 계승하여 적색 고착을 차단합니다.</p>
+                    </div>
+                </div>
             </section>
             <div class="nav-links">
                 <a href="ch03_ui_controls.html">← Ch 03. UI 및 조작법</a>
