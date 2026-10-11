@@ -175,5 +175,65 @@
         </ul>
     </div>
 
+    <div class="card">
+        <h2>3. 외부 연동 API 기능 명세 및 출처</h2>
+        <p style="color: #cbd5e1;">SIGMA 플랫폼은 신호 제어 시뮬레이션, 도로 기하구조 분석, 실시간 현시 표출 및 AI 통계 분석을 위해 아래 공공/상용 API를 유기적으로 연동하여 운영하고 있습니다.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">분류</th>
+                    <th style="width: 25%;">API 및 엔드포인트</th>
+                    <th style="width: 25%;">제공처 (출처)</th>
+                    <th style="width: 35%;">주요 연동 기능 및 용도</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span style="color:#38bdf8; font-weight:bold;">교통신호 / 계획</span></td>
+                    <td><strong>도시교통정보센터 TSI HUB</strong><br><code style="font-size:11px;">CrossRoadInfoService</code><br><code style="font-size:11px;">PlanCrossRoadInfoService</code></td>
+                    <td><strong>경찰청</strong><br>(도시교통정보센터 UTIC)</td>
+                    <td>전국 표준 교차로 메타데이터 수집, 교차로별 계획신호 및 시그널맵(Signal Map) XML/JSON 데이터 실시간 동기화</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#38bdf8; font-weight:bold;">실시간 V2X</span></td>
+                    <td><strong>서울 T-Data Open API</strong><br><code style="font-size:11px;">v2xSignalPhaseTimingFusionInformation</code></td>
+                    <td><strong>서울특별시</strong><br>(교통빅데이터 포털)</td>
+                    <td>서울시 관내 교차로의 실시간 V2X 신호현시 및 위상별 잔여시간(초) 스트리밍 연동</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#38bdf8; font-weight:bold;">교차로 지리/방향</span></td>
+                    <td><strong>도로교통공단 RTI API</strong><br><code style="font-size:11px;">crsrd_map_info</code><br><code style="font-size:11px;">tl_drct_info</code></td>
+                    <td><strong>공공데이터포털</strong><br>(도로교통공단 KOROAD)</td>
+                    <td>전국 교차로 정밀 위치(WGS84 좌표) 및 접근로별 신호등 설치 방향(각도) 정보 매핑</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#a855f7; font-weight:bold;">도로 기하구조</span></td>
+                    <td><strong>Overpass API & Nominatim</strong><br><code style="font-size:11px;">overpass-api.de/api/interpreter</code></td>
+                    <td><strong>OpenStreetMap Foundation</strong><br>(OSM 커뮤니티)</td>
+                    <td>교차로 주변 도로 링크 기하구조(차로 수, 일방통행, 연결 벡터) 추출 및 지명 지오코딩</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#f59e0b; font-weight:bold;">생성형 AI 분석</span></td>
+                    <td><strong>Groq Cloud API</strong><br><code style="font-size:11px;">api.groq.com/openai/v1</code><br>(gpt-oss-120b / llama-3.3-70b)</td>
+                    <td><strong>Groq Inc.</strong></td>
+                    <td>운영통계 지자체 간 거시/미시 비교분석 공문서 리포트 자동 작성 및 텍스트 ASCII 차트 생성, 실시간 관제 챗봇</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#f59e0b; font-weight:bold;">보조 언어모델</span></td>
+                    <td><strong>Google Gemini API</strong><br><code style="font-size:11px;">generativelanguage.googleapis.com</code><br>(gemini-3.8-flash)</td>
+                    <td><strong>Google Cloud Platform</strong></td>
+                    <td>스마트 교통 지식 기반 백업 질의응답 및 보조 자연어 추론</td>
+                </tr>
+                <tr>
+                    <td><span style="color:#10b981; font-weight:bold;">배경 지도 레이어</span></td>
+                    <td><strong>ArcGIS & Google Sat Tiles</strong><br><code style="font-size:11px;">Canvas Dark Gray / Sat Tiles</code></td>
+                    <td><strong>Esri / Google Maps</strong></td>
+                    <td>시뮬레이터 관제용 다크 캔버스 배경 지도 및 고해상도 위성 항공사진 레이어 제공</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
 </body>
 </html>
