@@ -716,6 +716,7 @@ async function updateActiveJunctionToDB() {
         if (typeof generateSingleJunctionStatsCSV === 'function') {
             payload.statsCsvLines = generateSingleJunctionStatsCSV(jid);
         }
+        payload.password = pwd;
         console.log("DEBUG mapCsvLines:", payload.mapCsvLines);
 
         const response = await fetch('/api/sim/update-junction', {

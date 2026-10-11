@@ -560,8 +560,17 @@ function syncActiveJunctionData() {
 
 
 window.saveInfoToDB = async function() {
-    if (!STATE.activeJid) return;
+    if (!STATE.activeJid) {
+        alert("선택된 교차로가 없습니다.");
+        return;
+    }
     
+    const pwd = prompt("DB(수파베이스) 반영을 위해 관리자 비밀번호를 입력하세요.");
+    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+        alert("비밀번호가 일치하지 않습니다. DB 저장이 취소되었습니다.");
+        return;
+    }
+
     // First, apply local changes
     syncActiveJunctionData();
     drawJunction(STATE.activeJid);
@@ -577,6 +586,7 @@ window.saveInfoToDB = async function() {
         alert("교차로 데이터 추출에 실패했습니다.");
         return;
     }
+    payload.password = pwd;
     
     try {
         const response = await fetch('/api/sim/update-junction', {
@@ -592,7 +602,7 @@ window.saveInfoToDB = async function() {
                 await invalidateSigmaCache('tod_plans');
             }
             if (typeof sendToDashboard === 'function') sendToDashboard();
-            alert('DB(데이터베이스)에 성공적으로 저장되었습니다.');
+            alert('DB(수파베이스)에 성공적으로 저장되었습니다.');
         } else {
             alert('DB 저장 실패: ' + (result.error || '알 수 없는 오류'));
         }

@@ -1621,8 +1621,11 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 
 // 1-5. 교차로별 DB 업데이트 API (동시성 제어 적용)
 app.post('/api/sim/update-junction', async (req, res) => {
-  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines } = req.body;
+  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password } = req.body;
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
+  if (password !== '1234') {
+    return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+  }
 
   try {
     const result = await enqueueDBWrite(async () => {
