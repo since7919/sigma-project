@@ -109,6 +109,12 @@ function initMapClickHandlers() {
                 if (STATE.geoJsonLayer) STATE.geoJsonLayer.setStyle({});
             }
 
+            // [편집 모드] 지도 빈 공간 클릭 시 화살표 개별 포커스 해제
+            if (STATE.isMapEditMode && window.ArrowEditManager && window.ArrowEditManager.focusedArrow) {
+                window.ArrowEditManager.focusedArrow = null;
+                window.ArrowEditManager.render();
+            }
+
             // [복구] 지도 빈 공간 클릭 시 선택된 교차로 해제
             if (STATE.activeJid && STATE.appMode === CONFIG.APP_MODE.SELECT) deselectJunction();
         }

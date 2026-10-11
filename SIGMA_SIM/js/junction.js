@@ -80,16 +80,16 @@ function selectJunction(jid, isMulti = false) {
         }
     });
 
+    // 편집 모드 상태에서 교차로 선택 시 편집 전용 레이어도 해당 교차로로 즉시 전환
+    if (STATE.isMapEditMode && window.ArrowEditManager) {
+        window.ArrowEditManager.enter(jid);
+    }
+
     // 현재 선택된 목록들 갱신
     STATE.selectedJids.forEach(sjid => {
         drawJunction(sjid);
         createArrows(sjid);
     });
-
-    // 편집 모드 상태에서 교차로 선택 시 편집 전용 레이어도 해당 교차로로 즉시 전환
-    if (STATE.isMapEditMode && window.ArrowEditManager) {
-        window.ArrowEditManager.enter(jid);
-    }
 
     // Sidebar List Highlight
     document.querySelectorAll('.j-list-item').forEach(el => {

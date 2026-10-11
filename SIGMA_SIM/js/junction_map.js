@@ -425,10 +425,12 @@ const ArrowEditManager = {
                     map.dragging.enable();
                     window.removeEventListener('mousemove', onMouseMove);
                     window.removeEventListener('mouseup', onMouseUp);
+                    window.removeEventListener('blur', onMouseUp);
                 };
 
                 window.addEventListener('mousemove', onMouseMove);
                 window.addEventListener('mouseup', onMouseUp);
+                window.addEventListener('blur', onMouseUp);
             }
         });
     },
@@ -533,8 +535,9 @@ function createArrows(jid) {
     const j = STATE.junctions[jid];
     if (!j) return;
 
-    // 만약 해당 교차로가 ArrowEditManager에 의해 편집 중이라면 시뮬레이션 화살표 생성 스킵
+    // 만약 해당 교차로가 ArrowEditManager에 의해 편집 중이라면 편집 전용 레이어 갱신 후 시뮬레이션 화살표 생성 스킵
     if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === jid) {
+        window.ArrowEditManager.render();
         return;
     }
 

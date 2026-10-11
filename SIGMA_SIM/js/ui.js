@@ -288,7 +288,7 @@ const AppStateMachine = {
 
         // 모든 버튼 초기화
         if (btnAdd) { btnAdd.className = 'phase-action-btn phase-btn-green'; btnAdd.innerHTML = '➕ 교차로 추가'; }
-        if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-purple'; btnMapEdit.innerText = "🔧 신호등 편집"; }
+        if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-purple'; btnMapEdit.innerText = "🔧 위치 편집"; }
         if (btnResetArrows) {
             btnResetArrows.disabled = true;
             btnResetArrows.style.opacity = '0.5';

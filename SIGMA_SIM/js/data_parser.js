@@ -5,9 +5,10 @@ function serializeFlash(j) { return `${j.flashEnable?1:0}|${(j.flashTimes||[]).m
 function serializeOpInt(j) { const op = j.opIntervention||{enable:false,rows:[]}; return `${op.enable?1:0}|${(op.rows||[]).map(r=>`${r.s},${r.e},${r.cycle},${r.offset},${(r.splitA||[]).join(';')},${(r.splitB||[]).join(';')}`).join('::')}`; }
 
 function serializeArrows(j) {
-    const arrs = Object.entries(j.arrowConfigs || {}).flatMap(([m, configs]) =>
-        configs.map(c => `${m}:${c.dLat}:${c.dLng}:${c.rot}`)
-    );
+    const arrs = Object.entries(j.arrowConfigs || {}).flatMap(([m, configs]) => {
+        const list = Array.isArray(configs) ? configs : (configs ? [configs] : []);
+        return list.map(c => `${m}:${c.dLat}:${c.dLng}:${c.rot !== undefined ? c.rot : 0}`);
+    });
     if (j.customAngles) {
         Object.entries(j.customAngles).forEach(([pfx, angle]) => {
             arrs.push(`_custom_angles:${pfx}:${angle}`);
