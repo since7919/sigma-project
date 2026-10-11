@@ -314,6 +314,14 @@ function selectJunction(jid, isMulti = false) {
             try { syncConfigEditUI(); } catch(e) {}
         }
 
+        // [추가] 교차로 선택 시 Node/Link 탭의 이동류 및 신호화살표 컨테이너 표시
+        const movContainer = document.getElementById('info-mov-combined-container');
+        if (movContainer) movContainer.style.display = 'block';
+
+        if (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT && window.ArrowEditManager) {
+            window.ArrowEditManager.enter(jid);
+        }
+
         // [추가] 현재 활성화된 탭이 있으면 해당 탭의 렌더링 함수를 한번 더 호출 (강제 리프레시)
         const activeTabBtn = document.querySelector('.tabs .tab.active, .menu-item.active');
         if (activeTabBtn) {
@@ -335,6 +343,8 @@ function deselectJunction() {
     if (window.ArrowEditManager && window.ArrowEditManager.isActive()) {
         window.ArrowEditManager.exit(true);
     }
+    const movContainer = document.getElementById('info-mov-combined-container');
+    if (movContainer) movContainer.style.display = 'none';
     const oldJids = [...STATE.selectedJids];
     STATE.activeJid = null;
     STATE.selectedJids = [];

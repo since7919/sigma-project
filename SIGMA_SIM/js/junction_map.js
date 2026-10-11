@@ -65,8 +65,10 @@ function drawJunction(jid, onlyStyle) {
         j.marker.on('drag', (e) => {
             const pos = e.target.getLatLng();
             j.lat = pos.lat; j.lng = pos.lng;
-            document.getElementById('inp-lat').value = pos.lat.toFixed(9);
-            document.getElementById('inp-lng').value = pos.lng.toFixed(9);
+            const inpLat = document.getElementById('inp-lat');
+            const inpLng = document.getElementById('inp-lng');
+            if (inpLat) inpLat.value = pos.lat.toFixed(9);
+            if (inpLng) inpLng.value = pos.lng.toFixed(9);
             updateArrowsPosition(jid);
         });
         j.marker.on('dragend', refreshVisibleArrows);

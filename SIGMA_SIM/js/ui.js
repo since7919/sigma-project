@@ -137,6 +137,15 @@ function openTab(evt, tabName) {
         if (typeof renderCivilSummary === 'function') renderCivilSummary(); 
         if (STATE.activeJid && typeof renderCivilStats === 'function') renderCivilStats(STATE.activeJid);
     }
+    if (tabName === 'tab-info') {
+        const movContainer = document.getElementById('info-mov-combined-container');
+        if (movContainer) {
+            movContainer.style.display = (STATE.activeJid || STATE.isMapEditMode) ? 'block' : 'none';
+        }
+        if (typeof renderRingTables === 'function' && STATE.activeJid) {
+            renderRingTables();
+        }
+    }
 }
 
 /**
@@ -246,7 +255,9 @@ const AppStateMachine = {
                 }
                 this.refreshAllJunctions();
                 const movContainerExit = document.getElementById('info-mov-combined-container');
-                if (movContainerExit) movContainerExit.style.display = 'none';
+                if (movContainerExit) {
+                    movContainerExit.style.display = STATE.activeJid ? 'block' : 'none';
+                }
                 break;
 
             case CONFIG.APP_MODE.ADD_NODE:
@@ -288,7 +299,7 @@ const AppStateMachine = {
 
         // 모든 버튼 초기화
         if (btnAdd) { btnAdd.className = 'phase-action-btn phase-btn-green'; btnAdd.innerHTML = '➕ 교차로 추가'; }
-        if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-purple'; btnMapEdit.innerText = "🔧 위치 편집"; }
+        if (btnMapEdit) { btnMapEdit.className = 'phase-action-btn phase-btn-purple'; btnMapEdit.innerText = "🔧 신호화살표 편집"; }
         if (btnResetArrows) {
             btnResetArrows.disabled = true;
             btnResetArrows.style.opacity = '0.5';
