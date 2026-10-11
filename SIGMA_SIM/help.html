@@ -91,14 +91,170 @@
             margin-right: 12px;
             font-size: 12px;
         }
+
+        /* Data Pipeline Diagram Styles */
+        .pipeline-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 25px 0;
+        }
+        .pipeline-step {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #38bdf8;
+            border-radius: 10px;
+            padding: 16px 20px;
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.08);
+            transition: all 0.2s ease;
+        }
+        .pipeline-step:hover {
+            transform: translateY(-2px);
+            border-color: #00d4ff;
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.18);
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .step-num {
+            background: #38bdf8;
+            color: #0f172a;
+            font-weight: 900;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+        .step-title {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            flex: 1;
+            margin-left: 12px;
+        }
+        .step-desc {
+            color: #cbd5e1;
+            font-size: 13.5px;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+        .pipeline-arrow {
+            color: #38bdf8;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1;
+            filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+        }
+        .step-tag {
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+        .tag-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .tag-orange {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+        .highlight-step {
+            border: 1.5px solid #10b981;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+        }
+        .highlight-step .step-num {
+            background: #10b981;
+        }
     </style>
+    <!-- Mermaid.js for interactive diagram rendering -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+    </script>
 </head>
 <body>
 
     <h1>SIGMA 시뮬레이터 도움말</h1>
 
+    <!-- 1. 신호 시뮬레이터 기본 기능 및 데이터 연결 메커니즘 -->
     <div class="card">
-        <h2>1. 특수기능 예약계획 (시차제어 / 점멸 / 소등)</h2>
+        <h2>1. 신호 시뮬레이터 기본 기능 및 데이터 연결 메커니즘 (Data Pipeline)</h2>
+        <p style="color: #cbd5e1;">시뮬레이터는 <b>시간계획(TOD) → 일계획(Day Plan) → 시그널맵(Signal Map) → 등화 연산(calc) → 화면 표출(Rendering)</b>의 5단계 파이프라인을 통해 방향별 화살표와 신호등에 실시간 녹색불을 켜주는 핵심 관제 엔진입니다.</p>
+
+        <h3>신호 데이터 제어 흐름도 (Data Control Flowchart)</h3>
+        
+        <!-- Mermaid 다이어그램 -->
+        <pre class="mermaid" style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 8px; border: 1px solid #334155; text-align: center;">
+flowchart TD
+    A["시간계획 (TOD / Schedules)<br/>현재 시각(t) 기준 운영 플랜 번호 결정"] --> B["일계획 (Day Plans / Splits)<br/>현시별 녹색·스플릿 초수 및 주기 제공"]
+    B --> C["시그널맵 (Signal Maps)<br/>현시별 이동류(화살표) 번호·보행·황색 매핑"]
+    C --> D["시뮬레이터 연산 엔진 (calc / simulation.js)<br/>현재 주기 위치(pos)에 따른 등화(G/Y/R) 판정"]
+    D --> E["화살표 및 신호등 DOM (junction_map.js)<br/>방향별 화살표 실시간 녹색 점등 (#10b981)"]
+        </pre>
+
+        <!-- 브라우저 네이티브 카드형 다이어그램 (CDN 미로딩 시에도 100% 완전 표출) -->
+        <div class="pipeline-container">
+            <div class="pipeline-step">
+                <div class="step-header">
+                    <span class="step-num">STEP 1</span>
+                    <span class="step-title">시간계획 (TOD / Schedules)</span>
+                </div>
+                <div class="step-desc">현재 시뮬레이터 시각(<code>t</code>, 0~86399초)이 속한 시간대 슬롯을 탐색하여 운영할 플랜 번호(<code>pIdx</code>)를 결정합니다.</div>
+            </div>
+            <div class="pipeline-arrow">⬇</div>
+
+            <div class="pipeline-step">
+                <div class="step-header">
+                    <span class="step-num">STEP 2</span>
+                    <span class="step-title">일계획 (Day Plans / Splits)</span>
+                </div>
+                <div class="step-desc">오늘 요일(평일/토/일)과 주간계획에 따라 해당 플랜의 현시별 스플릿 초수(<code>splitA</code>, <code>splitB</code>)와 총 주기(Cycle)를 산출합니다.</div>
+                <div><span class="step-tag tag-green">🛡️ 빈 일계획 자동 우회: 주말 플랜이 비어있으면 1번 평일 일계획으로 자동 우회</span></div>
+            </div>
+            <div class="pipeline-arrow">⬇</div>
+
+            <div class="pipeline-step">
+                <div class="step-header">
+                    <span class="step-num">STEP 3</span>
+                    <span class="step-title">시그널맵 (Signal Maps)</span>
+                </div>
+                <div class="step-desc">각 현시가 진행될 때 실제로 점등해야 할 방향별 차량 이동류 ID(<code>movA</code>, <code>movB</code>), 보행 신호(<code>pedMov</code>), 황색 및 전적색 시간을 결합합니다.</div>
+                <div><span class="step-tag tag-orange">🛡️ 불완전 맵 안전 폴백: 1현시만 있거나 황색시간 누락 시 0번 기본 일반맵으로 자동 우회</span></div>
+            </div>
+            <div class="pipeline-arrow">⬇</div>
+
+            <div class="pipeline-step">
+                <div class="step-header">
+                    <span class="step-num">STEP 4</span>
+                    <span class="step-title">시뮬레이터 연산 엔진 (calc / simulation.js)</span>
+                </div>
+                <div class="step-desc">주기 내 경과 시간(<code>pos = (t + offset) % Cycle</code>)을 계산하여 현재 현시에 해당하는 이동류에 <b>녹색('G')</b> 또는 황색('Y') 신호를 부여하고 잔여 시간을 산출합니다. 연속 동일 이동류는 신호 단절 없이 녹색을 유지(Signal Merging)합니다.</div>
+            </div>
+            <div class="pipeline-arrow">⬇</div>
+
+            <div class="pipeline-step highlight-step">
+                <div class="step-header">
+                    <span class="step-num">STEP 5</span>
+                    <span class="step-title">화살표 및 신호등 DOM (junction_map.js)</span>
+                </div>
+                <div class="step-desc">모든 차량 이동류(1~16)와 보행자 신호(<code>pedSet</code>)를 식별하여 지도 상의 SVG 화살표 및 신호등 DOM을 실시간 <b>녹색(#10b981)</b>, 황색(#f59e0b), 적색(#ef4444)으로 즉시 전환합니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 특수기능 예약계획 (시차제어 / 점멸 / 소등)</h2>
         <p style="color: #cbd5e1;">경찰청 교통신호기 설치운영 업무편람 기준에 따라, 특정 날짜 및 시간에 특수기능을 강제로 운영하는 예약 시스템입니다. 바이트(DATA 필드) 규격의 HIGH NIBBLE / LOW NIBBLE 처리 방식을 완벽히 준수합니다.</p>
         
         <h3>조건 설정 (날짜/요일) 우선순위</h3>
@@ -143,7 +299,7 @@
     </div>
 
     <div class="card">
-        <h2>2. 신호 시뮬레이터 등화 결정 우선순위</h2>
+        <h2>3. 신호 시뮬레이터 등화 결정 우선순위</h2>
         <p style="color: #cbd5e1;">시뮬레이터는 교차로의 여러 설정(주간계획, 특수기능, 점멸 등)이 겹칠 경우 다음의 엄격한 우선순위에 따라 최종 표출될 시그널맵을 결정합니다.</p>
         
         <ul class="priority-list">
@@ -176,7 +332,7 @@
     </div>
 
     <div class="card">
-        <h2>3. 외부 연동 API 기능 명세 및 출처</h2>
+        <h2>4. 외부 연동 API 기능 명세 및 출처</h2>
         <p style="color: #cbd5e1;">SIGMA 플랫폼은 신호 제어 시뮬레이션, 도로 기하구조 분석, 실시간 현시 표출 및 AI 통계 분석을 위해 아래 공공/상용 API를 유기적으로 연동하여 운영하고 있습니다.</p>
         
         <table>
