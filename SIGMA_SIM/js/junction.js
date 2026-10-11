@@ -318,6 +318,11 @@ function selectJunction(jid, isMulti = false) {
         const movContainer = document.getElementById('info-mov-combined-container');
         if (movContainer) movContainer.style.display = 'block';
 
+        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
+        if (guideWrapper) {
+            guideWrapper.style.display = (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT) ? 'block' : 'none';
+        }
+
         if (STATE.appMode === CONFIG.APP_MODE.MAP_EDIT && window.ArrowEditManager) {
             window.ArrowEditManager.enter(jid);
         }
@@ -345,6 +350,8 @@ function deselectJunction() {
     }
     const movContainer = document.getElementById('info-mov-combined-container');
     if (movContainer) movContainer.style.display = 'none';
+    const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
+    if (guideWrapper) guideWrapper.style.display = 'none';
     const oldJids = [...STATE.selectedJids];
     STATE.activeJid = null;
     STATE.selectedJids = [];

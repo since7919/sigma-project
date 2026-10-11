@@ -166,6 +166,9 @@ const ArrowEditManager = {
 
         // 3. 편집 마커 렌더링
         this.render();
+
+        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
+        if (guideWrapper) guideWrapper.style.display = 'block';
     },
 
     exit(save = true) {
@@ -184,6 +187,9 @@ const ArrowEditManager = {
                 map.removeLayer(this.layerGroup);
             }
         }
+
+        const guideWrapper = document.getElementById('arrow-edit-guide-wrapper');
+        if (guideWrapper) guideWrapper.style.display = 'none';
 
         this.activeJid = null;
         this.focusedArrow = null;
