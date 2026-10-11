@@ -162,6 +162,18 @@ function setSimDay(day) {
     document.querySelectorAll('.btn-day').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.getAttribute('data-day')) === day);
     });
+
+    // 선택된 교차로가 있을 경우 주간계획/일계획 UI 동기화
+    if (STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) {
+        const j = STATE.junctions[STATE.activeJid];
+        const t = parseInt(UI.timeSlider?.value) || 0;
+        if (typeof getSimContext === 'function') {
+            const ctx = getSimContext(j, t);
+            if (typeof changeJunctionDayType === 'function') {
+                changeJunctionDayType(ctx.dayIdx);
+            }
+        }
+    }
     
     updateSim();
     console.log(`[Simulation] Day changed to ${day} (0:Sun-6:Sat)`);
@@ -811,7 +823,16 @@ function goToCurrentTime() {
     const now = new Date();
     const totalSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
     UI.timeSlider.value = totalSec;
-    updateSim();
+    const currentDay = now.getDay();
+    if (typeof setSimDay === 'function') {
+        setSimDay(currentDay);
+    } else {
+        STATE.simDayOfWeek = currentDay;
+        document.querySelectorAll('.btn-day').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.getAttribute('data-day')) === currentDay);
+        });
+        updateSim();
+    }
 }
 
 /** 10초 앞/뒤 이동 기능 */

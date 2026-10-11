@@ -1162,6 +1162,34 @@ body.left-sidebar-open #sim-controls {
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s, opacity 0.5s, left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 줌 레벨 인디케이터 (상단 좌측 배치: 시뮬레이터 및 하단 패널 간섭 방지) */
+#zoom-indicator,
+.zoom-level-badge {
+    position: absolute;
+    top: 75px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(18, 18, 18, 0.85);
+    color: #00ffff;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    pointer-events: none;
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+body.left-sidebar-open #zoom-indicator,
+body.left-sidebar-open .zoom-level-badge {
+    left: 340px;
+}
+
 
 
 /* AI Report Markdown Styles (Dark Theme) */
