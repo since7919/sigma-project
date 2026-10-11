@@ -748,14 +748,16 @@ function getEffectiveSignalMapIdx(j, dayIdx, pIdx) {
     let mapIdx = (j.dayPlanMapIds && j.dayPlanMapIds[effDayIdx] !== undefined) ? j.dayPlanMapIds[effDayIdx] : 0;
     
     // 2. 맵핑된 시그널맵 자체가 텅 빈 경우 (엑셀에서 주말용 시그널맵을 별도로 안 그린 경우), 1번 일반맵(0)으로 자동 우회
-    if (mapIdx > 0 && j.signalMaps && j.signalMaps[mapIdx]) {
-        const sm = j.signalMaps[mapIdx];
-        const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
-        const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-        
-        // 엑셀은 steps가 없고 DB는 steps가 없을 수 있으므로 hasMov를 기준으로 판단
-        if (!hasMov) {
-            mapIdx = 0; // 화살표 데이터 자체가 없으면 무조건 1번 맵으로 폴백
+    if (mapIdx > 0) {
+        const sm = (j.signalMaps && j.signalMaps[mapIdx]) ? j.signalMaps[mapIdx] : null;
+        if (!sm) {
+            mapIdx = 0; // 시차맵 객체 자체가 없으면 기본 1번 맵(0)으로 자동 폴백
+        } else {
+            const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
+            const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
+            if (!hasMov && !hasSteps) {
+                mapIdx = 0; // 화살표 데이터 및 스텝 데이터가 없으면 무조건 1번 맵(0)으로 폴백
+            }
         }
     }
     

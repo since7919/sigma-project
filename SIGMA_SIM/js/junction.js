@@ -74,7 +74,9 @@ function selectJunction(jid, isMulti = false) {
     oldJids.forEach(oid => {
         if (!STATE.selectedJids.includes(oid)) {
             drawJunction(oid);
-            removeArrows(oid);
+            if (!STATE.showSignalArrows) {
+                removeArrows(oid);
+            }
         } else {
             drawJunction(oid, true); // 보더 컬러 등 스타일만 갱신
         }
@@ -401,7 +403,9 @@ function toggleSelectJunction(jid) {
         // 이미 선택된 경우 제거
         STATE.selectedJids.splice(idx, 1);
         drawJunction(jid);
-        removeArrows(jid);
+        if (!STATE.showSignalArrows) {
+            removeArrows(jid);
+        }
         
         if (STATE.activeJid === jid) {
             STATE.activeJid = STATE.selectedJids.length > 0 ? STATE.selectedJids[STATE.selectedJids.length - 1] : null;

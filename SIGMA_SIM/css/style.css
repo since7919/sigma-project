@@ -788,11 +788,19 @@ td {
     opacity: 1 !important;
 }
 
-.signal-arrow.R:not(.editing):not(.overlay-arrow) {
+.signal-arrow.R {
+    display: flex !important;
+    opacity: 0.6;
+    color: #ff4d4f;
+    filter: drop-shadow(0 0 6px rgba(255, 77, 79, 0.5));
+}
+
+.signal-arrow.Off {
     display: none !important;
 }
 
-.signal-arrow.overlay-arrow.R {
+.signal-arrow.overlay-arrow.R,
+.signal-arrow.editing.R {
     display: flex !important;
     opacity: 0.65;
     color: #ff5722;
@@ -848,6 +856,12 @@ body.global-flash-on .signal-arrow.R-flash {
     font-size: 12.5px !important;
     font-weight: 700;
     letter-spacing: -0.5px;
+}
+
+.signal-arrow.walk-mode.R {
+    color: #ff4d4f !important;
+    opacity: 0.6;
+    text-shadow: 0 0 6px rgba(255, 77, 79, 0.5);
 }
 
 .signal-arrow.walk-mode.G {
