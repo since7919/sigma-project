@@ -857,7 +857,13 @@ function createOverlayArrows(jid, targetMap) {
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
     const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
     const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
-    const allMovs = [...new Set(mapMovs)].filter(m => m > 0);
+    let allMovs = [...new Set(mapMovs)].filter(m => m > 0);
+    if (allMovs.length === 0 && j.arrowConfigs) {
+        allMovs = Object.keys(j.arrowConfigs).map(Number).filter(m => m > 0);
+    }
+    if (allMovs.length === 0) {
+        allMovs = [1, 2, 3, 4, 5, 6, 7, 8, 102, 104, 106, 108];
+    }
 
     if (window._currentOverlayJid && window._currentOverlayJid !== jid) {
         const oldJ = STATE.junctions[window._currentOverlayJid];
@@ -890,7 +896,8 @@ function createOverlayArrows(jid, targetMap) {
             const arrowData = isPed ? { type: 'WALK', ang: 0 } : getVisualArrow(m);
 
             const configs = j.arrowConfigs && j.arrowConfigs[m] ? (Array.isArray(j.arrowConfigs[m]) ? j.arrowConfigs[m] : [j.arrowConfigs[m]]) : [];
-            let renderConfigs = configs;
+            const validConfigs = configs.filter(c => c && typeof c.dLat === 'number' && typeof c.dLng === 'number' && !isNaN(c.dLat) && !isNaN(c.dLng) && !(c.dLat === 0 && c.dLng === 0));
+            let renderConfigs = validConfigs;
 
             if (renderConfigs.length === 0) {
                 let ang = 0;
@@ -919,10 +926,7 @@ function createOverlayArrows(jid, targetMap) {
             j.overlayArrows[m] = [];
 
             renderConfigs.forEach((config, idx) => {
-                // 메인 맵의 줌 레벨과 상세보기(18)의 차이를 계산하여 거리를 보정 (시각적 픽셀 거리 일치)
-                const currentMapZoom = (typeof window.map !== 'undefined') ? window.map.getZoom() : 18;
-                const scaleFactor = Math.pow(2, currentMapZoom - 18);
-                const pos = [j.lat + config.dLat * scaleFactor, j.lng + config.dLng * scaleFactor];
+                const pos = [j.lat + config.dLat, j.lng + config.dLng];
                 const currentRot = config.rot !== undefined ? config.rot : arrowData.ang;
                 const walkCls = isPed ? 'walk-mode' : '';
 

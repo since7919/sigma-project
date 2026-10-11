@@ -181,13 +181,18 @@ function updateSim() {
         UI.clock.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
+    // [추가] 점멸 신호 블링킹을 위한 전역 상태 제어 (500ms 주기)
+    const flashOn = (Math.floor(Date.now() / 500) % 2 === 0);
+    document.body.classList.toggle('global-flash-on', flashOn);
+
     const bounds = (typeof map !== 'undefined') ? map.getBounds() : null;
     const n = bounds ? bounds.getNorth() : 90, s = bounds ? bounds.getSouth() : -90, e = bounds ? bounds.getEast() : 180, w = bounds ? bounds.getWest() : -180;
 
     Object.values(STATE.junctions).forEach(j => {
-        // [성능 최적화] 화면 밖 교차로는 연산에서 제외 (단, 현재 선택된 교차로는 예외)
+        // [성능 최적화] 화면 밖 교차로는 연산에서 제외 (단, 현재 선택된 교차로나 상세보기 대상은 예외)
         const isInView = (j.lat < n && j.lat > s && j.lng < e && j.lng > w);
-        if (!isInView && j.id !== STATE.activeJid) return;
+        const isOverlayTarget = (window._currentOverlayJid && String(j.id) === String(window._currentOverlayJid));
+        if (!isInView && j.id !== STATE.activeJid && !isOverlayTarget) return;
         const editing = (j.id === STATE.activeJid && STATE.isMapEditMode);
 
         // 1. 점멸 상태 체크
@@ -297,18 +302,46 @@ function updateSim() {
         }
 
         // 화살표/신호등 갱신 (핵심 최적화 구간)
-        if (!j.arrows && !j.elemCache && !j.overlayElemCache) return;
+        if (!j.arrows && !j.elemCache && !j.overlayElemCache && !j.overlayArrows) return;
 
         const activeStates = {}; // { movID: stateObj }
-        
-        // 1. 모든 신호 방향을 기본적으로 'R'로 초기화
-        Object.keys(j.arrows).forEach(mStr => {
-            activeStates[parseInt(mStr)] = { st: 'R', rem: 0 };
+
+        // 1. 모든 신호 방향을 기본적으로 'R'로 안전하게 초기화 (j.arrows가 없거나 오버레이만 열려있을 때도 안전)
+        if (j.arrows) {
+            Object.keys(j.arrows).forEach(mStr => {
+                const n = parseInt(mStr);
+                if (!isNaN(n)) activeStates[n] = { st: 'R', rem: 0 };
+            });
+        }
+        if (j.overlayArrows) {
+            Object.keys(j.overlayArrows).forEach(mStr => {
+                const n = parseInt(mStr);
+                if (!isNaN(n)) activeStates[n] = { st: 'R', rem: 0 };
+            });
+        }
+        if (j.overlayElemCache) {
+            Object.values(j.overlayElemCache).forEach(cache => {
+                if (cache) {
+                    if (cache.mS) activeStates[cache.mS] = { st: 'R', rem: 0 };
+                    if (cache.mL) activeStates[cache.mL] = { st: 'R', rem: 0 };
+                    if (cache.mP) activeStates[cache.mP] = { st: 'R', rem: 0 };
+                }
+            });
+        }
+        if (activeMap) {
+            [...(activeMap.movA || []), ...(activeMap.movB || []), ...(activeMap.pedMovA || []), ...(activeMap.pedMovB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0) activeStates[n] = { st: 'R', rem: 0 };
+            });
+        }
+        // 기본 1~16번 차량 및 101~116번 보행 신호 폴백
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 102, 104, 106, 108, 110, 112, 114, 116].forEach(m => {
+            if (!activeStates[m]) activeStates[m] = { st: 'R', rem: 0 };
         });
 
-        // 2. 현재 상태(점멸/정상/편집)에 따른 현시별 상태 계산
+        // 2. 현재 상태(점멸/소등/정상/편집)에 따른 현시별 상태 계산
         if (isBlackoutActive) {
-            Object.keys(j.arrows).forEach(mStr => {
+            Object.keys(activeStates).forEach(mStr => {
                 activeStates[parseInt(mStr)] = { st: 'Off', rem: 0 };
             });
         } else if (isFlashActive) {
@@ -316,7 +349,7 @@ function updateSim() {
             (j.flashReds || []).forEach(m => activeStates[m] = { st: 'R-flash', rem: 0 });
         } else if (editing && STATE.isMapEditMode) {
             // [추가] 신호등 편집 모드 시에는 모든 화살표를 적색으로 고정 (위치 조정 편의)
-            Object.keys(j.arrows).forEach(mStr => {
+            Object.keys(activeStates).forEach(mStr => {
                 activeStates[parseInt(mStr)] = { st: 'R', rem: 0 };
             });
         } else if (STATE.signalSource === 'REALTIME' && j._realtimeItems && j._realtimeItems.length > 0) {
@@ -605,12 +638,17 @@ function updateSim() {
 
                     let isAnyVehActive = (sigS === 'green' || sigS === 'yellow' || sigS === 'flash' || sigL === 'green' || sigL === 'yellow' || sigL === 'flash');
                     let crOn = !isAnyVehActive;
-                    let cyOn = sigS === 'yellow' || sigL === 'yellow' || sigS === 'flash' || sigL === 'flash';
+                    let cyOn = sigS === 'yellow' || sigL === 'yellow' || (sigS === 'flash' && flashOn) || (sigL === 'flash' && flashOn);
                     let caOn = sigL === 'green';
                     let cgOn = sigS === 'green';
 
-                    let prOn = sigP === 'red';
-                    let pgOn = sigP === 'green' || sigP === 'flash';
+                    let prOn = sigP === 'red' || (sigP === 'flash' && !flashOn);
+                    let pgOn = sigP === 'green' || (sigP === 'flash' && flashOn);
+
+                    if (isBlackoutActive) {
+                        crOn = false; cyOn = false; caOn = false; cgOn = false;
+                        prOn = false; pgOn = false;
+                    }
 
                     if (cache.lensR) cache.lensR.classList.toggle('on', crOn);
                     if (cache.lensY) cache.lensY.classList.toggle('on', cyOn);

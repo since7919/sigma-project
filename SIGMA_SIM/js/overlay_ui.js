@@ -17,6 +17,7 @@ function openDetailOverlay(jid) {
     const modal = document.getElementById('detail-overlay-modal');
     const titleName = document.getElementById('overlay-title-name');
     const titleId = document.getElementById('overlay-title-id');
+    window._currentOverlayJid = jid;
     
     // 교차로명 및 ID 세팅
     if (typeof STATE !== 'undefined' && STATE.junctions && STATE.junctions[jid]) {
@@ -123,6 +124,7 @@ function openDetailOverlay(jid) {
 
 function closeDetailOverlay() {
     document.getElementById('detail-overlay-modal').style.display = 'none';
+    window._currentOverlayJid = null;
     
     // Move sigmap-table-container back to main UI
     const sigmapContainer = document.getElementById('sigmap-table-container');
@@ -672,6 +674,9 @@ function toggleOverlaySignalMode() {
     if (window._currentOverlayJid) {
         if (typeof createOverlayArrows === 'function') {
             createOverlayArrows(window._currentOverlayJid, overlayMap);
+        }
+        if (typeof updateSim === 'function') {
+            updateSim();
         }
         if (overlayMap) {
             // zoom is fixed at 18
