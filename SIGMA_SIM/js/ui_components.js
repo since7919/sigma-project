@@ -338,16 +338,14 @@ window.renderReservationPlan = function() {
             <td class="res-td"><input type="number" id="res-${i}-day" class="res-input" value="${r.day||''}" min="1" max="31" onchange="updateReservation(${i})"></td>
             <td class="res-td">
                 <select id="res-${i}-dow" class="res-select" onchange="updateReservation(${i})">
-                    <option value="0" ${r.dow===0?'selected':''}>0</option>
-                    <option value="1" ${r.dow===1?'selected':''}>1</option>
-                    <option value="2" ${r.dow===2?'selected':''}>2</option>
-                    <option value="3" ${r.dow===3?'selected':''}>3</option>
-                    <option value="4" ${r.dow===4?'selected':''}>4</option>
-                    <option value="5" ${r.dow===5?'selected':''}>5</option>
-                    <option value="6" ${r.dow===6?'selected':''}>6</option>
-                    <option value="7" ${r.dow===7?'selected':''}>7</option>
-                    <option value="8" ${r.dow===8?'selected':''}>8</option>
-                    <option value="9" ${r.dow===9?'selected':''}>9</option>
+                    <option value="0" ${r.dow===0?'selected':''}>0 (무관)</option>
+                    <option value="1" ${r.dow===1?'selected':''}>1 (일)</option>
+                    <option value="2" ${r.dow===2?'selected':''}>2 (월)</option>
+                    <option value="3" ${r.dow===3?'selected':''}>3 (화)</option>
+                    <option value="4" ${r.dow===4?'selected':''}>4 (수)</option>
+                    <option value="5" ${r.dow===5?'selected':''}>5 (목)</option>
+                    <option value="6" ${r.dow===6?'selected':''}>6 (금)</option>
+                    <option value="7" ${r.dow===7?'selected':''}>7 (토)</option>
                 </select>
             </td>
             <td class="res-td">
