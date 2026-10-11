@@ -209,7 +209,11 @@ function handleMovInput(el) {
         // ※ 현시계획(Map)은 A/B 링 독립 입력 - Dual 동기화 불필요
     } else { if (!j[key]) j[key] = [0,0,0,0,0,0,0,0]; j[key][idx] = val; }
 
-    if (typeof refreshVisibleArrows === 'function') refreshVisibleArrows();
+    if (STATE.activeJid && typeof createArrows === 'function') {
+        createArrows(STATE.activeJid);
+    } else if (typeof refreshVisibleArrows === 'function') {
+        refreshVisibleArrows();
+    }
     // 방향(Dir) 이미지 갱신을 위해 디바운싱 리렌더링
     debounceUpdateRingTables();
 }

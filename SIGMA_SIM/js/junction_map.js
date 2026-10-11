@@ -160,6 +160,7 @@ function createArrows(jid) {
 
     removeArrows(jid);
     j.arrows = {};
+    j._isRenderedEditMode = isEditing;
 
     if (!STATE.showSignalArrows && !isEditing) return;
     if (map.getZoom() < CONFIG.MIN_ZOOM_FOR_ARROWS && !isEditing) return;
@@ -173,9 +174,12 @@ function createArrows(jid) {
         if (j.arrowConfigs[m] && !Array.isArray(j.arrowConfigs[m])) {
             j.arrowConfigs[m] = [j.arrowConfigs[m]];
         }
-        const configs = j.arrowConfigs[m] || [];
+        let configs = j.arrowConfigs[m] || [];
 
-        if (configs.length === 0) {
+        // 좌표 유효성 검사 (NaN이거나 0,0으로 중심에 묻힌 경우 기본 위치로 보정)
+        const validConfigs = configs.filter(c => c && typeof c.dLat === 'number' && typeof c.dLng === 'number' && !isNaN(c.dLat) && !isNaN(c.dLng) && !(c.dLat === 0 && c.dLng === 0));
+
+        if (validConfigs.length === 0) {
             let ang = 0;
             if (isPed && m > 100 && m <= 116) {
                 // 보행신호(101~108...)는 대응하는 차량신호(1~8...)의 각도를 기준으로 배치
@@ -183,15 +187,10 @@ function createArrows(jid) {
                 if (pedAngMap[m] !== undefined) {
                     ang = pedAngMap[m];
                 } else {
-                    const pedAngMap = { 102: 180, 104: 90, 106: 0, 108: 270, 110: 225, 112: 315, 114: 45, 116: 135 };
-                    if (pedAngMap[m] !== undefined) {
-                        ang = pedAngMap[m];
-                    } else {
-                        const refM = m - 100;
-                        ang = defPosAngles[(refM - 1) % 16] || 0;
-                        if (refM % 2 !== 0) ang += 22;
-                        else ang -= 22;
-                    }
+                    const refM = m - 100;
+                    ang = defPosAngles[(refM - 1) % 16] || 0;
+                    if (refM % 2 !== 0) ang += 22;
+                    else ang -= 22;
                 }
             } else {
                 ang = defPosAngles[(m - 1) % 16] || 0;
@@ -205,7 +204,10 @@ function createArrows(jid) {
             const pos = [j.lat + Math.cos(ang * Math.PI / 180) * offset, j.lng + Math.sin(ang * Math.PI / 180) * offset];
             const cfg = { dLat: pos[0] - j.lat, dLng: pos[1] - j.lng, rot: arrowData.ang };
             j.arrowConfigs[m] = [cfg];
-            configs.push(cfg);
+            configs = [cfg];
+        } else {
+            configs = validConfigs;
+            j.arrowConfigs[m] = configs;
         }
 
         j.arrows[m] = [];
@@ -411,15 +413,17 @@ function createArrows(jid) {
 
 function duplicateArrow(jid, m, idx) {
     const j = STATE.junctions[jid];
+    if (!j || !j.arrowConfigs) return;
+    if (!j.arrowConfigs[m]) j.arrowConfigs[m] = [];
     if (j.arrowConfigs[m].length >= 2) {
         alert("해당 번호의 신호등은 최대 2개까지만 설치할 수 있습니다.");
         return;
     }
-    const original = j.arrowConfigs[m][idx];
+    const original = j.arrowConfigs[m][idx] || { dLat: 0.0001, dLng: 0.0001, rot: 0 };
     j.arrowConfigs[m].push({
-        dLat: original.dLat + 0.00002,
-        dLng: original.dLng + 0.00002,
-        rot: original.rot
+        dLat: (original.dLat || 0.0001) + 0.00002,
+        dLng: (original.dLng || 0.0001) + 0.00002,
+        rot: original.rot || 0
     });
 
     if (jid === STATE.activeJid) {
@@ -431,7 +435,8 @@ function duplicateArrow(jid, m, idx) {
 
 function deleteArrow(jid, m, idx) {
     const j = STATE.junctions[jid];
-    if (j.arrowConfigs[m].length <= 1) {
+    if (!j || !j.arrowConfigs) return;
+    if (!j.arrowConfigs[m] || j.arrowConfigs[m].length <= 1) {
         alert("마지막 하나 남은 화살표는 삭제할 수 없습니다.");
         return;
     }
@@ -453,6 +458,7 @@ function removeArrows(jid) {
     });
     j.arrows = {};
     j.elemCache = {};
+    delete j._isRenderedEditMode;
 }
 
 function refreshVisibleArrows() {
@@ -471,10 +477,12 @@ function refreshVisibleArrows() {
             const isSelected = STATE.selectedJids.includes(j.id);
             const isVisible = bounds && zoom >= CONFIG.MIN_ZOOM_FOR_ARROWS && bounds.contains([j.lat, j.lng]);
             const shouldShow = isVisible && (STATE.showSignalArrows || (isSelected && STATE.isMapEditMode));
+            const isEditingThis = (j.id === STATE.activeJid && STATE.isMapEditMode);
+            const needsRecreate = !j.arrows || Object.keys(j.arrows).length === 0 || (j._isRenderedEditMode !== isEditingThis);
 
             if (shouldShow) {
-                // 이미 그려져 있는 경우 중복 생성 방지
-                if (!j.arrows || Object.keys(j.arrows).length === 0) {
+                // 이미 그려져 있는 경우 중복 생성 방지하되 모드 변경 시 즉시 재생성
+                if (needsRecreate) {
                     createArrows(j.id);
                 }
             } else {
@@ -540,7 +548,7 @@ function resetArrowPositions() {
     const j = STATE.junctions[STATE.activeJid];
     j.arrowConfigs = {};
     createArrows(STATE.activeJid);
-    selectJunction(STATE.activeJid);
+    if (typeof updateSim === 'function') updateSim();
     alert("화살표 위치 및 수량이 초기화되었습니다.");
 }
 

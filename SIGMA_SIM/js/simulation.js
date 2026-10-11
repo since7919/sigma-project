@@ -188,6 +188,7 @@ function updateSim() {
         // [성능 최적화] 화면 밖 교차로는 연산에서 제외 (단, 현재 선택된 교차로는 예외)
         const isInView = (j.lat < n && j.lat > s && j.lng < e && j.lng > w);
         if (!isInView && j.id !== STATE.activeJid) return;
+        const editing = (j.id === STATE.activeJid && STATE.isMapEditMode);
 
         // 1. 점멸 상태 체크
         let isFlashActive = false;

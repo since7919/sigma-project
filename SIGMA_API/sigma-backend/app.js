@@ -1286,6 +1286,8 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
           if (parts.length >= 3 && parts[0] === '_custom_angles') {
             if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
             arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+          } else if (parts[0] === '_reservations') {
+            try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
           } else if (parts.length >= 4) {
             const mov = parts[0];
             if (!arrowConfigs[mov]) arrowConfigs[mov] = [];

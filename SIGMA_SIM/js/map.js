@@ -65,6 +65,10 @@ function toggleMapEdit() {
         if (typeof applyInfo === 'function') applyInfo();
         alert("편집이 완료되어 변경사항이 적용되었습니다.");
     } else {
+        if (!STATE.activeJid) {
+            alert("편집할 교차로를 먼저 지도나 목록에서 선택해주세요.");
+            return;
+        }
         if (STATE.simTimer) pauseSim();
         AppStateMachine.setMode(CONFIG.APP_MODE.MAP_EDIT);
         openTab(null, 'tab-info');
