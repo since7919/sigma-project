@@ -346,6 +346,8 @@ window.renderReservationPlan = function() {
                     <option value="5" ${r.dow===5?'selected':''}>5 (목)</option>
                     <option value="6" ${r.dow===6?'selected':''}>6 (금)</option>
                     <option value="7" ${r.dow===7?'selected':''}>7 (토)</option>
+                    <option value="8" ${r.dow===8?'selected':''}>8 (특수)</option>
+                    <option value="9" ${r.dow===9?'selected':''}>9 (특수)</option>
                 </select>
             </td>
             <td class="res-td">

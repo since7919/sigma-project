@@ -784,7 +784,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                             reservationsFound.push({
                                 month: parseInt(getVal(rowIdx, monthCol)) || 0,
                                 day: parseInt(getVal(rowIdx, dayCol)) || 0,
-                                dow: (() => { const d = parseInt(getVal(rowIdx, dowCol)) || 0; return (d >= 0 && d <= 7) ? d : 0; })(),
+                                dow: (() => { const d = parseInt(getVal(rowIdx, dowCol)) || 0; return (d >= 0 && d <= 9) ? d : 0; })(),
                                 startH: sT.h,
                                 startM: sT.m,
                                 endH: eT.h,
