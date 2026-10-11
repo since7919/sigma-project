@@ -325,7 +325,7 @@ function renderOverlayPlanInfo(jid) {
     const currentDayIndex = jsToWeeklyMap[dayOfWeek];
     
     let mainPhase = '1현시';
-    const smMap = j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null;
+    const smMap = (typeof getEffectiveSignalMap === 'function') ? getEffectiveSignalMap(j, dayIdx, pIdx) : (j.signalMaps && j.signalMaps[0] ? j.signalMaps[0] : null);
     if (smMap && smMap.mainMovements && smMap.mainMovements.length > 0) {
         const mainA = smMap.mainMovements.find(m => String(m).startsWith('A'));
         if (mainA) {
@@ -411,11 +411,11 @@ function renderOverlayPlanInfo(jid) {
         let splitTimeB = isRingB ? plan.splitB[i-1] : '-';
         let timeStr = isActive ? (isRingA && isRingB ? `A:${splitTimeA}s B:${splitTimeB}s` : (isRingA ? `${splitTimeA}s` : `${splitTimeB}s`)) : '';
 
-        const movA_val = (smMap && smMap.movA) ? smMap.movA[i-1] : 0;
+        const movA_val = (smMap && smMap.movA && smMap.movA[i-1] > 0) ? smMap.movA[i-1] : (j.signalMaps?.[0]?.movA?.[i-1] || 0);
         const pedA_val = (smMap && smMap.pedMovA) ? smMap.pedMovA[i-1] : 0;
         const htmlA = getPhaseArrowHTML(movA_val, pedA_val);
 
-        const movB_val = (smMap && smMap.movB) ? smMap.movB[i-1] : 0;
+        const movB_val = (smMap && smMap.movB && smMap.movB[i-1] > 0) ? smMap.movB[i-1] : (j.signalMaps?.[0]?.movB?.[i-1] || 0);
         const pedB_val = (smMap && smMap.pedMovB) ? smMap.pedMovB[i-1] : 0;
         const htmlB = getPhaseArrowHTML(movB_val, pedB_val);
 

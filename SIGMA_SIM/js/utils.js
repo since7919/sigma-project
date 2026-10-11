@@ -747,16 +747,32 @@ function getEffectiveSignalMapIdx(j, dayIdx, pIdx) {
     
     let mapIdx = (j.dayPlanMapIds && j.dayPlanMapIds[effDayIdx] !== undefined) ? j.dayPlanMapIds[effDayIdx] : 0;
     
-    // 2. 맵핑된 시그널맵 자체가 텅 빈 경우 (엑셀에서 주말용 시그널맵을 별도로 안 그린 경우), 1번 일반맵(0)으로 자동 우회
+    // 2. 맵핑된 시그널맵 자체가 텅 빈 경우 또는 불완전한 경우(화살표 누락 등), 1번 일반맵(0)으로 자동 우회
     if (mapIdx > 0) {
         const sm = (j.signalMaps && j.signalMaps[mapIdx]) ? j.signalMaps[mapIdx] : null;
         if (!sm) {
             mapIdx = 0; // 시차맵 객체 자체가 없으면 기본 1번 맵(0)으로 자동 폴백
         } else {
-            const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
+            const hasSteps = (sm.stepsA && sm.stepsA.some(s => s && s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s && s.minTm > 0));
             const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-            if (!hasMov && !hasSteps) {
-                mapIdx = 0; // 화살표 데이터 및 스텝 데이터가 없으면 무조건 1번 맵(0)으로 폴백
+            const hasYellow = (sm.yellowA && sm.yellowA.some(v => v > 0)) || (sm.yellowB && sm.yellowB.some(v => v > 0));
+            
+            // 실제 운영 플랜의 활성 현시 수 계산
+            const activeTod = (!isEmpty && tod) ? tod : (j.dayPlans[0] ? j.dayPlans[0][pIdx] : null);
+            let requiredPhases = 0;
+            if (activeTod && activeTod.splitA) {
+                requiredPhases = activeTod.splitA.filter(s => s > 0).length;
+            }
+            
+            // 시차맵에 설정된 최대 현시 수 계산
+            const movPhasesA = (sm.movA || []).filter(v => v > 0).length;
+            const movPhasesB = (sm.movB || []).filter(v => v > 0).length;
+            const maxMovPhases = Math.max(movPhasesA, movPhasesB);
+            
+            // 이동류가 아예 없거나, 스텝 및 황색시간이 전무하거나,
+            // 플랜은 다현시(2현시 이상)인데 시그널맵은 1현시 이하만 정의된 불완전 맵인 경우 0번 기본 일반맵으로 안전 폴백
+            if (!hasMov || (!hasSteps && !hasYellow) || (requiredPhases > 1 && maxMovPhases <= 1 && !hasSteps)) {
+                mapIdx = 0;
             }
         }
     }

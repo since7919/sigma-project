@@ -991,14 +991,17 @@ function checkTodMapIntegrity() {
             const sm = j.signalMaps && j.signalMaps[mapIdx] ? j.signalMaps[mapIdx] : null;
             if (sm && mapIdx >= 0 && mapIdx <= 4) {
                 const hasMov = (sm.movA && sm.movA.some(v => v > 0)) || (sm.movB && sm.movB.some(v => v > 0));
-                const hasSteps = (sm.stepsA && sm.stepsA.some(s => s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s.minTm > 0));
-                if (!hasMov || !hasSteps) {
+                const hasSteps = (sm.stepsA && sm.stepsA.some(s => s && s.minTm > 0)) || (sm.stepsB && sm.stepsB.some(s => s && s.minTm > 0));
+                const hasYellow = (sm.yellowA && sm.yellowA.some(v => v > 0)) || (sm.yellowB && sm.yellowB.some(v => v > 0));
+                if (!hasMov || !hasSteps || !hasYellow) {
                     // 시간계획이 비어있어서 우회되는 경우면 에러를 띄울 필요 없음 (우회 로직이 처리하므로)
                     if (!isDayPlanEmpty(dayIdx)) {
-                        if (!hasSteps) {
-                            errorMessages.push(`❌ <b>[오류]</b> [시간계획 ${dayType}번]이 참조하는 <b>[플랜 ${mapIdx+1} 시그널맵]</b> 데이터가 <b>완전히 비어있습니다.</b> (엑셀 파일에 시그널맵 표출용 데이터가 입력되지 않았거나 누락되었습니다.)`);
+                        if (mapIdx > 0) {
+                            infoMessages.push(`ℹ️ <b>[안내]</b> [시간계획 ${dayType}번]이 참조하는 <b>[플랜 ${mapIdx+1} 시그널맵]</b> 데이터가 미작성/불완전하여, 시뮬레이션 시 <b>[1번 일반 시그널맵]</b>으로 자동 우회하여 정상 표출합니다.`);
+                        } else if (!hasSteps) {
+                            errorMessages.push(`❌ <b>[오류]</b> 최우선 기본 <b>[플랜 1 시그널맵]</b> 데이터가 <b>완전히 비어있습니다.</b> (엑셀 파일에 시그널맵 표출용 데이터가 입력되지 않았거나 누락되었습니다.)`);
                         } else {
-                            errorMessages.push(`⚠️ <b>[주의]</b> [시간계획 ${dayType}번]이 참조하는 <b>[플랜 ${mapIdx+1} 시그널맵]</b>에 이동류(화살표) ID가 설정되지 않았습니다.`);
+                            errorMessages.push(`⚠️ <b>[주의]</b> 최우선 기본 <b>[플랜 1 시그널맵]</b>에 이동류(화살표) ID가 설정되지 않았습니다.`);
                         }
                     }
                 }

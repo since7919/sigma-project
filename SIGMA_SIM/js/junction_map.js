@@ -564,10 +564,11 @@ function createArrows(jid) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
-    const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+    const baseSm = j.signalMaps?.[0];
+    const baseMovs = baseSm ? [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].map(Number) : [];
     const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
     const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number).filter(m => m > 0);
-    let allMovs = [...new Set([...mapMovs, ...configuredMovs])].filter(m => m > 0);
+    let allMovs = [...new Set([...mapMovs, ...baseMovs, ...configuredMovs])].filter(m => m > 0);
     if (allMovs.length === 0) {
         allMovs = [1, 2, 3, 4, 5, 6, 7, 8, 102, 104, 106, 108];
     }
@@ -859,10 +860,11 @@ function createOverlayArrows(jid, targetMap) {
 
     const pMovA = sm.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0];
     const pMovB = sm.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0];
-    const pedSet = new Set([...pMovA, ...pMovB].filter(x => x > 0));
+    const baseSm = j.signalMaps?.[0];
+    const baseMovs = baseSm ? [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].map(Number) : [];
     const mapMovs = [...(sm.movA || []), ...(sm.movB || []), ...pMovA, ...pMovB].map(Number);
     const configuredMovs = Object.keys(j.arrowConfigs || {}).map(Number).filter(m => m > 0);
-    let allMovs = [...new Set([...mapMovs, ...configuredMovs])].filter(m => m > 0);
+    let allMovs = [...new Set([...mapMovs, ...baseMovs, ...configuredMovs])].filter(m => m > 0);
     if (allMovs.length === 0) {
         allMovs = [1, 2, 3, 4, 5, 6, 7, 8, 102, 104, 106, 108];
     }

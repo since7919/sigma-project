@@ -334,6 +334,14 @@ function updateSim() {
                 if (n > 0) activeStates[n] = { st: 'R', rem: 0 };
             });
         }
+        // [안전망] 0번 기본 일반 시그널맵의 이동류도 활성 목록에 포함하여 누락 방지
+        const baseSm = j.signalMaps?.[0];
+        if (baseSm) {
+            [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].forEach(m => {
+                const n = Number(m);
+                if (n > 0 && !activeStates[n]) activeStates[n] = { st: 'R', rem: 0 };
+            });
+        }
         // 기본 1~16번 차량 및 101~116번 보행 신호 폴백
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 102, 104, 106, 108, 110, 112, 114, 116].forEach(m => {
             if (!activeStates[m]) activeStates[m] = { st: 'R', rem: 0 };
@@ -466,18 +474,40 @@ function updateSim() {
                     
                     if (pos >= elap && pos < elap + sv) {
                         const sub = pos - elap;
-                        const rl = allreds?.[i] || 0;
-                        const yl = yellows?.[i] || 0;
+                        let rl = allreds?.[i] || 0;
+                        let yl = yellows?.[i] || 0;
+
+                        // [안전 보정] 황색 및 전적색 시간이 0 이하인 경우 0번 기본맵 또는 표준값(4초/2초)으로 폴백
+                        if (yl <= 0) {
+                            const baseMap = j.signalMaps?.[0];
+                            const baseYl = (ring === 'A' ? baseMap?.yellowA?.[i] : baseMap?.yellowB?.[i]) || 0;
+                            yl = baseYl > 0 ? baseYl : 4;
+                        }
+                        if (rl <= 0) {
+                            const baseMap = j.signalMaps?.[0];
+                            const baseRl = (ring === 'A' ? baseMap?.allredA?.[i] : baseMap?.allredB?.[i]) || 0;
+                            rl = baseRl > 0 ? baseRl : 2;
+                        }
+
                         const gl = Math.max(0, sv - yl - rl);
 
+                        const getRingMov = (idx) => {
+                            let m = (movs && movs[idx] > 0) ? movs[idx] : 0;
+                            if (m === 0 && j.signalMaps?.[0]) {
+                                const baseMovs = (ring === 'A' ? j.signalMaps[0].movA : j.signalMaps[0].movB);
+                                if (baseMovs && baseMovs[idx] > 0) m = baseMovs[idx];
+                            }
+                            return m;
+                        };
+
                         let st = 'R', rem = 0;
-                        const movId = (movs && movs[i] > 0) ? movs[i] : 0;
+                        const movId = getRingMov(i);
                         const prevIdx = (i - 1 + 8) % 8;
                         const nextIdx = (i + 1) % 8;
                         
                         // [핵심] 연속 이동류 판정: 이전/다음 현시와 번호가 같으면 간격 생략
-                        const isSameAsPrev = (movId > 0 && movId === movs[prevIdx] && useSplits[prevIdx] > 0);
-                        const isSameAsNext = (movId > 0 && movId === movs[nextIdx] && useSplits[nextIdx] > 0);
+                        const isSameAsPrev = (movId > 0 && movId === getRingMov(prevIdx) && useSplits[prevIdx] > 0);
+                        const isSameAsNext = (movId > 0 && movId === getRingMov(nextIdx) && useSplits[nextIdx] > 0);
 
                         if (sub < rl) {
                             // 현시 시작 간격 (All-Red 구간)
@@ -507,7 +537,7 @@ function updateSim() {
                         if (st === 'G' && movId > 0) {
                             let nextI = nextIdx;
                             let safety = 0;
-                            while (movs[nextI] === movId && useSplits[nextI] > 0 && safety < 8) {
+                            while (getRingMov(nextI) === movId && useSplits[nextI] > 0 && safety < 8) {
                                 rem += useSplits[nextI];
                                 nextI = (nextI + 1) % 8;
                                 safety++;
