@@ -839,12 +839,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run npm audit
         run: npm audit --audit-level=high`,
-                defaultStatus: "ACTION"
+                defaultStatus: "PASSED"
             }
         ];
 
         // State Storage Key
-        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V4";
+        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V5";
         let checklistState = {};
 
         // Category Meta
