@@ -200,11 +200,13 @@ function updateSim() {
     const bounds = (typeof map !== 'undefined') ? map.getBounds() : null;
     const n = bounds ? bounds.getNorth() : 90, s = bounds ? bounds.getSouth() : -90, e = bounds ? bounds.getEast() : 180, w = bounds ? bounds.getWest() : -180;
 
-    Object.values(STATE.junctions).forEach(j => {
+    for (const jid in STATE.junctions) {
+        const j = STATE.junctions[jid];
+        if (!j) continue;
         // [성능 최적화] 화면 밖 교차로는 연산에서 제외 (단, 현재 선택된 교차로나 상세보기 대상은 예외)
         const isInView = (j.lat < n && j.lat > s && j.lng < e && j.lng > w);
         const isOverlayTarget = (window._currentOverlayJid && String(j.id) === String(window._currentOverlayJid));
-        if (!isInView && j.id !== STATE.activeJid && !isOverlayTarget) return;
+        if (!isInView && j.id !== STATE.activeJid && !isOverlayTarget) continue;
         const editing = (j.id === STATE.activeJid && STATE.isMapEditMode);
 
         // 1. 점멸 상태 체크
@@ -251,9 +253,11 @@ function updateSim() {
         }
 
         if (!isFlashActive && !isBlackoutActive) {
-            // 시차맵 변경 감지 시 화살표 재생성
+            // 시차맵 변경 감지 시 화살표 재생성 (화살표 모드 활성 및 줌 레벨 충족 시에만 호출)
             if (activeSignalMapIdx !== j._lastMapIdx) {
-                if (typeof createArrows === 'function') createArrows(j.id);
+                if (typeof createArrows === 'function' && STATE.showSignalArrows && (typeof map !== 'undefined' && map.getZoom() >= CONFIG.MIN_ZOOM_FOR_ARROWS)) {
+                    createArrows(j.id);
+                }
                 j._lastMapIdx = activeSignalMapIdx;
             }
         }
@@ -314,59 +318,73 @@ function updateSim() {
         }
 
         // 화살표/신호등 갱신 (핵심 최적화 구간)
-        if (!j.arrows && !j.elemCache && !j.overlayElemCache && !j.overlayArrows) return;
+        if (!j.arrows && !j.elemCache && !j.overlayElemCache && !j.overlayArrows) continue;
 
         const activeStates = {}; // { movID: stateObj }
 
         // 1. 모든 신호 방향을 기본적으로 'R'로 안전하게 초기화 (j.arrows가 없거나 오버레이만 열려있을 때도 안전)
         if (j.arrows) {
-            Object.keys(j.arrows).forEach(mStr => {
+            for (const mStr in j.arrows) {
                 const n = parseInt(mStr);
                 if (!isNaN(n)) activeStates[n] = { st: 'R', rem: 0 };
-            });
+            }
         }
         if (j.overlayArrows) {
-            Object.keys(j.overlayArrows).forEach(mStr => {
+            for (const mStr in j.overlayArrows) {
                 const n = parseInt(mStr);
                 if (!isNaN(n)) activeStates[n] = { st: 'R', rem: 0 };
-            });
+            }
         }
         if (j.overlayElemCache) {
-            Object.values(j.overlayElemCache).forEach(cache => {
+            for (const k in j.overlayElemCache) {
+                const cache = j.overlayElemCache[k];
                 if (cache) {
                     if (cache.mS) activeStates[cache.mS] = { st: 'R', rem: 0 };
                     if (cache.mL) activeStates[cache.mL] = { st: 'R', rem: 0 };
                     if (cache.mP) activeStates[cache.mP] = { st: 'R', rem: 0 };
                 }
-            });
+            }
         }
-        if (activeMap) {
-            [...(activeMap.movA || []), ...(activeMap.movB || []), ...(activeMap.pedMovA || []), ...(activeMap.pedMovB || [])].forEach(m => {
-                const n = Number(m);
+        const addMovs = (arr) => {
+            if (!arr) return;
+            for (let idx = 0; idx < arr.length; idx++) {
+                const n = Number(arr[idx]);
                 if (n > 0) activeStates[n] = { st: 'R', rem: 0 };
-            });
+            }
+        };
+        if (activeMap) {
+            addMovs(activeMap.movA);
+            addMovs(activeMap.movB);
+            addMovs(activeMap.pedMovA);
+            addMovs(activeMap.pedMovB);
         }
         // [안전망] 0번 기본 일반 시그널맵의 이동류도 활성 목록에 포함하여 누락 방지
         const baseSm = j.signalMaps?.[0];
         if (baseSm) {
-            [...(baseSm.movA || []), ...(baseSm.movB || []), ...(baseSm.pedMovA || []), ...(baseSm.pedMovB || [])].forEach(m => {
-                const n = Number(m);
-                if (n > 0 && !activeStates[n]) activeStates[n] = { st: 'R', rem: 0 };
-            });
+            addMovs(baseSm.movA);
+            addMovs(baseSm.movB);
+            addMovs(baseSm.pedMovA);
+            addMovs(baseSm.pedMovB);
         }
         // 기본 1~16번 차량 및 101~116번 보행 신호 폴백
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 102, 104, 106, 108, 110, 112, 114, 116].forEach(m => {
+        const fallbackMovs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 102, 104, 106, 108, 110, 112, 114, 116];
+        for (let idx = 0; idx < fallbackMovs.length; idx++) {
+            const m = fallbackMovs[idx];
             if (!activeStates[m]) activeStates[m] = { st: 'R', rem: 0 };
-        });
+        }
 
         // 2. 현재 상태(점멸/소등/정상/편집)에 따른 현시별 상태 계산
         if (isBlackoutActive) {
-            Object.keys(activeStates).forEach(mStr => {
-                activeStates[parseInt(mStr)] = { st: 'Off', rem: 0 };
-            });
+            for (const mStr in activeStates) {
+                activeStates[mStr] = { st: 'Off', rem: 0 };
+            }
         } else if (isFlashActive) {
-            (j.flashYellows || []).forEach(m => activeStates[m] = { st: 'Y-flash', rem: 0 });
-            (j.flashReds || []).forEach(m => activeStates[m] = { st: 'R-flash', rem: 0 });
+            if (j.flashYellows) {
+                for (let i = 0; i < j.flashYellows.length; i++) activeStates[j.flashYellows[i]] = { st: 'Y-flash', rem: 0 };
+            }
+            if (j.flashReds) {
+                for (let i = 0; i < j.flashReds.length; i++) activeStates[j.flashReds[i]] = { st: 'R-flash', rem: 0 };
+            }
         } else if (STATE.signalSource === 'REALTIME' && j._realtimeItems && j._realtimeItems.length > 0) {
             // [API 연동] UTIC 실시간 시그널맵 데이터 반영 (PLAN_TP: "0" 기준)
             const steps = j._realtimeItems.filter(item => item.PLAN_TP === "0" && parseInt(item.MIN_TM) > 0);
@@ -463,10 +481,6 @@ function updateSim() {
 
             // 교차로 전체 주기 진행률 저장 (툴팁용)
             j._simPos = Math.floor(pos);
-
-            // [추가] 점멸 신호 블링킹을 위한 전역 상태 제어 (500ms 주기)
-            const flashOn = (Math.floor(Date.now() / 500) % 2 === 0);
-            document.body.classList.toggle('global-flash-on', flashOn);
 
             const calc = (splits, yellows, allreds, movs, peds, pdlys, pmovs, pedGreens, pedFlashes, ring) => {
                 let elap = 0;
@@ -596,52 +610,56 @@ function updateSim() {
         // 3. 캐시를 사용한 실제 DOM 업데이트 (변경된 경우만)
         // [간섭 원천 차단] 현재 교차로가 ArrowEditManager에 의해 편집 중인 경우 시뮬레이션 DOM 업데이트를 완전히 스킵
         if (window.ArrowEditManager && window.ArrowEditManager.isActive() && window.ArrowEditManager.activeJid === j.id) {
-            return;
+            continue;
         }
 
         if (j.elemCache) {
-            Object.entries(j.elemCache).forEach(([key, cache]) => {
+            for (const key in j.elemCache) {
+                const cache = j.elemCache[key];
+                if (!cache) continue;
                 const m = parseInt(key.split('-')[0]);
-            const idx = parseInt(key.split('-')[1]);
-            
-            // [보완] 캐시에 엘리먼트가 없으면 재검색 시도
-            if (!cache.arrow) {
-                cache.arrow = document.getElementById(`icon-${j.id}-${m}-${idx}`);
-                cache.timer = document.getElementById(`timer-${j.id}-${m}-${idx}`);
-            }
-            if (!cache || !cache.arrow) return;
-
-            // [수정] activeStates가 {st, rem} 객체 구조임에 유의
-            const stateObj = activeStates[m] || { st: 'R', rem: 0 };
-            let st = stateObj.st;
-            const rem = stateObj.rem;
-            const walk = m >= 100 ? 'walk-mode' : '';
-            
-            // 클래스 업데이트 (성능을 위해 변경 시에만)
-            if (cache.lastState !== st) {
-                cache.arrow.className = `signal-arrow ${st} ${walk}`;
+                const idx = parseInt(key.split('-')[1]);
                 
-                // [수정] 적색 신호(R)일 때 숨기면 사용자가 고장인지 전적색인지 알 수 없으므로 항상 표출하도록 수정
-                cache.arrow.style.display = '';
-                
-                cache.lastState = st;
-            }
+                // [보완] 캐시에 엘리먼트가 없으면 재검색 시도
+                if (!cache.arrow) {
+                    cache.arrow = document.getElementById(`icon-${j.id}-${m}-${idx}`);
+                    cache.timer = document.getElementById(`timer-${j.id}-${m}-${idx}`);
+                }
+                if (!cache.arrow) continue;
 
-            // [수정] 잔여시간 타이머 업데이트 (신호 모드 ON + 선택된 교차로의 녹색/황색/점멸 신호만 표시)
-            if (cache.timer) {
-                const isSelected = STATE.selectedJids.includes(j.id);
-                const showTimer = STATE.showSignalArrows && (isSelected || editing) && (st === 'G' || st === 'Y' || st === 'F');
-                cache.timer.style.display = showTimer ? 'block' : 'none';
-                if (showTimer) {
-                    cache.timer.innerText = rem > 0 ? rem : '';
+                // [수정] activeStates가 {st, rem} 객체 구조임에 유의
+                const stateObj = activeStates[m] || { st: 'R', rem: 0 };
+                const st = stateObj.st;
+                const rem = stateObj.rem;
+                const walk = m >= 100 ? 'walk-mode' : '';
+                
+                // 클래스 업데이트 (성능을 위해 변경 시에만)
+                if (cache.lastState !== st) {
+                    cache.arrow.className = `signal-arrow ${st} ${walk}`;
+                    
+                    // [수정] 적색 신호(R)일 때 숨기면 사용자가 고장인지 전적색인지 알 수 없으므로 항상 표출하도록 수정
+                    cache.arrow.style.display = '';
+                    
+                    cache.lastState = st;
+                }
+
+                // [수정] 잔여시간 타이머 업데이트 (신호 모드 ON + 선택된 교차로의 녹색/황색/점멸 신호만 표시)
+                if (cache.timer) {
+                    const isSelected = STATE.selectedJids.includes(j.id);
+                    const showTimer = STATE.showSignalArrows && (isSelected || editing) && (st === 'G' || st === 'Y' || st === 'F');
+                    cache.timer.style.display = showTimer ? 'block' : 'none';
+                    if (showTimer) {
+                        cache.timer.innerText = rem > 0 ? rem : '';
+                    }
                 }
             }
-            });
         }
 
         // 4. 오버레이(상세보기) 캐시 업데이트 로직
         if (j.overlayElemCache) {
-            Object.entries(j.overlayElemCache).forEach(([key, cache]) => {
+            for (const key in j.overlayElemCache) {
+                const cache = j.overlayElemCache[key];
+                if (!cache) continue;
                 if (cache.mS !== undefined) {
                     if (!cache.lensR) {
                         cache.lensR = document.getElementById(`lens-r-${j.id}-${key}`);
@@ -712,7 +730,7 @@ function updateSim() {
                         cache.arrow = document.getElementById(`icon-overlay-${j.id}-${m}-${idx}`);
                         cache.timer = document.getElementById(`timer-overlay-${j.id}-${m}-${idx}`);
                     }
-                    if (!cache || !cache.arrow) return;
+                    if (!cache.arrow) continue;
 
                     const stateObj = activeStates[m] || { st: 'R', rem: 0 };
                     const st = stateObj.st;
@@ -733,7 +751,7 @@ function updateSim() {
                         }
                     }
                 }
-            });
+            }
         }
 
         // 4. 메인 마커 색상 동기화 (신호주기 모드 시에만 주기 색상 적용)
@@ -741,6 +759,7 @@ function updateSim() {
             const isSelected = (j.id === STATE.activeJid);
             const isMultiSelected = STATE.selectedJids.includes(j.id);
             const editing = (isSelected && STATE.isMapEditMode);
+            const displayCycle = j._simCycle || (typeof getCurrentOperatingCycle === 'function' ? getCurrentOperatingCycle(j, t, useDayIdx) : 0);
             
             // [수정] junction.js의 drawJunction 로직과 동일하게 맞춤 (주기 모드 우선)
             let markerColor = '#3498db'; // 기본 파랑
@@ -781,7 +800,7 @@ function updateSim() {
                 }
             }
         }
-    });
+    }
 
     // [New] 현재 선택된 교차로의 정보 필드 실시간 갱신 (주기, 연동값 등)
     if (STATE.activeJid) {
