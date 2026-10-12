@@ -470,7 +470,7 @@ function adminIpFilter(req, res, next) {
     }
     next();
 }`,
-                defaultStatus: "PASSED"
+                defaultStatus: "ACTION"
             },
             {
                 id: "NIS-02",
@@ -486,7 +486,7 @@ function validatePasswordStrength(pw) {
     const regex = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+~\\-={}\\[\\]:;"'<>,.?\\/]).{9,32}$/;
     return regex.test(pw);
 }`,
-                defaultStatus: "PASSED"
+                defaultStatus: "ACTION"
             },
             {
                 id: "NIS-03",
@@ -572,7 +572,7 @@ const { data, error } = await supabase.auth.mfa.challengeAndVerify({
     factorId: 'factor-id-here',
     code: userInputCode
 });`,
-                defaultStatus: "PASSED"
+                defaultStatus: "ACTION"
             },
 
             // ── 2. 소프트웨어 개발보안 (KISA / 행정안전부) ──
@@ -844,7 +844,7 @@ jobs:
         ];
 
         // State Storage Key
-        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V2";
+        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V3";
         let checklistState = {};
 
         // Category Meta
