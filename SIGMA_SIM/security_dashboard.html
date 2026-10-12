@@ -687,7 +687,7 @@ app.use(cors({
     origin: ['https://sigma-project-245n.onrender.com'],
     credentials: true
 }));`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
 
             // ── 3. Supabase 특화 보안 ──
@@ -818,7 +818,7 @@ const apiLimiter = rateLimit({
     message: { error: '과도한 요청이 발생했습니다. 1분 후 다시 시도해 주세요.' }
 });
 app.use('/api/', apiLimiter);`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
             {
                 id: "RND-04",
@@ -844,7 +844,7 @@ jobs:
         ];
 
         // State Storage Key
-        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V5";
+        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V6";
         let checklistState = {};
 
         // Category Meta

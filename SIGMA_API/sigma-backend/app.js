@@ -23,6 +23,51 @@ app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+// ── [KISA-06] 행정안전부/KISA 표준 웹 보안 헤더 설정 (Clickjacking, MIME Sniffing 방어) ──
+app.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// ── [RND-03] Render 인프라 보호 및 API Rate Limiting (무차별 대입 및 DoS 차단) ──
+const _apiRateLimitMap = new Map();
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of _apiRateLimitMap.entries()) {
+        if (now - record.resetTime > 60000) {
+            _apiRateLimitMap.delete(ip);
+        }
+    }
+}, 60000);
+
+app.use('/api', (req, res, next) => {
+    if (req.url === '/ping' || req.url === '/health') return next();
+
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let record = _apiRateLimitMap.get(clientIp);
+
+    if (!record || (now - record.resetTime > 60000)) {
+        record = { count: 1, resetTime: now };
+        _apiRateLimitMap.set(clientIp, record);
+    } else {
+        record.count++;
+    }
+
+    // IP당 1분 내 최대 180회 허용 (정상 사용자 무영향, 공격성 대량 요청 차단)
+    if (record.count > 180) {
+        return res.status(429).json({
+            error: '단시간 내 과도한 요청이 발생했습니다. 1분 후 다시 시도해 주세요. (HTTP 429 Rate Limit Exceeded)'
+        });
+    }
+
+    next();
+});
+
 // [성능 최적화] /api/sim/data CSV 응답 메모리 캐시 (100배 속도 향상)
 const CSV_CACHE = {};
 
