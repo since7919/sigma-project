@@ -1,33 +1,29 @@
 /**
  * security.js
  * ─────────────────────────────────────────────
- * 코드 보호 및 디버깅 방지 스크립트 (디버깅을 위해 일시 해제됨)
+ * 클라이언트 런타임 보안 및 중요 정보 노출 방지 (행안부 SW 개발보안 가이드 6.1.1 준수)
  */
 
 (function () {
-    /* 
-    // 1. 우클릭 금지
-    document.addEventListener('contextmenu', e => e.preventDefault());
+    // 프로덕션 환경에서 중요 API 키 및 토큰의 평문 콘솔 출력 마스킹/필터링
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        const _origLog = console.log;
+        const _origWarn = console.warn;
+        const _origInfo = console.info;
 
-    // 2. 단축키 차단 (F12, Ctrl+Shift+I, J, C, S, U)
-    document.addEventListener('keydown', e => {
-        if (
-            e.keyCode === 123 || // F12
-            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || // Ctrl+Shift+I/J/C
-            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 83)) // Ctrl+U (소스보기), Ctrl+S (저장)
-        ) {
-            e.preventDefault();
-            return false;
-        }
-    });
+        const maskSensitive = (args) => {
+            return args.map(arg => {
+                if (typeof arg === 'string') {
+                    return arg.replace(/(eyJh[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)/g, '[REDACTED_JWT]')
+                              .replace(/(service_role_[a-zA-Z0-9_-]+)/gi, '[REDACTED_SECRET]')
+                              .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '[REDACTED_EMAIL]');
+                }
+                return arg;
+            });
+        };
 
-    // 3. 디버거 감지 루프
-    setInterval(function () {
-        (function () {
-            return false;
-        })["constructor"]("debugger")["call"]();
-    }, 1000);
-    */
-
-    console.log("%cSIGMA Debug Mode Enabled", "color: #f1c40f; font-weight: bold; font-size: 14px;");
+        console.log = function (...args) { _origLog.apply(console, maskSensitive(args)); };
+        console.warn = function (...args) { _origWarn.apply(console, maskSensitive(args)); };
+        console.info = function (...args) { _origInfo.apply(console, maskSensitive(args)); };
+    }
 })();

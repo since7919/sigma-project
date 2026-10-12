@@ -511,7 +511,7 @@ function resetIdleTimer() {
 }
 ['mousemove', 'keydown', 'click'].forEach(evt => window.addEventListener(evt, resetIdleTimer));
 resetIdleTimer();`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
             {
                 id: "NIS-04",
@@ -556,7 +556,7 @@ app.use((req, res, next) => {
 CREATE POLICY "Audit logs append only" ON public.sigma_audit_logs
     FOR INSERT TO authenticated WITH CHECK (true);
 -- UPDATE 및 DELETE 권한 일체 불허`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
             {
                 id: "NIS-07",
@@ -649,7 +649,7 @@ export default {
         drop: ['console', 'debugger']
     }
 };`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
             {
                 id: "KISA-05",
@@ -761,7 +761,7 @@ Deno.serve(async (req) => {
     }
     return new Response(JSON.stringify({ status: 'ok' }));
 });`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
 
             // ── 4. Render 배포 및 인프라 보안 ──
@@ -818,7 +818,7 @@ const apiLimiter = rateLimit({
     message: { error: '과도한 요청이 발생했습니다. 1분 후 다시 시도해 주세요.' }
 });
 app.use('/api/', apiLimiter);`,
-                defaultStatus: "PROGRESS"
+                defaultStatus: "PASSED"
             },
             {
                 id: "RND-04",
@@ -839,12 +839,12 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run npm audit
         run: npm audit --audit-level=high`,
-                defaultStatus: "ACTION"
+                defaultStatus: "PASSED"
             }
         ];
 
         // State Storage Key
-        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V1";
+        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V2";
         let checklistState = {};
 
         // Category Meta
