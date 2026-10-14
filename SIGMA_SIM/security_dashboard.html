@@ -88,7 +88,7 @@
     <!-- Top Navigation Bar -->
     <header class="glass-panel sticky top-0 z-50 border-b border-slate-700/60 px-6 py-3.5 flex items-center justify-between no-print backdrop-blur-md">
         <div class="flex items-center space-x-4">
-            <a href="index.html" class="flex items-center space-x-3 group">
+            <a href="index.html" onclick="returnToMain(event)" class="flex items-center space-x-3 group" title="시뮬레이터 메인으로 복귀">
                 <div class="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center border border-sky-500/30 group-hover:border-sky-400/60 transition-all">
                     <i class="fa-solid fa-shield-halved text-sky-400 text-lg"></i>
                 </div>
@@ -126,10 +126,10 @@
                 <i class="fa-solid fa-file-export text-emerald-400"></i>
                 <span>리포트 출력</span>
             </button>
-            <a href="index.html" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <button onclick="returnToMain(event)" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all" title="작업 중이던 시뮬레이터로 복귀">
                 <i class="fa-solid fa-arrow-left"></i>
                 <span class="hidden sm:inline">시스템 메인</span>
-            </a>
+            </button>
         </div>
     </header>
 
@@ -1304,6 +1304,28 @@ jobs:
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // Return to Main Simulator (Session Preservation)
+        function returnToMain(event) {
+            if (event) event.preventDefault();
+            // 1. 부모 창(시뮬레이터 메인 화면)이 살아있는 경우: 부모 창으로 포커스 이동 후 현재 탭 닫기
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.focus();
+                    window.close();
+                    return;
+                } catch(e) {
+                    console.warn("Opener focus error:", e);
+                }
+            }
+            // 2. 같은 탭에서 이전 페이지로부터 이동해 온 경우: 브라우저 뒤로가기(BFCache로 시뮬레이터 상태 보존)
+            if (window.history.length > 1 && document.referrer) {
+                window.history.back();
+                return;
+            }
+            // 3. 직접 URL 진입이나 단독 탭으로 열린 경우: 메인으로 이동
+            window.location.href = 'index.html';
         }
 
         // Boot

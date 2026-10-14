@@ -6,8 +6,22 @@ console.log('SIGMA Dashboard module loaded.');
 window.openDashboard = openDashboard;
 window.closeDashboard = closeDashboard;
 window.sendToDashboard = sendToDashboard;
+window.openSecurityDashboard = openSecurityDashboard;
 
 var dashPopup = null;
+var secPopup = null;
+
+/**
+ * 보안 대시보드 열기 (기존 시뮬레이터 세션 유지용 독립 탭/창)
+ */
+function openSecurityDashboard() {
+    const windowName = "SIGMA_Security_Dashboard";
+    if (secPopup && !secPopup.closed) {
+        secPopup.focus();
+    } else {
+        secPopup = window.open('security_dashboard.html', windowName);
+    }
+}
 
 /**
  * 대시보드 열기 (새 브라우저 창)
