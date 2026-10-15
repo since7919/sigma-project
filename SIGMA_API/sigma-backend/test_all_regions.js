@@ -2,7 +2,7 @@
 const xlsx = require('xlsx');
 
 require('dotenv').config();
-const key = process.env.UTIC_API_KEY || '5a4d6f4b-70c3-4a1b-a590-bdf14d014902';
+const key = process.env.UTIC_API_KEY || process.env.UTIC_API_KEY || '';
 
 const REGION_MAP = {
   'L01': '서울시', 'L02': '인천시', 'L03': '평택시', 'L04': '안성시',

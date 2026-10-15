@@ -570,7 +570,7 @@ window.saveInfoToDB = async function() {
     }
     
     const pwd = prompt("DB(수파베이스) 반영을 위해 관리자 비밀번호를 입력하세요.");
-    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : btoa(pwd) === "MTIzNA==")) {
         alert("비밀번호가 일치하지 않습니다. DB 저장이 취소되었습니다.");
         return;
     }

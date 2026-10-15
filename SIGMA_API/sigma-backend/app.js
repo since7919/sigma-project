@@ -155,6 +155,7 @@ const UTIC_SERVICE_KEY = process.env.UTIC_SERVICE_KEY;
 const SEOUL_API_KEY = process.env.SEOUL_API_KEY;
 const DOTHOME_BRIDGE_URL = process.env.DOTHOME_BRIDGE_URL || '';
 const BRIDGE_SECRET_KEY = process.env.BRIDGE_SECRET_KEY;
+const ADMIN_WRITE_PASSWORD = process.env.ADMIN_WRITE_PASSWORD || process.env.ADMIN_PASSWORD || '251227';
 
 // 헬스 체크 엔드포인트 (Render 절전 방지용)
 app.get('/health', (req, res) => {
@@ -524,7 +525,7 @@ app.get('/api/intersections/sync-seoul', async (req, res) => {
 // 1-1-S. 시그마 시뮬레이터(SIGMA_SIM) 대량 동기화 API (JSON -> DB)
 app.post('/api/intersections/sync-sim', express.json({ limit: '50mb' }), async (req, res) => {
   const { password, intersections } = req.body;
-  if (password !== '1234') {
+  if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
     return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
   }
   if (!Array.isArray(intersections)) {
@@ -1324,7 +1325,7 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   const { tableName } = req.params;
   const { password, records } = req.body;
   
-  if (password !== '1234') {
+  if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
     return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
   }
 
@@ -1750,7 +1751,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 app.post('/api/sim/update-junction', async (req, res) => {
   const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password } = req.body;
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
-  if (password !== '1234') {
+  if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
     return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
   }
 

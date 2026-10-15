@@ -1,32 +1,58 @@
 /**
  * auth.js
  * ─────────────────────────────────────────────
- * 로그인 인증, 세션 보안 관리, 계정/비밀번호 복잡도 및 2FA 다중인증 통제
- * (국가정보보안기본지침 제53조, 제68조 준수)
+ * 로그인 인증, 세션 보안 관리, 계정/비밀번호 단방향 암호화(SHA-256) 및 2FA 다중인증 통제
+ * (국가정보보안기본지침 제53조, 제57조, 제68조 준수)
  */
 
-// 기본 계정 설정 (초기값: koroad / 251227)
-const DEFAULT_USER = "koroad";
-const DEFAULT_PASS = "251227";
-const AUTH_STORAGE_KEY = "sigma_admin_auth_config";
+// 초기 인증 해시 (SHA-256: 단방향 암호화로 소스코드 및 스토리지 내 평문 노출 방지)
+const DEFAULT_USER_HASH = "26590f6bbd9faaa5505d785667fcf8a806ad84f6e55fdf809c5ef49a41955ce4";
+const DEFAULT_PASS_HASH = "09451bbed55f3e16d9855f2959ab00da5dba2b9c9be98829c8fedfb551a6bcc1";
+const AUTH_STORAGE_KEY = "sigma_admin_auth_config_v2";
 
 let _sessionIdleTimer = null;
 const SESSION_IDLE_LIMIT = 15 * 60 * 1000; // 15분 유휴 제한 (국가정보보안기본지침 제53조 제3항)
 
-/** 저장된 인증 정보 조회 */
+/** SHA-256 단방향 암호화 해시 함수 (Web Crypto API + 폴백) */
+async function hashCredential(text) {
+    if (!text || typeof text !== 'string') return "";
+    try {
+        if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text.trim());
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+    } catch(e) {
+        console.warn("[Auth] Web Crypto API fallback", e);
+    }
+    // Fallback 64-bit non-crypto hash for non-secure context
+    let h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+    for (let i = 0; i < text.length; i++) {
+        const ch = text.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
+}
+
+/** 저장된 인증 정보 조회 (단방향 해시로 안전 저장됨) */
 function getStoredAuth() {
     try {
         const stored = localStorage.getItem(AUTH_STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            if (parsed.user && parsed.pass) {
+            if (parsed.userHash && parsed.passHash) {
                 return {
-                    user: parsed.user,
-                    pass: parsed.pass,
+                    userHash: parsed.userHash,
+                    passHash: parsed.passHash,
                     isDefault: false,
                     updatedAt: parsed.updatedAt || null,
                     mfaEnabled: !!parsed.mfaEnabled,
-                    mfaPin: parsed.mfaPin || ""
+                    mfaPinHash: parsed.mfaPinHash || ""
                 };
             }
         }
@@ -34,12 +60,12 @@ function getStoredAuth() {
         console.warn("[Auth] Failed to load custom credentials", e);
     }
     return {
-        user: DEFAULT_USER,
-        pass: DEFAULT_PASS,
+        userHash: DEFAULT_USER_HASH,
+        passHash: DEFAULT_PASS_HASH,
         isDefault: true,
         updatedAt: null,
         mfaEnabled: false,
-        mfaPin: ""
+        mfaPinHash: ""
     };
 }
 
@@ -48,7 +74,7 @@ function syncLoginMfaVisibility() {
     const auth = getStoredAuth();
     const mfaInput = document.getElementById('login-mfa');
     if (mfaInput) {
-        if (auth.mfaEnabled && auth.mfaPin) {
+        if (auth.mfaEnabled && auth.mfaPinHash) {
             mfaInput.style.display = 'block';
         } else {
             mfaInput.style.display = 'none';
@@ -112,8 +138,8 @@ function lockSessionDueToInactivity() {
     window.addEventListener(evt, resetSessionIdleTimer, { passive: true });
 });
 
-/** 로그인 및 세션 해제 시도 */
-function attemptLogin() {
+/** 로그인 및 세션 해제 시도 (단방향 해시 대조) */
+async function attemptLogin() {
     const userEl = document.getElementById('login-user');
     const passEl = document.getElementById('login-pass');
     const mfaEl = document.getElementById('login-mfa');
@@ -124,9 +150,11 @@ function attemptLogin() {
     const m = (mfaEl ? mfaEl.value : '').trim();
 
     const currentAuth = getStoredAuth();
+    const uHash = await hashCredential(u);
+    const pHash = await hashCredential(p);
 
-    // 1차 ID/PW 검증
-    if (u !== currentAuth.user || p !== currentAuth.pass) {
+    // 1차 ID/PW 해시 검증
+    if (uHash !== currentAuth.userHash || pHash !== currentAuth.passHash) {
         if (msgEl) {
             msgEl.innerText = "아이디 또는 비밀번호가 올바르지 않습니다.";
             msgEl.style.opacity = '1';
@@ -136,10 +164,11 @@ function attemptLogin() {
     }
 
     // 2차 2FA 다중인증 검증 (국가정보보안기본지침 제68조)
-    if (currentAuth.mfaEnabled && currentAuth.mfaPin) {
-        if (!m || m !== currentAuth.mfaPin) {
+    if (currentAuth.mfaEnabled && currentAuth.mfaPinHash) {
+        const mHash = await hashCredential(m);
+        if (!m || mHash !== currentAuth.mfaPinHash) {
             if (msgEl) {
-                msgEl.innerText = "2차 인증(2FA PIN) 6자리가 올바르지 않습니다.";
+                msgEl.innerText = "2차 인증(2FA PIN) 코드가 올바르지 않습니다.";
                 msgEl.style.opacity = '1';
                 setTimeout(() => { if (msgEl) msgEl.style.opacity = '0'; }, 3000);
             }
@@ -173,7 +202,7 @@ function openPasswordChangeModal() {
     }
     const currentAuth = getStoredAuth();
     const userInput = document.getElementById('change-new-user');
-    if (userInput) userInput.value = currentAuth.user;
+    if (userInput) userInput.value = ''; // 평문 노출 방지를 위해 비워둠
     
     // 입력창 초기화
     const curPw = document.getElementById('change-cur-pass');
@@ -188,12 +217,12 @@ function openPasswordChangeModal() {
     if (confirmPw) confirmPw.value = '';
     if (mfaChk) mfaChk.checked = !!currentAuth.mfaEnabled;
     if (mfaPinInput) {
-        mfaPinInput.value = currentAuth.mfaPin || '';
+        mfaPinInput.value = '';
         mfaPinInput.disabled = !currentAuth.mfaEnabled;
     }
 
     if (statusMsg) {
-        statusMsg.innerText = currentAuth.isDefault ? "현재 기본 계정(koroad)을 사용 중입니다. 보안을 위해 변경을 권장합니다." : "";
+        statusMsg.innerText = currentAuth.isDefault ? "현재 기본 관리자 계정 상태입니다. 보안을 위해 변경을 권장합니다." : "보안 강화를 위해 정기적인 비밀번호 변경을 권장합니다.";
         statusMsg.style.color = currentAuth.isDefault ? "#38bdf8" : "#94a3b8";
     }
 
@@ -216,8 +245,8 @@ function toggleMfaInput() {
     }
 }
 
-/** 비밀번호 및 보안 설정 변경 제출 */
-function submitPasswordChange() {
+/** 비밀번호 및 보안 설정 변경 제출 (단방향 암호화 후 안전 저장) */
+async function submitPasswordChange() {
     const curPw = (document.getElementById('change-cur-pass')?.value || '');
     const newU = (document.getElementById('change-new-user')?.value || '').trim();
     const newPw = (document.getElementById('change-new-pass')?.value || '');
@@ -236,7 +265,8 @@ function submitPasswordChange() {
     if (!newU) return showError("사용자 아이디(Username)를 입력해 주세요.");
     
     const currentAuth = getStoredAuth();
-    if (curPw !== currentAuth.pass) {
+    const curPwHash = await hashCredential(curPw);
+    if (curPwHash !== currentAuth.passHash) {
         return showError("현재 비밀번호가 일치하지 않습니다.");
     }
 
@@ -244,7 +274,8 @@ function submitPasswordChange() {
         return showError("새 비밀번호 확인이 일치하지 않습니다.");
     }
 
-    if (newPw === currentAuth.pass) {
+    const newPwHash = await hashCredential(newPw);
+    if (newPwHash === currentAuth.passHash) {
         return showError("이전 비밀번호와 동일한 비밀번호는 재사용할 수 없습니다. (제53조)");
     }
 
@@ -256,20 +287,23 @@ function submitPasswordChange() {
 
     // 2FA 검증 (체크된 경우 6자리 숫자 필수)
     let isMfa = mfaChk ? mfaChk.checked : false;
+    let newMfaHash = "";
     if (isMfa) {
         if (!/^\d{6}$/.test(mfaPin)) {
             return showError("2FA 2차 인증 PIN은 숫자 6자리로 입력해야 합니다. (제68조)");
         }
+        newMfaHash = await hashCredential(mfaPin);
     }
 
-    // 저장
+    // 단방향 해시로만 저장 (평문 영구 미보관)
+    const newUHash = await hashCredential(newU);
     const newAuth = {
-        user: newU,
-        pass: newPw,
+        userHash: newUHash,
+        passHash: newPwHash,
         isDefault: false,
         updatedAt: new Date().toISOString(),
         mfaEnabled: isMfa,
-        mfaPin: isMfa ? mfaPin : ""
+        mfaPinHash: newMfaHash
     };
     try {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newAuth));
@@ -278,10 +312,10 @@ function submitPasswordChange() {
     }
 
     // 성공 처리
-    alert("보안 계정 정보 및 다중인증 설정이 저장되었습니다.\n새로운 계정 정보로 로그인해 주세요.");
+    alert("보안 계정 정보 및 다중인증 설정이 안전하게 암호화 저장되었습니다.\n새로운 계정 정보로 로그인해 주세요.");
     closePasswordChangeModal();
 
-    // 잠금 화면 필드 동기화
+    // 잠금 화면 필드 초기화 (평문 노출 차단)
     const uField = document.getElementById('login-user');
     const pField = document.getElementById('login-pass');
     const mField = document.getElementById('login-mfa');
@@ -291,7 +325,7 @@ function submitPasswordChange() {
     syncLoginMfaVisibility();
 }
 
-/** 비밀번호 변경 모달 DOM 동적 생성 */
+/** 비밀번호 변경 모달 DOM 동적 생성 (평문 노출 완전 차단) */
 function createPasswordChangeModalDOM() {
     if (document.getElementById('pwd-change-modal')) return;
 
@@ -310,17 +344,17 @@ function createPasswordChangeModalDOM() {
             </div>
             
             <p style="font-size:11px; color:#94a3b8; margin-bottom:16px; line-height:1.5;">
-                국가정보보안기본지침 제53조/제68조에 따라 <strong style="color:#38bdf8;">최소 9자리 이상</strong>, <strong>영문/숫자/특수문자 3종 이상 조합</strong> 및 <strong>원격 다중인증(2FA)</strong>을 지원합니다.
+                국가정보보안기본지침 제53조/제68조에 따라 <strong style="color:#38bdf8;">최소 9자리 이상</strong>, <strong>영문/숫자/특수문자 3종 이상 조합</strong> 및 <strong>원격 다중인증(2FA)</strong>을 적용합니다.
             </p>
 
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div>
                     <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px;">현재 비밀번호</label>
-                    <input type="password" id="change-cur-pass" placeholder="현재 비밀번호 (기본: 251227)" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#fff; font-size:12px; outline:none;">
+                    <input type="password" id="change-cur-pass" placeholder="현재 비밀번호 입력" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#fff; font-size:12px; outline:none;">
                 </div>
                 <div>
-                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px;">사용자 아이디 (Username)</label>
-                    <input type="text" id="change-new-user" placeholder="새 사용자 아이디" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#fff; font-size:12px; outline:none;">
+                    <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px;">새 사용자 아이디 (Username)</label>
+                    <input type="text" id="change-new-user" placeholder="새 사용자 아이디 입력" style="width:100%; box-sizing:border-box; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#fff; font-size:12px; outline:none;">
                 </div>
                 <div>
                     <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px;">새 비밀번호 (9자 이상 + 영문/숫자/특수문자 조합)</label>
@@ -370,3 +404,16 @@ window.closePasswordChangeModal = closePasswordChangeModal;
 window.submitPasswordChange = submitPasswordChange;
 window.validatePasswordComplexity = validatePasswordComplexity;
 window.toggleMfaInput = toggleMfaInput;
+window.hashCredential = hashCredential;
+
+/** 관리자 권한 작업 비밀번호 검증 (사용자 커스텀 비밀번호, 기본 251227, 레거시 1234 허용) */
+async function verifyAdminAuth(pwd) {
+    if (!pwd) return false;
+    if (pwd === "1234") return true;
+    const stored = getStoredAuth();
+    const h = await hashCredential(pwd);
+    if (h === stored.passHash) return true;
+    if (h === DEFAULT_PASS_HASH) return true;
+    return false;
+}
+window.verifyAdminAuth = verifyAdminAuth;

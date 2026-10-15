@@ -2,7 +2,7 @@
 const xlsx = require('xlsx');
 
 require('dotenv').config();
-const key = process.env.UTIC_API_KEY || '5a4d6f4b-70c3-4a1b-a590-bdf14d014902';
+const key = process.env.UTIC_API_KEY || process.env.UTIC_API_KEY || '';
 
 async function test(regionCode) {
     const apiRegion = regionCode === 'L01' ? '110' : regionCode;

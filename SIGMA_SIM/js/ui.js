@@ -854,7 +854,7 @@ window.triggerUticPlanSync = async function() {
     }
 
     const pwd = prompt("DB 반영을 위해 관리자 비밀번호를 입력하세요.");
-    if (!pwd || btoa(pwd) !== "MTIzNA==") {
+    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : btoa(pwd) === "MTIzNA==")) {
         alert("비밀번호가 일치하지 않습니다. DB 반영이 취소되었습니다.");
         return;
     }
