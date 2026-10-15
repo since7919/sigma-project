@@ -318,56 +318,74 @@ app.get('/api/safetyzone/summary', async (req, res) => {
   }
 });
 
-// 1-0. 보호구역 데이터 로드 (Supabase 페이징 우회)
+// 1-0. 보호구역 데이터 로드 (지역별 온디맨드 분할 + 24시간 인메모리 캐싱)
 const safetyZoneCache = {};
-app.get('/api/safetyzone', async (req, res) => {
-  try {
-    const { regionCode } = req.query;
-    const SGG_MAP = {
-      'L01': '11', 'L02': '28', 'L03': '4119', 'L04': '4121', 'L05': '4117',
-      'L06': '4129', 'L07': '4127', 'L08': '4146', 'L09': '4113', 'L10': '4128',
-      'L11': '4139', 'L12': '4148', 'L13': '4163', 'L14': '4115', 'L15': '4157',
-      'L16': '4143', 'L17': '4141', 'L18': '4136', 'L19': '4111', 'L20': '4161',
-      'L21': '4131', 'L22': '4145', 'L23': '26', 'L24': '4833', 'L25': '4812',
-      'L26': '4825', 'L28': '4831', 'L29': '27', 'L30': '30', 'L31': '29', 'L37': '4711'
-    };
-    let sggPrefix = SGG_MAP[regionCode];
-    if (!sggPrefix) {
-      return res.json({ success: true, count: 0, items: [], source: 'supabase' });
-    }
-    sggPrefix = sggPrefix + "%";
-    
-    let allData = [];
+const safetyZoneCacheTime = {};
+
+const SGG_MAP = {
+  'L01': '11', 'L02': '28', '161': '26', '155': '27', '131': '30',
+  '142': '31', '144': '29', '169': '36', '170': '41', '171': '42',
+  '172': '43', '173': '44', '174': '45', '175': '46', '176': '47',
+  '177': '48', '178': '50',
+  'L03': '4119', 'L04': '4121', 'L05': '4117', 'L06': '4129', 'L07': '4127',
+  'L08': '4146', 'L09': '4113', 'L10': '4128', 'L11': '4139', 'L12': '4148',
+  'L13': '4163', 'L14': '4115', 'L15': '4157', 'L16': '4143', 'L17': '4141',
+  'L18': '4136', 'L19': '4111', 'L20': '4161', 'L21': '4131', 'L22': '4145',
+  'L23': '26', 'L24': '4833', 'L25': '4812', 'L26': '4825', 'L28': '4831',
+  'L29': '27', 'L30': '30', 'L31': '29', 'L37': '4711'
+};
+
+async function getCachedSafetyZones(regionCode = 'L01') {
+  const cacheKey = regionCode;
+  const now = Date.now();
+  if (safetyZoneCache[cacheKey] && (now - safetyZoneCacheTime[cacheKey] < 86400000)) {
+    return { items: safetyZoneCache[cacheKey], source: 'memory_cache' };
+  }
+
+  let sggPrefix = SGG_MAP[regionCode] || (regionCode.length >= 2 && !isNaN(regionCode) ? regionCode : null);
+  let allData = [];
+
+  if (regionCode === 'all') {
+    allData = await fetchAllSupabase(() => supabase.from('safety_zones').select('ptznmngno, name, sggcd, type, geojson'));
+  } else if (sggPrefix) {
     let from = 0;
     const step = 1000;
-    
-    // Supabase 1,000건 한도 우회를 위한 페이징 로직
     while (true) {
-      let query = supabase.from('safety_zones').select('*');
-      if (sggPrefix) {
-        query = query.like('sggcd', sggPrefix);
-      }
-      
-      const { data, error } = await query.range(from, from + step - 1);
-        
+      const { data, error } = await supabase
+        .from('safety_zones')
+        .select('ptznmngno, name, sggcd, type, geojson')
+        .like('sggcd', sggPrefix + '%')
+        .range(from, from + step - 1);
+
       if (error) throw error;
       if (!data || data.length === 0) break;
-      
       allData = allData.concat(data);
       if (data.length < step) break;
       from += step;
     }
-    
-    // 프론트엔드가 처리하기 편하도록 키 매핑
-    const items = allData.map(row => ({
-      ptznMngNo: row.ptznmngno,
-      trgtFcltNm: row.name,
-      sggCd: row.sggcd,
-      fcltTypeCd: row.type,
-      geojson: row.geojson
-    }));
-    
-    res.json({ success: true, items: items });
+  } else {
+    return { items: [], source: 'empty' };
+  }
+
+  const items = allData.map(row => ({
+    ptznMngNo: row.ptznmngno,
+    trgtFcltNm: row.name,
+    sggCd: row.sggcd,
+    fcltTypeCd: row.type,
+    geojson: row.geojson
+  }));
+
+  safetyZoneCache[cacheKey] = items;
+  safetyZoneCacheTime[cacheKey] = now;
+  return { items, source: 'supabase' };
+}
+
+app.get('/api/safetyzone', async (req, res) => {
+  try {
+    const regionCode = req.query.regionCode || 'L01';
+    const { items, source } = await getCachedSafetyZones(regionCode);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.json({ success: true, count: items.length, items: items, source });
   } catch (err) {
     console.error('Error fetching safety zones:', err);
     res.status(500).json({ error: err.message });
@@ -2607,30 +2625,13 @@ app.post('/api/main-phases', async (req, res) => {
 const HOST = '0.0.0.0';
 
 
-// --- 보호구역 API Proxy ---
-let simSafetyZoneCache = null;
-let simSafetyZoneCacheTime = 0;
-
+// --- 보호구역 API Proxy (온디맨드 지역 쿼리 + 공유 메모리 캐시) ---
 app.get('/api/sim/safetyzone', async (req, res) => {
   try {
-    if (simSafetyZoneCache && (Date.now() - simSafetyZoneCacheTime < 3600000)) {
-        return res.json({ success: true, items: simSafetyZoneCache, source: 'supabase_cache' });
-    }
-    
-    const data = await fetchAllSupabase(() => supabase.from('safety_zones').select('*'));
-    
-    const items = data.map(row => ({
-      ptznMngNo: row.ptznmngno,
-      trgtFcltNm: row.name,
-      sggCd: row.sggcd,
-      fcltTypeCd: row.type,
-      geojson: row.geojson
-    }));
-
-    simSafetyZoneCache = items;
-    simSafetyZoneCacheTime = Date.now();
-
-    res.json({ success: true, items: items, source: 'supabase' });
+    const regionCode = req.query.regionCode || req.query.region || 'L01';
+    const { items, source } = await getCachedSafetyZones(regionCode);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.json({ success: true, count: items.length, items: items, source });
   } catch (err) {
     console.error("보호구역 DB 프록시 오류:", err);
     res.status(500).json({ error: err.message });
