@@ -1188,6 +1188,7 @@ body.left-sidebar-open #sim-controls {
 body.left-sidebar-open #zoom-indicator,
 body.left-sidebar-open .zoom-level-badge {
     left: 340px;
+    top: 92px;
 }
 
 
