@@ -14,6 +14,10 @@
         const maskSensitive = (args) => {
             return args.map(arg => {
                 if (typeof arg === 'string') {
+                    // Fast-path: 민감 정보 패턴(JWT, service_role, 이메일) 힌트가 없을 시 정규식 생략 (CPU 절감)
+                    if (arg.length < 5 || (!arg.includes('eyJ') && !arg.includes('service_role') && !arg.includes('@'))) {
+                        return arg;
+                    }
                     return arg.replace(/(eyJh[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)/g, '[REDACTED_JWT]')
                               .replace(/(service_role_[a-zA-Z0-9_-]+)/gi, '[REDACTED_SECRET]')
                               .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '[REDACTED_EMAIL]');

@@ -86,27 +86,38 @@ app.use('/api', (req, res, next) => {
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../../index.html'));
 });
-app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets')));
+app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets'), {
+  maxAge: '7d'
+}));
 app.use('/sim', express.static(path.join(__dirname, '../../SIGMA_SIM'), {
+  maxAge: '1h',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      // HTML은 즉각 갱신을 위해 no-cache 유지 (ETag 및 BFCache 지원)
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
+    } else if (/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|mp4)$/i.test(filePath)) {
+      // 정적 자원(JS/CSS/이미지/비디오)은 1일 브라우저 캐싱 허용
+      res.setHeader('Cache-Control', 'public, max-age=86400');
     }
   }
 }));
 app.use('/realtime', express.static(path.join(__dirname, '../sigma-frontend/dist'), {
+  maxAge: '1h',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
+    } else if (/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$/i.test(filePath)) {
+      // Vite 해시 빌드 자원은 불변(immutable) 캐싱
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     }
   }
 }));
 const sendIndexHtml = (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, '../sigma-frontend/dist/index.html'));
