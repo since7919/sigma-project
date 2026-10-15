@@ -1224,11 +1224,26 @@ jobs:
             });
 
             // 5. Clickjacking frame check
-            const isFramed = window.self !== window.top;
+            let isSafeFrame = true;
+            let frameDetail = "안전: 단독 최상위 브라우저 윈도우에서 실행 중";
+            try {
+                if (window.self !== window.top) {
+                    if (window.top.location.origin === window.location.origin) {
+                        isSafeFrame = true;
+                        frameDetail = "안전: 동일 출처(SIGMA 통합 시뮬레이터) 내부 세션으로 연동 실행 중";
+                    } else {
+                        isSafeFrame = false;
+                        frameDetail = "주의: 외부 출처의 iframe 내부에서 호스팅 중";
+                    }
+                }
+            } catch(e) {
+                isSafeFrame = false;
+                frameDetail = "주의: 외부 도메인의 iframe에서 호출됨 (X-Frame-Options 점검 필요)";
+            }
             checks.push({
                 name: "Clickjacking(iframe 삽입) 위장 여부",
-                status: !isFramed,
-                detail: !isFramed ? "안전: 단독 최상위 브라우저 윈도우에서 실행 중" : "주의: 타 사이트의 iframe 내부에서 호스팅 중 (X-Frame-Options 점검 필요)"
+                status: isSafeFrame,
+                detail: frameDetail
             });
 
             resultsEl.innerHTML = checks.map(c => `
