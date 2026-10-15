@@ -572,6 +572,55 @@ const { data, error } = await supabase.auth.mfa.challengeAndVerify({
 });`,
                 defaultStatus: "ACTION"
             },
+            {
+                id: "NIS-08",
+                category: "NIS",
+                catName: "국가정보보안기본지침",
+                title: "데이터 백업 및 재해복구(DR) 체계 구축 (제66조)",
+                standard: "국가정보보안기본지침 제66조(재난 및 장애 대비)",
+                risk: "HIGH",
+                desc: "데이터베이스 및 주요 운영 데이터의 정기적 자동 백업(일일/주간)을 수행하고, 백업본을 물리적/논리적으로 분리된 원격지에 소산 보관하며 주기적 복구 모의훈련을 실시합니다.",
+                tip: "Supabase의 Daily Automated Backup(스냅샷 자동 보관)을 활용하거나, 별도 추가 인프라 구매 없이 pg_dump 스크립트를 통해 로컬 또는 안전 스토리지로 덤프 파일을 주기적으로 백업 보관합니다.",
+                codeSnippet: `# [PostgreSQL / pg_dump] 추가 DB/서버 없이 1회 실행으로 Supabase 전체 백업
+pg_dump "postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres" \\
+  -F c -b -v -f "sigma_backup_$(date +%Y%m%d).dump"`,
+                defaultStatus: "ACTION"
+            },
+            {
+                id: "NIS-09",
+                category: "NIS",
+                catName: "국가정보보안기본지침",
+                title: "클라우드 서비스 이용 및 데이터 주권 관리 (제67조)",
+                standard: "국가정보보안기본지침 제67조(클라우드컴퓨팅 보안관리)",
+                risk: "HIGH",
+                desc: "상용 클라우드(PaaS/DBaaS) 도입 시 보안성 검토를 거치며, 중요 공공 데이터의 임의 해외 반출을 통제하고 클라우드 관리 콘솔에 대한 접근 통제 및 감사 로그를 유지합니다.",
+                tip: "Supabase 리전을 서울(ap-northeast-2) 등 허용된 보안 리전으로 구성하고, Render 및 Supabase 대시보드 관리자 계정에 IP 화이트리스트 및 2FA를 강제합니다.",
+                codeSnippet: `// [Cloud Compliance] 클라우드 API 호출 시 데이터 암호화 및 리전 격리 검증
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+if (!SUPABASE_URL.startsWith('https://')) {
+    throw new Error('보안 지침 위반: 암호화되지 않은 비보안 클라우드 엔드포인트 차단');
+}`,
+                defaultStatus: "PASSED"
+            },
+            {
+                id: "NIS-10",
+                category: "NIS",
+                catName: "국가정보보안기본지침",
+                title: "웹서비스 보안성 검토 및 DDoS 대비 (제61조)",
+                standard: "국가정보보안기본지침 제61조(홈페이지 등 웹서비스 보안)",
+                risk: "MED",
+                desc: "공개 웹서비스 오픈 전 주요 보안 취약점(시큐어코딩 진단)을 점검하고, 대량 트래픽 및 자동화 스크립트 공격(DDoS, Brute-Force)에 대비한 요청 제한(Rate Limiting)을 적용합니다.",
+                tip: "KISA 시큐어코딩 7대 기준 준수 상태와 Render 백엔드에 적용된 express-rate-limit(분당 120회 제한) 및 Cloudflare WAF를 연동합니다.",
+                codeSnippet: `// [Express] 서비스 거부 공격 및 과도한 자동화 요청 차단 (Rate Limiter)
+const rateLimit = require('express-rate-limit');
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1분
+    max: 120, // IP당 최대 120회 요청
+    message: { error: '과도한 요청이 감지되었습니다. 잠시 후 다시 시도하십시오.' }
+});
+app.use('/api/', apiLimiter);`,
+                defaultStatus: "PASSED"
+            },
 
             // ── 2. 소프트웨어 개발보안 (KISA / 행정안전부) ──
             {
@@ -842,7 +891,7 @@ jobs:
         ];
 
         // State Storage Key
-        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V7";
+        const STORAGE_KEY = "SIGMA_SECURITY_CHECKLIST_STATE_V8";
         let checklistState = {};
 
         // Category Meta
@@ -868,15 +917,20 @@ jobs:
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) {
                     checklistState = JSON.parse(saved);
-                } else {
-                    // Seed initial defaults
-                    SECURITY_CHECKLIST.forEach(item => {
+                }
+                // 신규 추가된 점검 항목이 있을 경우 누락 없이 자동 시딩
+                let hasNew = false;
+                SECURITY_CHECKLIST.forEach(item => {
+                    if (!checklistState[item.id]) {
                         checklistState[item.id] = {
                             status: item.defaultStatus || "PROGRESS",
                             notes: "",
                             updatedAt: new Date().toISOString()
                         };
-                    });
+                        hasNew = true;
+                    }
+                });
+                if (!saved || hasNew) {
                     saveState();
                 }
             } catch(e) {
