@@ -1266,6 +1266,59 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
   }
 });
 
+// ─── 보안 컴플라이언스: 원클릭 데이터베이스 소산 백업 내보내기 (국가정보보안기본지침 제66조) ───
+app.get('/api/security/backup', async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    
+    // 핵심 테이블 병렬 조회 (무료 티어 메모리 및 레이트리밋 보호를 위해 주요 테이블 위주 선별)
+    const [junctions, signalMaps, todPlans, groups, stats, complaints] = await Promise.all([
+      fetchAllSupabase(() => supabase.from('junctions').select('*')),
+      fetchAllSupabase(() => supabase.from('signal_maps').select('*')),
+      fetchAllSupabase(() => supabase.from('tod_plans').select('*')),
+      fetchAllSupabase(() => supabase.from('groups').select('*')),
+      fetchAllSupabase(() => supabase.from('intersection_stats').select('*')),
+      fetchAllSupabase(() => supabase.from('civil_complaints').select('*'))
+    ]);
+
+    const backupPayload = {
+      backup_version: "1.0",
+      system: "SIGMA-TRAFFIC-MANAGEMENT-SYSTEM",
+      exported_at: new Date().toISOString(),
+      compliance: {
+        standard: "국가정보보안기본지침 제66조(재난 및 장애 대비)",
+        type: "Off-site Disaster Recovery Snapshot",
+        environment: "Production (Supabase DB + Render API)"
+      },
+      summary: {
+        junctions_count: junctions.length,
+        signal_maps_count: signalMaps.length,
+        tod_plans_count: todPlans.length,
+        groups_count: groups.length,
+        stats_count: stats.length,
+        civil_complaints_count: complaints.length,
+        total_records: junctions.length + signalMaps.length + todPlans.length + groups.length + stats.length + complaints.length
+      },
+      data: {
+        junctions,
+        signal_maps: signalMaps,
+        tod_plans: todPlans,
+        groups,
+        intersection_stats: stats,
+        civil_complaints: complaints
+      }
+    };
+
+    const fileName = `sigma_backup_${timestamp}.json`;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(JSON.stringify(backupPayload, null, 2));
+  } catch (err) {
+    console.error('[Security Backup Error]', err);
+    sendErrorResponse(res, err, '데이터베이스 백업 생성 중 오류가 발생했습니다.');
+  }
+});
+
 // 1-3-C. 데이터 뷰어용 일괄 수정/추가(Bulk Upsert) API
 app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   const { tableName } = req.params;

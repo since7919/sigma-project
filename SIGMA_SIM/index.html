@@ -220,7 +220,15 @@
                 <input type="text" id="login-user" class="login-input" placeholder="USERNAME">
                 <input type="password" id="login-pass" class="login-input" placeholder="PASSWORD"
                     onkeypress="if(event.key==='Enter') attemptLogin()">
+                <input type="password" id="login-mfa" class="login-input" placeholder="2FA PIN (6자리, 활성화 시 필수)" maxlength="6" style="display: none;"
+                    onkeypress="if(event.key==='Enter') attemptLogin()">
                 <button onclick="attemptLogin()" class="login-btn">DASHBOARD ACCESS</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-top: 2px;">
+                    <a href="javascript:void(0)" onclick="openPasswordChangeModal()" style="color: #38bdf8; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                        🔑 계정 / 비밀번호 변경
+                    </a>
+                    <span style="color: #94a3b8; font-size: 11px;">기본계정: koroad / 251227</span>
+                </div>
                 <p id="login-msg" class="login-error-msg">Invalid credentials, please try again.</p>
             </div>
 
@@ -302,6 +310,7 @@
         <button id="btn-layer-utic" class="btn-neon" onclick="toggleApiLayer('utic')">🌐 UTIC</button>
         <button id="btn-data-viewer" class="btn-neon" onclick="location.href='data_viewer.html'">📂 데이터</button>
         <button id="btn-security" class="btn-neon" onclick="openSecurityDashboard()" title="정보보안 및 시큐어코딩 점검 대시보드 (작업 세션 유지)">🛡️ 보안</button>
+        <button id="btn-account-settings" class="btn-neon" onclick="openPasswordChangeModal()" title="보안 계정 및 비밀번호 설정">🔑 계정설정</button>
         <button id="btn-dashboard" class="btn-neon" onclick="openDashboard()">📊 HOME</button>
         <button id="btn-export-network" class="btn-neon magenta" style="display:none" onclick="exportRoadNetwork()">📥
             내보내기</button>
@@ -1938,7 +1947,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
     <script src="js/dashboard.js?v=1792037200000"></script>
-    <script src="js/auth.js?v=1791726500000"></script>
+    <script src="js/auth.js?v=1792103500000"></script>
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1791726500000"></script>
     <script src="js/utils.js?v=1791728000000"></script>
