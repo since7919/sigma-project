@@ -1309,6 +1309,15 @@ jobs:
         // Return to Main Simulator (Session Preservation)
         function returnToMain(event) {
             if (event) event.preventDefault();
+            // 0. 인앱 iframe 모달 내부에서 실행된 경우: 부모 창 모달 닫기
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.closeSecurityModal === 'function') {
+                    window.parent.closeSecurityModal();
+                    return;
+                }
+            } catch(e) {
+                console.warn("Parent iframe close check:", e);
+            }
             // 1. 부모 창(시뮬레이터 메인 화면)이 살아있는 경우: 부모 창으로 포커스 이동 후 현재 탭 닫기
             if (window.opener && !window.opener.closed) {
                 try {

@@ -7,14 +7,25 @@ window.openDashboard = openDashboard;
 window.closeDashboard = closeDashboard;
 window.sendToDashboard = sendToDashboard;
 window.openSecurityDashboard = openSecurityDashboard;
+window.closeSecurityModal = closeSecurityModal;
 
 var dashPopup = null;
 var secPopup = null;
 
 /**
- * 보안 대시보드 열기 (기존 시뮬레이터 세션 유지용 독립 탭/창)
+ * 보안 대시보드 열기 (인앱 오버레이 모달 우선 구동 -> 시뮬레이터 세션 100% 보존)
  */
 function openSecurityDashboard() {
+    const overlay = document.getElementById('security-modal-overlay');
+    const iframe = document.getElementById('security-frame');
+    if (overlay && iframe) {
+        if (!iframe.src || iframe.src === 'about:blank' || !iframe.src.includes('security_dashboard.html')) {
+            iframe.src = 'security_dashboard.html';
+        }
+        overlay.style.display = 'block';
+        return;
+    }
+    // 모달 DOM이 없는 환경(독립 서브페이지 등)일 때 팝업/새 탭 fallback
     const windowName = "SIGMA_Security_Dashboard";
     if (secPopup && !secPopup.closed) {
         secPopup.focus();
@@ -22,6 +33,26 @@ function openSecurityDashboard() {
         secPopup = window.open('security_dashboard.html', windowName);
     }
 }
+
+/**
+ * 인앱 보안 대시보드 모달 닫기
+ */
+function closeSecurityModal() {
+    const overlay = document.getElementById('security-modal-overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// ESC 키 입력 시 보안 모달 닫기
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const overlay = document.getElementById('security-modal-overlay');
+        if (overlay && overlay.style.display !== 'none') {
+            closeSecurityModal();
+        }
+    }
+});
 
 /**
  * 대시보드 열기 (새 브라우저 창)
