@@ -501,12 +501,7 @@ function renderStats() {
     });
 
     const avgCompVal = (totalMovs / (totalPhases || 1)).toFixed(2);
-    document.getElementById('insight-complexity').innerText = avgCompVal;
     if (document.getElementById('stat-avg-complexity')) document.getElementById('stat-avg-complexity').innerText = avgCompVal;
-    
-    document.getElementById('insight-balance').innerText = totalIntegrityCount > 0 ? ((validIntegrityCount / totalIntegrityCount) * 100).toFixed(1) + "%" : "0.0%";
-    document.getElementById('insight-diversity').innerText = "보통 (72%)";
-    document.getElementById('insight-offset').innerText = (offsetDev / (jids.length || 1)).toFixed(1) + "s";
 
     // 6개 타일 최종 동기화
     if (document.getElementById('stat-total-groups')) 
