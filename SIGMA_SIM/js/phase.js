@@ -183,9 +183,25 @@ function renderRingTables() {
     // 현시계획(Map)의 Yellow/AllRed/Ped 등은 항상 A/B 모두 표시
     const phaseCategories = [
         { id: 'mg', label: 'MG (최소녹색)', keyA: 'minGreenA', keyB: 'minGreenB', clsA: 'c-green', clsB: 'c-green', isDetail: true,
-          calcA: (i) => { if (!sm.movA?.[i]) return 0; const pA = sm.pedA?.[i] || 0; const arA = sm.allredA?.[i] || 0; const dlyA = sm.pedDelayA?.[i] || 0; return pA > 0 ? pA + arA + dlyA : 0; },
-          calcB: (i) => { if (!sm.movB?.[i]) return 0; const pB = sm.pedB?.[i] || 0; const arB = sm.allredB?.[i] || 0; const dlyB = sm.pedDelayB?.[i] || 0; return pB > 0 ? pB + arB + dlyB : 0; },
-          calcTitle: '최소녹색시간 = 보행합계+전적색+보행지연'
+          calcA: (i) => {
+              if (!sm.movA?.[i] && !sm.movB?.[i]) return 0;
+              const pA = sm.pedA?.[i] || 0;
+              const arA = sm.allredA?.[i] || 0;
+              const dlyA = sm.pedDelayA?.[i] || 0;
+              const pedMg = pA > 0 ? (pA + arA + dlyA) : 0;
+              const vehMg = (sm.minGreenA?.[i] || 0) > 0 ? sm.minGreenA[i] : (sm.movA?.[i] > 0 ? 7 : 0);
+              return Math.max(pedMg, vehMg);
+          },
+          calcB: (i) => {
+              if (!sm.movA?.[i] && !sm.movB?.[i]) return 0;
+              const pB = sm.pedB?.[i] || 0;
+              const arB = sm.allredB?.[i] || 0;
+              const dlyB = sm.pedDelayB?.[i] || 0;
+              const pedMg = pB > 0 ? (pB + arB + dlyB) : 0;
+              const vehMg = (sm.minGreenB?.[i] || 0) > 0 ? sm.minGreenB[i] : (sm.movB?.[i] > 0 ? 7 : 0);
+              return Math.max(pedMg, vehMg);
+          },
+          calcTitle: '최소녹색시간 = Math.max(보행최소(보행합계+전적색+지연), 차량최소)'
         },
         { id: 'allred', label: 'AllRed', keyA: 'allredA', keyB: 'allredB', clsA: 'c-red', clsB: 'c-red', isDetail: true },
         { id: 'yellow', label: 'Yellow', keyA: 'yellowA', keyB: 'yellowB', clsA: 'c-yellow', clsB: 'c-yellow', isDetail: true },
@@ -233,7 +249,11 @@ function renderRingTables() {
                     const dly = isB ? sm.pedDelayB?.[i] : sm.pedDelayA?.[i];
                     const yel = isB ? sm.yellowB?.[i] : sm.yellowA?.[i];
                     
-                    const mg = (ped || 0) > 0 ? (ped || 0) + (dly || 0) + (arr || 0) : 0;
+                    const pedMg = (ped || 0) > 0 ? (ped || 0) + (dly || 0) + (arr || 0) : 0;
+                    const minG = isB ? sm.minGreenB?.[i] : sm.minGreenA?.[i];
+                    const mov = isB ? sm.movB?.[i] : sm.movA?.[i];
+                    const vehMg = (minG || 0) > 0 ? minG : ((mov || 0) > 0 ? 7 : 0);
+                    const mg = Math.max(pedMg, vehMg);
                     const mgWithYellow = mg + (yel || 0);
                     
                     if (val > 0 && val < mg) {

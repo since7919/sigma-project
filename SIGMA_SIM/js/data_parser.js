@@ -461,6 +461,9 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     }
 
                     if (stepsInPhase.length > 0) {
+                        // 스텝의 총 MIN 합계 산출 (차량 최소녹색 기준)
+                        phaseData[pIdx].minGreen = stepsInPhase.reduce((sum, st) => sum + (st.min || 0), 0);
+
                         let foundYellow = false;
                         for (let i = stepsInPhase.length - 1; i >= 0; i--) {
                             const yFlag = stepsInPhase[i].sigsV.some(v => v === 2 || v === 32 || v === 20 || v === 34 || v === 18);
@@ -474,7 +477,7 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         // Fallback to eop step if yellow wasn't explicitly found
                         if (!foundYellow) {
                             const eopStep = stepsInPhase[stepsInPhase.length - 1];
-                            if (eopStep.eop) {
+                            if (eopStep && eopStep.min > 0) {
                                 phaseData[pIdx].yellow = eopStep.min;
                             }
                         }
@@ -532,6 +535,29 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                         continue; // 기존 시그널맵 유지
                     }
 
+                    // [보행정보 상호 보완] A/B링 중 한쪽에만 보행신호가 배정된 경우 동일 현시 상호 복사 (단일/통합 횡단보도 채널 지원)
+                    const hasPedA = dataA.some(d => d.g > 0 || d.f > 0);
+                    const hasPedB = dataB.some(d => d.g > 0 || d.f > 0);
+                    if (!hasPedA && hasPedB) {
+                        for (let pIdx = 0; pIdx < 8; pIdx++) {
+                            if (dataB[pIdx].g > 0 || dataB[pIdx].f > 0) {
+                                dataA[pIdx].pId = dataB[pIdx].pId;
+                                dataA[pIdx].g = dataB[pIdx].g;
+                                dataA[pIdx].f = dataB[pIdx].f;
+                                dataA[pIdx].delay = dataB[pIdx].delay;
+                            }
+                        }
+                    } else if (hasPedA && !hasPedB) {
+                        for (let pIdx = 0; pIdx < 8; pIdx++) {
+                            if (dataA[pIdx].g > 0 || dataA[pIdx].f > 0) {
+                                dataB[pIdx].pId = dataA[pIdx].pId;
+                                dataB[pIdx].g = dataA[pIdx].g;
+                                dataB[pIdx].f = dataA[pIdx].f;
+                                dataB[pIdx].delay = dataA[pIdx].delay;
+                            }
+                        }
+                    }
+
                     sm.stepsA = stepsA;
                     sm.stepsB = stepsB;
 
@@ -541,6 +567,8 @@ async function handleExcelSignalLoad(input, isSingle = false) {
                     sm.pedMovB = dataB.map(d => d.pId);
                     sm.yellowA = dataA.map(d => d.yellow);
                     sm.yellowB = dataB.map(d => d.yellow);
+                    sm.minGreenA = dataA.map(d => d.minGreen);
+                    sm.minGreenB = dataB.map(d => d.minGreen);
                     sm.pedGreenA = dataA.map(d => d.g);
                     sm.pedGreenB = dataB.map(d => d.g);
                     sm.pedFlashA = dataA.map(d => d.f);

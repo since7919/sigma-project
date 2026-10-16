@@ -155,11 +155,15 @@ function handleTableInput(el) {
         
         const arA = sm.allredA?.[idx] || 0;
         const dlyA = sm.pedDelayA?.[idx] || 0;
-        const mgA = sm.pedA[idx] > 0 ? sm.pedA[idx] + arA + dlyA : 0;
+        const pedMgA = sm.pedA[idx] > 0 ? sm.pedA[idx] + arA + dlyA : 0;
+        const vehMgA = (sm.minGreenA?.[idx] || 0) > 0 ? sm.minGreenA[idx] : (sm.movA?.[idx] > 0 ? 7 : 0);
+        const mgA = Math.max(pedMgA, vehMgA);
         
         const arB = sm.allredB?.[idx] || 0;
         const dlyB = sm.pedDelayB?.[idx] || 0;
-        const mgB = sm.pedB[idx] > 0 ? sm.pedB[idx] + arB + dlyB : 0;
+        const pedMgB = sm.pedB[idx] > 0 ? sm.pedB[idx] + arB + dlyB : 0;
+        const vehMgB = (sm.minGreenB?.[idx] || 0) > 0 ? sm.minGreenB[idx] : (sm.movB?.[idx] > 0 ? 7 : 0);
+        const mgB = Math.max(pedMgB, vehMgB);
         
         const updateField = (k, v) => {
             const el = document.querySelector(`.calc-field[data-key="${k}"][data-index="${idx}"]`);
@@ -392,7 +396,11 @@ function updateDependentCells(i, p, sm) {
         const dly = sm['pedDelay' + ring]?.[i] || 0;
         const yel = sm['yellow' + ring]?.[i] || 0;
 
-        const mg = ped > 0 ? ped + dly + arr : 0;
+        const pedMg = ped > 0 ? ped + dly + arr : 0;
+        const minG = sm['minGreen' + ring]?.[i];
+        const mov = sm['mov' + ring]?.[i];
+        const vehMg = (minG || 0) > 0 ? minG : ((mov || 0) > 0 ? 7 : 0);
+        const mg = Math.max(pedMg, vehMg);
         const mgWithYellow = mg + yel;
 
         const el = document.querySelector(`.sigma-input.inp-${splitKey}[data-index="${i}"]`);

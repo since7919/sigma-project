@@ -435,7 +435,8 @@ function getVisualArrow(m) {
         9: { type: '↰', ang: 225 }, 10: { type: '↑', ang: 45 },
         11: { type: '↰', ang: 315 }, 12: { type: '↑', ang: 135 },
         13: { type: '↰', ang: 45 }, 14: { type: '↑', ang: 225 },
-        15: { type: '↰', ang: 135 }, 16: { type: '↑', ang: 315 }
+        15: { type: '↰', ang: 135 }, 16: { type: '↑', ang: 315 },
+        17: { type: '↺', ang: 0 }, 18: { type: '↺', ang: 0 }
     };
     return movementMap[m] || { type: '•', ang: 0 };
 }
