@@ -948,7 +948,11 @@ window.importActiveJunctionUTIC = async function() {
     const j = STATE.junctions[STATE.activeJid];
     if (!j) return;
 
-    const confirmMsg = `[${j.name} (${j.id})] 교차로의 신호데이터를 경찰청 UTIC에서 가져오시겠습니까?\n\n`
+    const regionCode = (j.id && j.id.includes('-')) ? j.id.split('-')[0] : (window.CURRENT_REGION_CODE || 'L02');
+    const regionName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
+
+    const confirmMsg = `[${j.name} (${j.id} / ${regionName})] 교차로의 신호데이터를 경찰청 UTIC에서 가져오시겠습니까?\n\n`
+        + `• 대상 지자체: ${regionName} (${regionCode})\n`
         + `• 가져올 데이터: TOD 운영계획(1~10 일계획), 주간 요일계획, 시그널맵(Ring A/B)\n`
         + `• 일반 사용자 모드: 현재 화면의 편집창에 즉시 불러오며, 확인 후 상단의 [☁️ 클라우드 저장]을 눌러 서버에 영구 반영할 수 있습니다.`;
 
@@ -964,7 +968,7 @@ window.importActiveJunctionUTIC = async function() {
         const response = await fetch('/api/sim/sync-utic-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jid: j.id, itstNm: j.name, saveToDb: false })
+            body: JSON.stringify({ jid: j.id, itstNm: j.name, regionCode, saveToDb: false })
         });
 
         if (!response.ok) {
@@ -997,7 +1001,7 @@ window.importActiveJunctionUTIC = async function() {
             btnSave.style.cursor = 'pointer';
         }
 
-        alert(`[${j.name}] UTIC 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획)를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
+        alert(`[${j.name} (${regionName})] UTIC 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획)를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
     } catch (err) {
         alert("UTIC 신호데이터 가져오기 실패: " + err.message);
     } finally {
@@ -1010,20 +1014,22 @@ window.importActiveJunctionUTIC = async function() {
 window.triggerUticPlanSync = window.importActiveJunctionUTIC;
 
 /**
- * 2. 관리자 전용 UTIC 신호데이터 대량/일괄 동기화 (DB Center 기능)
+ * 2. 관리자 전용 UTIC 신호데이터 대량/일괄 동기화 (DB Center 기능 - 전국 지자체 지원)
  */
 let _uticBatchTimer = null;
 
 window.startUticBatchSync = async function() {
     const selMode = document.getElementById('sel-utic-batch-mode');
+    const selRegion = document.getElementById('sel-utic-batch-region');
     const mode = selMode ? selMode.value : 'safe';
-    const regionCode = 'L02'; // 인천광역시
+    const regionCode = selRegion ? selRegion.value : (window.CURRENT_REGION_CODE || 'L02');
+    const regionName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
 
     const modeText = mode === 'safe'
         ? "안전 채우기 (기존 신호데이터가 있는 교차로는 건너뛰고, 빈 교차로만 UTIC에서 채움)"
         : "전체 덮어쓰기 (기존 사용자 편집 데이터를 포함한 전체 교차로를 UTIC 최신 데이터로 강제 덮어씀)";
 
-    if (!confirm(`[경찰청 UTIC 일괄 동기화 실행]\n\n• 지역: 인천광역시 (${regionCode})\n• 선택 모드: ${modeText}\n\n계속 진행하시겠습니까?`)) {
+    if (!confirm(`[경찰청 UTIC 일괄 동기화 실행]\n\n• 대상 지역: ${regionName} (${regionCode})\n• 선택 모드: ${modeText}\n\n계속 진행하시겠습니까?`)) {
         return;
     }
 
@@ -1095,7 +1101,8 @@ async function pollUticBatchStatus() {
                 _uticBatchTimer = null;
             }
             if (btnStop) btnStop.style.display = 'none';
-            alert(`경찰청 UTIC 일괄 동기화가 완료되었습니다!\n\n• 총 교차로: ${st.total}개\n• 성공 동기화: ${st.successCount}개\n• 안전모드 건너뜀: ${st.skipCount}개\n• 미보유/실패: ${st.failCount}개`);
+            const rName = (window.REGION_MAP && window.REGION_MAP[st.regionCode]) || st.regionCode;
+            alert(`경찰청 UTIC [${rName}] 일괄 동기화가 완료되었습니다!\n\n• 대상 지역: ${rName} (${st.regionCode})\n• 총 교차로: ${st.total}개\n• 성공 동기화: ${st.successCount}개\n• 안전모드 건너뜀: ${st.skipCount}개\n• 미보유/실패: ${st.failCount}개`);
         }
     } catch (e) {
         console.error("폴링 오류:", e);

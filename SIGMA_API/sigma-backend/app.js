@@ -2582,24 +2582,75 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
   };
 }
 
-// 1. 단일 교차로(JID) UTIC 신호데이터 실시간 조회 및 동기화 API (일반 사용자 및 상세 편집용)
+// 교차로 명칭 표기 이음 동의어 및 표준화 후보군 생성 (사거리/4거리/네거리, 삼거리/3거리, 오거리/5거리, 괄호 부가설명 제거 등)
+function getNameCandidates(name) {
+  if (!name) return [];
+  const set = new Set();
+  const raw = String(name).trim();
+  set.add(raw);
+
+  // 1. 괄호 부가설명 제거 (예: 부평역(경인선) -> 부평역)
+  const noParen = raw.replace(/\(.*?\)/g, '').trim();
+  if (noParen) set.add(noParen);
+
+  // 2. 지역별/시스템별 교차로 표기 변환 (사거리 <-> 4거리 <-> 네거리, 삼거리 <-> 3거리, 오거리 <-> 5거리)
+  const variations = [];
+  set.forEach(n => {
+    if (n.includes('사거리') || n.includes('4거리') || n.includes('네거리')) {
+      variations.push(n.replace(/사거리|4거리|네거리/g, '4거리'));
+      variations.push(n.replace(/사거리|4거리|네거리/g, '사거리'));
+      variations.push(n.replace(/사거리|4거리|네거리/g, '네거리'));
+    }
+    if (n.includes('삼거리') || n.includes('3거리')) {
+      variations.push(n.replace(/삼거리|3거리/g, '3거리'));
+      variations.push(n.replace(/삼거리|3거리/g, '삼거리'));
+    }
+    if (n.includes('오거리') || n.includes('5거리')) {
+      variations.push(n.replace(/오거리|5거리/g, '5거리'));
+      variations.push(n.replace(/오거리|5거리/g, '오거리'));
+    }
+    if (n.includes('육거리') || n.includes('6거리')) {
+      variations.push(n.replace(/육거리|6거리/g, '6거리'));
+      variations.push(n.replace(/육거리|6거리/g, '육거리'));
+    }
+  });
+  variations.forEach(v => set.add(v));
+
+  return Array.from(set);
+}
+
+// 1. 단일 교차로(JID) UTIC 신호데이터 실시간 조회 및 동기화 API (일반 사용자 및 상세 편집용 - 전국 지자체 대응)
 app.post('/api/sim/sync-utic-plan', async (req, res) => {
-  const { jid, itstNm, saveToDb } = req.body;
+  const { jid, itstNm, regionCode, saveToDb } = req.body;
   if (!jid || !itstNm) return res.status(400).json({ error: 'jid와 itstNm이 필요합니다.' });
 
   try {
-    const region = jid.split('-')[0] || 'L02';
-    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L02';
+    // 전국 지자체 지역코드 동적 추출 (L01~L37 등 지자체 코드 지원)
+    const region = (jid && jid.includes('-')) ? jid.split('-')[0] : (regionCode || 'L02');
+    const targetRegion = region;
 
-    // 병렬로 CROP(운영계획), CRWD(주간계획), SigMap(시그널맵) 수집
-    const [crop, crwd, sigMap] = await Promise.all([
-      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: targetRegion, srchCRNm: itstNm }),
-      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: targetRegion, srchCRNm: itstNm }),
-      fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: targetRegion, srchCRNm: itstNm })
-    ]);
+    // 명칭 변환 후보군(사거리/4거리/네거리 등)에 대해 UTIC 신호데이터 순차 탐색
+    const nameCandidates = getNameCandidates(itstNm);
+    let crop = [], crwd = [], sigMap = [], matchedName = itstNm;
+
+    for (const cand of nameCandidates) {
+      const [c, w, s] = await Promise.all([
+        fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: targetRegion, srchCRNm: cand }),
+        fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: targetRegion, srchCRNm: cand }),
+        fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: targetRegion, srchCRNm: cand })
+      ]);
+
+      if ((c && c.length > 0) || (s && s.length > 0)) {
+        crop = c;
+        crwd = w;
+        sigMap = s;
+        matchedName = cand;
+        break;
+      }
+    }
 
     if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
-      return res.status(404).json({ error: `경찰청 UTIC에서 [${itstNm}] 교차로에 대한 신호 운영 데이터를 찾을 수 없습니다.` });
+      return res.status(404).json({ error: `경찰청 UTIC에서 [${itstNm}] (${targetRegion}) 교차로에 대한 신호 운영 데이터를 찾을 수 없습니다.` });
     }
 
     const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(jid, itstNm, crop, crwd, sigMap);
@@ -2625,6 +2676,8 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
       success: true,
       jid,
       itstNm,
+      matchedName,
+      regionCode: targetRegion,
       weeklyPlan: weeklyPlanStr,
       todPlans: todPayload,
       signalMaps: mapsPayload,
@@ -2741,11 +2794,24 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
         }
 
         try {
-          const [crop, crwd, sigMap] = await Promise.all([
-            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: j.name }),
-            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: j.name }),
-            fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: j.name })
-          ]);
+          const candidates = getNameCandidates(j.name);
+          let crop = [], crwd = [], sigMap = [], matchedCand = j.name;
+
+          for (const cand of candidates) {
+            const [c, w, s] = await Promise.all([
+              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: cand }),
+              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: cand }),
+              fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: cand })
+            ]);
+
+            if ((c && c.length > 0) || (s && s.length > 0)) {
+              crop = c;
+              crwd = w;
+              sigMap = s;
+              matchedCand = cand;
+              break;
+            }
+          }
 
           if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
             batchSyncStatus.failCount++;

@@ -1175,21 +1175,43 @@
                         </div>
                     </div>
 
-                    <!-- [경찰청 UTIC 신호데이터 일괄 동기화 (Admin Governance)] -->
+                    <!-- [경찰청 UTIC 신호데이터 일괄 동기화 (Admin Governance - 전국 지자체)] -->
                     <div class="sigma-panel" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;">
                         <div class="card-title flex-row-between" style="cursor: pointer; padding: 10px 14px;" onclick="toggleSection(this)">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 15px;">🌐</span>
-                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (인천광역시 L02)</span>
+                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (전국 지자체)</span>
                             </div>
                             <span class="fold-icon">▼</span>
                         </div>
                         <div class="foldable-content" style="padding: 14px;">
                             <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.6; word-break: keep-all;">
-                                경찰청 UTIC TSI Hub API로부터 인천광역시 전체 교차로(약 1,979개소)의 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
+                                경찰청 UTIC TSI Hub API로부터 선택된 지자체의 전체 교차로 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
-                                <select id="sel-utic-batch-mode" class="phase-select" style="height: 34px; width: 230px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
+                                <select id="sel-utic-batch-region" class="phase-select" style="height: 34px; width: 170px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
+                                    <option value="L02" selected>인천광역시 (L02)</option>
+                                    <option value="L01">서울특별시 (L01)</option>
+                                    <option value="L29">대구광역시 (L29)</option>
+                                    <option value="L23">부산광역시 (L23)</option>
+                                    <option value="L30">대전광역시 (L30)</option>
+                                    <option value="L31">광주광역시 (L31)</option>
+                                    <option value="L19">수원시 (L19)</option>
+                                    <option value="L06">부천시 (L06)</option>
+                                    <option value="L07">광명시 (L07)</option>
+                                    <option value="L08">안산시 (L08)</option>
+                                    <option value="L11">화성시 (L11)</option>
+                                    <option value="L15">김포시 (L15)</option>
+                                    <option value="L09">파주시 (L09)</option>
+                                    <option value="L10">오산시 (L10)</option>
+                                    <option value="L14">의정부시 (L14)</option>
+                                    <option value="L17">군포시 (L17)</option>
+                                    <option value="L18">남양주시 (L18)</option>
+                                    <option value="L25">창원시 (L25)</option>
+                                    <option value="L26">김해시 (L26)</option>
+                                    <option value="L37">포항시 (L37)</option>
+                                </select>
+                                <select id="sel-utic-batch-mode" class="phase-select" style="height: 34px; width: 220px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
                                     <option value="safe" selected>🛡️ 안전 채우기 (Safe Fill - 권장)</option>
                                     <option value="force">⚠️ 전체 덮어쓰기 (Force Overwrite)</option>
                                 </select>
@@ -1954,7 +1976,7 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1791726500000"></script>
     <script src="js/utils.js?v=1792195000000"></script>
-    <script src="js/ui.js?v=1792535000000"></script>
+    <script src="js/ui.js?v=1792536000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
