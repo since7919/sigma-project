@@ -554,6 +554,7 @@ function parseStepsToSignalMap(sm, ringA, ringB) {
     sm.pedA = dataA.map(d => d.g + d.f);
     sm.pedB = dataB.map(d => d.g + d.f);
 }
+window.parseStepsToSignalMap = parseStepsToSignalMap;
 
 function loadScript(url) {
     return new Promise((resolve, reject) => {

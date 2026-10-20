@@ -839,35 +839,132 @@ function goHome() {
 window.goHome = goHome;
 
 /**
- * UTIC 신호 계획 동기화 트리거
+ * 경찰청 UTIC 신호데이터 수신 및 교차로 객체 바인딩 헬퍼
  */
-window.triggerUticPlanSync = async function() {
+function applyUticDataToJunction(j, resData) {
+    if (!j || !resData) return;
+
+    // 1. 주간 요일 계획 업데이트 (월;화;수;목;금;토;일)
+    if (resData.weeklyPlan) {
+        j.weeklyPlan = resData.weeklyPlan;
+    }
+
+    // 2. TOD 1~10 일계획 및 1~16 슬롯 스케줄 업데이트
+    if (Array.isArray(resData.todPlans)) {
+        if (!j.dayPlans) j.dayPlans = Array.from({ length: 10 }, () => (typeof createEmptyPlans === 'function' ? createEmptyPlans() : []));
+        if (!j.schedules) j.schedules = Array.from({ length: 10 }, () => (typeof createEmptySched === 'function' ? createEmptySched() : []));
+
+        resData.todPlans.forEach(tpItem => {
+            const dayIdx = (tpItem.day_plan !== undefined ? tpItem.day_plan : tpItem.dayPlan) - 1;
+            if (dayIdx < 0 || dayIdx >= 10) return;
+
+            if (Array.isArray(tpItem.time_plans)) {
+                tpItem.time_plans.forEach(tp => {
+                    const sIdx = (tp.slot_idx !== undefined ? tp.slot_idx : tp.slotIdx) - 1;
+                    if (sIdx < 0 || sIdx >= 16) return;
+
+                    // schedule slot
+                    if (!j.schedules[dayIdx][sIdx]) {
+                        j.schedules[dayIdx][sIdx] = { sIdx, h: -1, m: 0, cycle: 100, idx: 1 };
+                    }
+                    j.schedules[dayIdx][sIdx].h = tp.h;
+                    j.schedules[dayIdx][sIdx].m = tp.m;
+                    j.schedules[dayIdx][sIdx].cycle = tp.cycle || 100;
+                    j.schedules[dayIdx][sIdx].idx = tp.idx || 1;
+
+                    // day plan split
+                    if (!j.dayPlans[dayIdx][sIdx]) {
+                        j.dayPlans[dayIdx][sIdx] = { cycle: 100, offset: 0, splitA: [25,25,25,25,0,0,0,0], splitB: [25,25,25,25,0,0,0,0] };
+                    }
+                    j.dayPlans[dayIdx][sIdx].cycle = tp.cycle || 100;
+                    j.dayPlans[dayIdx][sIdx].offset = tp.offset || 0;
+                    if (Array.isArray(tp.splitA)) j.dayPlans[dayIdx][sIdx].splitA = [...tp.splitA];
+                    if (Array.isArray(tp.splitB)) j.dayPlans[dayIdx][sIdx].splitB = [...tp.splitB];
+                });
+            }
+        });
+    }
+
+    // 3. 시그널맵 업데이트 (플랜 1~6, Ring A/B)
+    if (Array.isArray(resData.signalMaps)) {
+        if (!j.signalMaps) {
+            j.signalMaps = Array.from({ length: 6 }, () => ({
+                stepsA: [], stepsB: [],
+                movA: [1,2,3,4,0,0,0,0], movB: [5,6,7,8,0,0,0,0],
+                pedMovA: [101,102,0,0,0,0,0,0], pedMovB: [105,106,0,0,0,0,0,0],
+                yellowA: [3,3,3,3,0,0,0,0], yellowB: [3,3,3,3,0,0,0,0],
+                allredA: [2,2,2,2,0,0,0,0], allredB: [2,2,2,2,0,0,0,0],
+                pedA: [0,15,0,15,0,0,0,0], pedB: [0,15,0,15,0,0,0,0],
+                pedDelayA: [0,2,0,2,0,0,0,0], pedDelayB: [0,2,0,2,0,0,0,0],
+                mainMovements: ['A0', 'B0']
+            }));
+        }
+
+        resData.signalMaps.forEach(m => {
+            const mIdx = m.map_idx !== undefined ? m.map_idx : m.mapIdx;
+            if (mIdx >= 0 && mIdx < 6) {
+                const sm = j.signalMaps[mIdx];
+                if (m.raw_steps) {
+                    sm.stepsA = m.raw_steps.stepsA || [];
+                    sm.stepsB = m.raw_steps.stepsB || [];
+                }
+                if (Array.isArray(m.mov_a)) sm.movA = [...m.mov_a];
+                if (Array.isArray(m.mov_b)) sm.movB = [...m.mov_b];
+                if (Array.isArray(m.ped_mov_a)) sm.pedMovA = [...m.ped_mov_a];
+                if (Array.isArray(m.ped_mov_b)) sm.pedMovB = [...m.ped_mov_b];
+                if (Array.isArray(m.yellow_a)) sm.yellowA = [...m.yellow_a];
+                if (Array.isArray(m.yellow_b)) sm.yellowB = [...m.yellow_b];
+                if (Array.isArray(m.allred_a)) sm.allredA = [...m.allred_a];
+                if (Array.isArray(m.allred_b)) sm.allredB = [...m.allred_b];
+                if (Array.isArray(m.ped_a)) sm.pedA = [...m.ped_a];
+                if (Array.isArray(m.ped_b)) sm.pedB = [...m.ped_b];
+                if (Array.isArray(m.ped_delay_a)) sm.pedDelayA = [...m.ped_delay_a];
+                if (Array.isArray(m.ped_delay_b)) sm.pedDelayB = [...m.ped_delay_b];
+                if (Array.isArray(m.ped_flash_a)) sm.pedFlashA = [...m.ped_flash_a];
+                if (Array.isArray(m.ped_flash_b)) sm.pedFlashB = [...m.ped_flash_b];
+                if (Array.isArray(m.ped_green_a)) sm.pedGreenA = [...m.ped_green_a];
+                if (Array.isArray(m.ped_green_b)) sm.pedGreenB = [...m.ped_green_b];
+
+                if (typeof window.parseStepsToSignalMap === 'function' && sm.stepsA && sm.stepsA.length > 0) {
+                    window.parseStepsToSignalMap(sm, sm.stepsA, sm.stepsB || []);
+                }
+            }
+        });
+    }
+
+    j._detailLoaded = true;
+}
+window.applyUticDataToJunction = applyUticDataToJunction;
+
+/**
+ * 1. 단일 교차로 UTIC 신호데이터 가져오기 (일반 사용자 기능 - 비밀번호 불필요)
+ * 현재 편집 중인 교차로의 TOD 운영계획(1~10 일계획), 주간계획, 시그널맵을 가져와 편집 버퍼에 반영
+ */
+window.importActiveJunctionUTIC = async function() {
     if (!STATE.activeJid) {
-        alert("선택된 교차로가 없습니다.");
+        alert("선택된 교차로가 없습니다. 먼저 지도나 검색창에서 교차로를 선택해주세요.");
         return;
     }
     const j = STATE.junctions[STATE.activeJid];
     if (!j) return;
 
-    if (!confirm(`[${j.name}] 교차로의 TOD 운영 계획을 UTIC API로부터 가져와 DB에 반영하시겠습니까?`)) {
-        return;
-    }
+    const confirmMsg = `[${j.name} (${j.id})] 교차로의 신호데이터를 경찰청 UTIC에서 가져오시겠습니까?\n\n`
+        + `• 가져올 데이터: TOD 운영계획(1~10 일계획), 주간 요일계획, 시그널맵(Ring A/B)\n`
+        + `• 일반 사용자 모드: 현재 화면의 편집창에 즉시 불러오며, 확인 후 상단의 [☁️ 클라우드 저장]을 눌러 서버에 영구 반영할 수 있습니다.`;
 
-    const pwd = prompt("DB 반영을 위해 관리자 비밀번호를 입력하세요.");
-    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : btoa(pwd) === "MTIzNA==")) {
-        alert("비밀번호가 일치하지 않습니다. DB 반영이 취소되었습니다.");
+    if (!confirm(confirmMsg)) {
         return;
     }
 
     if (typeof showLoading === 'function') {
-        showLoading("UTIC 신호 계획 동기화 중...");
+        showLoading(`[${j.name}] UTIC 신호데이터 조회 및 로딩 중...`);
     }
 
     try {
         const response = await fetch('/api/sim/sync-utic-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jid: j.id, itstNm: j.name })
+            body: JSON.stringify({ jid: j.id, itstNm: j.name, saveToDb: false })
         });
 
         if (!response.ok) {
@@ -876,21 +973,142 @@ window.triggerUticPlanSync = async function() {
         }
 
         const resData = await response.json();
-        if (resData.success) {
-            alert(`[${j.name}] UTIC 신호 계획 동기화 성공! 분할 DB 파일에 실시간 업데이트되었습니다.`);
-            // 데이터 재로딩
-            if (typeof autoLoadFiles === 'function') {
-                await autoLoadFiles();
-            }
-        } else {
-            throw new Error("서버 응답 오류");
+        if (!resData.success) {
+            throw new Error(resData.error || "UTIC 응답 데이터가 올바르지 않습니다.");
         }
+
+        // 수신된 데이터를 현재 교차로 메모리 객체에 적용
+        applyUticDataToJunction(j, resData);
+
+        // 시뮬레이터 UI 실시간 갱신
+        if (typeof renderRingTables === 'function') renderRingTables();
+        if (typeof renderSignalMapTab === 'function') renderSignalMapTab();
+        if (typeof renderWeeklyPlanTable === 'function') renderWeeklyPlanTable();
+        if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
+        if (typeof renderSummaryTable === 'function') renderSummaryTable();
+        if (typeof updateActiveJunctionDisplay === 'function') updateActiveJunctionDisplay();
+
+        // 수정 상태 플래그 및 클라우드 저장 버튼 활성화
+        window._isDirty = true;
+        const btnSave = document.getElementById('btn-junction-db-update');
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.style.opacity = '1';
+            btnSave.style.cursor = 'pointer';
+        }
+
+        alert(`[${j.name}] UTIC 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획)를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
     } catch (err) {
-        alert("에러 발생: " + err.message);
+        alert("UTIC 신호데이터 가져오기 실패: " + err.message);
     } finally {
         if (typeof hideLoading === 'function') {
             hideLoading();
         }
+    }
+};
+// 기존 트리거 호환용 별칭
+window.triggerUticPlanSync = window.importActiveJunctionUTIC;
+
+/**
+ * 2. 관리자 전용 UTIC 신호데이터 대량/일괄 동기화 (DB Center 기능)
+ */
+let _uticBatchTimer = null;
+
+window.startUticBatchSync = async function() {
+    const selMode = document.getElementById('sel-utic-batch-mode');
+    const mode = selMode ? selMode.value : 'safe';
+    const regionCode = 'L02'; // 인천광역시
+
+    const modeText = mode === 'safe'
+        ? "안전 채우기 (기존 신호데이터가 있는 교차로는 건너뛰고, 빈 교차로만 UTIC에서 채움)"
+        : "전체 덮어쓰기 (기존 사용자 편집 데이터를 포함한 전체 교차로를 UTIC 최신 데이터로 강제 덮어씀)";
+
+    if (!confirm(`[경찰청 UTIC 일괄 동기화 실행]\n\n• 지역: 인천광역시 (${regionCode})\n• 선택 모드: ${modeText}\n\n계속 진행하시겠습니까?`)) {
+        return;
+    }
+
+    const pwd = prompt("일괄 동기화를 진행하기 위해 관리자 비밀번호를 입력하세요.");
+    if (!pwd) return;
+
+    const progBox = document.getElementById('utic-batch-progress-box');
+    const statusText = document.getElementById('utic-batch-status-text');
+    const countsText = document.getElementById('utic-batch-counts-text');
+    const progressBar = document.getElementById('utic-batch-progress-bar');
+    const logsBox = document.getElementById('utic-batch-logs');
+    const btnStop = document.getElementById('btn-utic-batch-stop');
+
+    if (progBox) progBox.style.display = 'block';
+    if (btnStop) btnStop.style.display = 'inline-block';
+    if (statusText) statusText.innerText = "서버에 동기화 요청 전송 중...";
+    if (progressBar) progressBar.style.width = '0%';
+    if (logsBox) logsBox.innerHTML = '<div>동기화 세션 시작 요청 중...</div>';
+
+    try {
+        const response = await fetch('/api/sim/batch-sync-utic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pwd, regionCode, mode })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "일괄 동기화 요청 실패");
+        }
+
+        // 상태 폴링 시작
+        if (_uticBatchTimer) clearInterval(_uticBatchTimer);
+        _uticBatchTimer = setInterval(pollUticBatchStatus, 1500);
+    } catch (err) {
+        alert("일괄 동기화 시작 실패: " + err.message);
+        if (btnStop) btnStop.style.display = 'none';
+        if (statusText) statusText.innerText = "오류: " + err.message;
+    }
+};
+
+async function pollUticBatchStatus() {
+    const statusText = document.getElementById('utic-batch-status-text');
+    const countsText = document.getElementById('utic-batch-counts-text');
+    const progressBar = document.getElementById('utic-batch-progress-bar');
+    const logsBox = document.getElementById('utic-batch-logs');
+    const btnStop = document.getElementById('btn-utic-batch-stop');
+
+    try {
+        const res = await fetch('/api/sim/batch-sync-utic/status');
+        if (!res.ok) return;
+        const st = await res.json();
+
+        const pct = st.total > 0 ? Math.round((st.processed / st.total) * 100) : 0;
+        if (progressBar) progressBar.style.width = pct + '%';
+        if (countsText) countsText.innerText = `${st.processed} / ${st.total} (${pct}%) [성공: ${st.successCount}, 건너뜀: ${st.skipCount}, 실패: ${st.failCount}]`;
+        if (statusText) {
+            statusText.innerText = st.isRunning ? `동기화 진행 중: ${st.currentJunction}` : `동기화 완료`;
+        }
+
+        if (logsBox && Array.isArray(st.logs)) {
+            logsBox.innerHTML = st.logs.slice(-50).map(l => `<div>${l}</div>`).join('');
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+
+        if (!st.isRunning) {
+            if (_uticBatchTimer) {
+                clearInterval(_uticBatchTimer);
+                _uticBatchTimer = null;
+            }
+            if (btnStop) btnStop.style.display = 'none';
+            alert(`경찰청 UTIC 일괄 동기화가 완료되었습니다!\n\n• 총 교차로: ${st.total}개\n• 성공 동기화: ${st.successCount}개\n• 안전모드 건너뜀: ${st.skipCount}개\n• 미보유/실패: ${st.failCount}개`);
+        }
+    } catch (e) {
+        console.error("폴링 오류:", e);
+    }
+}
+window.pollUticBatchStatus = pollUticBatchStatus;
+
+window.stopUticBatchSync = async function() {
+    if (!confirm("진행 중인 일괄 동기화를 중단하시겠습니까?")) return;
+    try {
+        await fetch('/api/sim/batch-sync-utic/stop', { method: 'POST' });
+    } catch (e) {
+        alert("중단 요청 실패: " + e.message);
     }
 };
 

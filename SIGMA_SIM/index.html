@@ -611,6 +611,8 @@
                         <!-- 검색 결과 드롭다운 리스트 -->
                         <div id="phase-search-results" class="search-results-dropdown hidden"></div>
                     </div>
+                    <button id="btn-utic-import-phase" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid #10b981;"
+                        onclick="importActiveJunctionUTIC()" title="경찰청 UTIC에서 현재 교차로의 TOD 운영계획 및 시그널맵 가져오기">🌐 UTIC 신호 가져오기</button>
                     <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
                         onclick="updateActiveJunctionToDB()" disabled>☁️ 클라우드 저장</button>
                     <button id="btn-junction-db-revert" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.15); opacity:0.5; cursor:not-allowed;"
@@ -795,6 +797,7 @@
                                     <option value="8">일계획 9</option>
                                     <option value="9">일계획 10</option>
                                 </select>
+                                <button class="phase-action-btn phase-btn-emerald" onclick="importActiveJunctionUTIC()" title="경찰청 UTIC에서 신호 운영계획 및 시그널맵 가져오기" style="background:#059669; color:#fff;">🌐 UTIC 신호</button>
                                 <button class="phase-action-btn phase-btn-purple" onclick="copyJunctionTODDay()" title="다른 일계획 데이터 복사해오기">📋 가져오기</button>
                                 <button class="phase-action-btn phase-btn-cyan" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">주기합계</button>
                             </div>
@@ -1168,6 +1171,45 @@
                                             class="btn-db-del" title="삭제">❌</button>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- [경찰청 UTIC 신호데이터 일괄 동기화 (Admin Governance)] -->
+                    <div class="sigma-panel" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;">
+                        <div class="card-title flex-row-between" style="cursor: pointer; padding: 10px 14px;" onclick="toggleSection(this)">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 15px;">🌐</span>
+                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (인천광역시 L02)</span>
+                            </div>
+                            <span class="fold-icon">▼</span>
+                        </div>
+                        <div class="foldable-content" style="padding: 14px;">
+                            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.6; word-break: keep-all;">
+                                경찰청 UTIC TSI Hub API로부터 인천광역시 전체 교차로(약 1,979개소)의 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                                <select id="sel-utic-batch-mode" class="phase-select" style="height: 34px; width: 230px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
+                                    <option value="safe" selected>🛡️ 안전 채우기 (Safe Fill - 권장)</option>
+                                    <option value="force">⚠️ 전체 덮어쓰기 (Force Overwrite)</option>
+                                </select>
+                                <button onclick="startUticBatchSync()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 18px; font-size: 12.5px; font-weight: bold;">
+                                    🚀 동기화 실행
+                                </button>
+                                <button onclick="stopUticBatchSync()" id="btn-utic-batch-stop" class="phase-action-btn phase-btn-red" style="height: 34px; padding: 0 14px; font-size: 12px; display: none;">
+                                    ⏹️ 작업 중단
+                                </button>
+                            </div>
+                            <!-- Batch Progress & Log Window -->
+                            <div id="utic-batch-progress-box" style="display: none; background: rgba(0, 0, 0, 0.45); border-radius: 8px; padding: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 8px;">
+                                    <span id="utic-batch-status-text" style="color: #38bdf8; font-weight: bold;">준비 중...</span>
+                                    <span id="utic-batch-counts-text" style="color: #cbd5e1; font-family: monospace; font-size: 11px;">0 / 0</span>
+                                </div>
+                                <div style="width: 100%; height: 9px; background: rgba(255, 255, 255, 0.08); border-radius: 5px; overflow: hidden; margin-bottom: 10px;">
+                                    <div id="utic-batch-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.3s;"></div>
+                                </div>
+                                <div id="utic-batch-logs" class="custom-scroll" style="max-height: 140px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 11px; line-height: 1.5; color: #94a3b8; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
                             </div>
                         </div>
                     </div>
@@ -1912,7 +1954,7 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1791726500000"></script>
     <script src="js/utils.js?v=1792195000000"></script>
-    <script src="js/ui.js?v=1792105500000"></script>
+    <script src="js/ui.js?v=1792535000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
@@ -1921,7 +1963,7 @@
     <script src="js/data_parser.js?v=1792195000000"></script>
     <script src="js/data.js?v=1792105500000"></script>
     <script src="js/phase.js?v=1792195000000"></script>
-    <script src="js/sigmap_tab.js?v=1791726500000"></script>
+    <script src="js/sigmap_tab.js?v=1792535000000"></script>
     <script src="js/group_parser.js?v=1791726500000"></script>
     <script src="js/group_map.js?v=1791726500000"></script>
     <script src="js/group.js?v=1791726500000"></script>

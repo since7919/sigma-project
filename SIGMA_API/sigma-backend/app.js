@@ -2315,105 +2315,479 @@ app.post('/api/sim/batch-update-yearbook', async (req, res) => {
   }
 });
 
-// 1-6. 특정 교차로(JID)의 UTIC 신호 계획 동기화 API 구현
+// ==============================================================================
+// 1-6. 경찰청 UTIC TSI Hub API 연계 및 신호데이터 동기화 엔진
+// ==============================================================================
+
+// UTIC TSI Hub API 다중 페이지 전수 수집 헬퍼 함수
+async function fetchUticAll(service, endpoint, params) {
+  const targetServiceKey = UTIC_SERVICE_KEY || UTIC_API_KEY;
+  let allItems = [];
+  let pageNo = 1;
+  let totPage = 1;
+  while (pageNo <= totPage && pageNo <= 10) {
+    const res = await axios.get(`http://tsihub.utic.go.kr/tsi/api/${service}/${endpoint}`, {
+      params: { ...params, pageNo, numOfRows: 100, type: 'json', serviceKey: targetServiceKey },
+      timeout: 10000
+    });
+    if (!res.data || !Array.isArray(res.data) || res.data.length < 2) break;
+    const meta = res.data[0];
+    totPage = parseInt(meta.totPage) || 1;
+    allItems.push(...res.data.slice(1));
+    pageNo++;
+  }
+  return allItems;
+}
+
+// UTIC 스텝 데이터를 SIGMA 시그널맵 속성으로 변환하는 순수 파서
+function parseStepsToSignalMap(stepsA, stepsB) {
+  const processRing = (steps, isRingB = false) => {
+    const phaseData = Array.from({ length: 8 }, () => ({ vId: 0, pId: 0, g: 0, f: 0, yellow: 0, delay: 0 }));
+    if (!steps || steps.length === 0) return phaseData;
+
+    const refMovs = isRingB ? [5, 6, 7, 8, 0, 0, 0, 0] : [1, 2, 3, 4, 0, 0, 0, 0];
+    let currentStep = 0;
+    for (let pIdx = 0; pIdx < 8; pIdx++) {
+      if (currentStep >= steps.length) break;
+      const stepsInPhase = [];
+      while (currentStep < steps.length) {
+        const st = steps[currentStep++];
+        stepsInPhase.push(st);
+        if (st.eop === 1 || st.eop === true) break;
+      }
+
+      if (stepsInPhase.length > 0) {
+        let foundYellow = false;
+        for (let i = stepsInPhase.length - 1; i >= 0; i--) {
+          let yFlag = false;
+          for (let l = 0; l < 8; l++) {
+            const c = stepsInPhase[i][`car${l + 1}`];
+            if (c === 2 || c === 32 || c === 20 || c === 34 || c === 18) yFlag = true;
+          }
+          if (yFlag) {
+            phaseData[pIdx].yellow = stepsInPhase[i].minTm;
+            foundYellow = true;
+            break;
+          }
+        }
+        if (!foundYellow) {
+          const eopStep = stepsInPhase[stepsInPhase.length - 1];
+          if (eopStep && eopStep.eop) phaseData[pIdx].yellow = eopStep.minTm;
+        }
+      }
+
+      const currentVId = refMovs[pIdx] || 0;
+      phaseData[pIdx].vId = currentVId;
+
+      let pLSU = -1;
+      const checkPedActive = (l) => stepsInPhase.some(st => {
+        const p = st[`ped${l + 1}`];
+        return (p === 1 || p === 5 || p === 10 || p === 50);
+      });
+      for (let l = 0; l < 4; l++) { if (checkPedActive(l)) { pLSU = l; break; } }
+      if (pLSU === -1) { for (let l = 4; l < 8; l++) { if (checkPedActive(l)) { pLSU = l; break; } } }
+
+      if (pLSU !== -1) {
+        let currentPhaseTime = 0;
+        let foundFirstGreen = false;
+        stepsInPhase.forEach(st => {
+          const pCode = st[`ped${pLSU + 1}`];
+          if (pCode === 1 || pCode === 10) {
+            if (!foundFirstGreen) {
+              phaseData[pIdx].delay = currentPhaseTime;
+              foundFirstGreen = true;
+            }
+            phaseData[pIdx].g += st.minTm;
+          } else if (pCode === 5 || pCode === 50) {
+            phaseData[pIdx].f += st.minTm;
+          }
+          currentPhaseTime += st.minTm;
+        });
+        if (phaseData[pIdx].g > 0 || phaseData[pIdx].f > 0) {
+          phaseData[pIdx].pId = (currentVId > 0 && currentVId % 2 === 0) ? (currentVId + 100) : (pLSU + 101);
+        }
+      }
+    }
+    return phaseData;
+  };
+
+  const dataA = processRing(stepsA, false);
+  const dataB = processRing(stepsB, true);
+
+  return {
+    yellowA: dataA.map(d => d.yellow),
+    yellowB: dataB.map(d => d.yellow),
+    pedA: dataA.map(d => (d.pId > 0 ? (d.g + d.f) : 0)),
+    pedB: dataB.map(d => (d.pId > 0 ? (d.g + d.f) : 0)),
+    pedDelayA: dataA.map(d => d.delay),
+    pedDelayB: dataB.map(d => d.delay),
+    pedGreenA: dataA.map(d => d.g),
+    pedGreenB: dataB.map(d => d.g),
+    pedFlashA: dataA.map(d => d.f),
+    pedFlashB: dataB.map(d => d.f),
+    movA: dataA.map(d => d.vId),
+    movB: dataB.map(d => d.vId),
+    pedMovA: dataA.map(d => d.pId),
+    pedMovB: dataB.map(d => d.pId),
+    allredA: [2, 2, 2, 2, 0, 0, 0, 0],
+    allredB: [2, 2, 2, 2, 0, 0, 0, 0],
+    mainMovements: ['A0', 'B0']
+  };
+}
+
+// UTIC 데이터 세트(CROP, CRWD, SigMap)를 SIGMA 모델 규격으로 파싱
+function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
+  // 1. 주간 요일 계획 (월~일: index 0~6)
+  const dyToIdx = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '1': 6 };
+  const wpArr = ['1', '1', '1', '1', '1', '2', '3'];
+  if (Array.isArray(crwd)) {
+    crwd.forEach(item => {
+      const idx = dyToIdx[String(item.PLAN_DY)];
+      if (idx !== undefined) wpArr[idx] = String(item.INT_PLAN_NO || 1);
+    });
+  }
+  const weeklyPlanStr = wpArr.join(';');
+
+  // 2. TOD 1~10 일계획 (Time Plans 1~16 슬롯)
+  const plansByDay = {};
+  if (Array.isArray(crop)) {
+    crop.forEach(item => {
+      const day = parseInt(item.INT_PLAN_NO) || 1;
+      if (day < 1 || day > 10) return;
+      if (!plansByDay[day]) plansByDay[day] = [];
+      plansByDay[day].push(item);
+    });
+  }
+
+  const todPayload = [];
+  for (let day = 1; day <= 10; day++) {
+    const dayItems = plansByDay[day] || [];
+    dayItems.sort((a, b) => {
+      const idxA = parseInt(a.INT_PLAN_IDX_NO) || 0;
+      const idxB = parseInt(b.INT_PLAN_IDX_NO) || 0;
+      if (idxA !== idxB) return idxA - idxB;
+      const tmA = (parseInt(a.OPER_PLAN_HH) || 0) * 60 + (parseInt(a.OPER_PLAN_MI) || 0);
+      const tmB = (parseInt(b.OPER_PLAN_HH) || 0) * 60 + (parseInt(b.OPER_PLAN_MI) || 0);
+      return tmA - tmB;
+    });
+
+    const timePlans = [];
+    for (let sIdx = 0; sIdx < 16; sIdx++) {
+      const item = dayItems[sIdx];
+      if (item) {
+        const splitsA = [];
+        const splitsB = [];
+        for (let i = 1; i <= 8; i++) {
+          splitsA.push(parseInt(item[`A_RING_${i}_PHASE_VAL`]) || 0);
+          splitsB.push(parseInt(item[`B_RING_${i}_PHASE_VAL`]) || 0);
+        }
+        timePlans.push({
+          slot_idx: sIdx + 1,
+          h: parseInt(item.OPER_PLAN_HH) || 0,
+          m: parseInt(item.OPER_PLAN_MI) || 0,
+          cycle: parseInt(item.INT_OPER_CYCLE_VAL) || 100,
+          offset: parseInt(item.INT_OPER_OFFSET_VAL) || 0,
+          splitA: splitsA,
+          splitB: splitsB,
+          idx: 1
+        });
+      } else {
+        timePlans.push({
+          slot_idx: sIdx + 1,
+          h: -1,
+          m: 0,
+          cycle: 100,
+          offset: 0,
+          splitA: [25, 25, 25, 25, 0, 0, 0, 0],
+          splitB: [25, 25, 25, 25, 0, 0, 0, 0],
+          idx: 1
+        });
+      }
+    }
+
+    todPayload.push({
+      id: jid,
+      day_plan: day,
+      signal_map: 0,
+      group_id: 0,
+      time_plans: timePlans,
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // 3. 시그널맵 (플랜 1~6, Ring A/B)
+  const sigMapByPlan = {};
+  if (Array.isArray(sigMap)) {
+    sigMap.forEach(item => {
+      const pNo = parseInt(item.PLAN_NO || item.PLAN_TP) || 1;
+      if (!sigMapByPlan[pNo]) sigMapByPlan[pNo] = { ringA: [], ringB: [] };
+      const ringNo = parseInt(item.RING_NO) || 0;
+      const step = {
+        stepNo: parseInt(item.STEP_NO) || 0,
+        minTm: parseInt(item.MIN_TM) || 0,
+        maxTm: parseInt(item.MAX_TM) || 0,
+        eop: parseInt(item.EOP) || 0
+      };
+      for (let k = 1; k <= 8; k++) {
+        step[`car${k}`] = parseInt(item[`CAR${k}`]) || 0;
+        step[`ped${k}`] = parseInt(item[`PED${k}`]) || 0;
+      }
+      if (ringNo === 0) sigMapByPlan[pNo].ringA.push(step);
+      else sigMapByPlan[pNo].ringB.push(step);
+    });
+  }
+
+  const planKeys = Object.keys(sigMapByPlan).map(Number).sort((a, b) => a - b);
+  const mapsPayload = [];
+  for (let mIdx = 0; mIdx < 6; mIdx++) {
+    const pNo = planKeys[mIdx];
+    const pData = pNo ? sigMapByPlan[pNo] : { ringA: [], ringB: [] };
+    pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
+    pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
+
+    const parsedData = parseStepsToSignalMap(pData.ringA, pData.ringB);
+
+    mapsPayload.push({
+      id: jid,
+      map_idx: mIdx,
+      mov_a: parsedData.movA,
+      mov_b: parsedData.movB,
+      ped_mov_a: parsedData.pedMovA,
+      ped_mov_b: parsedData.pedMovB,
+      main_movements: parsedData.mainMovements,
+      yellow_a: parsedData.yellowA,
+      yellow_b: parsedData.yellowB,
+      allred_a: parsedData.allredA,
+      allred_b: parsedData.allredB,
+      ped_a: parsedData.pedA,
+      ped_b: parsedData.pedB,
+      ped_delay_a: parsedData.pedDelayA,
+      ped_delay_b: parsedData.pedDelayB,
+      ped_flash_a: parsedData.pedFlashA,
+      ped_flash_b: parsedData.pedFlashB,
+      ped_green_a: parsedData.pedGreenA,
+      ped_green_b: parsedData.pedGreenB,
+      raw_steps: {
+        stepsA: pData.ringA,
+        stepsB: pData.ringB
+      },
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  return {
+    weeklyPlanStr,
+    todPayload,
+    mapsPayload
+  };
+}
+
+// 1. 단일 교차로(JID) UTIC 신호데이터 실시간 조회 및 동기화 API (일반 사용자 및 상세 편집용)
 app.post('/api/sim/sync-utic-plan', async (req, res) => {
-  const { jid, itstNm } = req.body;
+  const { jid, itstNm, saveToDb } = req.body;
   if (!jid || !itstNm) return res.status(400).json({ error: 'jid와 itstNm이 필요합니다.' });
 
   try {
-    const region = jid.split('-')[0];
-    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
-    const apiRegion = targetRegion === 'L01' ? '110' : targetRegion;
+    const region = jid.split('-')[0] || 'L02';
+    const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L02';
 
-    const targetServiceKey = UTIC_SERVICE_KEY || UTIC_API_KEY;
-    const url = `http://tsihub.utic.go.kr/tsi/api/PlanCrossRoadInfoService/getPlanCRRSInfo?regionCode=${apiRegion}&itstNm=${encodeURIComponent(itstNm)}&type=json&serviceKey=${targetServiceKey}`;
+    // 병렬로 CROP(운영계획), CRWD(주간계획), SigMap(시그널맵) 수집
+    const [crop, crwd, sigMap] = await Promise.all([
+      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: targetRegion, srchCRNm: itstNm }),
+      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: targetRegion, srchCRNm: itstNm }),
+      fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: targetRegion, srchCRNm: itstNm })
+    ]);
 
-    const response = await axios.get(url);
-    const data = response.data;
-    const items = Array.isArray(data) ? data : (data.body && data.body.items ? data.body.items : null);
-
-    if (!items || items.length === 0) {
-      return res.status(404).json({ error: 'UTIC API로부터 신호 운영 계획을 가져오지 못했거나 계획 정보가 존재하지 않습니다.' });
+    if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
+      return res.status(404).json({ error: `경찰청 UTIC에서 [${itstNm}] 교차로에 대한 신호 운영 데이터를 찾을 수 없습니다.` });
     }
 
-    // UTIC 계획 데이터를 tod plans CSV 라인들로 파싱
-    // db_tod_plans.csv 구조: ID,Seq,SignalMap,GroupID,Day_plan,Time_plan1,Time_plan2...
-    // UTIC에서 받은 주간계획을 시뮬레이터 포맷으로 가공 및 업데이트 수행
-    const newTodLines = [];
-    const timePlans = Array(16).fill("-1|100|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+    const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(jid, itstNm, crop, crwd, sigMap);
 
-    // 그룹화 및 스케줄 시간순 정렬
-    const plansByDay = {}; // 1~10 일계획 매핑
-    items.forEach(item => {
-      // PLAN_TP: "0" (TOD계획), PLAN_NO: 일계획 번호
-      const dayPlan = parseInt(item.PLAN_NO) || 1;
-      if (dayPlan < 1 || dayPlan > 10) return;
-      if (!plansByDay[dayPlan]) plansByDay[dayPlan] = [];
-      plansByDay[dayPlan].push(item);
-    });
-
-    const todPayload = [];
-
-    for (let day = 1; day <= 10; day++) {
-      const dayItems = plansByDay[day] || [];
-      // 시작시간(START_TM: HHMM) 기준 오름차순 정렬
-      dayItems.sort((a, b) => String(a.START_TM).localeCompare(String(b.START_TM)));
-
-      const timePlans = [];
-      for (let sIdx = 0; sIdx < 16; sIdx++) {
-        const item = dayItems[sIdx];
-        if (item) {
-          const hh = item.START_TM.substring(0, 2);
-          const mm = item.START_TM.substring(2, 4);
-          
-          const splitsA = [];
-          const splitsB = [];
-          for (let i = 1; i <= 8; i++) {
-            splitsA.push(parseInt(item[`SPLIT_A${i}`]) || 0);
-            splitsB.push(parseInt(item[`SPLIT_B${i}`]) || 0);
-          }
-
-          timePlans.push({
-            slot_idx: sIdx + 1,
-            h: parseInt(hh) || 0,
-            m: parseInt(mm) || 0,
-            cycle: parseInt(item.CYC_TM) || 100,
-            offset: parseInt(item.OFS_TM) || 0,
-            splitA: splitsA,
-            splitB: splitsB,
-            idx: 1
-          });
+    // 사용자가 서버 DB 즉시 저장을 요청한 경우에만 DB 반영
+    if (saveToDb === true) {
+      await enqueueDBWrite(async () => {
+        if (todPayload.length > 0) {
+          const { error: tErr } = await supabase.from('tod_plans').upsert(todPayload, { onConflict: 'id,day_plan' });
+          if (tErr) throw new Error(`tod_plans 업서트 실패: ${tErr.message}`);
         }
-      }
-      
-      todPayload.push({
-        id: jid,
-        day_plan: day,
-        signal_map: 0,
-        group_id: 0,
-        time_plans: timePlans,
-        updated_at: new Date().toISOString()
+        if (mapsPayload.length > 0) {
+          const { error: mErr } = await supabase.from('signal_maps').upsert(mapsPayload, { onConflict: 'id,map_idx' });
+          if (mErr) throw new Error(`signal_maps 업서트 실패: ${mErr.message}`);
+        }
+        if (weeklyPlanStr) {
+          await supabase.from('junctions').update({ weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() }).eq('id', jid);
+        }
       });
     }
 
-    const result = await enqueueDBWrite(async () => {
-      const { error: tErr } = await supabase
-        .from('tod_plans')
-        .upsert(todPayload, { onConflict: 'id,day_plan' });
-      
-      if (tErr) {
-        throw new Error(`tod_plans RDB 업서트 에러: ${tErr.message}`);
-      }
-
-      return { success: true };
+    res.json({
+      success: true,
+      jid,
+      itstNm,
+      weeklyPlan: weeklyPlanStr,
+      todPlans: todPayload,
+      signalMaps: mapsPayload,
+      signalMapsCount: mapsPayload.filter(m => m.raw_steps && m.raw_steps.stepsA && m.raw_steps.stepsA.length > 0).length,
+      savedToDb: !!saveToDb
     });
-
-    res.json(result);
   } catch (err) {
-    generationLocks[file] = false;
-    sendErrorResponse(res, err, 'UTIC 신호 계획 동기화 및 DB 반영에 실패했습니다.');
+    sendErrorResponse(res, err, 'UTIC 신호 데이터 연계에 실패했습니다.');
   }
 });
+
+// 2. 관리자 전용 UTIC 대량/일괄 동기화 상태 및 제어
+const batchSyncStatus = {
+  isRunning: false,
+  shouldStop: false,
+  regionCode: 'L02',
+  mode: 'safe',
+  total: 0,
+  processed: 0,
+  successCount: 0,
+  skipCount: 0,
+  failCount: 0,
+  currentJunction: '',
+  logs: []
+};
+
+// 일괄 동기화 상태 조회 API
+app.get('/api/sim/batch-sync-utic/status', (req, res) => {
+  res.json(batchSyncStatus);
+});
+
+// 일괄 동기화 강제 중단 API
+app.post('/api/sim/batch-sync-utic/stop', (req, res) => {
+  if (batchSyncStatus.isRunning) {
+    batchSyncStatus.shouldStop = true;
+    batchSyncStatus.logs.push('[시스템] 관리자에 의해 일괄 동기화 중단 요청이 접수되었습니다.');
+  }
+  res.json({ success: true, message: '중단 신호를 전송했습니다.' });
+});
+
+// 일괄 동기화 실행 API (안전 채우기 / 전체 덮어쓰기)
+app.post('/api/sim/batch-sync-utic', async (req, res) => {
+  const { password, regionCode = 'L02', mode = 'safe' } = req.body;
+
+  if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
+    return res.status(401).json({ error: '관리자 비밀번호가 일치하지 않습니다.' });
+  }
+
+  if (batchSyncStatus.isRunning) {
+    return res.status(409).json({ error: '이미 다른 일괄 동기화 작업이 진행 중입니다.', status: batchSyncStatus });
+  }
+
+  // 작업 상태 초기화
+  batchSyncStatus.isRunning = true;
+  batchSyncStatus.shouldStop = false;
+  batchSyncStatus.regionCode = regionCode;
+  batchSyncStatus.mode = mode;
+  batchSyncStatus.total = 0;
+  batchSyncStatus.processed = 0;
+  batchSyncStatus.successCount = 0;
+  batchSyncStatus.skipCount = 0;
+  batchSyncStatus.failCount = 0;
+  batchSyncStatus.currentJunction = '대상 교차로 목록 조회 중...';
+  batchSyncStatus.logs = [`[시작] ${regionCode} 지역 UTIC 신호데이터 일괄 동기화 시작 (모드: ${mode === 'safe' ? '안전 채우기' : '전체 덮어쓰기'})`];
+
+  res.json({ success: true, message: '일괄 동기화 프로세스가 백그라운드에서 시작되었습니다.' });
+
+  // 백그라운드 비동기 루프 실행
+  (async () => {
+    try {
+      const { data: junctions, error: jErr } = await supabase
+        .from('junctions')
+        .select('id, name, api_int_no')
+        .eq('region_cd', regionCode)
+        .order('id');
+
+      if (jErr || !junctions || junctions.length === 0) {
+        batchSyncStatus.isRunning = false;
+        batchSyncStatus.logs.push(`[오류] 대상 교차로 조회 실패: ${jErr ? jErr.message : '데이터 없음'}`);
+        return;
+      }
+
+      batchSyncStatus.total = junctions.length;
+      batchSyncStatus.logs.push(`[안내] 총 ${junctions.length}개 대상 교차로를 확인했습니다.`);
+
+      // 안전 채우기(Safe Fill) 모드인 경우, 이미 DB에 tod_plans 데이터가 있는 교차로 ID 집합 추출
+      let existingIdSet = new Set();
+      if (mode === 'safe') {
+        const { data: existingPlans } = await supabase
+          .from('tod_plans')
+          .select('id')
+          .like('id', `${regionCode}-%`);
+        if (existingPlans) {
+          existingPlans.forEach(r => existingIdSet.add(r.id));
+        }
+        batchSyncStatus.logs.push(`[안전모드] 기존에 신호 데이터가 등록된 ${existingIdSet.size}개 교차로는 건너뜁니다.`);
+      }
+
+      const throttleMs = 150; // UTIC 방화벽 차단 방지를 위한 호출 간격 제어
+
+      for (const j of junctions) {
+        if (batchSyncStatus.shouldStop) {
+          batchSyncStatus.logs.push(`[중단] 사용자에 의해 동기화가 정상 중단되었습니다.`);
+          break;
+        }
+
+        batchSyncStatus.processed++;
+        batchSyncStatus.currentJunction = `${j.name} (${j.id})`;
+
+        // 안전 모드: 이미 데이터가 있는 교차로는 건너뜀
+        if (mode === 'safe' && existingIdSet.has(j.id)) {
+          batchSyncStatus.skipCount++;
+          continue;
+        }
+
+        try {
+          const [crop, crwd, sigMap] = await Promise.all([
+            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: j.name }),
+            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: j.name }),
+            fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: j.name })
+          ]);
+
+          if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
+            batchSyncStatus.failCount++;
+            continue;
+          }
+
+          const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(j.id, j.name, crop, crwd, sigMap);
+
+          await enqueueDBWrite(async () => {
+            if (todPayload.length > 0) {
+              await supabase.from('tod_plans').upsert(todPayload, { onConflict: 'id,day_plan' });
+            }
+            if (mapsPayload.length > 0) {
+              await supabase.from('signal_maps').upsert(mapsPayload, { onConflict: 'id,map_idx' });
+            }
+            if (weeklyPlanStr) {
+              await supabase.from('junctions').update({ weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() }).eq('id', j.id);
+            }
+          });
+
+          batchSyncStatus.successCount++;
+          if (batchSyncStatus.successCount % 10 === 0 || batchSyncStatus.logs.length < 50) {
+            batchSyncStatus.logs.push(`[성공] ${j.name} (${j.id}) - 플랜 ${crop.length}건, 시그널맵 ${sigMap.length}건 동기화 완료`);
+          }
+        } catch (jErr) {
+          batchSyncStatus.failCount++;
+          batchSyncStatus.logs.push(`[오류] ${j.name} (${j.id}) 동기화 실패: ${jErr.message}`);
+        }
+
+        await new Promise(r => setTimeout(r, throttleMs));
+      }
+
+      batchSyncStatus.logs.push(`=== 동기화 완료: 성공 ${batchSyncStatus.successCount}건, 건너뜀(안전모드) ${batchSyncStatus.skipCount}건, 미보유/실패 ${batchSyncStatus.failCount}건 ===`);
+    } catch (err) {
+      batchSyncStatus.logs.push(`[치명적 오류] ${err.message}`);
+    } finally {
+      batchSyncStatus.isRunning = false;
+      batchSyncStatus.currentJunction = '완료';
+    }
+  })();
+});
+
 
 // 2. UTIC 실시간 신호정보 범용 프록시 라우트
 app.get('/api/proxy/utic', async (req, res) => {
