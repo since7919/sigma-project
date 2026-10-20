@@ -65,6 +65,9 @@ window.toggleAccordion = function(regionCode) {
 
         renderJunctionList();
         
+        const selBatch = document.getElementById('sel-utic-batch-region');
+        if (selBatch) selBatch.value = regionCode;
+        
         if (typeof autoLoadFiles === 'function') {
             autoLoadFiles();
         }

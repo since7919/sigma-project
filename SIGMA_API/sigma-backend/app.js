@@ -2339,6 +2339,43 @@ async function fetchUticAll(service, endpoint, params) {
   return allItems;
 }
 
+// UTIC TSI Hub API 초고속 경량 프로브 헬퍼 함수 (1건만 요청하여 약 30ms 내 데이터 보유 여부 판단)
+async function probeCandidate(service, endpoint, reg, cand) {
+  const targetServiceKey = UTIC_SERVICE_KEY || UTIC_API_KEY;
+  try {
+    const res = await axios.get(`http://tsihub.utic.go.kr/tsi/api/${service}/${endpoint}`, {
+      params: { srchCTId: reg, srchCRNm: cand, pageNo: 1, numOfRows: 1, type: 'json', serviceKey: targetServiceKey },
+      timeout: 4000
+    });
+    return (res.data && Array.isArray(res.data) && res.data.length > 1);
+  } catch (e) {
+    return false;
+  }
+}
+
+// 지자체별 로컬 CSV 캐시 및 메모리 캐시 무효화 함수
+function invalidateRegionCsvCache(regionCode) {
+  try {
+    const scratchDir = path.join(__dirname, 'scratch');
+    const cacheFiles = [
+      `cache_db_${regionCode}_tod_plans.csv`,
+      `cache_db_${regionCode}_signal_maps.csv`,
+      `cache_db_${regionCode}_intersections.csv`
+    ];
+    cacheFiles.forEach(cf => {
+      const p = path.join(scratchDir, cf);
+      if (fs.existsSync(p)) {
+        try { fs.unlinkSync(p); } catch (e) {}
+      }
+    });
+    Object.keys(CSV_CACHE).forEach(k => {
+      if (k.includes(`db_${regionCode}_`)) delete CSV_CACHE[k];
+    });
+  } catch (e) {
+    console.warn(`[Cache] Error invalidating cache for ${regionCode}:`, e.message);
+  }
+}
+
 // UTIC 스텝 데이터를 SIGMA 시그널맵 속성으로 변환하는 순수 파서
 function parseStepsToSignalMap(stepsA, stepsB) {
   const processRing = (steps, isRingB = false) => {
@@ -2629,25 +2666,24 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
     const region = (jid && jid.includes('-')) ? jid.split('-')[0] : (regionCode || 'L02');
     const targetRegion = region;
 
-    // 명칭 변환 후보군(사거리/4거리/네거리 등)에 대해 UTIC 신호데이터 순차 탐색
+    // 명칭 변환 후보군(사거리/4거리/네거리 등)에 대해 초고속 프로브로 최적 후보 선별
     const nameCandidates = getNameCandidates(itstNm);
-    let crop = [], crwd = [], sigMap = [], matchedName = itstNm;
-
-    for (const cand of nameCandidates) {
-      const [c, w, s] = await Promise.all([
-        fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: targetRegion, srchCRNm: cand }),
-        fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: targetRegion, srchCRNm: cand }),
-        fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: targetRegion, srchCRNm: cand })
-      ]);
-
-      if ((c && c.length > 0) || (s && s.length > 0)) {
-        crop = c;
-        crwd = w;
-        sigMap = s;
-        matchedName = cand;
-        break;
+    let matchedCand = nameCandidates[0];
+    if (nameCandidates.length > 1) {
+      for (const cand of nameCandidates) {
+        const hasCrop = await probeCandidate('PlanCrossRoadInfoService', 'getPlanCROPInfo', targetRegion, cand);
+        if (hasCrop) { matchedCand = cand; break; }
+        const hasSig = await probeCandidate('SigMapCrossRoadInfoService', 'getSigMapCRInfo', targetRegion, cand);
+        if (hasSig) { matchedCand = cand; break; }
       }
     }
+
+    // 선별된 최적 후보 명칭으로 전수 데이터 1회 병렬 다운로드
+    const [crop, crwd, sigMap] = await Promise.all([
+      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: targetRegion, srchCRNm: matchedCand }),
+      fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: targetRegion, srchCRNm: matchedCand }),
+      fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: targetRegion, srchCRNm: matchedCand })
+    ]);
 
     if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
       return res.status(404).json({ error: `경찰청 UTIC에서 [${itstNm}] (${targetRegion}) 교차로에 대한 신호 운영 데이터를 찾을 수 없습니다.` });
@@ -2670,6 +2706,7 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
           await supabase.from('junctions').update({ weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() }).eq('id', jid);
         }
       });
+      invalidateRegionCsvCache(targetRegion);
     }
 
     res.json({
@@ -2778,6 +2815,32 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
       const throttleMs = 150; // UTIC 방화벽 차단 방지를 위한 호출 간격 제어
 
+      // DB Write 부하 및 왕복 레이턴시 최소화를 위한 버퍼링 엔진 (15개 교차로 단위 일괄 처리)
+      const dbBuffer = { tod: [], maps: [], junctions: [] };
+      const flushDbBuffer = async () => {
+        if (dbBuffer.tod.length === 0 && dbBuffer.maps.length === 0 && dbBuffer.junctions.length === 0) return;
+        const todBatch = [...dbBuffer.tod];
+        const mapsBatch = [...dbBuffer.maps];
+        const junctBatch = [...dbBuffer.junctions];
+        dbBuffer.tod = [];
+        dbBuffer.maps = [];
+        dbBuffer.junctions = [];
+
+        await enqueueDBWrite(async () => {
+          if (todBatch.length > 0) {
+            await supabase.from('tod_plans').upsert(todBatch, { onConflict: 'id,day_plan' });
+          }
+          if (mapsBatch.length > 0) {
+            await supabase.from('signal_maps').upsert(mapsBatch, { onConflict: 'id,map_idx' });
+          }
+          if (junctBatch.length > 0) {
+            for (const jItem of junctBatch) {
+              await supabase.from('junctions').update({ weekly_plan: jItem.weekly_plan, updated_at: jItem.updated_at }).eq('id', jItem.id);
+            }
+          }
+        });
+      };
+
       for (const j of junctions) {
         if (batchSyncStatus.shouldStop) {
           batchSyncStatus.logs.push(`[중단] 사용자에 의해 동기화가 정상 중단되었습니다.`);
@@ -2795,23 +2858,23 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
         try {
           const candidates = getNameCandidates(j.name);
-          let crop = [], crwd = [], sigMap = [], matchedCand = j.name;
+          let matchedCand = candidates[0];
 
-          for (const cand of candidates) {
-            const [c, w, s] = await Promise.all([
-              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: cand }),
-              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: cand }),
-              fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: cand })
-            ]);
-
-            if ((c && c.length > 0) || (s && s.length > 0)) {
-              crop = c;
-              crwd = w;
-              sigMap = s;
-              matchedCand = cand;
-              break;
+          // 2개 이상의 후보가 있을 경우 경량 프로브(30ms)로 실제 존재하는 명칭 선별
+          if (candidates.length > 1) {
+            for (const cand of candidates) {
+              const hasCrop = await probeCandidate('PlanCrossRoadInfoService', 'getPlanCROPInfo', regionCode, cand);
+              if (hasCrop) { matchedCand = cand; break; }
+              const hasSig = await probeCandidate('SigMapCrossRoadInfoService', 'getSigMapCRInfo', regionCode, cand);
+              if (hasSig) { matchedCand = cand; break; }
             }
           }
+
+          const [crop, crwd, sigMap] = await Promise.all([
+            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: matchedCand }),
+            fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: matchedCand }),
+            fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: matchedCand })
+          ]);
 
           if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
             batchSyncStatus.failCount++;
@@ -2820,17 +2883,14 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
           const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(j.id, j.name, crop, crwd, sigMap);
 
-          await enqueueDBWrite(async () => {
-            if (todPayload.length > 0) {
-              await supabase.from('tod_plans').upsert(todPayload, { onConflict: 'id,day_plan' });
-            }
-            if (mapsPayload.length > 0) {
-              await supabase.from('signal_maps').upsert(mapsPayload, { onConflict: 'id,map_idx' });
-            }
-            if (weeklyPlanStr) {
-              await supabase.from('junctions').update({ weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() }).eq('id', j.id);
-            }
-          });
+          if (todPayload.length > 0) dbBuffer.tod.push(...todPayload);
+          if (mapsPayload.length > 0) dbBuffer.maps.push(...mapsPayload);
+          if (weeklyPlanStr) dbBuffer.junctions.push({ id: j.id, weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() });
+
+          // 15개 교차로마다 DB 버퍼 일괄 플러시
+          if (dbBuffer.junctions.length >= 15) {
+            await flushDbBuffer();
+          }
 
           batchSyncStatus.successCount++;
           if (batchSyncStatus.successCount % 10 === 0 || batchSyncStatus.logs.length < 50) {
@@ -2843,6 +2903,12 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
         await new Promise(r => setTimeout(r, throttleMs));
       }
+
+      // 잔여 DB 버퍼 최종 플러시
+      await flushDbBuffer();
+
+      // 지자체 캐시 파일 무효화 (클라이언트가 즉시 최신 데이터를 로딩할 수 있도록 보장)
+      invalidateRegionCsvCache(regionCode);
 
       batchSyncStatus.logs.push(`=== 동기화 완료: 성공 ${batchSyncStatus.successCount}건, 건너뜀(안전모드) ${batchSyncStatus.skipCount}건, 미보유/실패 ${batchSyncStatus.failCount}건 ===`);
     } catch (err) {

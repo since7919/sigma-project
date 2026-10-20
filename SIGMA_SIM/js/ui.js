@@ -991,6 +991,8 @@ window.importActiveJunctionUTIC = async function() {
         if (typeof renderTodPlanInfoTable === 'function') renderTodPlanInfoTable();
         if (typeof renderSummaryTable === 'function') renderSummaryTable();
         if (typeof updateActiveJunctionDisplay === 'function') updateActiveJunctionDisplay();
+        if (typeof renderOverlayPlanInfo === 'function') renderOverlayPlanInfo(j.id);
+        if (typeof updateOverlayPhaseDiagram === 'function') updateOverlayPhaseDiagram(j.id);
 
         // 수정 상태 플래그 및 클라우드 저장 버튼 활성화
         window._isDirty = true;
