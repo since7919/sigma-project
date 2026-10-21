@@ -2844,41 +2844,37 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
   // 백그라운드 비동기 루프 실행
   (async () => {
     try {
-      const { data: junctions, error: jErr } = await supabase
-        .from('junctions')
-        .select('id, name, api_int_no')
-        .eq('region_cd', regionCode)
-        .order('id');
+      const junctions = await fetchAllSupabase(() =>
+        supabase.from('junctions').select('id, name, api_int_no').eq('region_cd', regionCode).order('id')
+      );
 
-      if (jErr || !junctions || junctions.length === 0) {
+      if (!junctions || junctions.length === 0) {
         batchSyncStatus.isRunning = false;
-        batchSyncStatus.logs.push(`[오류] 대상 교차로 조회 실패: ${jErr ? jErr.message : '데이터 없음'}`);
+        batchSyncStatus.logs.push(`[오류] 대상 교차로 조회 실패: 대상 교차로가 없습니다.`);
         return;
       }
 
       batchSyncStatus.total = junctions.length;
       batchSyncStatus.logs.push(`[안내] 총 ${junctions.length}개 대상 교차로를 확인했습니다.`);
 
-      // 안전 채우기(Safe Fill) 모드인 경우, 이미 DB에 tod_plans 데이터가 있는 교차로 ID 집합 추출
+      // 안전 채우기(Safe Fill) 모드인 경우, 이미 DB에 tod_plans 데이터가 있는 교차로 ID 집합 추출 (전수 수집)
       let existingIdSet = new Set();
       if (mode === 'safe') {
-        const { data: existingPlans } = await supabase
-          .from('tod_plans')
-          .select('id')
-          .like('id', `${regionCode}-%`);
+        const existingPlans = await fetchAllSupabase(() =>
+          supabase.from('tod_plans').select('id').like('id', `${regionCode}-%`)
+        );
         if (existingPlans) {
           existingPlans.forEach(r => existingIdSet.add(r.id));
         }
         batchSyncStatus.logs.push(`[안전모드] 기존에 신호 데이터가 등록된 ${existingIdSet.size}개 교차로는 건너뜁니다.`);
       }
 
-      // UTIC 등록 교차로 정보 사전 조회 (ID 기반 명칭 매핑 최적화)
+      // UTIC 등록 교차로 정보 사전 조회 (전수 수집하여 ID 기반 명칭 매핑 최적화)
       const uticMapByIntNo = new Map();
       try {
-        const { data: uticRows } = await supabase
-          .from('utic_intersections')
-          .select('int_no, int_nm')
-          .eq('region_cd', regionCode);
+        const uticRows = await fetchAllSupabase(() =>
+          supabase.from('utic_intersections').select('int_no, int_nm').eq('region_cd', regionCode)
+        );
         if (uticRows) {
           uticRows.forEach(r => {
             if (r.int_no && r.int_nm) uticMapByIntNo.set(r.int_no, r.int_nm);
