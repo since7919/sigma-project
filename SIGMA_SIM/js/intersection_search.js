@@ -33,18 +33,41 @@ window.REGION_MAP = {
 };
 
 window.REGION_ORDER = [
-    'L01', 'L02', 'L19', 'L06', 'L07', 'L08', 'L10', 'L11', 'L05', 'L16', 'L17', 'L22', 'L21', 'L18', 'L20', 'L15', 'L09', 'L13', 'L14', 'L12', 'L03', 'L04',
-    'L29', 'L23', 'L24', 'L25', 'L26', 'L28', 'L37', 'L30', 'L31'
+    'L01', 'L02', 'L03', 'L04', 'L05', 'L06', 'L07', 'L08', 'L09', 'L10',
+    'L11', 'L12', 'L13', 'L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20',
+    'L21', 'L22', 'L23', 'L24', 'L25', 'L26', 'L28', 'L29', 'L30', 'L31', 'L37'
 ];
 
-let _openAccordions = { 'L02': true };
-window.CURRENT_REGION_CODE = localStorage.getItem('sigma_selected_region') || 'L02';
+let _openAccordions = {};
+window.CURRENT_REGION_CODE = localStorage.getItem('sigma_selected_region') || 'L01';
+_openAccordions[window.CURRENT_REGION_CODE] = true;
+
+window.filterModalRegionCards = function(q) {
+    const query = (q || '').trim().toLowerCase();
+    const cards = document.querySelectorAll('#modal-region-cards-grid .region-card-btn');
+    cards.forEach(card => {
+        const text = (card.textContent || '').toLowerCase();
+        const code = (card.getAttribute('data-region') || '').toLowerCase();
+        if (!query || text.includes(query) || code.includes(query)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+};
 
 window.openRegionSelectModal = function(isStartup = false) {
     const modal = document.getElementById('region-select-modal');
     if (!modal) return;
 
     modal.style.display = 'flex';
+
+    // 검색창 초기화
+    const searchInput = document.getElementById('modal-region-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        window.filterModalRegionCards('');
+    }
 
     // 닫기 버튼: 초기 시작 시에는 강제로 선택하도록 숨김, 앱 사용 중에는 닫기 허용
     const closeBtn = document.getElementById('btn-close-region-modal');
@@ -59,13 +82,13 @@ window.openRegionSelectModal = function(isStartup = false) {
         window.REGION_ORDER.forEach(code => {
             const opt = document.createElement('option');
             opt.value = code;
-            opt.textContent = `${window.REGION_MAP[code] || code} (${code})`;
+            opt.textContent = `${code} - ${window.REGION_MAP[code] || code}`;
             dd.appendChild(opt);
         });
     }
 
     // 최근 작업 지역 강조
-    const savedRegion = localStorage.getItem('sigma_selected_region') || window.CURRENT_REGION_CODE || 'L02';
+    const savedRegion = localStorage.getItem('sigma_selected_region') || window.CURRENT_REGION_CODE || 'L01';
     document.querySelectorAll('.region-card-btn').forEach(btn => {
         const code = btn.getAttribute('data-region');
         if (code === savedRegion) {

@@ -202,7 +202,7 @@
 
     <!-- [관할 지역 선택 모달 (Region Selection Modal)] -->
     <div id="region-select-modal" class="overlay-fixed-full" style="display: none; z-index: 999998; backdrop-filter: blur(14px); background: rgba(8, 12, 22, 0.90); align-items: center; justify-content: center; flex-direction: column;">
-        <div class="glass-panel-premium" style="position: relative; width: 840px; max-width: 95vw; max-height: 90vh; overflow-y: auto; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.35); box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.15); border-radius: 16px; padding: 28px 32px;">
+        <div class="glass-panel-premium" style="position: relative; width: 880px; max-width: 95vw; max-height: 90vh; overflow-y: auto; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.35); box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.15); border-radius: 16px; padding: 26px 30px;">
             
             <!-- 닫기 버튼 (초기 진입 시는 숨김 처리되며 런타임 지역 전환 시 표출) -->
             <button id="btn-close-region-modal" onclick="closeRegionSelectModal()" style="position: absolute; top: 18px; right: 20px; background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; display: none; line-height: 1;" title="닫기">✕</button>
@@ -220,126 +220,302 @@
                 </p>
             </div>
 
-            <!-- 주요 지자체 퀵 선택 카드 그리드 -->
-            <div style="font-size: 12px; font-weight: 700; color: #38bdf8; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                <span>⚡ 주요 광역시 및 거점 지자체</span>
+            <!-- 서치바 & 섹션 헤더 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap;">
+                <div style="font-size: 13px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                    <span>⚡ 전국 관할 지자체 선택 (L01 ~ L37 순차 정렬)</span>
+                </div>
+                <div style="position: relative; width: 260px;">
+                    <input type="text" id="modal-region-search-input" oninput="filterModalRegionCards(this.value)" placeholder="🔍 지자체명 / 코드 검색 (예: 서울, L02...)" style="width: 100%; box-sizing: border-box; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #fff; outline: none;">
+                </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 22px;">
-                <!-- 인천광역시 -->
-                <button class="region-card-btn" data-region="L02" onclick="selectRegion('L02')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+            <div id="modal-region-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 10px; margin-bottom: 20px; max-height: 48vh; overflow-y: auto; padding-right: 4px;">
+                <!-- L01 서울특별시 -->
+                <button class="region-card-btn" data-region="L01" onclick="selectRegion('L01')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #38bdf8;">인천광역시</span>
-                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L02</span>
-                    </div>
-                    <span style="font-size: 11px; color: #94a3b8;">1,979개 교차로</span>
-                </button>
-
-                <!-- 서울특별시 -->
-                <button class="region-card-btn" data-region="L01" onclick="selectRegion('L01')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
-                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">서울특별시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L01</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">서울특별시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L01</span>
                     </div>
                     <span style="font-size: 11px; color: #94a3b8;">3,606개 교차로</span>
                 </button>
 
-                <!-- 대구광역시 -->
-                <button class="region-card-btn" data-region="L29" onclick="selectRegion('L29')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L02 인천광역시 -->
+                <button class="region-card-btn" data-region="L02" onclick="selectRegion('L02')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">대구광역시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L29</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">인천광역시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L02</span>
                     </div>
-                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                    <span style="font-size: 11px; color: #94a3b8;">1,979개 교차로</span>
                 </button>
 
-                <!-- 부산광역시 -->
-                <button class="region-card-btn" data-region="L23" onclick="selectRegion('L23')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L03 평택시 -->
+                <button class="region-card-btn" data-region="L03" onclick="selectRegion('L03')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">부산광역시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L23</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">평택시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L03</span>
                     </div>
-                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 남부 연동망</span>
                 </button>
 
-                <!-- 대전광역시 -->
-                <button class="region-card-btn" data-region="L30" onclick="selectRegion('L30')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L04 안성시 -->
+                <button class="region-card-btn" data-region="L04" onclick="selectRegion('L04')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">대전광역시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L30</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">안성시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L04</span>
                     </div>
-                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 남부 연계망</span>
                 </button>
 
-                <!-- 광주광역시 -->
-                <button class="region-card-btn" data-region="L31" onclick="selectRegion('L31')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L05 과천시 -->
+                <button class="region-card-btn" data-region="L05" onclick="selectRegion('L05')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">광주광역시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L31</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">과천시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L05</span>
                     </div>
-                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
                 </button>
 
-                <!-- 수원시 -->
-                <button class="region-card-btn" data-region="L19" onclick="selectRegion('L19')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L06 부천시 -->
+                <button class="region-card-btn" data-region="L06" onclick="selectRegion('L06')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">수원시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L19</span>
-                    </div>
-                    <span style="font-size: 11px; color: #94a3b8;">경기 남부 거점</span>
-                </button>
-
-                <!-- 부천시 -->
-                <button class="region-card-btn" data-region="L06" onclick="selectRegion('L06')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
-                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">부천시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L06</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">부천시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L06</span>
                     </div>
                     <span style="font-size: 11px; color: #94a3b8;">경인 연동망</span>
                 </button>
 
-                <!-- 안산시 -->
-                <button class="region-card-btn" data-region="L08" onclick="selectRegion('L08')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L07 광명시 -->
+                <button class="region-card-btn" data-region="L07" onclick="selectRegion('L07')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">안산시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L08</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">광명시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L07</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
+                </button>
+
+                <!-- L08 안산시 -->
+                <button class="region-card-btn" data-region="L08" onclick="selectRegion('L08')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">안산시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L08</span>
                     </div>
                     <span style="font-size: 11px; color: #94a3b8;">스마트 신호체계</span>
                 </button>
 
-                <!-- 화성시 -->
-                <button class="region-card-btn" data-region="L11" onclick="selectRegion('L11')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L09 파주시 -->
+                <button class="region-card-btn" data-region="L09" onclick="selectRegion('L09')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">화성시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L11</span>
-                    </div>
-                    <span style="font-size: 11px; color: #94a3b8;">신규 개발지구</span>
-                </button>
-
-                <!-- 파주시 -->
-                <button class="region-card-btn" data-region="L09" onclick="selectRegion('L09')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
-                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">파주시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L09</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">파주시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L09</span>
                     </div>
                     <span style="font-size: 11px; color: #94a3b8;">경기 북부 거점</span>
                 </button>
 
-                <!-- 포항시 -->
-                <button class="region-card-btn" data-region="L37" onclick="selectRegion('L37')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <!-- L10 오산시 -->
+                <button class="region-card-btn" data-region="L10" onclick="selectRegion('L10')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
-                        <span style="font-weight: 800; font-size: 14.5px; color: #f8fafc;">포항시</span>
-                        <span style="font-size: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; padding: 2px 6px; border-radius: 4px; font-weight: bold;">L37</span>
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">오산시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L10</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 남부 연동망</span>
+                </button>
+
+                <!-- L11 화성시 -->
+                <button class="region-card-btn" data-region="L11" onclick="selectRegion('L11')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">화성시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L11</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">신규 개발지구</span>
+                </button>
+
+                <!-- L12 동두천시 -->
+                <button class="region-card-btn" data-region="L12" onclick="selectRegion('L12')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">동두천시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L12</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 북부 연계망</span>
+                </button>
+
+                <!-- L13 양주시 -->
+                <button class="region-card-btn" data-region="L13" onclick="selectRegion('L13')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">양주시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L13</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 북부 연동망</span>
+                </button>
+
+                <!-- L14 의정부시 -->
+                <button class="region-card-btn" data-region="L14" onclick="selectRegion('L14')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">의정부시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L14</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 북부 거점</span>
+                </button>
+
+                <!-- L15 김포시 -->
+                <button class="region-card-btn" data-region="L15" onclick="selectRegion('L15')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">김포시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L15</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 서부망</span>
+                </button>
+
+                <!-- L16 의왕시 -->
+                <button class="region-card-btn" data-region="L16" onclick="selectRegion('L16')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">의왕시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L16</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
+                </button>
+
+                <!-- L17 군포시 -->
+                <button class="region-card-btn" data-region="L17" onclick="selectRegion('L17')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">군포시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L17</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
+                </button>
+
+                <!-- L18 남양주시 -->
+                <button class="region-card-btn" data-region="L18" onclick="selectRegion('L18')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">남양주시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L18</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 동북부망</span>
+                </button>
+
+                <!-- L19 수원시 -->
+                <button class="region-card-btn" data-region="L19" onclick="selectRegion('L19')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">수원시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L19</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 남부 거점</span>
+                </button>
+
+                <!-- L20 경기도 광주시 -->
+                <button class="region-card-btn" data-region="L20" onclick="selectRegion('L20')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">경기도 광주시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L20</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">경기 동남부망</span>
+                </button>
+
+                <!-- L21 구리시 -->
+                <button class="region-card-btn" data-region="L21" onclick="selectRegion('L21')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">구리시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L21</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
+                </button>
+
+                <!-- L22 하남시 -->
+                <button class="region-card-btn" data-region="L22" onclick="selectRegion('L22')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">하남시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L22</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">수도권 연계망</span>
+                </button>
+
+                <!-- L23 부산광역시 -->
+                <button class="region-card-btn" data-region="L23" onclick="selectRegion('L23')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">부산광역시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L23</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                </button>
+
+                <!-- L24 양산시 -->
+                <button class="region-card-btn" data-region="L24" onclick="selectRegion('L24')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">양산시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L24</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">동남권 연계망</span>
+                </button>
+
+                <!-- L25 창원시 -->
+                <button class="region-card-btn" data-region="L25" onclick="selectRegion('L25')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">창원시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L25</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">동남권 거점망</span>
+                </button>
+
+                <!-- L26 김해시 -->
+                <button class="region-card-btn" data-region="L26" onclick="selectRegion('L26')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">김해시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L26</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">동남권 연계망</span>
+                </button>
+
+                <!-- L28 거제시 -->
+                <button class="region-card-btn" data-region="L28" onclick="selectRegion('L28')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">거제시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L28</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">남해안 신호망</span>
+                </button>
+
+                <!-- L29 대구광역시 -->
+                <button class="region-card-btn" data-region="L29" onclick="selectRegion('L29')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">대구광역시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L29</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                </button>
+
+                <!-- L30 대전광역시 -->
+                <button class="region-card-btn" data-region="L30" onclick="selectRegion('L30')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">대전광역시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L30</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                </button>
+
+                <!-- L31 광주광역시 -->
+                <button class="region-card-btn" data-region="L31" onclick="selectRegion('L31')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">광주광역시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L31</span>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">광역 신호망</span>
+                </button>
+
+                <!-- L37 포항시 -->
+                <button class="region-card-btn" data-region="L37" onclick="selectRegion('L37')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">포항시</span>
+                        <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">L37</span>
                     </div>
                     <span style="font-size: 11px; color: #94a3b8;">경북 동해안 거점</span>
                 </button>
             </div>
 
             <!-- 전국 전체 지자체 선택 드롭다운 -->
-            <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 12px 18px; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <span style="font-size: 12.5px; color: #cbd5e1; font-weight: 600;">🌐 전국 기타 지자체 선택:</span>
+            <div style="background: rgba(0,0,0,0.35); border-radius: 10px; padding: 12px 18px; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <span style="font-size: 12.5px; color: #cbd5e1; font-weight: 600;">🌐 전체 목록 선택 (L01 ~ L37 순차):</span>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <select id="modal-all-regions-select" class="phase-select" style="height: 34px; min-width: 200px; font-size: 12px; font-weight: bold; background: #0f172a; border: 1px solid #38bdf8; color: #fff;">
+                    <select id="modal-all-regions-select" class="phase-select" style="height: 34px; min-width: 220px; font-size: 12px; font-weight: bold; background: #0f172a; border: 1px solid #38bdf8; color: #fff;">
                     </select>
                     <button onclick="selectRegionFromModalDropdown()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 16px; font-size: 12px; font-weight: bold;">
                         선택 지역 로딩
