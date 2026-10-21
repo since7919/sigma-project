@@ -1,5 +1,5 @@
 /**
- * 로딩 중 랜덤 미니게임 5종 세트
+ * 로딩 중 랜덤 미니게임 4종 세트
  */
 let mg_animationId = null;
 let mg_keys = {};
@@ -268,73 +268,6 @@ function initPacman(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
 
 
 // ----------------------------------------------------
-// 5. 신호등 타이밍 맞추기
-// ----------------------------------------------------
-function initReaction(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
-    titleDisplay.innerHTML = "🎮 미니게임 5: 초록불 반응속도";
-    descDisplay.innerHTML = "신호등이 <strong style='color:#2ecc71'>초록색(🟢)</strong>이 되는 순간 <strong>스페이스바</strong>를 누르세요!";
-    
-    let state = 'waiting'; // waiting -> ready(red) -> go(green) -> over
-    let waitTimer = 0, reactTime = 0, score = 0, startTime = 0;
-    
-    const game = {
-        get isGameOver() { return state === 'over'; },
-        reset: () => {
-            state = 'waiting'; waitTimer = Math.floor(Math.random() * 100) + 60; 
-            reactTime = 0; scoreDisplay.textContent = "준비..."; loop();
-        }
-    };
-
-    function update() {
-        if (state === 'waiting') {
-            waitTimer--;
-            if (waitTimer <= 0) {
-                state = 'go';
-                startTime = Date.now();
-                scoreDisplay.textContent = "지금!!";
-            }
-            if (mg_keys["Space"]) { // 플라잉
-                state = 'over'; score = "실패 (너무 빨랐습니다)";
-            }
-        } else if (state === 'go') {
-            if (mg_keys["Space"]) {
-                reactTime = Date.now() - startTime;
-                score = reactTime + "ms";
-                state = 'over';
-                mg_keys["Space"] = false;
-            }
-        }
-    }
-
-    function draw() {
-        ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = "#333";
-        ctx.fillRect(canvas.width/2 - 30, canvas.height/2 - 75, 60, 150);
-        
-        // 빨간불
-        ctx.fillStyle = (state === 'waiting') ? "#e74c3c" : "#552222";
-        ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2 - 40, 20, 0, Math.PI*2); ctx.fill();
-        
-        // 초록불
-        ctx.fillStyle = (state === 'go' || state === 'over' && typeof score === 'string' && !score.includes('실패')) ? "#2ecc71" : "#225522";
-        ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2 + 40, 20, 0, Math.PI*2); ctx.fill();
-
-        if (state === 'over') {
-            drawGameOver(ctx, canvas, score);
-        }
-    }
-
-    function loop() {
-        if (isOverlayHidden()) return;
-        update(); draw();
-        if (state !== 'over') mg_animationId = requestAnimationFrame(loop);
-    }
-    
-    return game;
-}
-
-// ----------------------------------------------------
 // 헬퍼 함수
 // ----------------------------------------------------
 function drawGameOver(ctx, canvas, scoreStr) {
@@ -357,10 +290,10 @@ function drawGameOver(ctx, canvas, scoreStr) {
 // ----------------------------------------------------
 
 // ----------------------------------------------------
-// 6. 2048 게임 (애니메이션 지원)
+// 4. 2048 게임 (애니메이션 지원)
 // ----------------------------------------------------
 function init2048(ctx, canvas, scoreDisplay, titleDisplay, descDisplay) {
-    titleDisplay.innerHTML = "🎮 미니게임 6: 2048";
+    titleDisplay.innerHTML = "🎮 미니게임 4: 2048";
     descDisplay.innerHTML = "방향키(<strong>↑↓←→</strong>)로 같은 숫자를 합쳐 2048을 만드세요!";
     
     let score = 0, isGameOver = false;
@@ -590,8 +523,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
                     <button onclick="initMiniGameMaster(0)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">과일</button>
                     <button onclick="initMiniGameMaster(1)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">회피</button>
                     <button onclick="initMiniGameMaster(2)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">팩맨</button>
-                    <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
-                    <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
+                    <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
                 </div>
                 <canvas id="minigameCanvas" width="360" height="200" tabindex="0" style="width: 720px; height: 400px; background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
                 <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
@@ -611,7 +543,7 @@ function initMiniGameMaster(forceGameIndex = -1) {
     const titleDisplay = document.querySelector("#minigame-container h4");
     const descDisplay = document.querySelector("#minigame-container p");
 
-    const games = [initFruitCatch, initDodger, initPacman, initReaction, init2048];
+    const games = [initFruitCatch, initDodger, initPacman, init2048];
     const selectedGame = forceGameIndex >= 0 && forceGameIndex < games.length ? games[forceGameIndex] : games[Math.floor(Math.random() * games.length)];
     
     if (mg_animationId) cancelAnimationFrame(mg_animationId);
@@ -654,8 +586,7 @@ window.playStandaloneMiniGame = function() {
                 <button onclick="initMiniGameMaster(0)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">과일</button>
                 <button onclick="initMiniGameMaster(1)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">회피</button>
                 <button onclick="initMiniGameMaster(2)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">팩맨</button>
-                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">반응</button>
-                <button onclick="initMiniGameMaster(4)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
+                <button onclick="initMiniGameMaster(3)" style="background:#333; color:#fff; border:1px solid #555; border-radius:3px; font-size:11px; padding:2px 5px; cursor:pointer;" onmouseover="this.style.background='#555'" onmouseout="this.style.background='#333'">2048</button>
             </div>
             <canvas id="minigameCanvas" width="360" height="200" tabindex="0" style="width: 720px; height: 400px; background: #111; border-radius: 5px; display: block; margin: 0 auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); outline:none;"></canvas>
             <div id="minigame-score" style="font-size: 14px; font-weight: bold; color: #f1c40f; margin-top: 10px;">점수: 0</div>
