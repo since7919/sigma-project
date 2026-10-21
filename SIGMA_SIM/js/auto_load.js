@@ -213,6 +213,20 @@ async function autoLoadFiles() {
     // 전체 로딩 후 다시 한 번 UI 갱신
     if (typeof refreshDBStats === 'function') refreshDBStats();
     if (typeof renderStats === 'function') renderStats();
+    if (typeof updateCurrentRegionLabel === 'function') updateCurrentRegionLabel(regionCode);
+
+    // 선택된 지역의 교차로 위치로 지도 시점 자동 이동 (Fit Bounds)
+    if (window.map && STATE && STATE.junctions) {
+        const junctions = Object.values(STATE.junctions).filter(j => j.lat && j.lng && !isNaN(j.lat) && !isNaN(j.lng));
+        if (junctions.length > 0) {
+            const valid = junctions.filter(j => j.lat > 33 && j.lat < 39 && j.lng > 124 && j.lng < 132);
+            if (valid.length > 0) {
+                const bounds = L.latLngBounds(valid.map(j => [j.lat, j.lng]));
+                window.map.fitBounds(bounds, { maxZoom: 15, padding: [40, 40] });
+            }
+        }
+    }
+
     console.log("SIGMA - All Auto-load sequence completed.");
     if (typeof hideLoading === 'function') hideLoading();
 }
@@ -229,5 +243,10 @@ function decodeBuffer(arrayBuffer) {
 }
 
 window.addEventListener('SIGMA_READY', () => {
-    autoLoadFiles();
+    // 앱 시작 시 무조건 서울(L01) 데이터를 로딩하지 않고, 사용자가 관할 지역을 먼저 선택하도록 모달 표출
+    if (typeof openRegionSelectModal === 'function') {
+        openRegionSelectModal(true);
+    } else {
+        autoLoadFiles();
+    }
 });

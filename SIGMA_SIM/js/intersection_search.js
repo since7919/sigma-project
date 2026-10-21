@@ -37,16 +37,89 @@ window.REGION_ORDER = [
     'L29', 'L23', 'L24', 'L25', 'L26', 'L28', 'L37', 'L30', 'L31'
 ];
 
-let _openAccordions = { 'L01': true };
+let _openAccordions = { 'L02': true };
+window.CURRENT_REGION_CODE = localStorage.getItem('sigma_selected_region') || 'L02';
 
-window.CURRENT_REGION_CODE = 'L01';
-window.toggleAccordion = function(regionCode) {
-    if (window.CURRENT_REGION_CODE !== regionCode) {
-        window.CURRENT_REGION_CODE = regionCode;
-        _openAccordions = {};
-        _openAccordions[regionCode] = true;
-        
-        if (typeof STATE !== 'undefined' && STATE.junctions) {
+window.openRegionSelectModal = function(isStartup = false) {
+    const modal = document.getElementById('region-select-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+
+    // 닫기 버튼: 초기 시작 시에는 강제로 선택하도록 숨김, 앱 사용 중에는 닫기 허용
+    const closeBtn = document.getElementById('btn-close-region-modal');
+    if (closeBtn) {
+        closeBtn.style.display = isStartup ? 'none' : 'block';
+    }
+
+    // 전국 전체 지자체 드롭다운 채우기 (처음 1회)
+    const dd = document.getElementById('modal-all-regions-select');
+    if (dd && dd.options.length <= 1) {
+        dd.innerHTML = '';
+        window.REGION_ORDER.forEach(code => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = `${window.REGION_MAP[code] || code} (${code})`;
+            dd.appendChild(opt);
+        });
+    }
+
+    // 최근 작업 지역 강조
+    const savedRegion = localStorage.getItem('sigma_selected_region') || window.CURRENT_REGION_CODE || 'L02';
+    document.querySelectorAll('.region-card-btn').forEach(btn => {
+        const code = btn.getAttribute('data-region');
+        if (code === savedRegion) {
+            btn.style.borderColor = '#38bdf8';
+            btn.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.4)';
+            btn.style.background = 'rgba(56, 189, 248, 0.18)';
+        } else {
+            btn.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+            btn.style.boxShadow = 'none';
+            btn.style.background = 'rgba(255, 255, 255, 0.04)';
+        }
+    });
+
+    if (dd && savedRegion) {
+        dd.value = savedRegion;
+    }
+};
+
+window.closeRegionSelectModal = function() {
+    const modal = document.getElementById('region-select-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.selectRegionFromModalDropdown = function() {
+    const dd = document.getElementById('modal-all-regions-select');
+    if (dd && dd.value) {
+        window.selectRegion(dd.value);
+    }
+};
+
+window.updateCurrentRegionLabel = function(regionCode) {
+    const lbl = document.getElementById('current-region-label');
+    const rName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
+    if (lbl) lbl.textContent = rName;
+    const selBatch = document.getElementById('sel-utic-batch-region');
+    if (selBatch) selBatch.value = regionCode;
+};
+
+window.selectRegion = function(regionCode) {
+    if (!regionCode) return;
+    
+    // 모달 닫기
+    window.closeRegionSelectModal();
+
+    window.CURRENT_REGION_CODE = regionCode;
+    _openAccordions = {};
+    _openAccordions[regionCode] = true;
+    localStorage.setItem('sigma_selected_region', regionCode);
+
+    window.updateCurrentRegionLabel(regionCode);
+
+    // 기존 데이터 및 마커/레이어 초기화
+    if (typeof STATE !== 'undefined') {
+        if (STATE.junctions) {
             Object.values(STATE.junctions).forEach(j => {
                 if (j.marker && window.map) {
                     window.map.removeLayer(j.marker);
@@ -54,23 +127,41 @@ window.toggleAccordion = function(regionCode) {
             });
             STATE.junctions = {};
             STATE.sortedJunctions = null;
-            STATE.loadedFiles = {};
         }
-        if (window.markers) window.markers.clearLayers();
-        if (window.roadNetworkLayer) window.roadNetworkLayer.clearLayers();
-        if (typeof renderDashboard === 'function') {
-            const dbContainer = document.getElementById('dashboard-container');
-            if (dbContainer) dbContainer.innerHTML = ''; 
+        STATE.loadedFiles = {};
+        STATE.groups = {};
+        STATE.civilData = [];
+        if (STATE.geoJsonLayer && window.map) {
+            window.map.removeLayer(STATE.geoJsonLayer);
+            STATE.geoJsonLayer = null;
         }
+        if (STATE.boundaryLayer && window.map) {
+            window.map.removeLayer(STATE.boundaryLayer);
+            STATE.boundaryLayer = null;
+        }
+    }
+    if (window.markers) window.markers.clearLayers();
+    if (window.roadNetworkLayer) window.roadNetworkLayer.clearLayers();
+    if (typeof renderDashboard === 'function') {
+        const dbContainer = document.getElementById('dashboard-container');
+        if (dbContainer) dbContainer.innerHTML = ''; 
+    }
 
-        renderJunctionList();
-        
-        const selBatch = document.getElementById('sel-utic-batch-region');
-        if (selBatch) selBatch.value = regionCode;
-        
-        if (typeof autoLoadFiles === 'function') {
-            autoLoadFiles();
-        }
+    renderJunctionList();
+
+    const rName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
+    if (typeof showLoading === 'function') {
+        showLoading(`[${rName}] 신호데이터 및 교차로 네트워크 로딩 중...`);
+    }
+
+    if (typeof autoLoadFiles === 'function') {
+        autoLoadFiles();
+    }
+};
+
+window.toggleAccordion = function(regionCode) {
+    if (window.CURRENT_REGION_CODE !== regionCode) {
+        window.selectRegion(regionCode);
     } else {
         _openAccordions[regionCode] = !_openAccordions[regionCode];
         renderJunctionList();
