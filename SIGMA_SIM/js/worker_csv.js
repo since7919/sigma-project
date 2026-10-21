@@ -29,7 +29,7 @@ function parseSignalMaps(csv) {
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
         const cols = [];
-        let start = 0, inQ = false;
+        let start = 0, inQ = false, inBracket = false;
         
         const parseVal = (str) => {
             let v = str.trim();
@@ -40,7 +40,12 @@ function parseSignalMaps(csv) {
         };
         for (let c = 0; c < line.length; c++) {
             if (line[c] === '"') inQ = !inQ;
-            else if (line[c] === ',' && !inQ) { cols.push(parseVal(line.substring(start, c))); start = c + 1; }
+            else if (line[c] === '[' && !inQ) inBracket = true;
+            else if (line[c] === ']' && !inQ) inBracket = false;
+            else if (line[c] === ',' && !inQ && !inBracket) {
+                cols.push(parseVal(line.substring(start, c)));
+                start = c + 1;
+            }
         }
         cols.push(parseVal(line.substring(start)));
 
@@ -54,12 +59,22 @@ function parseSignalMaps(csv) {
         for (let f = 0; f < fields.length; f++) {
             const cIdx = fieldIndices[f];
             if (cIdx !== -1 && cols[cIdx] !== undefined) {
-                mapData[fields[f]] = String(cols[cIdx]).split(';').map(Number);
+                let vStr = String(cols[cIdx]).trim();
+                if (vStr.startsWith('[') && vStr.endsWith(']')) {
+                    vStr = vStr.slice(1, -1);
+                }
+                const delim = vStr.includes(';') ? ';' : ',';
+                mapData[fields[f]] = vStr ? vStr.split(delim).map(v => parseInt(v.trim()) || 0) : [0, 0, 0, 0, 0, 0, 0, 0];
             }
         }
         
         if (mainMovIdx !== -1 && cols[mainMovIdx]) {
-            mapData.mainMovements = String(cols[mainMovIdx]).split(';');
+            let mmStr = String(cols[mainMovIdx]).trim();
+            if (mmStr.startsWith('[') && mmStr.endsWith(']')) {
+                mmStr = mmStr.slice(1, -1);
+            }
+            const delim = mmStr.includes(';') ? ';' : ',';
+            mapData.mainMovements = mmStr.split(delim).map(s => s.replace(/^"|"$/g, '').trim()).filter(Boolean);
         }
         
         if (rawStepsIdx !== -1 && cols[rawStepsIdx]) {

@@ -1000,10 +1000,49 @@ app.get('/api/sim/data', async (req, res) => {
                 return Object.keys(res).length > 0 ? res : null;
             };
 
+            const formatCsvArray = (val) => {
+                if (!val) return "";
+                if (Array.isArray(val)) return val.join(';');
+                if (typeof val === 'string') {
+                    let s = val.trim();
+                    if (s.startsWith('[') && s.endsWith(']')) {
+                        try {
+                            const parsed = JSON.parse(s);
+                            if (Array.isArray(parsed)) return parsed.join(';');
+                        } catch(e) {
+                            s = s.slice(1, -1);
+                        }
+                    }
+                    return s.replace(/,/g, ';').replace(/\s+/g, '');
+                }
+                return String(val);
+            };
+
             let chunk = "";
             safeData.forEach(r => {
                 const minRaw = minifyRawSteps(r.raw_steps);
-                const line = [r.id, r.map_idx, Array.isArray(r.mov_a) ? r.mov_a.join(';') : (r.mov_a || ""), Array.isArray(r.mov_b) ? r.mov_b.join(';') : (r.mov_b || ""), Array.isArray(r.ped_mov_a) ? r.ped_mov_a.join(';') : (r.ped_mov_a || ""), Array.isArray(r.ped_mov_b) ? r.ped_mov_b.join(';') : (r.ped_mov_b || ""), Array.isArray(r.main_movements) ? r.main_movements.join(';') : (r.main_movements || ""), Array.isArray(r.yellow_a) ? r.yellow_a.join(';') : (r.yellow_a || ""), Array.isArray(r.yellow_b) ? r.yellow_b.join(';') : (r.yellow_b || ""), Array.isArray(r.allred_a) ? r.allred_a.join(';') : (r.allred_a || ""), Array.isArray(r.allred_b) ? r.allred_b.join(';') : (r.allred_b || ""), Array.isArray(r.ped_a) ? r.ped_a.join(';') : (r.ped_a || ""), Array.isArray(r.ped_b) ? r.ped_b.join(';') : (r.ped_b || ""), Array.isArray(r.ped_delay_a) ? r.ped_delay_a.join(';') : (r.ped_delay_a || ""), Array.isArray(r.ped_delay_b) ? r.ped_delay_b.join(';') : (r.ped_delay_b || ""), Array.isArray(r.ped_flash_a) ? r.ped_flash_a.join(';') : (r.ped_flash_a || ""), Array.isArray(r.ped_flash_b) ? r.ped_flash_b.join(';') : (r.ped_flash_b || ""), Array.isArray(r.ped_green_a) ? r.ped_green_a.join(';') : (r.ped_green_a || ""), Array.isArray(r.ped_green_b) ? r.ped_green_b.join(';') : (r.ped_green_b || ""), minRaw ? '"' + JSON.stringify(minRaw).replace(/"/g, '""') + '"' : '""'].join(",");
+                const line = [
+                    r.id,
+                    r.map_idx,
+                    formatCsvArray(r.mov_a),
+                    formatCsvArray(r.mov_b),
+                    formatCsvArray(r.ped_mov_a),
+                    formatCsvArray(r.ped_mov_b),
+                    formatCsvArray(r.main_movements),
+                    formatCsvArray(r.yellow_a),
+                    formatCsvArray(r.yellow_b),
+                    formatCsvArray(r.allred_a),
+                    formatCsvArray(r.allred_b),
+                    formatCsvArray(r.ped_a),
+                    formatCsvArray(r.ped_b),
+                    formatCsvArray(r.ped_delay_a),
+                    formatCsvArray(r.ped_delay_b),
+                    formatCsvArray(r.ped_flash_a),
+                    formatCsvArray(r.ped_flash_b),
+                    formatCsvArray(r.ped_green_a),
+                    formatCsvArray(r.ped_green_b),
+                    minRaw ? '"' + JSON.stringify(minRaw).replace(/"/g, '""') + '"' : '""'
+                ].join(",");
                 chunk += line + "\n";
             });
             lastId = nextLastId;
@@ -2576,7 +2615,9 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
   const sigMapByPlan = {};
   if (Array.isArray(sigMap)) {
     sigMap.forEach(item => {
-      const pNo = parseInt(item.PLAN_NO || item.PLAN_TP) || 1;
+      const pRaw = item.PLAN_NO !== undefined && item.PLAN_NO !== null ? item.PLAN_NO : item.PLAN_TP;
+      const pParsed = parseInt(pRaw, 10);
+      const pNo = isNaN(pParsed) ? 1 : pParsed;
       if (!sigMapByPlan[pNo]) sigMapByPlan[pNo] = { ringA: [], ringB: [] };
       const ringNo = parseInt(item.RING_NO) || 0;
       const step = {
@@ -2595,14 +2636,27 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
   }
 
   const planKeys = Object.keys(sigMapByPlan).map(Number).sort((a, b) => a - b);
+  // Base plan fallback if individual plans are missing
+  let basePlan = { ringA: [], ringB: [] };
+  if (sigMapByPlan[1] && (sigMapByPlan[1].ringA.length > 0 || sigMapByPlan[1].ringB.length > 0)) {
+    basePlan = sigMapByPlan[1];
+  } else if (sigMapByPlan[0] && (sigMapByPlan[0].ringA.length > 0 || sigMapByPlan[0].ringB.length > 0)) {
+    basePlan = sigMapByPlan[0];
+  } else if (planKeys.length > 0 && sigMapByPlan[planKeys[0]]) {
+    basePlan = sigMapByPlan[planKeys[0]];
+  }
+
   const mapsPayload = [];
   for (let mIdx = 0; mIdx < 6; mIdx++) {
-    const pNo = planKeys[mIdx];
-    const pData = pNo ? sigMapByPlan[pNo] : { ringA: [], ringB: [] };
-    pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
-    pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
+    const targetPlanNo = mIdx + 1;
+    let pData = sigMapByPlan[targetPlanNo];
+    if (!pData || (pData.ringA.length === 0 && pData.ringB.length === 0)) {
+      pData = (planKeys[mIdx] !== undefined && sigMapByPlan[planKeys[mIdx]]) ? sigMapByPlan[planKeys[mIdx]] : basePlan;
+    }
+    const ringA = (pData.ringA || []).slice().sort((a, b) => a.stepNo - b.stepNo);
+    const ringB = (pData.ringB || []).slice().sort((a, b) => a.stepNo - b.stepNo);
 
-    const parsedData = parseStepsToSignalMap(pData.ringA, pData.ringB);
+    const parsedData = parseStepsToSignalMap(ringA, ringB);
 
     mapsPayload.push({
       id: jid,
