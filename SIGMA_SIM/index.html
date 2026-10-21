@@ -1508,68 +1508,8 @@
                         </div>
                     </div>
 
-                    <!-- [경찰청 UTIC 신호데이터 일괄 동기화 (Admin Governance - 전국 지자체)] -->
-                    <div class="sigma-panel" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;">
-                        <div class="card-title flex-row-between" style="cursor: pointer; padding: 10px 14px;" onclick="toggleSection(this)">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 15px;">🌐</span>
-                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (전국 지자체)</span>
-                            </div>
-                            <span class="fold-icon">▼</span>
-                        </div>
-                        <div class="foldable-content" style="padding: 14px;">
-                            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.6; word-break: keep-all;">
-                                경찰청 UTIC TSI Hub API로부터 선택된 지자체의 전체 교차로 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
-                            </div>
-                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
-                                <select id="sel-utic-batch-region" class="phase-select" style="height: 34px; width: 170px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
-                                    <option value="L02" selected>인천광역시 (L02)</option>
-                                    <option value="L01">서울특별시 (L01)</option>
-                                    <option value="L29">대구광역시 (L29)</option>
-                                    <option value="L23">부산광역시 (L23)</option>
-                                    <option value="L30">대전광역시 (L30)</option>
-                                    <option value="L31">광주광역시 (L31)</option>
-                                    <option value="L19">수원시 (L19)</option>
-                                    <option value="L06">부천시 (L06)</option>
-                                    <option value="L07">광명시 (L07)</option>
-                                    <option value="L08">안산시 (L08)</option>
-                                    <option value="L11">화성시 (L11)</option>
-                                    <option value="L15">김포시 (L15)</option>
-                                    <option value="L09">파주시 (L09)</option>
-                                    <option value="L10">오산시 (L10)</option>
-                                    <option value="L14">의정부시 (L14)</option>
-                                    <option value="L17">군포시 (L17)</option>
-                                    <option value="L18">남양주시 (L18)</option>
-                                    <option value="L25">창원시 (L25)</option>
-                                    <option value="L26">김해시 (L26)</option>
-                                    <option value="L37">포항시 (L37)</option>
-                                </select>
-                                <select id="sel-utic-batch-mode" class="phase-select" style="height: 34px; width: 220px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
-                                    <option value="safe" selected>🛡️ 안전 채우기 (Safe Fill - 권장)</option>
-                                    <option value="force">⚠️ 전체 덮어쓰기 (Force Overwrite)</option>
-                                </select>
-                                <button onclick="startUticBatchSync()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 18px; font-size: 12.5px; font-weight: bold;">
-                                    🚀 동기화 실행
-                                </button>
-                                <button onclick="stopUticBatchSync()" id="btn-utic-batch-stop" class="phase-action-btn phase-btn-red" style="height: 34px; padding: 0 14px; font-size: 12px; display: none;">
-                                    ⏹️ 작업 중단
-                                </button>
-                            </div>
-                            <!-- Batch Progress & Log Window -->
-                            <div id="utic-batch-progress-box" style="display: none; background: rgba(0, 0, 0, 0.45); border-radius: 8px; padding: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 8px;">
-                                    <span id="utic-batch-status-text" style="color: #38bdf8; font-weight: bold;">준비 중...</span>
-                                    <span id="utic-batch-counts-text" style="color: #cbd5e1; font-family: monospace; font-size: 11px;">0 / 0</span>
-                                </div>
-                                <div style="width: 100%; height: 9px; background: rgba(255, 255, 255, 0.08); border-radius: 5px; overflow: hidden; margin-bottom: 10px;">
-                                    <div id="utic-batch-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.3s;"></div>
-                                </div>
-                                <div id="utic-batch-logs" class="custom-scroll" style="max-height: 140px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 11px; line-height: 1.5; color: #94a3b8; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="box-green">
+                    <!-- [SISO 입출력 파일 (XLSX) 로더] -->
+                    <div class="box-green" style="margin-bottom: 20px;">
                         <div class="xlsx-loader-header" style="flex-direction:column; align-items:stretch; gap:10px;">
                             <div class="flex-row" style="justify-content:space-between; width:100%;">
                                 <div class="flex-row gap-12">
@@ -1596,6 +1536,78 @@
                             </div>
                             <div id="xlsx-loaded-list" class="mt-10 pt-10 fs-11"
                                 style="max-height:120px; overflow-y:auto; color:#bbb; border-top:1px solid rgba(255,255,255,0.05); display:none;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- [경찰청 UTIC 신호데이터 일괄 동기화 (Admin Governance - 전국 지자체)] -->
+                    <div class="sigma-panel" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); margin-bottom: 20px;">
+                        <div class="card-title flex-row-between" style="cursor: pointer; padding: 10px 14px;" onclick="toggleSection(this)">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 15px;">🌐</span>
+                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (전국 지자체)</span>
+                            </div>
+                            <span class="fold-icon">▼</span>
+                        </div>
+                        <div class="foldable-content" style="padding: 14px;">
+                            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.6; word-break: keep-all;">
+                                경찰청 UTIC TSI Hub API로부터 선택된 지자체의 전체 교차로 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                                <select id="sel-utic-batch-region" class="phase-select" style="height: 34px; width: 170px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
+                                    <option value="L01" selected>서울특별시 (L01)</option>
+                                    <option value="L02">인천광역시 (L02)</option>
+                                    <option value="L03">평택시 (L03)</option>
+                                    <option value="L04">안성시 (L04)</option>
+                                    <option value="L05">과천시 (L05)</option>
+                                    <option value="L06">부천시 (L06)</option>
+                                    <option value="L07">광명시 (L07)</option>
+                                    <option value="L08">안산시 (L08)</option>
+                                    <option value="L09">파주시 (L09)</option>
+                                    <option value="L10">오산시 (L10)</option>
+                                    <option value="L11">화성시 (L11)</option>
+                                    <option value="L12">동두천시 (L12)</option>
+                                    <option value="L13">양주시 (L13)</option>
+                                    <option value="L14">의정부시 (L14)</option>
+                                    <option value="L15">김포시 (L15)</option>
+                                    <option value="L16">의왕시 (L16)</option>
+                                    <option value="L17">군포시 (L17)</option>
+                                    <option value="L18">남양주시 (L18)</option>
+                                    <option value="L19">수원시 (L19)</option>
+                                    <option value="L20">경기도 광주시 (L20)</option>
+                                    <option value="L21">구리시 (L21)</option>
+                                    <option value="L22">하남시 (L22)</option>
+                                    <option value="L23">부산광역시 (L23)</option>
+                                    <option value="L24">양산시 (L24)</option>
+                                    <option value="L25">창원시 (L25)</option>
+                                    <option value="L26">김해시 (L26)</option>
+                                    <option value="L28">거제시 (L28)</option>
+                                    <option value="L29">대구광역시 (L29)</option>
+                                    <option value="L30">대전광역시 (L30)</option>
+                                    <option value="L31">광주광역시 (L31)</option>
+                                    <option value="L37">포항시 (L37)</option>
+                                </select>
+                                <select id="sel-utic-batch-mode" class="phase-select" style="height: 34px; width: 220px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
+                                    <option value="safe" selected>🛡️ 안전 채우기 (Safe Fill - 권장)</option>
+                                    <option value="force">⚠️ 전체 덮어쓰기 (Force Overwrite)</option>
+                                </select>
+                                <button onclick="startUticBatchSync()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 18px; font-size: 12.5px; font-weight: bold;">
+                                    🚀 동기화 실행
+                                </button>
+                                <button onclick="stopUticBatchSync()" id="btn-utic-batch-stop" class="phase-action-btn phase-btn-red" style="height: 34px; padding: 0 14px; font-size: 12px; display: none;">
+                                    ⏹️ 작업 중단
+                                </button>
+                            </div>
+                            <!-- Batch Progress & Log Window -->
+                            <div id="utic-batch-progress-box" style="display: none; background: rgba(0, 0, 0, 0.45); border-radius: 8px; padding: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 8px;">
+                                    <span id="utic-batch-status-text" style="color: #38bdf8; font-weight: bold;">준비 중...</span>
+                                    <span id="utic-batch-counts-text" style="color: #cbd5e1; font-family: monospace; font-size: 11px;">0 / 0</span>
+                                </div>
+                                <div style="width: 100%; height: 9px; background: rgba(255, 255, 255, 0.08); border-radius: 5px; overflow: hidden; margin-bottom: 10px;">
+                                    <div id="utic-batch-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.3s;"></div>
+                                </div>
+                                <div id="utic-batch-logs" class="custom-scroll" style="max-height: 140px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 11px; line-height: 1.5; color: #94a3b8; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
                             </div>
                         </div>
                     </div>
