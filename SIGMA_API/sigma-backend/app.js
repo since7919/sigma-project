@@ -2814,6 +2814,15 @@ app.post('/api/sim/batch-sync-utic/stop', (req, res) => {
   res.json({ success: true, message: '중단 신호를 전송했습니다.' });
 });
 
+// 일괄 동기화 강제 초기화(Reset) API
+app.post('/api/sim/batch-sync-utic/reset', (req, res) => {
+  batchSyncStatus.isRunning = false;
+  batchSyncStatus.shouldStop = true;
+  batchSyncStatus.currentJunction = '초기화됨';
+  batchSyncStatus.logs.push('[시스템] 관리자에 의해 동기화 세션이 초기화되었습니다.');
+  res.json({ success: true, message: '동기화 상태가 초기화되었습니다.' });
+});
+
 // 일괄 동기화 실행 API (안전 채우기 / 전체 덮어쓰기)
 app.post('/api/sim/batch-sync-utic', async (req, res) => {
   const { password, regionCode = 'L02', mode = 'safe' } = req.body;

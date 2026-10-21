@@ -132,6 +132,7 @@ function openTab(evt, tabName) {
         if(typeof refreshDBStats === 'function') refreshDBStats(); 
         setTimeout(() => { if(typeof renderDBFileNames === "function") renderDBFileNames(); }, 50);
         setTimeout(() => { if(typeof renderDBFileNames === "function") renderDBFileNames(); }, 250);
+        if(typeof checkAndAttachBatchSync === 'function') checkAndAttachBatchSync();
     }
     if (tabName === 'tab-civil') { 
         if (typeof renderCivilSummary === 'function') renderCivilSummary(); 
@@ -1060,6 +1061,15 @@ window.startUticBatchSync = async function() {
 
         if (!response.ok) {
             const errData = await response.json();
+            // 이미 서버에서 동기화가 진행 중인 경우, 에러 팝업 대신 기존 진행 세션에 즉시 재연결
+            if (response.status === 409) {
+                if (statusText) statusText.innerText = "서버에서 진행 중인 동기화 세션에 실시간 연결합니다...";
+                if (btnStop) btnStop.style.display = 'inline-block';
+                if (_uticBatchTimer) clearInterval(_uticBatchTimer);
+                _uticBatchTimer = setInterval(pollUticBatchStatus, 1500);
+                pollUticBatchStatus();
+                return;
+            }
             throw new Error(errData.error || "일괄 동기화 요청 실패");
         }
 
@@ -1074,6 +1084,7 @@ window.startUticBatchSync = async function() {
 };
 
 async function pollUticBatchStatus() {
+    const progBox = document.getElementById('utic-batch-progress-box');
     const statusText = document.getElementById('utic-batch-status-text');
     const countsText = document.getElementById('utic-batch-counts-text');
     const progressBar = document.getElementById('utic-batch-progress-bar');
@@ -1084,6 +1095,11 @@ async function pollUticBatchStatus() {
         const res = await fetch('/api/sim/batch-sync-utic/status');
         if (!res.ok) return;
         const st = await res.json();
+
+        if (st.isRunning) {
+            if (progBox) progBox.style.display = 'block';
+            if (btnStop) btnStop.style.display = 'inline-block';
+        }
 
         const pct = st.total > 0 ? Math.round((st.processed / st.total) * 100) : 0;
         if (progressBar) progressBar.style.width = pct + '%';
@@ -1103,8 +1119,6 @@ async function pollUticBatchStatus() {
                 _uticBatchTimer = null;
             }
             if (btnStop) btnStop.style.display = 'none';
-            const rName = (window.REGION_MAP && window.REGION_MAP[st.regionCode]) || st.regionCode;
-            alert(`경찰청 UTIC [${rName}] 일괄 동기화가 완료되었습니다!\n\n• 대상 지역: ${rName} (${st.regionCode})\n• 총 교차로: ${st.total}개\n• 성공 동기화: ${st.successCount}개\n• 안전모드 건너뜀: ${st.skipCount}개\n• 미보유/실패: ${st.failCount}개`);
         }
     } catch (e) {
         console.error("폴링 오류:", e);
@@ -1115,11 +1129,39 @@ window.pollUticBatchStatus = pollUticBatchStatus;
 window.stopUticBatchSync = async function() {
     if (!confirm("진행 중인 일괄 동기화를 중단하시겠습니까?")) return;
     try {
+        const statusText = document.getElementById('utic-batch-status-text');
+        if (statusText) statusText.innerText = "중단 요청 전송 완료. 잔여 작업 정리 중...";
         await fetch('/api/sim/batch-sync-utic/stop', { method: 'POST' });
+        setTimeout(pollUticBatchStatus, 500);
     } catch (e) {
         alert("중단 요청 실패: " + e.message);
     }
 };
+
+// 페이지 로드 시 또는 DB 센터 탭 오픈 시 백엔드 진행 상태 자동 감지 및 UI 연결 함수
+async function checkAndAttachBatchSync() {
+    const progBox = document.getElementById('utic-batch-progress-box');
+    const btnStop = document.getElementById('btn-utic-batch-stop');
+    try {
+        const res = await fetch('/api/sim/batch-sync-utic/status');
+        if (!res.ok) return;
+        const st = await res.json();
+        if (st.isRunning) {
+            if (progBox) progBox.style.display = 'block';
+            if (btnStop) btnStop.style.display = 'inline-block';
+            if (!_uticBatchTimer) {
+                _uticBatchTimer = setInterval(pollUticBatchStatus, 1500);
+            }
+            pollUticBatchStatus();
+        }
+    } catch (e) {
+        // 무시
+    }
+}
+window.checkAndAttachBatchSync = checkAndAttachBatchSync;
+
+// 초기화 시 1회 자동 체크
+setTimeout(() => { checkAndAttachBatchSync(); }, 1000);
 
 
 window.handleStepSlider = function(e, container, paramType) {
