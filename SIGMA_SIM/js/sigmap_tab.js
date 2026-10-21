@@ -116,8 +116,9 @@ function renderSignalMapTab() {
 
         // A-Ring V/P cells
         for (let i = 1; i <= 8; i++) {
-            const carVal = stepA[`car${i}`];
-            const pedVal = stepA[`ped${i}`];
+            const hasStep = stepA.stepNo !== undefined;
+            const carVal = hasStep ? (stepA[`car${i}`] !== undefined ? stepA[`car${i}`] : 0) : undefined;
+            const pedVal = hasStep ? (stepA[`ped${i}`] !== undefined ? stepA[`ped${i}`] : 0) : undefined;
             html += `
                 <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? formatDisplayVal(carVal) : '-'}</td>
                 <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? formatDisplayVal(pedVal) : '-'}</td>
@@ -131,8 +132,9 @@ function renderSignalMapTab() {
 
         // B-Ring V/P cells
         for (let i = 1; i <= 8; i++) {
-            const carVal = stepB[`car${i}`];
-            const pedVal = stepB[`ped${i}`];
+            const hasStep = stepB.stepNo !== undefined;
+            const carVal = hasStep ? (stepB[`car${i}`] !== undefined ? stepB[`car${i}`] : 0) : undefined;
+            const pedVal = hasStep ? (stepB[`ped${i}`] !== undefined ? stepB[`ped${i}`] : 0) : undefined;
             html += `
                 <td class="${carVal !== undefined ? getCellClass(carVal, 'car') : 'cell-gray'}">${carVal !== undefined ? formatDisplayVal(carVal) : '-'}</td>
                 <td class="${pedVal !== undefined ? getCellClass(pedVal, 'ped') : 'cell-gray'}">${pedVal !== undefined ? formatDisplayVal(pedVal) : '-'}</td>
@@ -169,38 +171,46 @@ async function fetchAndCopyUTICSignalMap() {
     if (loader) loader.style.display = 'block';
 
     try {
-        const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(intName)}&pageNo=1&numOfRows=100`;
-        const response = await fetch(`/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
-        if (!response.ok) throw new Error("API request failed");
-        
-        const xmlText = await response.text();
-        console.log("[UTIC API Response]", xmlText);
+        const getCandidates = (name) => {
+            const set = new Set();
+            if (!name) return [];
+            set.add(name);
+            set.add(name.replace(/4거리/g, '사거리'));
+            set.add(name.replace(/3거리/g, '삼거리'));
+            set.add(name.replace(/사거리/g, '4거리'));
+            set.add(name.replace(/삼거리/g, '3거리'));
+            return Array.from(set);
+        };
 
-        let rawXml = xmlText;
-        try {
-            // 프록시 서버가 XML을 JSON 문자열로 감싸서 반환했을 경우 처리
-            const parsed = JSON.parse(xmlText);
-            if (typeof parsed === "string") {
-                rawXml = parsed;
-            } else if (parsed.data && typeof parsed.data === "string") {
-                rawXml = parsed.data;
+        const candidates = getCandidates(intName);
+        let items = [];
+        let matchedCand = intName;
+
+        for (const cand of candidates) {
+            const sigMapUrl = `http://tsihub.utic.go.kr/tsi/api/SigMapCrossRoadInfoService/getSigMapCRInfo?type=xml&srchCTId=${regionCode}&srchCRNm=${encodeURIComponent(cand)}&pageNo=1&numOfRows=100`;
+            const response = await fetch(`/api/proxy/utic?url=${encodeURIComponent(sigMapUrl)}`);
+            if (!response.ok) continue;
+
+            const xmlText = await response.text();
+            let rawXml = xmlText;
+            try {
+                const parsed = JSON.parse(xmlText);
+                if (typeof parsed === "string") rawXml = parsed;
+                else if (parsed.data && typeof parsed.data === "string") rawXml = parsed.data;
+            } catch (e) {}
+
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(rawXml, "text/xml");
+
+            let candItems = xmlDoc.getElementsByTagName("SigMapCRInfo");
+            if (candItems.length === 0) candItems = xmlDoc.getElementsByTagName("item");
+
+            if (candItems.length > 0) {
+                items = candItems;
+                matchedCand = cand;
+                break;
             }
-        } catch (e) {
-            // 그냥 XML 문자열인 경우 그대로 사용
         }
-
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(rawXml, "text/xml");
-
-        // 에러 코드 체크
-        const resultMsg = xmlDoc.getElementsByTagName("resultMsg")[0]?.textContent;
-        if (resultMsg && resultMsg !== "NORMAL_SERVICE") {
-            alert("UTIC API 오류 발생: " + resultMsg);
-            return;
-        }
-
-        let items = xmlDoc.getElementsByTagName("SigMapCRInfo");
-        if (items.length === 0) items = xmlDoc.getElementsByTagName("item");
 
         if (items.length === 0) {
             alert(`UTIC에서 '${intName}' 교차로에 대한 검색 결과가 0건입니다. (이름이 다르거나 데이터가 없을 수 있습니다.)`);
@@ -211,14 +221,13 @@ async function fetchAndCopyUTICSignalMap() {
         const targetIntNo = j.apiIntNo || jid;
 
         const processItem = (item) => {
-            // UTIC 응답에서 맵 번호 추출 (PLAN_TP 가 시차제 계획번호인 경우가 많음)
             const planTpNode = item.getElementsByTagName("PLAN_TP")[0];
             const planNoNode = item.getElementsByTagName("PLAN_NO")[0];
             
-            // PLAN_NO를 우선적으로 사용하고 (일반적인 시그널맵 번호), 없을 경우 PLAN_TP 사용
-            const planNoText = (planNoNode && planNoNode.textContent && planNoNode.textContent !== "0") ? planNoNode.textContent : (planTpNode?.textContent || "1");
+            const planNoText = (planNoNode && planNoNode.textContent && planNoNode.textContent !== "0") ? planNoNode.textContent : (planTpNode?.textContent || "0");
             const planNo = parseInt(planNoText, 10);
-            if (!plansData[planNo]) plansData[planNo] = { ringA: [], ringB: [] };
+            const safePlanNo = isNaN(planNo) ? 0 : planNo;
+            if (!plansData[safePlanNo]) plansData[safePlanNo] = { ringA: [], ringB: [] };
 
             const ringNo = parseInt(item.getElementsByTagName("RING_NO")[0]?.textContent || 0, 10);
             const step = {
@@ -231,8 +240,8 @@ async function fetchAndCopyUTICSignalMap() {
                 step[`car${k}`] = parseInt(item.getElementsByTagName(`CAR${k}`)[0]?.textContent || 0, 10);
                 step[`ped${k}`] = parseInt(item.getElementsByTagName(`PED${k}`)[0]?.textContent || 0, 10);
             }
-            if (ringNo === 0) plansData[planNo].ringA.push(step);
-            else if (ringNo === 1) plansData[planNo].ringB.push(step);
+            if (ringNo === 0) plansData[safePlanNo].ringA.push(step);
+            else if (ringNo === 1) plansData[safePlanNo].ringB.push(step);
         };
 
         let foundMatch = false;
@@ -244,7 +253,6 @@ async function fetchAndCopyUTICSignalMap() {
             const intNoStr = String(item.getElementsByTagName("INT_NO")[0]?.textContent || "").trim();
             const cleanIntNo = intNoStr.replace(/[^0-9]/g, '');
             
-            // 완전 일치하거나, 숫자 부분만 같거나, 뒤에 번호가 똑같이 끝나는 경우 매칭
             if (intNoStr === targetStr || (cleanIntNo && cleanIntNo === cleanTarget) || intNoStr.endsWith(targetStr)) {
                 processItem(item);
                 foundMatch = true;
@@ -263,28 +271,44 @@ async function fetchAndCopyUTICSignalMap() {
             }
         }
 
-        let planKeys = Object.keys(plansData).map(Number).sort((a, b) => a - b);
-        if (planKeys.length === 0) {
-            alert("해당 교차로 이름으로 조회된 UTIC 시그널맵 데이터가 없습니다.");
+        const isPlanValid = (p) => {
+            if (!p) return false;
+            const hasMin = (p.ringA || []).some(s => s.minTm > 0) || (p.ringB || []).some(s => s.minTm > 0);
+            const hasLamp = (p.ringA || []).some(s => {
+                for (let k = 1; k <= 8; k++) if (s[`car${k}`] > 0 || s[`ped${k}`] > 0) return true;
+                return false;
+            }) || (p.ringB || []).some(s => {
+                for (let k = 1; k <= 8; k++) if (s[`car${k}`] > 0 || s[`ped${k}`] > 0) return true;
+                return false;
+            });
+            return hasMin || hasLamp;
+        };
+
+        const planKeys = Object.keys(plansData).map(Number).sort((a, b) => a - b);
+        const validPlanKeys = planKeys.filter(k => isPlanValid(plansData[k]));
+        if (validPlanKeys.length === 0) {
+            alert("조회된 UTIC 시그널맵 데이터 중 유효한 스텝 정보가 없습니다.");
             return;
         }
 
-        // UTIC 데이터의 플랜 번호가 1,2,3... 순차적이지 않을 수 있으므로(예: 10, 27, 29), 정렬된 순서대로 인덱스를 매칭합니다.
-        let appliedPlans = [];
-        planKeys.forEach((pNo, index) => {
-            const pData = plansData[pNo];
-            pData.ringA.sort((a, b) => a.stepNo - b.stepNo);
-            pData.ringB.sort((a, b) => a.stepNo - b.stepNo);
+        const basePlan = isPlanValid(plansData[0]) ? plansData[0] : (isPlanValid(plansData[1]) ? plansData[1] : plansData[validPlanKeys[0]]);
 
-            let mIdx = index;
-            if (mIdx >= 0 && mIdx < 6) {
-                const sm = j.signalMaps[mIdx];
-                sm.stepsA = pData.ringA;
-                sm.stepsB = pData.ringB;
-                parseStepsToSignalMap(sm, pData.ringA, pData.ringB);
-                appliedPlans.push(mIdx + 1); // 저장된 시그마 맵번호(1~6) 기준
+        let appliedPlans = [];
+        for (let mIdx = 0; mIdx < 6; mIdx++) {
+            const targetPlanNo = mIdx + 1;
+            let pData = plansData[targetPlanNo];
+            if (!isPlanValid(pData)) {
+                pData = (validPlanKeys[mIdx] !== undefined && plansData[validPlanKeys[mIdx]]) ? plansData[validPlanKeys[mIdx]] : basePlan;
             }
-        });
+            const ringA = (pData.ringA || []).slice().sort((a, b) => a.stepNo - b.stepNo);
+            const ringB = (pData.ringB || []).slice().sort((a, b) => a.stepNo - b.stepNo);
+
+            const sm = j.signalMaps[mIdx];
+            sm.stepsA = ringA;
+            sm.stepsB = ringB;
+            parseStepsToSignalMap(sm, ringA, ringB);
+            appliedPlans.push(mIdx + 1);
+        }
 
         if (appliedPlans.length > 0) {
             alert(`UTIC 시그널맵 데이터를 성공적으로 가져와 각 맵번호(${appliedPlans.join(', ')}번)에 저장하고 적용했습니다.`);

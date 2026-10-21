@@ -741,18 +741,22 @@ app.get('/api/sim/db-version', async (req, res) => {
     let debugInfo = null;
     let errorInfo = null;
     try {
-      const [jRes] = await Promise.all([
-        supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1)
+      const [jRes, mRes, tRes] = await Promise.all([
+        supabase.from('junctions').select('updated_at').order('updated_at', { ascending: false }).limit(1),
+        supabase.from('signal_maps').select('updated_at').order('updated_at', { ascending: false }).limit(1),
+        supabase.from('tod_plans').select('updated_at').order('updated_at', { ascending: false }).limit(1)
       ]);
       const dates = [
-        jRes.data?.[0]?.updated_at
+        jRes.data?.[0]?.updated_at,
+        mRes.data?.[0]?.updated_at,
+        tRes.data?.[0]?.updated_at
       ].filter(d => d).map(d => new Date(d).getTime());
-      debugInfo = { j: jRes };
+      debugInfo = { j: jRes, m: mRes, t: tRes };
       
-      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v3";
+      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v4";
     } catch (e) {
       errorInfo = e.message;
-      global.SIGMA_DB_VERSION = Date.now() + "_v3";
+      global.SIGMA_DB_VERSION = Date.now() + "_v4";
     }
     global.SIGMA_DB_DEBUG = { debugInfo, errorInfo };
   }
@@ -2635,23 +2639,38 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
     });
   }
 
+  const isPlanValid = (p) => {
+    if (!p) return false;
+    const hasMin = (p.ringA || []).some(s => s.minTm > 0) || (p.ringB || []).some(s => s.minTm > 0);
+    const hasLamp = (p.ringA || []).some(s => {
+      for (let k = 1; k <= 8; k++) if (s[`car${k}`] > 0 || s[`ped${k}`] > 0) return true;
+      return false;
+    }) || (p.ringB || []).some(s => {
+      for (let k = 1; k <= 8; k++) if (s[`car${k}`] > 0 || s[`ped${k}`] > 0) return true;
+      return false;
+    });
+    return hasMin || hasLamp;
+  };
+
   const planKeys = Object.keys(sigMapByPlan).map(Number).sort((a, b) => a - b);
-  // Base plan fallback if individual plans are missing
+  const validPlanKeys = planKeys.filter(k => isPlanValid(sigMapByPlan[k]));
+
+  // Base plan fallback priority: Plan 0 (UTIC base general map) if valid, then Plan 1 if valid, then first valid plan
   let basePlan = { ringA: [], ringB: [] };
-  if (sigMapByPlan[1] && (sigMapByPlan[1].ringA.length > 0 || sigMapByPlan[1].ringB.length > 0)) {
-    basePlan = sigMapByPlan[1];
-  } else if (sigMapByPlan[0] && (sigMapByPlan[0].ringA.length > 0 || sigMapByPlan[0].ringB.length > 0)) {
+  if (isPlanValid(sigMapByPlan[0])) {
     basePlan = sigMapByPlan[0];
-  } else if (planKeys.length > 0 && sigMapByPlan[planKeys[0]]) {
-    basePlan = sigMapByPlan[planKeys[0]];
+  } else if (isPlanValid(sigMapByPlan[1])) {
+    basePlan = sigMapByPlan[1];
+  } else if (validPlanKeys.length > 0) {
+    basePlan = sigMapByPlan[validPlanKeys[0]];
   }
 
   const mapsPayload = [];
   for (let mIdx = 0; mIdx < 6; mIdx++) {
     const targetPlanNo = mIdx + 1;
     let pData = sigMapByPlan[targetPlanNo];
-    if (!pData || (pData.ringA.length === 0 && pData.ringB.length === 0)) {
-      pData = (planKeys[mIdx] !== undefined && sigMapByPlan[planKeys[mIdx]]) ? sigMapByPlan[planKeys[mIdx]] : basePlan;
+    if (!isPlanValid(pData)) {
+      pData = (validPlanKeys[mIdx] !== undefined && sigMapByPlan[validPlanKeys[mIdx]]) ? sigMapByPlan[validPlanKeys[mIdx]] : basePlan;
     }
     const ringA = (pData.ringA || []).slice().sort((a, b) => a.stepNo - b.stepNo);
     const ringB = (pData.ringB || []).slice().sort((a, b) => a.stepNo - b.stepNo);
