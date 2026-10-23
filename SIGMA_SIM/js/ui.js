@@ -136,14 +136,14 @@ function openTab(evt, tabName) {
     }
     if (tabName === 'tab-civil') { 
         if (typeof renderCivilSummary === 'function') renderCivilSummary(); 
-        if (STATE.activeJid && typeof renderCivilStats === 'function') renderCivilStats(STATE.activeJid);
+        if (STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid] && typeof renderCivilStats === 'function') renderCivilStats(STATE.activeJid);
     }
     if (tabName === 'tab-info') {
         const movContainer = document.getElementById('info-mov-combined-container');
         if (movContainer) {
             movContainer.style.display = STATE.isMapEditMode ? 'block' : 'none';
         }
-        if (typeof renderRingTables === 'function' && STATE.activeJid) {
+        if (typeof renderRingTables === 'function' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) {
             renderRingTables();
         }
     }

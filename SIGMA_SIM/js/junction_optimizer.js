@@ -801,8 +801,8 @@ function renderOptimizerPhaseTable() {
     if (!container) return;
 
     // dashboard의 STATE.activeJid 참조
-    const jid = typeof STATE !== 'undefined' ? STATE.activeJid : null;
-    const j = jid ? STATE.junctions[jid] : {
+    const jid = (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) ? STATE.activeJid : null;
+    const j = (jid && STATE.junctions[jid]) ? STATE.junctions[jid] : {
         movA: [0, 0, 0, 0, 0, 0, 0, 0],
         movB: [0, 0, 0, 0, 0, 0, 0, 0]
     };
@@ -846,6 +846,13 @@ function renderOptimizerPhaseTable() {
  */
 function loadOptStateFromJunction(j) {
     const defaults = getDefaultOptState();
+    if (!j) {
+        opt_state = defaults;
+        opt_junctionState = { flash: [], emgFireSt: false, emgFireTr: false, etcOper: false, etcSpare1: false, controller: '' };
+        renderOptimizer();
+        renderOptimizerStats();
+        return;
+    }
     if (j && j.optimizerState && Object.keys(j.optimizerState).length > 0) {
         const saved = JSON.parse(JSON.stringify(j.optimizerState));
         OPT_DIRS.forEach(d => {

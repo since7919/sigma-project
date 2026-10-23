@@ -890,7 +890,7 @@ function _loadStatsCsv(csvText) {
             }
         }
     }
-    if (typeof loadOptStateFromJunction === 'function' && typeof STATE !== 'undefined' && STATE.activeJid) {
+    if (typeof loadOptStateFromJunction === 'function' && typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) {
         loadOptStateFromJunction(STATE.junctions[STATE.activeJid]);
     }
 }

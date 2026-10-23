@@ -922,7 +922,7 @@ function applyGroupToMembers() {
         });
         
         loadGroupInfo(true);
-        if (STATE.activeJid && String(STATE.junctions[STATE.activeJid].group) === String(currentEditingGroup)) {
+        if (STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid] && String(STATE.junctions[STATE.activeJid].group) === String(currentEditingGroup)) {
             renderRingTables();
         }
         alert(`${count}개 교차로에 그룹 TOD 설정 적용 완료되었습니다.`);

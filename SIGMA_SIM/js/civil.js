@@ -165,7 +165,7 @@ function processCivilCSV(csvString) {
 
             // 3. UI 갱신
             renderCivilSummary();
-            if (STATE.activeJid) renderCivilStats(STATE.activeJid);
+            if (STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) renderCivilStats(STATE.activeJid); else renderCivilStats(null);
 
             // [연계] 데이터 로드 완료 후 전체 통계 및 HOME 대시보드 강제 갱신
             if (typeof refreshDBStats === 'function') refreshDBStats();
@@ -402,7 +402,8 @@ function renderCivilStats(jid) {
     const targetNameEl = document.getElementById('civil-target-name');
     if (!container || !targetNameEl) return;
 
-    targetNameEl.innerText = jid ? `[${STATE.junctions[jid].name}] 민원 내역 (No. ${parseInt(STATE.junctions[jid].seq)})` : "선택된 교차로 민원 (-)";
+    const j = (jid && STATE.junctions && STATE.junctions[jid]) ? STATE.junctions[jid] : null;
+    targetNameEl.innerText = j ? `[${j.name}] 민원 내역 (No. ${parseInt(j.seq || 0)})` : "선택된 교차로 민원 (-)";
 
     let rawList = (jid && STATE.civilDataByJid && STATE.civilDataByJid[jid]) ? STATE.civilDataByJid[jid] : [];
 
@@ -523,7 +524,7 @@ window.updateCivilData = function(newData) {
     });
     STATE.civilDataByJid = byJid;
     renderCivilSummary();
-    if (STATE.activeJid) renderCivilStats(STATE.activeJid);
+    if (STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]) renderCivilStats(STATE.activeJid); else renderCivilStats(null);
 
     // [추가] 만약 전체 테이블 창이 열려있다면 새로고침 (선택 사항)
     if (window.civilFullTableWindow && !window.civilFullTableWindow.closed) {

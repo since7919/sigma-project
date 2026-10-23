@@ -151,9 +151,11 @@ window.selectRegion = function(regionCode) {
             STATE.junctions = {};
             STATE.sortedJunctions = null;
         }
+        STATE.activeJid = null;
         STATE.loadedFiles = {};
         STATE.groups = {};
         STATE.civilData = [];
+        STATE.civilDataByJid = {};
         if (STATE.geoJsonLayer && window.map) {
             window.map.removeLayer(STATE.geoJsonLayer);
             STATE.geoJsonLayer = null;
@@ -165,6 +167,9 @@ window.selectRegion = function(regionCode) {
     }
     if (window.markers) window.markers.clearLayers();
     if (window.roadNetworkLayer) window.roadNetworkLayer.clearLayers();
+    if (window.map) window.map.closePopup();
+    if (typeof closeDetailOverlay === 'function') closeDetailOverlay();
+    if (typeof closeStatsOverlay === 'function') closeStatsOverlay();
     if (typeof renderDashboard === 'function') {
         const dbContainer = document.getElementById('dashboard-container');
         if (dbContainer) dbContainer.innerHTML = ''; 

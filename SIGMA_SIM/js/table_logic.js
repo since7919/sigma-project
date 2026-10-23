@@ -197,7 +197,7 @@ function handleMovInput(el) {
     const idx = parseInt(el.dataset.index);
     const val = parseInt(el.value) || 0;
 
-    const j = STATE.junctions[STATE.activeJid];
+    const j = (STATE.activeJid && STATE.junctions) ? STATE.junctions[STATE.activeJid] : null;
     if (!j) return;
 
     // 현재 선택된 시차맵 혹은 글로벌 데이터에 저장
