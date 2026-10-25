@@ -942,11 +942,23 @@ function applyUticDataToJunction(j, resData) {
                 if (Array.isArray(m.ped_green_a)) sm.pedGreenA = [...m.ped_green_a];
                 if (Array.isArray(m.ped_green_b)) sm.pedGreenB = [...m.ped_green_b];
 
+                if (m.main_movements || m.mainMovements) {
+                    sm.mainMovements = Array.isArray(m.main_movements || m.mainMovements)
+                        ? [...(m.main_movements || m.mainMovements)]
+                        : String(m.main_movements || m.mainMovements).split(';');
+                } else if (resData.mainPhase) {
+                    sm.mainMovements = [`A${resData.mainPhase - 1}`, `B${resData.mainPhase - 1}`];
+                }
+
                 if (typeof window.parseStepsToSignalMap === 'function' && sm.stepsA && sm.stepsA.length > 0) {
                     window.parseStepsToSignalMap(sm, sm.stepsA, sm.stepsB || []);
                 }
             }
         });
+
+        if (j.signalMaps && j.signalMaps[0]) {
+            j.mainMovements = [...(j.signalMaps[0].mainMovements || ['A0', 'B0'])];
+        }
     }
 
     j._detailLoaded = true;
@@ -968,17 +980,18 @@ window.importActiveJunctionUTIC = async function() {
     const regionCode = (j.id && j.id.includes('-')) ? j.id.split('-')[0] : (window.CURRENT_REGION_CODE || 'L02');
     const regionName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
 
-    const confirmMsg = `[${j.name} (${j.id} / ${regionName})] 교차로의 신호데이터를 경찰청 UTIC에서 가져오시겠습니까?\n\n`
+    const confirmMsg = `[${j.name} (${j.id} / ${regionName})] 교차로의 신호데이터를 Supabase 클라우드 DB에서 불러오시겠습니까?\n\n`
+        + `• 데이터 소스: 시그마 API & Supabase DB (UTIC 운영계획 + 주현시 정보 통합)\n`
         + `• 대상 지자체: ${regionName} (${regionCode})\n`
-        + `• 가져올 데이터: TOD 운영계획(1~10 일계획), 주간 요일계획, 시그널맵(Ring A/B)\n`
-        + `• 일반 사용자 모드: 현재 화면의 편집창에 즉시 불러오며, 확인 후 상단의 [☁️ 클라우드 저장]을 눌러 서버에 영구 반영할 수 있습니다.`;
+        + `• 불러올 데이터: 시그널맵(Ring A/B, 주현시), TOD 1~10 일계획, 주간 요일계획\n`
+        + `• 안내: Supabase DB에 저장된 신호데이터 및 주현시를 우선 로드하며, 미등록 교차로는 UTIC 센터에서 자동 동기화합니다.`;
 
     if (!confirm(confirmMsg)) {
         return;
     }
 
     if (typeof showLoading === 'function') {
-        showLoading(`[${j.name}] UTIC 신호데이터 조회 및 로딩 중...`);
+        showLoading(`[${j.name}] Supabase 신호데이터 및 주현시 로딩 중...`);
     }
 
     try {
@@ -1020,7 +1033,9 @@ window.importActiveJunctionUTIC = async function() {
             btnSave.style.cursor = 'pointer';
         }
 
-        alert(`[${j.name} (${regionName})] UTIC 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획)를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
+        const sourceLabel = resData.source === 'supabase' ? 'Supabase 클라우드 DB' : '경찰청 UTIC 센터';
+        const phaseLabel = resData.mainPhase ? ` (주현시: ${resData.mainPhase}현시)` : '';
+        alert(`[${j.name} (${regionName})] ${sourceLabel}에서 신호데이터${phaseLabel}를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
     } catch (err) {
         alert("UTIC 신호데이터 가져오기 실패: " + err.message);
     } finally {

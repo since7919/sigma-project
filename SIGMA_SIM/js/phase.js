@@ -62,6 +62,9 @@ function renderRingTables() {
     UI.todInpOffset.value = p.offset;
 
     // ── [Migration] signalMaps가 없으면 생성 ──
+    const defaultMainP = (j && j.mainPhase) || ((j && j.regionCode === 'L02') || (window.STATE && STATE.currentRegion === 'L02') ? 2 : 1);
+    const defMovs = (j && j.mainMovements && j.mainMovements.length > 0) ? j.mainMovements : [`A${defaultMainP - 1}`, `B${defaultMainP - 1}`];
+
     if (j.id && !j.signalMaps) {
         // 기존 Plan 데이터에서 전적색, 황색 등 초기값 추출 (첫날 첫플랜 기준)
         const refP = (j.dayPlans && j.dayPlans[0]) ? j.dayPlans[0][0] : DEFAULT_PLAN_CACHE.dayPlans[0][0];
@@ -79,14 +82,14 @@ function renderRingTables() {
             pedB: [...(refP.pedB || [0, 15, 0, 15, 0, 0, 0, 0])],
             pedDelayA: [...(refP.pedDelayA || [0, 2, 0, 2, 0, 0, 0, 0])],
             pedDelayB: [...(refP.pedDelayB || [0, 2, 0, 2, 0, 0, 0, 0])],
-            mainMovements: ['A0', 'B0']
+            mainMovements: [...defMovs]
         }));
         // 기존 0번 맵에 데이터 복사
         j.signalMaps[0].movA = [...(j.movA || [0, 0, 0, 0, 0, 0, 0, 0])];
         j.signalMaps[0].movB = [...(j.movB || [0, 0, 0, 0, 0, 0, 0, 0])];
         j.signalMaps[0].pedMovA = [...(j.pedMovA || [0, 0, 0, 0, 0, 0, 0, 0])];
         j.signalMaps[0].pedMovB = [...(j.pedMovB || [0, 0, 0, 0, 0, 0, 0, 0])];
-        j.signalMaps[0].mainMovements = [...(j.mainMovements || ['A0', 'B0'])];
+        j.signalMaps[0].mainMovements = [...defMovs];
     }
 
     const smIdx = STATE.currentSignalMapIdx || 0;
@@ -97,10 +100,13 @@ function renderRingTables() {
         allredA: [2, 2, 2, 2, 0, 0, 0, 0], allredB: [2, 2, 2, 2, 0, 0, 0, 0],
         pedA: [0, 0, 0, 0, 0, 0, 0, 0], pedB: [0, 0, 0, 0, 0, 0, 0, 0],
         pedDelayA: [0, 0, 0, 0, 0, 0, 0, 0], pedDelayB: [0, 0, 0, 0, 0, 0, 0, 0],
-        mainMovements: ['A0', 'B0']
+        mainMovements: [...defMovs]
     };
     
     const sm = (j.signalMaps && j.signalMaps[smIdx]) ? j.signalMaps[smIdx] : fallbackMap;
+    if (sm && (!sm.mainMovements || sm.mainMovements.length === 0)) {
+        sm.mainMovements = [...defMovs];
+    }
 
     // 동적 현시표 업데이트 연동
     if (window.ipdInstance && sm) {
@@ -565,7 +571,20 @@ function limitCheck(el) {
     const j = STATE.junctions[jid];
     const smIdx = STATE.currentSignalMapIdx || 0;
     if (j && j.signalMaps && j.signalMaps[smIdx]) {
-        j.signalMaps[smIdx].mainMovements = Array.from(checked).map(c => c.value);
+        const val = checked.length > 0 ? checked[0].value : 'A0';
+        const pIdx = parseInt(val.replace(/[^0-9]/g, '')) || 0;
+        j.signalMaps[smIdx].mainMovements = [`A${pIdx}`, `B${pIdx}`];
+        j.mainMovements = [...j.signalMaps[smIdx].mainMovements];
+        j.mainPhase = pIdx + 1;
+
+        window._isDirty = true;
+        const btnSave = document.getElementById('btn-junction-db-update');
+        if (btnSave) {
+            btnSave.disabled = false;
+            btnSave.style.opacity = '1';
+            btnSave.style.cursor = 'pointer';
+        }
+        if (typeof renderOverlayPlanInfo === 'function') renderOverlayPlanInfo(jid);
     }
 }
 

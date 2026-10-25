@@ -862,6 +862,13 @@ async function fetchJunctionDetail(jid) {
         const data = await res.json();
         
         if (data.success) {
+            if (data.weeklyPlan) {
+                j.weeklyPlan = data.weeklyPlan;
+            }
+            if (data.mainPhase) {
+                j.mainPhase = data.mainPhase;
+            }
+
             // signal_maps
             data.signal_maps.forEach(row => {
                 const midx = parseInt(row.map_idx);
@@ -878,12 +885,17 @@ async function fetchJunctionDetail(jid) {
                     }
                 });
                 if (row.main_movements) {
-                    sm.mainMovements = Array.isArray(row.main_movements) ? row.main_movements : String(row.main_movements).split(';');
+                    sm.mainMovements = Array.isArray(row.main_movements) ? [...row.main_movements] : String(row.main_movements).split(';');
+                } else if (data.mainPhase) {
+                    sm.mainMovements = [`A${data.mainPhase - 1}`, `B${data.mainPhase - 1}`];
                 }
                 let st = row.start_time || ""; if (st.includes(';')) st = "";
                 let et = row.end_time || ""; if (et.includes(';')) et = "";
-                
             });
+
+            if (j.signalMaps && j.signalMaps[0]) {
+                j.mainMovements = [...(j.signalMaps[0].mainMovements || ['A0', 'B0'])];
+            }
 
             // tod_plans
             data.tod_plans.forEach(row => {

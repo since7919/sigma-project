@@ -972,6 +972,15 @@ app.get('/api/sim/data', async (req, res) => {
           try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           let lastId = `${regionCode}-`;
+          const mainPhasesMap = {};
+          try {
+            const { data: mpData } = await supabase.from('intersection_main_phases').select('int_no, main_phase');
+            if (mpData) {
+              mpData.forEach(item => { mainPhasesMap[item.int_no] = item.main_phase; });
+            }
+          } catch (mpErr) {
+            console.warn('[CSV Export] Preload main phases warning:', mpErr.message);
+          }
           while (true) {
             const { data, error } = await supabase.from('signal_maps').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('map_idx').limit(300);
             if (error || !data || data.length === 0) break;
@@ -1025,6 +1034,14 @@ app.get('/api/sim/data', async (req, res) => {
             let chunk = "";
             safeData.forEach(r => {
                 const minRaw = minifyRawSteps(r.raw_steps);
+                const intNo = r.id.includes('-') ? r.id.split('-')[1] : r.id;
+                const customMp = mainPhasesMap[r.id] || mainPhasesMap[intNo];
+                let rawMm = r.main_movements;
+                if (customMp) {
+                    rawMm = [`A${customMp - 1}`, `B${customMp - 1}`];
+                } else if ((!rawMm || rawMm === '["A0","B0"]' || rawMm === 'A0;B0') && regionCode === 'L02') {
+                    rawMm = ['A1', 'B1']; // L02 (용인/경기) 기본 주현시 = 2현시
+                }
                 const line = [
                     r.id,
                     r.map_idx,
@@ -1032,7 +1049,7 @@ app.get('/api/sim/data', async (req, res) => {
                     formatCsvArray(r.mov_b),
                     formatCsvArray(r.ped_mov_a),
                     formatCsvArray(r.ped_mov_b),
-                    formatCsvArray(r.main_movements),
+                    formatCsvArray(rawMm),
                     formatCsvArray(r.yellow_a),
                     formatCsvArray(r.yellow_b),
                     formatCsvArray(r.allred_a),
@@ -1078,6 +1095,15 @@ app.get('/api/sim/data', async (req, res) => {
           try { if (res.flush && !res.writableEnded) res.flush(); } catch(e) {}
           
           let lastId = `${regionCode}-`;
+          const mainPhasesMap = {};
+          try {
+            const { data: mpData } = await supabase.from('intersection_main_phases').select('int_no, main_phase');
+            if (mpData) {
+              mpData.forEach(item => { mainPhasesMap[item.int_no] = item.main_phase; });
+            }
+          } catch (mpErr) {
+            console.warn('[CSV Export] Preload main phases warning:', mpErr.message);
+          }
           while (true) {
             const { data, error } = await supabase.from('tod_plans').select('*').like('id', `${regionCode}-%`).gt('id', lastId).order('id').order('day_plan').limit(500);
             if (error || !data || data.length === 0) break;
@@ -1233,25 +1259,46 @@ app.get('/api/sim/data', async (req, res) => {
   }
 });
 
-// On-Demand Junction Detail API
+// On-Demand Junction Detail API (Supabase DB 저장된 UTIC 신호데이터 + 주현시 통합 반환)
 app.get('/api/sim/junction-detail/:id', async (req, res) => {
   const jid = req.params.id;
   try {
-    const [mapsResult, plansResult] = await Promise.all([
+    const intNo = jid.includes('-') ? jid.split('-')[1] : jid;
+    const regionCode = jid.includes('-') ? jid.split('-')[0] : 'L02';
+
+    const [mapsResult, plansResult, junctResult, mainPhaseResult] = await Promise.all([
       supabase.from('signal_maps').select('*').eq('id', jid).order('map_idx'),
-      supabase.from('tod_plans').select('*').eq('id', jid).order('day_plan')
+      supabase.from('tod_plans').select('*').eq('id', jid).order('day_plan'),
+      supabase.from('junctions').select('id, name, region_cd, weekly_plan').eq('id', jid).maybeSingle(),
+      supabase.from('intersection_main_phases').select('main_phase').or(`int_no.eq.${jid},int_no.eq.${intNo}`).maybeSingle()
     ]);
 
     if (mapsResult.error) throw mapsResult.error;
     if (plansResult.error) throw plansResult.error;
 
+    // 주현시 결정: intersection_main_phases 설정값 -> L02는 2현시 기본 -> 기타 1현시 기본
+    const mainPhase = mainPhaseResult?.data?.main_phase || (regionCode === 'L02' ? 2 : 1);
+
+    const maps = (mapsResult.data || []).map(m => {
+      let mm = m.main_movements;
+      if (!mm || mm === '["A0","B0"]' || mm === 'A0;B0') {
+        mm = [`A${mainPhase - 1}`, `B${mainPhase - 1}`];
+      }
+      return { ...m, main_movements: mm };
+    });
+
     res.json({
       success: true,
-      signal_maps: mapsResult.data || [],
+      source: 'supabase',
+      jid,
+      itstNm: junctResult?.data?.name || '',
+      regionCode,
+      weeklyPlan: junctResult?.data?.weekly_plan || '',
+      mainPhase,
+      signal_maps: maps,
       tod_plans: plansResult.data || []
     });
   } catch (err) {
-    generationLocks[file] = false;
     sendErrorResponse(res, err, '교차로 상세 정보 조회에 실패했습니다.');
   }
 });
@@ -1902,6 +1949,21 @@ app.post('/api/sim/update-junction', async (req, res) => {
             try { debugStr = JSON.stringify(mapsPayload).substring(0, 150); } catch(e){}
             throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message} | Payload snippet: ${debugStr}`);
           }
+
+          // 주현시 추출하여 intersection_main_phases에도 양방향 동기화
+          const firstMap = mapsPayload.find(m => m.map_idx === 0) || mapsPayload[0];
+          if (firstMap && firstMap.main_movements) {
+            const mmStr = String(firstMap.main_movements);
+            const match = mmStr.match(/[AB]([0-7])/);
+            if (match) {
+              const phaseNum = parseInt(match[1], 10) + 1;
+              const intNo = jid.includes('-') ? jid.split('-')[1] : jid;
+              await supabase.from('intersection_main_phases').upsert([
+                { int_no: jid, main_phase: phaseNum, updated_at: new Date().toISOString() },
+                { int_no: intNo, main_phase: phaseNum, updated_at: new Date().toISOString() }
+              ], { onConflict: 'int_no' }).catch(e => console.warn('[Update Junction] Main phase sync warning:', e.message));
+            }
+          }
         }
       }
 
@@ -2440,7 +2502,7 @@ function invalidateRegionCsvCache(regionCode) {
 }
 
 // UTIC 스텝 데이터를 SIGMA 시그널맵 속성으로 변환하는 순수 파서
-function parseStepsToSignalMap(stepsA, stepsB) {
+function parseStepsToSignalMap(stepsA, stepsB, mainPhase = 1) {
   const processRing = (steps, isRingB = false) => {
     const phaseData = Array.from({ length: 8 }, () => ({ vId: 0, pId: 0, g: 0, f: 0, yellow: 0, delay: 0 }));
     if (!steps || steps.length === 0) return phaseData;
@@ -2514,6 +2576,7 @@ function parseStepsToSignalMap(stepsA, stepsB) {
   const dataA = processRing(stepsA, false);
   const dataB = processRing(stepsB, true);
 
+  const mainP = Math.max(1, Math.min(8, parseInt(mainPhase) || 1));
   return {
     yellowA: dataA.map(d => d.yellow),
     yellowB: dataB.map(d => d.yellow),
@@ -2531,12 +2594,16 @@ function parseStepsToSignalMap(stepsA, stepsB) {
     pedMovB: dataB.map(d => d.pId),
     allredA: [2, 2, 2, 2, 0, 0, 0, 0],
     allredB: [2, 2, 2, 2, 0, 0, 0, 0],
-    mainMovements: ['A0', 'B0']
+    mainMovements: [`A${mainP - 1}`, `B${mainP - 1}`]
   };
 }
 
-// UTIC 데이터 세트(CROP, CRWD, SigMap)를 SIGMA 모델 규격으로 파싱
-function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
+// UTIC 데이터 세트(CROP, CRWD, SigMap)를 SIGMA 모델 규격으로 파싱 (주현시 통합)
+function parseUticPayload(jid, itstNm, crop, crwd, sigMap, mainPhase = null) {
+  const regCode = (jid && jid.includes('-')) ? jid.split('-')[0] : 'L02';
+  if (mainPhase === null || mainPhase === undefined) {
+    mainPhase = regCode === 'L02' ? 2 : 1;
+  }
   // 1. 주간 요일 계획 (월~일: index 0~6)
   const dyToIdx = { '2': 0, '3': 1, '4': 2, '5': 3, '6': 4, '7': 5, '1': 6 };
   const wpArr = ['1', '1', '1', '1', '1', '2', '3'];
@@ -2695,7 +2762,7 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
     const ringA = (pData.ringA || []).slice().sort((a, b) => a.stepNo - b.stepNo);
     const ringB = (pData.ringB || []).slice().sort((a, b) => a.stepNo - b.stepNo);
 
-    const parsedData = parseStepsToSignalMap(ringA, ringB);
+    const parsedData = parseStepsToSignalMap(ringA, ringB, mainPhase);
 
     mapsPayload.push({
       id: jid,
@@ -2771,13 +2838,62 @@ function getNameCandidates(name) {
 
 // 1. 단일 교차로(JID) UTIC 신호데이터 실시간 조회 및 동기화 API (일반 사용자 및 상세 편집용 - 전국 지자체 대응)
 app.post('/api/sim/sync-utic-plan', async (req, res) => {
-  const { jid, itstNm, regionCode, saveToDb } = req.body;
+  const { jid, itstNm, regionCode, saveToDb, forceRefresh } = req.body;
   if (!jid || !itstNm) return res.status(400).json({ error: 'jid와 itstNm이 필요합니다.' });
 
   try {
     // 전국 지자체 지역코드 동적 추출 (L01~L37 등 지자체 코드 지원)
     const region = (jid && jid.includes('-')) ? jid.split('-')[0] : (regionCode || 'L02');
     const targetRegion = region;
+    const intNo = jid.includes('-') ? jid.split('-')[1] : jid;
+
+    // 1. [Supabase 우선 조회] 이미 Supabase에 저장된 UTIC 신호데이터 및 주현시 정보가 있는지 확인
+    if (!forceRefresh) {
+      const [sbMaps, sbTod, sbJunct, sbMainPhase] = await Promise.all([
+        supabase.from('signal_maps').select('*').eq('id', jid).order('map_idx'),
+        supabase.from('tod_plans').select('*').eq('id', jid).order('day_plan'),
+        supabase.from('junctions').select('weekly_plan, name').eq('id', jid).maybeSingle(),
+        supabase.from('intersection_main_phases').select('main_phase').or(`int_no.eq.${jid},int_no.eq.${intNo}`).maybeSingle()
+      ]);
+
+      if (sbMaps.data && sbMaps.data.length > 0 && sbTod.data && sbTod.data.length > 0) {
+        const mainPhase = sbMainPhase?.data?.main_phase || (targetRegion === 'L02' ? 2 : 1);
+        const formattedMaps = sbMaps.data.map(m => {
+          let mm = m.main_movements;
+          if (!mm || mm === '["A0","B0"]' || mm === 'A0;B0') {
+            mm = [`A${mainPhase - 1}`, `B${mainPhase - 1}`];
+          } else if (typeof mm === 'string') {
+            try { mm = JSON.parse(mm); } catch(e) { mm = mm.split(';'); }
+          }
+          return {
+            map_idx: m.map_idx,
+            raw_steps: m.raw_steps,
+            mov_a: m.mov_a, mov_b: m.mov_b,
+            ped_mov_a: m.ped_mov_a, ped_mov_b: m.ped_mov_b,
+            main_movements: mm,
+            yellow_a: m.yellow_a, yellow_b: m.yellow_b,
+            allred_a: m.allred_a, allred_b: m.allred_b,
+            ped_a: m.ped_a, ped_b: m.ped_b,
+            ped_delay_a: m.ped_delay_a, ped_delay_b: m.ped_delay_b,
+            ped_flash_a: m.ped_flash_a, ped_flash_b: m.ped_flash_b,
+            ped_green_a: m.ped_green_a, ped_green_b: m.ped_green_b
+          };
+        });
+
+        return res.json({
+          success: true,
+          source: 'supabase',
+          jid,
+          itstNm: sbJunct?.data?.name || itstNm,
+          regionCode: targetRegion,
+          weeklyPlan: sbJunct?.data?.weekly_plan || '',
+          mainPhase,
+          signalMaps: formattedMaps,
+          todPlans: sbTod.data,
+          message: `[${sbJunct?.data?.name || itstNm}] Supabase DB에 저장된 신호데이터 및 주현시(${mainPhase}현시)를 성공적으로 불러왔습니다.`
+        });
+      }
+    }
 
     // 명칭 변환 후보군 생성
     const candidatesSet = new Set(getNameCandidates(itstNm));
@@ -2841,7 +2957,9 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
       return res.status(404).json({ error: `경찰청 UTIC에서 [${itstNm}] (${targetRegion}) 교차로에 대한 신호 운영 데이터를 찾을 수 없습니다.` });
     }
 
-    const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(jid, itstNm, crop, crwd, sigMap);
+    const { data: sbMainPhase } = await supabase.from('intersection_main_phases').select('main_phase').or(`int_no.eq.${jid},int_no.eq.${intNo}`).maybeSingle();
+    const mainPhase = sbMainPhase?.main_phase || (targetRegion === 'L02' ? 2 : 1);
+    const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(jid, itstNm, crop, crwd, sigMap, mainPhase);
 
     // 사용자가 서버 DB 즉시 저장을 요청한 경우에만 DB 반영
     if (saveToDb === true) {
@@ -2863,11 +2981,13 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
 
     res.json({
       success: true,
+      source: 'utic_api',
       jid,
       itstNm,
       matchedName: finalMatched,
       regionCode: targetRegion,
       weeklyPlan: weeklyPlanStr,
+      mainPhase,
       todPlans: todPayload,
       signalMaps: mapsPayload,
       signalMapsCount: mapsPayload.filter(m => m.raw_steps && m.raw_steps.stepsA && m.raw_steps.stepsA.length > 0).length,
