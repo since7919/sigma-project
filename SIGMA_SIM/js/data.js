@@ -893,14 +893,26 @@ async function fetchJunctionDetail(jid) {
                 for (let sIdx = 0; sIdx < 16; sIdx++) {
                     const slot = row[`time_plan${sIdx+1}`]; if (!slot) continue;
                     const p = slot.split('|');
-                    if (p[0] === "-1") j.schedules[dIdx][sIdx].h = -1;
-                    else if (p[0].includes(':')) { const [h, m] = p[0].split(':').map(Number); j.schedules[dIdx][sIdx].h = h; j.schedules[dIdx][sIdx].m = m; }
-                    if (p[1]) j.schedules[dIdx][sIdx].cycle = parseInt(p[1]);
+                    const splitA = p[3] ? p[3].split(';').map(Number) : [];
+                    const splitB = p[4] ? p[4].split(';').map(Number) : [];
+                    const sumA = splitA.reduce((a, b) => a + b, 0);
+                    const sumB = splitB.reduce((a, b) => a + b, 0);
+
+                    if (p[0] === "-1" || p[0] === "-1:0" || (sumA === 0 && sumB === 0)) {
+                        j.schedules[dIdx][sIdx].h = -1;
+                        j.schedules[dIdx][sIdx].m = 0;
+                        j.schedules[dIdx][sIdx].cycle = 0;
+                    } else if (p[0].includes(':')) {
+                        const [h, m] = p[0].split(':').map(Number);
+                        j.schedules[dIdx][sIdx].h = h;
+                        j.schedules[dIdx][sIdx].m = m;
+                        if (p[1]) j.schedules[dIdx][sIdx].cycle = parseInt(p[1]);
+                    }
                     if (p[2]) j.dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
-                    if (p[3]) j.dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
-                    if (p[4]) j.dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);
-                    if (p[5]) j.schedules[dIdx][sIdx].idx = parseInt(p[5]);
-                    else j.schedules[dIdx][sIdx].idx = (parseInt(row.signal_map) || 0) + 1;
+                    j.dayPlans[dIdx][sIdx].splitA = splitA.length === 8 ? splitA : Array(8).fill(0);
+                    j.dayPlans[dIdx][sIdx].splitB = splitB.length === 8 ? splitB : Array(8).fill(0);
+                    if (p[5]) j.schedules[dIdx][sIdx].idx = parseInt(p[5]) || (sIdx + 1);
+                    else j.schedules[dIdx][sIdx].idx = sIdx + 1;
                 }
             });
 

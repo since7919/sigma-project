@@ -583,6 +583,7 @@ function renderSummaryTable() {
     const plans = j.dayPlans[dayIdx];
     const schedules = j.schedules ? j.schedules[dayIdx] : null;
 
+    const isSeoul = !jid || jid.startsWith("L01-") || (STATE.currentRegionCode === "L01");
     const selectedPatternIdx = cur + 1;
 
     const generateTableHTML = (startIdx, endIdx) => {
@@ -629,12 +630,14 @@ function renderSummaryTable() {
             const cycleTooltip = hasMismatch ? `주기 불일치 (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
 
             let idCell = null;
-            if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
-            else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-            else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-            else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-            else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
-            else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            if (isSeoul) {
+                if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
+                else if (i === 1) idCell = { content: '2', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+                else if (i === 4) idCell = { content: '3', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+                else if (i === 7) idCell = { content: '4', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+                else if (i === 10) idCell = { content: '5', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+                else if (i === 13) idCell = { content: '6', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 3 } };
+            }
 
             let rowCells = [];
             if (idCell) rowCells.push(idCell);
@@ -687,7 +690,7 @@ function renderSummaryTable() {
                 <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
                     <thead>
                         <tr style="background: rgba(255,255,255,0.05);">
-                            <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>
+                            ${isSeoul ? `<th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 25px; color: #94a3b8;">No</th>` : ''}
                             <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 35px; color: #94a3b8;">Index</th>
                             <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 55px; color: #94a3b8;">주기${startIdx === 0 ? ` <button class="btn-xs" style="padding:1px 3px; font-size:9px; background:var(--accent); color:#000; border:none; border-radius:2px; cursor:pointer; margin-left:3px;" onclick="autoFillCycleFromSplits()" title="모든 슬롯의 주기를 스플릿 합계로 자동 채움">합계</button>` : ''}</th>
                             <th style="padding: 2px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); width: 40px; color: #94a3b8;">연동</th>
@@ -1163,15 +1166,19 @@ function renderTodPlanInfoTable() {
                             <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                             ${dayPlanIndices.map(idx => {
                                 const sc = (useSchedules && useSchedules[idx]) ? useSchedules[idx][rIdx] : null;
-                                const isActive = (dayIdx === idx && currentSlot === rIdx && sc && sc.h !== -1);
+                                const dp = (j && j.dayPlans && j.dayPlans[idx]) ? j.dayPlans[idx][rIdx] : null;
+                                const sumA = (dp && dp.splitA) ? dp.splitA.reduce((a, b) => a + b, 0) : 0;
+                                const sumB = (dp && dp.splitB) ? dp.splitB.reduce((a, b) => a + b, 0) : 0;
+                                const isSlotEmpty = !sc || sc.h === -1 || (sc.cycle === 0 && sumA === 0 && sumB === 0);
+                                const isActive = (dayIdx === idx && currentSlot === rIdx && !isSlotEmpty);
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
                                 const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
                                 
                                 let hVal = '', cycleVal = '', idxVal = '';
-                                if (sc && sc.h !== -1) {
+                                if (!isSlotEmpty) {
                                     hVal = String(sc.h).padStart(2,'0') + ':' + String(sc.m).padStart(2,'0');
-                                    cycleVal = sc.cycle || '';
-                                    idxVal = sc.idx !== undefined ? sc.idx : '';
+                                    cycleVal = (sc.cycle && sc.cycle > 0) ? sc.cycle : '';
+                                    idxVal = (sc.idx !== undefined && sc.idx !== null && sc.idx !== 0) ? sc.idx : (rIdx + 1);
                                 }
 
                                 const hCls = hVal === '' ? 'val-zero' : '';

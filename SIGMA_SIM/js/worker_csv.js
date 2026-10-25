@@ -139,7 +139,7 @@ function parseTodPlans(csv) {
             
             const p = slot.split('|');
             let h = null, m = null;
-            if (p[0] === "-1") {
+            if (p[0] === "-1" || p[0] === "-1:0") {
                 h = -1;
             } else if (p[0].includes(':')) { 
                 const hm = p[0].split(':'); 
@@ -147,22 +147,31 @@ function parseTodPlans(csv) {
                 m = parseInt(hm[1]) || 0; 
             }
             
-            const scheduleIdx = (p[5] ? parseInt(p[5]) : (mapId + 1));
+            const scheduleIdx = (p[5] ? parseInt(p[5]) : (sIdx + 1));
             
             const schedObj = {
                 sIdx: sIdx,
                 idx: scheduleIdx
             };
             if (h !== null) { schedObj.h = h; schedObj.m = m; }
-            if (p[1]) { schedObj.cycle = parseInt(p[1]); }
+            if (p[1]) { schedObj.cycle = (h === -1 ? 0 : parseInt(p[1])); }
             
             if (p[3] && p[4]) {
+                const spA = p[3].split(';').map(Number);
+                const spB = p[4].split(';').map(Number);
+                const sumA = spA.reduce((a, b) => a + b, 0);
+                const sumB = spB.reduce((a, b) => a + b, 0);
+                if (sumA === 0 && sumB === 0) {
+                    h = -1;
+                    schedObj.h = -1;
+                    schedObj.cycle = 0;
+                }
                 schedObj.dp = {
-                    splitA: p[3].split(';').map(Number),
-                    splitB: p[4].split(';').map(Number)
+                    splitA: spA,
+                    splitB: spB
                 };
-                if (p[1]) schedObj.dp.cycle = parseInt(p[1]);
-                if (p[2]) schedObj.dp.offset = parseInt(p[2]);
+                if (p[1]) schedObj.dp.cycle = (h === -1 ? 0 : parseInt(p[1]));
+                if (p[2]) schedObj.dp.offset = (h === -1 ? 0 : parseInt(p[2]));
             }
             
             schedules.push(schedObj);

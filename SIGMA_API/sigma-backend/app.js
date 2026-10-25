@@ -2574,33 +2574,53 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
     const timePlans = [];
     for (let sIdx = 0; sIdx < 16; sIdx++) {
       const item = dayItems[sIdx];
+      const splitsA = [];
+      const splitsB = [];
       if (item) {
-        const splitsA = [];
-        const splitsB = [];
         for (let i = 1; i <= 8; i++) {
           splitsA.push(parseInt(item[`A_RING_${i}_PHASE_VAL`]) || 0);
           splitsB.push(parseInt(item[`B_RING_${i}_PHASE_VAL`]) || 0);
         }
+      } else {
+        for (let i = 1; i <= 8; i++) {
+          splitsA.push(0);
+          splitsB.push(0);
+        }
+      }
+
+      const sumA = splitsA.reduce((a, b) => a + b, 0);
+      const sumB = splitsB.reduce((a, b) => a + b, 0);
+      const rawCycle = item ? (parseInt(item.INT_OPER_CYCLE_VAL) || 0) : 0;
+      const rawH = item ? parseInt(item.OPER_PLAN_HH) : -1;
+      const rawM = item ? (parseInt(item.OPER_PLAN_MI) || 0) : 0;
+      const itemIdx = item ? (parseInt(item.INT_PLAN_IDX_NO) || (sIdx + 1)) : (sIdx + 1);
+
+      // 유효한 운영계획 슬롯 판정 (주기 또는 현시 스플릿 합계가 0보다 큰 경우)
+      const isValid = (rawCycle > 0) || (sumA > 0) || (sumB > 0);
+
+      if (isValid) {
+        const cycleVal = rawCycle > 0 ? rawCycle : (sumA > 0 ? sumA : (sumB > 0 ? sumB : 100));
         timePlans.push({
           slot_idx: sIdx + 1,
-          h: parseInt(item.OPER_PLAN_HH) || 0,
-          m: parseInt(item.OPER_PLAN_MI) || 0,
-          cycle: parseInt(item.INT_OPER_CYCLE_VAL) || 100,
-          offset: parseInt(item.INT_OPER_OFFSET_VAL) || 0,
+          h: isNaN(rawH) ? 0 : rawH,
+          m: isNaN(rawM) ? 0 : rawM,
+          cycle: cycleVal,
+          offset: item ? (parseInt(item.INT_OPER_OFFSET_VAL) || 0) : 0,
           splitA: splitsA,
           splitB: splitsB,
-          idx: 1
+          idx: itemIdx
         });
       } else {
+        // 정보가 없는 미사용 슬롯: 빈칸 규격 (h: -1, cycle: 0, 스플릿 0, idx: sIdx + 1)
         timePlans.push({
           slot_idx: sIdx + 1,
           h: -1,
           m: 0,
-          cycle: 100,
+          cycle: 0,
           offset: 0,
-          splitA: [25, 25, 25, 25, 0, 0, 0, 0],
-          splitB: [25, 25, 25, 25, 0, 0, 0, 0],
-          idx: 1
+          splitA: [0, 0, 0, 0, 0, 0, 0, 0],
+          splitB: [0, 0, 0, 0, 0, 0, 0, 0],
+          idx: sIdx + 1
         });
       }
     }
