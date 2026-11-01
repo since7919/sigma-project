@@ -79,7 +79,102 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(56, 189, 248, 0.3) !important;
         }
-    </style>
+    
+        /* ─── Sigma Action Button Tooltip Bubble ─── */
+        .sigma-tooltip-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .sigma-tooltip-bubble {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 10000;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 11.5px;
+            line-height: 1.5;
+            box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 189, 248, 0.2);
+            backdrop-filter: blur(8px);
+            transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            width: max-content;
+            max-width: 320px;
+            word-break: keep-all;
+            white-space: normal;
+        }
+        .sigma-tooltip-wrap:hover .sigma-tooltip-bubble {
+            visibility: visible;
+            opacity: 1;
+        }
+        .sigma-tooltip-bubble.pos-top {
+            bottom: calc(100% + 9px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+        }
+        .sigma-tooltip-wrap:hover .sigma-tooltip-bubble.pos-top {
+            transform: translateX(-50%) translateY(0);
+        }
+        .sigma-tooltip-bubble.pos-top::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(15, 23, 42, 0.96) transparent transparent transparent;
+        }
+        .sigma-tooltip-bubble.pos-bottom {
+            top: calc(100% + 9px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-4px);
+        }
+        .sigma-tooltip-wrap:hover .sigma-tooltip-bubble.pos-bottom {
+            transform: translateX(-50%) translateY(0);
+        }
+        .sigma-tooltip-bubble.pos-bottom::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent rgba(15, 23, 42, 0.96) transparent;
+        }
+        .sigma-tooltip-bubble.align-right {
+            left: auto !important;
+            right: 0 !important;
+            transform: translateY(-4px) !important;
+        }
+        .sigma-tooltip-wrap:hover .sigma-tooltip-bubble.align-right {
+            transform: translateY(0) !important;
+        }
+        .sigma-tooltip-bubble.align-right::after {
+            left: auto !important;
+            right: 25px !important;
+            transform: none !important;
+        }
+        .sigma-tooltip-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 4px;
+        }
+        .sigma-tooltip-desc {
+            color: #cbd5e1;
+            font-size: 11px;
+            line-height: 1.45;
+        }
+</style>
 
     <style id="ambient-stats-style">
         @keyframes auroraFloat {
@@ -948,8 +1043,14 @@
                     </div>
                     <button id="btn-utic-import-phase" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid #10b981;"
                         onclick="importActiveJunctionUTIC()" title="경찰청 UTIC에서 현재 교차로의 TOD 운영계획 및 시그널맵 가져오기">🌐 UTIC 신호 가져오기</button>
-                    <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
-                        onclick="updateActiveJunctionToDB()" disabled>☁️ 클라우드 저장</button>
+                    <div class="sigma-tooltip-wrap">
+                        <button id="btn-junction-db-update" class="btn-neon magenta" style="height:28px; font-size:11px; padding:0 10px; opacity:0.5; cursor:not-allowed;"
+                            onclick="updateActiveJunctionToDB()" disabled>☁️ 클라우드 저장</button>
+                        <div class="sigma-tooltip-bubble pos-bottom">
+                            <div class="sigma-tooltip-title">☁️ 개별 교차로 클라우드 저장</div>
+                            <div class="sigma-tooltip-desc">현재 편집 중인 교차로의 변경 데이터(마스터, 시그널맵, TOD)를 중앙 클라우드 DB에 즉시 저장합니다.</div>
+                        </div>
+                    </div>
                     <button id="btn-junction-db-revert" class="btn-neon" style="height:28px; font-size:11px; padding:0 10px; background:rgba(255,255,255,0.05); color:#ccc; border:1px solid rgba(255,255,255,0.15); opacity:0.5; cursor:not-allowed;"
                         onclick="revertActiveJunctionFromDB()" disabled>☁️ 서버값으로 복원</button>
                 </div>
@@ -1357,7 +1458,15 @@
                     <div style="display:flex; gap:10px; flex-wrap: wrap;">
                         <button onclick="window.open('help.html', '_blank')" class="phase-action-btn phase-btn-blue" style="height:36px; padding:0 15px; font-size:12.5px; font-weight:900;">❓ 매뉴얼 (도움말)</button>
                         <button id="btn-clear-cache" class="phase-action-btn phase-btn-red" style="height:36px; padding:0 15px; font-size:12.5px; font-weight:900;" onclick="if(confirm('모든 캐시를 삭제하고 완전히 초기화하시겠습니까? (로컬 저장되지 않은 작업이 삭제되며, 클라우드 데이터를 다시 다운로드합니다)')) { caches.keys().then(names => Promise.all(names.map(name => caches.delete(name)))).then(() => window.location.reload(true)); }">🧹 강력 초기화</button>
-                        <button onclick="openDBUpdateModal()" class="phase-action-btn phase-btn-purple" style="height:36px; padding: 0 15px; font-size:12.5px; font-weight:900;">☁️ 클라우드 DB 동기화</button>
+                        <div class="sigma-tooltip-wrap">
+                            <button onclick="openDBUpdateModal()" class="phase-action-btn phase-btn-purple" style="height:36px; padding: 0 15px; font-size:12.5px; font-weight:900;">☁️ 클라우드 DB 동기화</button>
+                            <div class="sigma-tooltip-bubble pos-bottom align-right">
+                                <div class="sigma-tooltip-title">☁️ 클라우드 DB 동기화 (로컬 작업 ➔ 중앙 DB)</div>
+                                <div class="sigma-tooltip-desc">
+                                    현재 웹 앱(로컬 메모리/캐시)에서 편집·수정한 교차로(마스터, 시그널맵, TOD) 및 그룹 설정 데이터를 중앙 클라우드 DB(Supabase)에 일괄 업로드하여 영구 반영합니다.
+                                </div>
+                            </div>
+                        </div>
                         <button onclick="exportNormalizedDBFiles()" class="phase-action-btn phase-btn-gray" style="height:36px; padding:0 15px; font-size:12.5px;">💾 로컬 PC 파일 백업</button>
                     </div>
                 </div>
@@ -1591,9 +1700,17 @@
                                     <option value="safe" selected>🛡️ 안전 채우기 (Safe Fill - 권장)</option>
                                     <option value="force">⚠️ 전체 덮어쓰기 (Force Overwrite)</option>
                                 </select>
-                                <button onclick="startUticBatchSync()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 18px; font-size: 12.5px; font-weight: bold;">
-                                    🚀 동기화 실행
-                                </button>
+                                <div class="sigma-tooltip-wrap">
+                                    <button onclick="startUticBatchSync()" class="phase-action-btn phase-btn-blue" style="height: 34px; padding: 0 18px; font-size: 12.5px; font-weight: bold;">
+                                        🚀 동기화 실행
+                                    </button>
+                                    <div class="sigma-tooltip-bubble pos-top">
+                                        <div class="sigma-tooltip-title">🚀 UTIC 신호 일괄 동기화 (경찰청 ➔ 중앙 DB)</div>
+                                        <div class="sigma-tooltip-desc">
+                                            경찰청 도시교통정보센터(UTIC) TSI Hub API로부터 선택한 지자체 전체 교차로의 TOD 운영계획(1~10 일계획)과 시그널맵을 클라우드 DB에 일괄 수집/구축합니다.
+                                        </div>
+                                    </div>
+                                </div>
                                 <button onclick="stopUticBatchSync()" id="btn-utic-batch-stop" class="phase-action-btn phase-btn-red" style="height: 34px; padding: 0 14px; font-size: 12px; display: none;">
                                     ⏹️ 작업 중단
                                 </button>
