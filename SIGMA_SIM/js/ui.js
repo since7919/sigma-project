@@ -1053,11 +1053,13 @@ window.startUticBatchSync = async function() {
     const regionCode = selRegion ? selRegion.value : (window.CURRENT_REGION_CODE || 'L02');
     const regionName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
 
-    const modeText = mode === 'safe'
-        ? "안전 채우기 (기존 신호데이터가 있는 교차로는 건너뛰고, 빈 교차로만 UTIC에서 채움)"
-        : "전체 덮어쓰기 (기존 사용자 편집 데이터를 포함한 전체 교차로를 UTIC 최신 데이터로 강제 덮어씀)";
+    const confirmMsg = `[시그마 클라우드 데이터 일괄 동기화]\n\n`
+        + `• 대상 지역: ${regionName} (${regionCode})\n`
+        + `• 데이터 출처: 시그마API가 Supabase에 구축한 신호데이터 (TOD 1~10 일계획, 시그널맵, 주현시)\n`
+        + `• 안내: 외부 경찰청 API를 경유하지 않고 수파베이스로부터 초고속으로 동기화됩니다.\n\n`
+        + `동기화를 진행하시겠습니까?`;
 
-    if (!confirm(`[경찰청 UTIC 일괄 동기화 실행]\n\n• 대상 지역: ${regionName} (${regionCode})\n• 선택 모드: ${modeText}\n\n계속 진행하시겠습니까?`)) {
+    if (!confirm(confirmMsg)) {
         return;
     }
 
@@ -1128,7 +1130,7 @@ async function pollUticBatchStatus() {
 
         const pct = st.total > 0 ? Math.round((st.processed / st.total) * 100) : 0;
         if (progressBar) progressBar.style.width = pct + '%';
-        if (countsText) countsText.innerText = `${st.processed} / ${st.total} (${pct}%) [성공: ${st.successCount}, 건너뜀: ${st.skipCount}, 실패: ${st.failCount}]`;
+        if (countsText) countsText.innerText = `${st.processed} / ${st.total} (${pct}%) [성공: ${st.successCount}, 미보유: ${st.skipCount}, 실패: ${st.failCount}]`;
         if (statusText) {
             statusText.innerText = st.isRunning ? `동기화 진행 중: ${st.currentJunction}` : `동기화 완료`;
         }
@@ -1139,11 +1141,20 @@ async function pollUticBatchStatus() {
         }
 
         if (!st.isRunning) {
+            const wasRunning = !!_uticBatchTimer;
             if (_uticBatchTimer) {
                 clearInterval(_uticBatchTimer);
                 _uticBatchTimer = null;
             }
             if (btnStop) btnStop.style.display = 'none';
+
+            if (wasRunning && st.processed > 0) {
+                setTimeout(() => {
+                    if (confirm(`[동기화 완료] Supabase 시그마 클라우드 데이터 동기화가 완료되었습니다!\n(성공: ${st.successCount}건)\n\n지금 화면을 새로고침하여 최신 데이터를 반영하시겠습니까?`)) {
+                        window.location.reload(true);
+                    }
+                }, 500);
+            }
         }
     } catch (e) {
         console.error("폴링 오류:", e);
