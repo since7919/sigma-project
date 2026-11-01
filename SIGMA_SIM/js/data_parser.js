@@ -159,24 +159,39 @@ async function processTodPlanCSV(csv) {
                     STATE.junctions[row.jid].dayPlanMapIds[row.dIdx] = row.mapId;
                     STATE.junctions[row.jid]._detailLoaded = true;
                     
-                    for (let s = 0; s < row.schedules.length; s++) {
-                        const sched = row.schedules[s];
-                        const sIdx = sched.sIdx;
-                        
-                        STATE.junctions[row.jid].schedules[row.dIdx][sIdx].idx = sched.idx;
-                        if (sched.h !== undefined) {
-                            STATE.junctions[row.jid].schedules[row.dIdx][sIdx].h = sched.h;
-                            STATE.junctions[row.jid].schedules[row.dIdx][sIdx].m = sched.m;
-                        }
-                        if (sched.cycle !== undefined) {
-                            STATE.junctions[row.jid].schedules[row.dIdx][sIdx].cycle = sched.cycle;
-                        }
-                        
-                        if (sched.dp) {
-                            if (sched.dp.cycle !== undefined) STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].cycle = sched.dp.cycle;
-                            if (sched.dp.offset !== undefined) STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].offset = sched.dp.offset;
-                            STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].splitA = sched.dp.splitA;
-                            STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].splitB = sched.dp.splitB;
+                    if (typeof organizeUticTodPlans === 'function') {
+                        const rawItems = row.schedules.map(s => ({
+                            h: s.h,
+                            m: s.m,
+                            cycle: s.cycle || (s.dp ? s.dp.cycle : 0),
+                            offset: s.dp ? s.dp.offset : 0,
+                            splitA: s.dp ? s.dp.splitA : Array(8).fill(0),
+                            splitB: s.dp ? s.dp.splitB : Array(8).fill(0),
+                            idx: s.idx
+                        }));
+                        const organized = organizeUticTodPlans(rawItems);
+                        STATE.junctions[row.jid].dayPlans[row.dIdx] = organized.dayPlans;
+                        STATE.junctions[row.jid].schedules[row.dIdx] = organized.schedules;
+                    } else {
+                        for (let s = 0; s < row.schedules.length; s++) {
+                            const sched = row.schedules[s];
+                            const sIdx = sched.sIdx;
+                            
+                            STATE.junctions[row.jid].schedules[row.dIdx][sIdx].idx = sched.idx;
+                            if (sched.h !== undefined) {
+                                STATE.junctions[row.jid].schedules[row.dIdx][sIdx].h = sched.h;
+                                STATE.junctions[row.jid].schedules[row.dIdx][sIdx].m = sched.m;
+                            }
+                            if (sched.cycle !== undefined) {
+                                STATE.junctions[row.jid].schedules[row.dIdx][sIdx].cycle = sched.cycle;
+                            }
+                            
+                            if (sched.dp) {
+                                if (sched.dp.cycle !== undefined) STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].cycle = sched.dp.cycle;
+                                if (sched.dp.offset !== undefined) STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].offset = sched.dp.offset;
+                                STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].splitA = sched.dp.splitA;
+                                STATE.junctions[row.jid].dayPlans[row.dIdx][sIdx].splitB = sched.dp.splitB;
+                            }
                         }
                     }
                 }
