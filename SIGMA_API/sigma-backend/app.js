@@ -1104,16 +1104,27 @@ app.get('/api/sim/data', async (req, res) => {
                 for (let i = 1; i <= 16; i++) {
                     let tp = tpMap[i];
                     if (tp && tp.h !== undefined) {
-                        tpCols.push(
-                            tp.h + ":" + (tp.m || 0) + "|" +
-                            (tp.cycle || 0) + "|" +
-                            (tp.offset || 0) + "|" +
-                            (tp.splitA ? tp.splitA.join(';') : '') + "|" +
-                            (tp.splitB ? tp.splitB.join(';') : '') + "|" +
-                            (tp.idx || 0)
-                        );
+                        const sumA = (tp.splitA || []).reduce((a, b) => a + b, 0);
+                        const sumB = (tp.splitB || []).reduce((a, b) => a + b, 0);
+                        const rawH = parseInt(tp.h);
+                        const rawM = parseInt(tp.m) || 0;
+                        const cycleVal = parseInt(tp.cycle) || 0;
+                        const isBlank = (rawH === -1) || ((rawH === 0 || isNaN(rawH)) && rawM === 0 && sumA === 0 && sumB === 0) || (cycleVal === 0 && sumA === 0 && sumB === 0);
+
+                        if (isBlank) {
+                            tpCols.push("-1|0|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
+                        } else {
+                            tpCols.push(
+                                tp.h + ":" + (tp.m || 0) + "|" +
+                                (tp.cycle || 0) + "|" +
+                                (tp.offset || 0) + "|" +
+                                (tp.splitA ? tp.splitA.join(';') : '') + "|" +
+                                (tp.splitB ? tp.splitB.join(';') : '') + "|" +
+                                (tp.idx || 1)
+                            );
+                        }
                     } else {
-                        tpCols.push("");
+                        tpCols.push("-1|0|0|0;0;0;0;0;0;0;0|0;0;0;0;0;0;0;0|1");
                     }
                 }
                 const lineArr = [
@@ -1245,10 +1256,35 @@ app.get('/api/sim/junction-detail/:id', async (req, res) => {
     if (mapsResult.error) throw mapsResult.error;
     if (plansResult.error) throw plansResult.error;
 
+    const cleanedTodPlans = (plansResult.data || []).map(row => {
+      if (Array.isArray(row.time_plans)) {
+        row.time_plans = row.time_plans.map(tp => {
+          const sumA = (tp.splitA || []).reduce((a, b) => a + b, 0);
+          const sumB = (tp.splitB || []).reduce((a, b) => a + b, 0);
+          const rawH = parseInt(tp.h);
+          const rawM = parseInt(tp.m) || 0;
+          const cycleVal = parseInt(tp.cycle) || 0;
+          const isBlank = (rawH === -1) || ((rawH === 0 || isNaN(rawH)) && rawM === 0 && sumA === 0 && sumB === 0) || (cycleVal === 0 && sumA === 0 && sumB === 0);
+          if (isBlank) {
+            return {
+              ...tp,
+              h: -1,
+              m: 0,
+              cycle: 0,
+              splitA: Array(8).fill(0),
+              splitB: Array(8).fill(0)
+            };
+          }
+          return tp;
+        });
+      }
+      return row;
+    });
+
     res.json({
       success: true,
       signal_maps: mapsResult.data || [],
-      tod_plans: plansResult.data || []
+      tod_plans: cleanedTodPlans
     });
   } catch (err) {
     generationLocks[file] = false;
@@ -2574,32 +2610,51 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
     const timePlans = [];
     for (let sIdx = 0; sIdx < 16; sIdx++) {
       const item = dayItems[sIdx];
+      const splitsA = [];
+      const splitsB = [];
       if (item) {
-        const splitsA = [];
-        const splitsB = [];
         for (let i = 1; i <= 8; i++) {
           splitsA.push(parseInt(item[`A_RING_${i}_PHASE_VAL`]) || 0);
           splitsB.push(parseInt(item[`B_RING_${i}_PHASE_VAL`]) || 0);
         }
+      } else {
+        for (let i = 1; i <= 8; i++) {
+          splitsA.push(0);
+          splitsB.push(0);
+        }
+      }
+
+      const sumA = splitsA.reduce((a, b) => a + b, 0);
+      const sumB = splitsB.reduce((a, b) => a + b, 0);
+      const rawCycle = item ? (parseInt(item.INT_OPER_CYCLE_VAL) || 0) : 0;
+      const rawH = item ? parseInt(item.OPER_PLAN_HH) : -1;
+      const rawM = item ? (parseInt(item.OPER_PLAN_MI) || 0) : 0;
+      const itemIdx = item ? (parseInt(item.INT_PLAN_IDX_NO) || 1) : 1;
+
+      // 실제 운영 계획 정보가 존재하는 유효 슬롯 판별 (주기나 스플릿이 0보다 큰 경우)
+      const hasValidData = (rawCycle > 0) || (sumA > 0) || (sumB > 0);
+
+      if (item && hasValidData) {
         timePlans.push({
           slot_idx: sIdx + 1,
-          h: parseInt(item.OPER_PLAN_HH) || 0,
-          m: parseInt(item.OPER_PLAN_MI) || 0,
-          cycle: parseInt(item.INT_OPER_CYCLE_VAL) || 100,
+          h: isNaN(rawH) ? 0 : rawH,
+          m: rawM,
+          cycle: rawCycle > 0 ? rawCycle : (sumA > 0 ? sumA : (sumB > 0 ? sumB : 100)),
           offset: parseInt(item.INT_OPER_OFFSET_VAL) || 0,
           splitA: splitsA,
           splitB: splitsB,
-          idx: 1
+          idx: itemIdx
         });
       } else {
+        // 실제 정보가 없는 슬롯: 빈칸 규격 (h: -1, cycle: 0, 스플릿 0)
         timePlans.push({
           slot_idx: sIdx + 1,
           h: -1,
           m: 0,
-          cycle: 100,
+          cycle: 0,
           offset: 0,
-          splitA: [25, 25, 25, 25, 0, 0, 0, 0],
-          splitB: [25, 25, 25, 25, 0, 0, 0, 0],
+          splitA: [0, 0, 0, 0, 0, 0, 0, 0],
+          splitB: [0, 0, 0, 0, 0, 0, 0, 0],
           idx: 1
         });
       }

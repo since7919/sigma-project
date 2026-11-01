@@ -516,11 +516,16 @@ function renderOverlayPlanInfo(jid) {
                                 <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                                 ${[0,1,2,3,4].map(idx => {
                                     const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
-                                    const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
+                                    const dp = (j.dayPlans && j.dayPlans[idx]) ? j.dayPlans[idx][rIdx] : null;
+                                    const dpSumA = dp && Array.isArray(dp.splitA) ? dp.splitA.reduce((a, b) => a + b, 0) : 0;
+                                    const dpSumB = dp && Array.isArray(dp.splitB) ? dp.splitB.reduce((a, b) => a + b, 0) : 0;
+                                    const isScBlank = !sc || sc.h === -1 || ((sc.h === 0 || sc.h === undefined) && (sc.m === 0 || sc.m === undefined) && dpSumA === 0 && dpSumB === 0);
+
+                                    const isActive = (dayIdx === idx && pIdx === rIdx && !isScBlank);
                                     const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
                                     const fontColor = isActive ? '#10b981' : '#cbd5e1';
                                     
-                                    if (!sc || sc.h === -1) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
+                                    if (isScBlank) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
                                     return `
                                         <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
                                         <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>
@@ -549,11 +554,16 @@ function renderOverlayPlanInfo(jid) {
                                 <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                                 ${[5,6,7,8,9].map(idx => {
                                     const sc = (j.schedules && j.schedules[idx]) ? j.schedules[idx][rIdx] : null;
-                                    const isActive = (dayIdx === idx && pIdx === rIdx && sc && sc.h !== -1);
+                                    const dp = (j.dayPlans && j.dayPlans[idx]) ? j.dayPlans[idx][rIdx] : null;
+                                    const dpSumA = dp && Array.isArray(dp.splitA) ? dp.splitA.reduce((a, b) => a + b, 0) : 0;
+                                    const dpSumB = dp && Array.isArray(dp.splitB) ? dp.splitB.reduce((a, b) => a + b, 0) : 0;
+                                    const isScBlank = !sc || sc.h === -1 || ((sc.h === 0 || sc.h === undefined) && (sc.m === 0 || sc.m === undefined) && dpSumA === 0 && dpSumB === 0);
+
+                                    const isActive = (dayIdx === idx && pIdx === rIdx && !isScBlank);
                                     const bg = isActive ? 'rgba(16, 185, 129, 0.2)' : 'transparent';
                                     const fontColor = isActive ? '#10b981' : '#cbd5e1';
                                     
-                                    if (!sc || sc.h === -1) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
+                                    if (isScBlank) return `<td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor};">-</td><td style="padding: 4px; background: ${bg}; color: ${fontColor}; font-weight: bold;">-</td>`;
                                     return `
                                         <td style="padding: 4px; border-left: 1px solid #334155; background: ${bg}; color: ${fontColor}; font-family: monospace;">${String(sc.h).padStart(2,'0')}:${String(sc.m).padStart(2,'0')}</td>
                                         <td style="padding: 4px; background: ${bg}; color: ${fontColor};">${sc.cycle}</td>

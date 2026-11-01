@@ -1163,12 +1163,17 @@ function renderTodPlanInfoTable() {
                             <td style="padding: 4px; font-weight: bold; color: #64748b;">${rIdx + 1}</td>
                             ${dayPlanIndices.map(idx => {
                                 const sc = (useSchedules && useSchedules[idx]) ? useSchedules[idx][rIdx] : null;
-                                const isActive = (dayIdx === idx && currentSlot === rIdx && sc && sc.h !== -1);
+                                const dp = (j && j.dayPlans && j.dayPlans[idx]) ? j.dayPlans[idx][rIdx] : null;
+                                const dpSumA = dp && Array.isArray(dp.splitA) ? dp.splitA.reduce((a, b) => a + b, 0) : 0;
+                                const dpSumB = dp && Array.isArray(dp.splitB) ? dp.splitB.reduce((a, b) => a + b, 0) : 0;
+                                const isScBlank = !sc || sc.h === -1 || ((sc.h === 0 || sc.h === undefined) && (sc.m === 0 || sc.m === undefined) && dpSumA === 0 && dpSumB === 0);
+
+                                const isActive = (dayIdx === idx && currentSlot === rIdx && !isScBlank);
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
                                 const fontColor = isActive ? 'var(--accent)' : '#cbd5e1';
                                 
                                 let hVal = '', cycleVal = '', idxVal = '';
-                                if (sc && sc.h !== -1) {
+                                if (!isScBlank) {
                                     hVal = String(sc.h).padStart(2,'0') + ':' + String(sc.m).padStart(2,'0');
                                     cycleVal = sc.cycle || '';
                                     idxVal = sc.idx !== undefined ? sc.idx : '';

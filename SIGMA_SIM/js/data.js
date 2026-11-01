@@ -886,23 +886,96 @@ async function fetchJunctionDetail(jid) {
             });
 
             // tod_plans
-            data.tod_plans.forEach(row => {
-                const dIdx = parseInt(row.day_plan) - 1;
-                if (isNaN(dIdx) || dIdx < 0 || dIdx >= 10) return;
-                j.dayPlanMapIds[dIdx] = parseInt(row.signal_map) || 0;
-                for (let sIdx = 0; sIdx < 16; sIdx++) {
-                    const slot = row[`time_plan${sIdx+1}`]; if (!slot) continue;
-                    const p = slot.split('|');
-                    if (p[0] === "-1") j.schedules[dIdx][sIdx].h = -1;
-                    else if (p[0].includes(':')) { const [h, m] = p[0].split(':').map(Number); j.schedules[dIdx][sIdx].h = h; j.schedules[dIdx][sIdx].m = m; }
-                    if (p[1]) j.schedules[dIdx][sIdx].cycle = parseInt(p[1]);
-                    if (p[2]) j.dayPlans[dIdx][sIdx].offset = parseInt(p[2]);
-                    if (p[3]) j.dayPlans[dIdx][sIdx].splitA = p[3].split(';').map(Number);
-                    if (p[4]) j.dayPlans[dIdx][sIdx].splitB = p[4].split(';').map(Number);
-                    if (p[5]) j.schedules[dIdx][sIdx].idx = parseInt(p[5]);
-                    else j.schedules[dIdx][sIdx].idx = (parseInt(row.signal_map) || 0) + 1;
-                }
-            });
+            if (Array.isArray(data.tod_plans)) {
+                data.tod_plans.forEach(row => {
+                    const dIdx = parseInt(row.day_plan) - 1;
+                    if (isNaN(dIdx) || dIdx < 0 || dIdx >= 10) return;
+                    j.dayPlanMapIds[dIdx] = parseInt(row.signal_map) || 0;
+
+                    if (!j.dayPlans[dIdx]) j.dayPlans[dIdx] = typeof createEmptyPlans === 'function' ? createEmptyPlans() : [];
+                    if (!j.schedules[dIdx]) j.schedules[dIdx] = typeof createEmptySched === 'function' ? createEmptySched() : [];
+
+                    if (Array.isArray(row.time_plans)) {
+                        row.time_plans.forEach(tp => {
+                            const sIdx = (tp.slot_idx !== undefined ? tp.slot_idx : tp.slotIdx) - 1;
+                            if (sIdx < 0 || sIdx >= 16) return;
+
+                            const rawH = parseInt(tp.h);
+                            const rawM = parseInt(tp.m) || 0;
+                            const cycleVal = parseInt(tp.cycle) || 0;
+                            const splitsA = Array.isArray(tp.splitA) ? tp.splitA : [];
+                            const splitsB = Array.isArray(tp.splitB) ? tp.splitB : [];
+                            const sumA = splitsA.reduce((a, b) => a + b, 0);
+                            const sumB = splitsB.reduce((a, b) => a + b, 0);
+
+                            const isBlank = (rawH === -1) || ((rawH === 0 || isNaN(rawH)) && rawM === 0 && sumA === 0 && sumB === 0) || (cycleVal === 0 && sumA === 0 && sumB === 0);
+
+                            if (!j.schedules[dIdx][sIdx]) {
+                                j.schedules[dIdx][sIdx] = { sIdx, h: -1, m: 0, cycle: 0, idx: 1 };
+                            }
+                            if (isBlank) {
+                                j.schedules[dIdx][sIdx].h = -1;
+                                j.schedules[dIdx][sIdx].m = 0;
+                                j.schedules[dIdx][sIdx].cycle = 0;
+                                j.schedules[dIdx][sIdx].idx = tp.idx || 1;
+                            } else {
+                                j.schedules[dIdx][sIdx].h = isNaN(rawH) ? 0 : rawH;
+                                j.schedules[dIdx][sIdx].m = rawM;
+                                j.schedules[dIdx][sIdx].cycle = cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100);
+                                j.schedules[dIdx][sIdx].idx = tp.idx || 1;
+                            }
+
+                            if (!j.dayPlans[dIdx][sIdx]) {
+                                j.dayPlans[dIdx][sIdx] = { cycle: 0, offset: 0, splitA: [0,0,0,0,0,0,0,0], splitB: [0,0,0,0,0,0,0,0] };
+                            }
+                            j.dayPlans[dIdx][sIdx].cycle = isBlank ? 0 : (cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100));
+                            j.dayPlans[dIdx][sIdx].offset = isBlank ? 0 : (tp.offset || 0);
+                            if (splitsA.length > 0) j.dayPlans[dIdx][sIdx].splitA = [...splitsA];
+                            if (splitsB.length > 0) j.dayPlans[dIdx][sIdx].splitB = [...splitsB];
+                        });
+                    } else {
+                        for (let sIdx = 0; sIdx < 16; sIdx++) {
+                            const slot = row[`time_plan${sIdx+1}`]; if (!slot) continue;
+                            const p = slot.split('|');
+                            let h = -1, m = 0;
+                            if (p[0] === "-1" || p[0] === "-1:0") {
+                                h = -1;
+                            } else if (p[0].includes(':')) {
+                                const hm = p[0].split(':').map(Number);
+                                h = hm[0]; m = hm[1] || 0;
+                            }
+                            const cyc = parseInt(p[1]) || 0;
+                            const spA = p[3] ? p[3].split(';').map(Number) : [];
+                            const spB = p[4] ? p[4].split(';').map(Number) : [];
+                            const sumA = spA.reduce((a, b) => a + b, 0);
+                            const sumB = spB.reduce((a, b) => a + b, 0);
+                            const isBlank = (h === -1) || (h === 0 && m === 0 && sumA === 0 && sumB === 0) || (cyc === 0 && sumA === 0 && sumB === 0);
+
+                            if (!j.schedules[dIdx][sIdx]) {
+                                j.schedules[dIdx][sIdx] = { sIdx, h: -1, m: 0, cycle: 0, idx: 1 };
+                            }
+                            if (isBlank) {
+                                j.schedules[dIdx][sIdx].h = -1;
+                                j.schedules[dIdx][sIdx].m = 0;
+                                j.schedules[dIdx][sIdx].cycle = 0;
+                                j.schedules[dIdx][sIdx].idx = p[5] ? parseInt(p[5]) : 1;
+                            } else {
+                                j.schedules[dIdx][sIdx].h = h;
+                                j.schedules[dIdx][sIdx].m = m;
+                                j.schedules[dIdx][sIdx].cycle = cyc > 0 ? cyc : (sumA > 0 ? sumA : 100);
+                                j.schedules[dIdx][sIdx].idx = p[5] ? parseInt(p[5]) : (parseInt(row.signal_map) || 0) + 1;
+                            }
+
+                            if (!j.dayPlans[dIdx][sIdx]) {
+                                j.dayPlans[dIdx][sIdx] = { cycle: 0, offset: 0, splitA: [0,0,0,0,0,0,0,0], splitB: [0,0,0,0,0,0,0,0] };
+                            }
+                            if (p[2]) j.dayPlans[dIdx][sIdx].offset = isBlank ? 0 : parseInt(p[2]);
+                            if (spA.length > 0) j.dayPlans[dIdx][sIdx].splitA = spA;
+                            if (spB.length > 0) j.dayPlans[dIdx][sIdx].splitB = spB;
+                        }
+                    }
+                });
+            }
 
             j._detailLoaded = true;
             
