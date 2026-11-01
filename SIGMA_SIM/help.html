@@ -391,5 +391,78 @@ flowchart TD
         </table>
     </div>
 
+    <!-- 5. UTIC 신호데이터 TOD 일계획 · 시간계획 배치 표준 규격 -->
+    <div class="card">
+        <h2>5. UTIC 신호데이터 TOD 일계획 · 시간계획 배치 표준 규격</h2>
+        <p style="color: #cbd5e1;">SIGMA는 도시교통정보센터(UTIC) 원천 신호데이터를 수집하여 <b>NO 1~6 주기별 3패턴 구조(하단 시간계획)</b>와 <b>24시간 시계열 운영 스케줄(상단 일계획)</b>로 표준 정제하여 자동 매핑합니다.</p>
+
+        <h3>(1) 하단 시간계획 : NO 1~6 및 INDEX 1~16 슬롯 배치 규칙</h3>
+        <ul>
+            <li><b>NO 및 INDEX 구성</b>: 시간계획은 총 6개의 NO 그룹과 총 16개의 INDEX 슬롯으로 구성됩니다.
+                <ul style="margin-top:5px; color:#94a3b8;">
+                    <li><code>NO 1</code> : 1개 슬롯 (<b>INDEX 1</b>) — 기본 기저 주기</li>
+                    <li><code>NO 2</code> : 3개 슬롯 (<b>INDEX 2, 3, 4</b>)</li>
+                    <li><code>NO 3</code> : 3개 슬롯 (<b>INDEX 5, 6, 7</b>)</li>
+                    <li><code>NO 4</code> : 3개 슬롯 (<b>INDEX 8, 9, 10</b>)</li>
+                    <li><code>NO 5</code> : 3개 슬롯 (<b>INDEX 11, 12, 13</b>)</li>
+                    <li><code>NO 6</code> : 3개 슬롯 (<b>INDEX 14, 15, 16</b>)</li>
+                </ul>
+            </li>
+            <li><b>동일 주기 배치 원칙</b>: 하나의 NO 그룹에는 <b>반드시 동일한 주기(Cycle)만 배치</b>되며, 서로 다른 주기는 절대로 동일한 NO에 공존할 수 없습니다.</li>
+            <li><b>주기 오름차순 및 빈칸 유지</b>: UTIC 원천 데이터에서 주기가 낮고 시작시간이 빠른 순으로 NO 1부터 배치하며, 동일 주기가 3개가 되지 않더라도 빈칸으로 두고 <b>주기가 변경되면 무조건 다음 NO 그룹으로 이동</b>합니다.</li>
+            <li><b>실시간 신호 자동화 연계 목적</b>: 본 아키텍처는 도심 교통 정체 시 신호주기를 단계별로 상향하고, 상향된 각 주기(NO) 내에 <b>유입(Inbound), 균형(Balance), 유출(Outbound)의 3가지 연동 패턴</b>을 체계적으로 배치하기 위한 교통공학 표준 구조이며, 사용자가 직접 수동 입력할 때의 충돌을 방지합니다.</li>
+        </ul>
+
+        <h3>(2) 상단 일계획(TOD 계획정보) : 24시간 시계열 스케줄링</h3>
+        <ul>
+            <li><b>시간 순서 정렬</b>: 상단 일계획 테이블(#1~#16)은 하루 24시간(00:00~23:59) 동안의 신호 운영 흐름을 나타내며, <b>시작 시각(오전 ➔ 오후 ➔ 야간) 오름차순</b>으로 슬롯 #1부터 차례대로 빈틈없이 배치됩니다.</li>
+            <li><b>INDEX 참조 연동 (IDX 필드)</b>: 상단 일계획의 <code>IDX</code> 값은 하단 시간계획에서 배치된 해당 <b>INDEX 번호(1~16)를 참조</b>하여, 특정 시간대에 정확한 스플릿 및 주기 패턴을 호출하도록 연결됩니다.</li>
+        </ul>
+    </div>
+
+    <!-- 6. UTIC 데이터 수집 및 갱신 아키텍처 -->
+    <div class="card">
+        <h2>6. UTIC 데이터 수집 및 갱신 아키텍처 (시그마 API 기반 고속 동기화)</h2>
+        <p style="color: #cbd5e1;">SIGMA 시뮬레이터는 안정적인 관제와 즉각적인 데이터 서빙을 위해 경찰청 UTIC OpenAPI 직접 호출 방식을 지양하고, <b>시그마 API(클라우드 DB) 중앙 허브</b>를 통해 데이터를 동기화합니다.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%;">구분</th>
+                    <th style="width: 35%;">경찰청 UTIC OpenAPI 직접 호출 방식</th>
+                    <th style="width: 40%; color: #38bdf8;">SIGMA API 중앙 정제 허브 방식 (현재 표준)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>응답 속도</b></td>
+                    <td>교차로당 2~5초 소요 (전국 수천 개 동기화 시 수 시간 소요)</td>
+                    <td><b>초당 50ms 이내 초고속 반환</b> (Supabase 인덱스 캐시)</td>
+                </tr>
+                <tr>
+                    <td><b>데이터 완전성</b></td>
+                    <td>주현시(Main Phase) 미포함, 결측 및 포맷 불일치 빈번</td>
+                    <td><b>지자체별 주현시 사전 등록 및 NO/INDEX 표준 규격 완벽 정제</b></td>
+                </tr>
+                <tr>
+                    <td><b>수집/조회 주체</b></td>
+                    <td>시뮬레이터 브라우저 클라이언트</td>
+                    <td><b>SIGMA SIM은 시그마 API(Supabase)로부터 즉시 로드</b></td>
+                </tr>
+                <tr>
+                    <td><b>원천 데이터 최신화</b></td>
+                    <td>클라이언트 개별 호출에 의존</td>
+                    <td><b>시그마 API 백엔드(서버/DB 센터)에서 중앙 일괄 최신화 수행</b></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 14px 18px; margin-top: 20px; font-size: 13.5px; color: #bae6fd; line-height: 1.6;">
+            <b>📌 핵심 운영 지침:</b><br>
+            • <b>시뮬레이터 관제/분석 시</b>: 경찰청 API를 다시 조회하지 않으며, 이미 검증·정제되어 클라우드에 적재된 <b>시그마 API의 데이터</b>를 활용합니다.<br>
+            • <b>데이터 최신화(갱신) 필요 시</b>: 클라이언트가 아닌 <b>시그마 API 서버(DB 센터 동기화 엔진)</b>에서 경찰청 원천 데이터를 최신으로 갱신해야 하며, 갱신된 최신 데이터는 시그마 클라우드 DB를 통해 전국 모든 사용자에게 즉시 전파됩니다.
+        </div>
+    </div>
+
 </body>
 </html>
