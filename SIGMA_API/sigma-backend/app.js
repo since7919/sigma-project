@@ -2571,6 +2571,139 @@ function parseStepsToSignalMap(stepsA, stepsB) {
   };
 }
 
+
+/**
+ * UTIC TOD 운영계획을 NO 1~6 (주기별) 및 INDEX 1~16 (패턴별) 구조로 자동 재배치
+ * - NO 1: 1개 슬롯 (INDEX 1)
+ * - NO 2~6: 각 3개 슬롯씩 (INDEX 2..4, 5..7, 8..10, 11..13, 14..16)
+ * - 주기가 낮고 시작시간이 빠른 순으로 정렬
+ * - 주기가 다르면 다음 NO로 이동 (3개가 안 채워져도 빈칸으로 두고 다음 NO로 이동)
+ * - 배치된 INDEX 번호(1~16)를 일계획(schedules)의 idx로 연결
+ */
+function organizeUticTodPlans(rawItems) {
+    const NO_SLOT_RANGES = [
+        [0],          // NO 1 -> slot 0 (INDEX 1)
+        [1, 2, 3],    // NO 2 -> slot 1..3 (INDEX 2..4)
+        [4, 5, 6],    // NO 3 -> slot 4..6 (INDEX 5..7)
+        [7, 8, 9],    // NO 4 -> slot 7..9 (INDEX 8..10)
+        [10, 11, 12], // NO 5 -> slot 10..12 (INDEX 11..13)
+        [13, 14, 15]  // NO 6 -> slot 13..15 (INDEX 14..16)
+    ];
+
+    const validItems = [];
+    (rawItems || []).forEach((item, origIdx) => {
+        if (!item) return;
+        const splitsA = [];
+        const splitsB = [];
+        for (let i = 1; i <= 8; i++) {
+            splitsA.push(parseInt(item['A_RING_' + i + '_PHASE_VAL']) || (Array.isArray(item.splitA) ? (parseInt(item.splitA[i - 1]) || 0) : 0) || 0);
+            splitsB.push(parseInt(item['B_RING_' + i + '_PHASE_VAL']) || (Array.isArray(item.splitB) ? (parseInt(item.splitB[i - 1]) || 0) : 0) || 0);
+        }
+        const sumA = splitsA.reduce((a, b) => a + b, 0);
+        const sumB = splitsB.reduce((a, b) => a + b, 0);
+        const rawCycle = parseInt(item.INT_OPER_CYCLE_VAL || item.cycle) || 0;
+        const rawH = parseInt(item.OPER_PLAN_HH !== undefined ? item.OPER_PLAN_HH : item.h);
+        const rawM = parseInt(item.OPER_PLAN_MI !== undefined ? item.OPER_PLAN_MI : item.m) || 0;
+        const offset = parseInt(item.INT_OPER_OFFSET_VAL !== undefined ? item.INT_OPER_OFFSET_VAL : item.offset) || 0;
+
+        if (rawH !== -1 && (rawCycle > 0 || sumA > 0 || sumB > 0)) {
+            const h = isNaN(rawH) ? 0 : rawH;
+            const m = rawM;
+            const cycle = rawCycle > 0 ? rawCycle : (sumA > 0 ? sumA : (sumB > 0 ? sumB : 100));
+            validItems.push({
+                origIdx,
+                h,
+                m,
+                timeMinutes: h * 60 + m,
+                cycle,
+                offset,
+                splitA: splitsA,
+                splitB: splitsB,
+                assignedIndex: null
+            });
+        }
+    });
+
+    validItems.sort((a, b) => {
+        if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+        return a.timeMinutes - b.timeMinutes;
+    });
+
+    const cycleGroups = [];
+    validItems.forEach(item => {
+        let lastGroup = cycleGroups[cycleGroups.length - 1];
+        if (!lastGroup || lastGroup.cycle !== item.cycle) {
+            lastGroup = { cycle: item.cycle, items: [] };
+            cycleGroups.push(lastGroup);
+        }
+        lastGroup.items.push(item);
+    });
+
+    const dayPlans = Array.from({ length: 16 }, () => ({
+        cycle: 0,
+        offset: 0,
+        splitA: Array(8).fill(0),
+        splitB: Array(8).fill(0)
+    }));
+
+    let currentNoIdx = 0;
+    cycleGroups.forEach(group => {
+        if (currentNoIdx >= 6) return;
+
+        let itemIdxInGroup = 0;
+        while (itemIdxInGroup < group.items.length && currentNoIdx < 6) {
+            const slotsForThisNo = NO_SLOT_RANGES[currentNoIdx];
+            let slotPos = 0;
+
+            while (slotPos < slotsForThisNo.length && itemIdxInGroup < group.items.length) {
+                const targetSlot = slotsForThisNo[slotPos];
+                const planItem = group.items[itemIdxInGroup];
+
+                dayPlans[targetSlot] = {
+                    cycle: planItem.cycle,
+                    offset: planItem.offset,
+                    splitA: [...planItem.splitA],
+                    splitB: [...planItem.splitB],
+                    h: planItem.h,
+                    m: planItem.m
+                };
+
+                planItem.assignedIndex = targetSlot + 1;
+
+                slotPos++;
+                itemIdxInGroup++;
+            }
+
+            currentNoIdx++;
+        }
+    });
+
+    const scheduleItems = [...validItems].sort((a, b) => a.timeMinutes - b.timeMinutes);
+
+    const schedules = Array.from({ length: 16 }, (_, sIdx) => {
+        if (sIdx < scheduleItems.length) {
+            const it = scheduleItems[sIdx];
+            return {
+                sIdx,
+                h: it.h,
+                m: it.m,
+                cycle: it.cycle,
+                idx: it.assignedIndex
+            };
+        } else {
+            return {
+                sIdx,
+                h: -1,
+                m: 0,
+                cycle: 0,
+                idx: sIdx + 1
+            };
+        }
+    });
+
+    return { dayPlans, schedules, validItems };
+}
+
 // UTIC 데이터 세트(CROP, CRWD, SigMap)를 SIGMA 모델 규격으로 파싱
 function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
   // 1. 주간 요일 계획 (월~일: index 0~6)
@@ -2598,64 +2731,34 @@ function parseUticPayload(jid, itstNm, crop, crwd, sigMap) {
   const todPayload = [];
   for (let day = 1; day <= 10; day++) {
     const dayItems = plansByDay[day] || [];
-    dayItems.sort((a, b) => {
-      const idxA = parseInt(a.INT_PLAN_IDX_NO) || 0;
-      const idxB = parseInt(b.INT_PLAN_IDX_NO) || 0;
-      if (idxA !== idxB) return idxA - idxB;
-      const tmA = (parseInt(a.OPER_PLAN_HH) || 0) * 60 + (parseInt(a.OPER_PLAN_MI) || 0);
-      const tmB = (parseInt(b.OPER_PLAN_HH) || 0) * 60 + (parseInt(b.OPER_PLAN_MI) || 0);
-      return tmA - tmB;
-    });
+    const organized = organizeUticTodPlans(dayItems);
 
     const timePlans = [];
     for (let sIdx = 0; sIdx < 16; sIdx++) {
-      const item = dayItems[sIdx];
-      const splitsA = [];
-      const splitsB = [];
-      if (item) {
-        for (let i = 1; i <= 8; i++) {
-          splitsA.push(parseInt(item[`A_RING_${i}_PHASE_VAL`]) || 0);
-          splitsB.push(parseInt(item[`B_RING_${i}_PHASE_VAL`]) || 0);
-        }
-      } else {
-        for (let i = 1; i <= 8; i++) {
-          splitsA.push(0);
-          splitsB.push(0);
-        }
-      }
+      const dp = organized.dayPlans[sIdx];
+      const hasPlan = dp && (dp.cycle > 0 || (dp.splitA && dp.splitA.reduce((a, b) => a + b, 0) > 0));
 
-      const sumA = splitsA.reduce((a, b) => a + b, 0);
-      const sumB = splitsB.reduce((a, b) => a + b, 0);
-      const rawCycle = item ? (parseInt(item.INT_OPER_CYCLE_VAL) || 0) : 0;
-      const rawH = item ? parseInt(item.OPER_PLAN_HH) : -1;
-      const rawM = item ? (parseInt(item.OPER_PLAN_MI) || 0) : 0;
-      const itemIdx = item ? (parseInt(item.INT_PLAN_IDX_NO) || 1) : 1;
-
-      // 실제 운영 계획 정보가 존재하는 유효 슬롯 판별 (주기나 스플릿이 0보다 큰 경우)
-      const hasValidData = (rawCycle > 0) || (sumA > 0) || (sumB > 0);
-
-      if (item && hasValidData) {
+      if (hasPlan) {
         timePlans.push({
           slot_idx: sIdx + 1,
-          h: isNaN(rawH) ? 0 : rawH,
-          m: rawM,
-          cycle: rawCycle > 0 ? rawCycle : (sumA > 0 ? sumA : (sumB > 0 ? sumB : 100)),
-          offset: parseInt(item.INT_OPER_OFFSET_VAL) || 0,
-          splitA: splitsA,
-          splitB: splitsB,
-          idx: itemIdx
+          h: dp.h !== undefined ? dp.h : 0,
+          m: dp.m !== undefined ? dp.m : 0,
+          cycle: dp.cycle || 100,
+          offset: dp.offset || 0,
+          splitA: dp.splitA || Array(8).fill(0),
+          splitB: dp.splitB || Array(8).fill(0),
+          idx: sIdx + 1
         });
       } else {
-        // 실제 정보가 없는 슬롯: 빈칸 규격 (h: -1, cycle: 0, 스플릿 0)
         timePlans.push({
           slot_idx: sIdx + 1,
           h: -1,
           m: 0,
           cycle: 0,
           offset: 0,
-          splitA: [0, 0, 0, 0, 0, 0, 0, 0],
-          splitB: [0, 0, 0, 0, 0, 0, 0, 0],
-          idx: 1
+          splitA: Array(8).fill(0),
+          splitB: Array(8).fill(0),
+          idx: sIdx + 1
         });
       }
     }

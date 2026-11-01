@@ -850,7 +850,7 @@ function applyUticDataToJunction(j, resData) {
         j.weeklyPlan = resData.weeklyPlan;
     }
 
-    // 2. TOD 1~10 일계획 및 1~16 슬롯 스케줄 업데이트
+    // 2. TOD 1~10 일계획 및 1~16 슬롯 스케줄 업데이트 (NO 1~6 주기별 그룹핑 및 INDEX 1~16 자동 배치)
     if (Array.isArray(resData.todPlans)) {
         if (!j.dayPlans) j.dayPlans = Array.from({ length: 10 }, () => (typeof createEmptyPlans === 'function' ? createEmptyPlans() : []));
         if (!j.schedules) j.schedules = Array.from({ length: 10 }, () => (typeof createEmptySched === 'function' ? createEmptySched() : []));
@@ -860,46 +860,47 @@ function applyUticDataToJunction(j, resData) {
             if (dayIdx < 0 || dayIdx >= 10) return;
 
             if (Array.isArray(tpItem.time_plans)) {
-                tpItem.time_plans.forEach(tp => {
-                    const sIdx = (tp.slot_idx !== undefined ? tp.slot_idx : tp.slotIdx) - 1;
-                    if (sIdx < 0 || sIdx >= 16) return;
+                if (typeof organizeUticTodPlans === 'function') {
+                    const organized = organizeUticTodPlans(tpItem.time_plans);
+                    j.dayPlans[dayIdx] = organized.dayPlans;
+                    j.schedules[dayIdx] = organized.schedules;
+                } else {
+                    tpItem.time_plans.forEach(tp => {
+                        const sIdx = (tp.slot_idx !== undefined ? tp.slot_idx : tp.slotIdx) - 1;
+                        if (sIdx < 0 || sIdx >= 16) return;
+                        const rawH = parseInt(tp.h);
+                        const rawM = parseInt(tp.m) || 0;
+                        const cycleVal = parseInt(tp.cycle) || 0;
+                        const splitsA = Array.isArray(tp.splitA) ? tp.splitA : [];
+                        const splitsB = Array.isArray(tp.splitB) ? tp.splitB : [];
+                        const sumA = splitsA.reduce((a, b) => a + b, 0);
+                        const sumB = splitsB.reduce((a, b) => a + b, 0);
+                        const isBlank = (rawH === -1) || ((rawH === 0 || isNaN(rawH)) && rawM === 0 && sumA === 0 && sumB === 0) || (cycleVal === 0 && sumA === 0 && sumB === 0);
 
-                    const rawH = parseInt(tp.h);
-                    const rawM = parseInt(tp.m) || 0;
-                    const cycleVal = parseInt(tp.cycle) || 0;
-                    const splitsA = Array.isArray(tp.splitA) ? tp.splitA : [];
-                    const splitsB = Array.isArray(tp.splitB) ? tp.splitB : [];
-                    const sumA = splitsA.reduce((a, b) => a + b, 0);
-                    const sumB = splitsB.reduce((a, b) => a + b, 0);
+                        if (!j.schedules[dayIdx][sIdx]) {
+                            j.schedules[dayIdx][sIdx] = { sIdx, h: -1, m: 0, cycle: 0, idx: 1 };
+                        }
+                        if (isBlank) {
+                            j.schedules[dayIdx][sIdx].h = -1;
+                            j.schedules[dayIdx][sIdx].m = 0;
+                            j.schedules[dayIdx][sIdx].cycle = 0;
+                            j.schedules[dayIdx][sIdx].idx = tp.idx || 1;
+                        } else {
+                            j.schedules[dayIdx][sIdx].h = isNaN(rawH) ? 0 : rawH;
+                            j.schedules[dayIdx][sIdx].m = rawM;
+                            j.schedules[dayIdx][sIdx].cycle = cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100);
+                            j.schedules[dayIdx][sIdx].idx = tp.idx || 1;
+                        }
 
-                    // 값이 없는 슬롯 판별 (디폴트 00:00, 스플릿 합계 0, cycle 0/100 등)
-                    const isBlank = (rawH === -1) || ((rawH === 0 || isNaN(rawH)) && rawM === 0 && sumA === 0 && sumB === 0) || (cycleVal === 0 && sumA === 0 && sumB === 0);
-
-                    // schedule slot
-                    if (!j.schedules[dayIdx][sIdx]) {
-                        j.schedules[dayIdx][sIdx] = { sIdx, h: -1, m: 0, cycle: 0, idx: 1 };
-                    }
-                    if (isBlank) {
-                        j.schedules[dayIdx][sIdx].h = -1;
-                        j.schedules[dayIdx][sIdx].m = 0;
-                        j.schedules[dayIdx][sIdx].cycle = 0;
-                        j.schedules[dayIdx][sIdx].idx = tp.idx || 1;
-                    } else {
-                        j.schedules[dayIdx][sIdx].h = isNaN(rawH) ? 0 : rawH;
-                        j.schedules[dayIdx][sIdx].m = rawM;
-                        j.schedules[dayIdx][sIdx].cycle = cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100);
-                        j.schedules[dayIdx][sIdx].idx = tp.idx || 1;
-                    }
-
-                    // day plan split
-                    if (!j.dayPlans[dayIdx][sIdx]) {
-                        j.dayPlans[dayIdx][sIdx] = { cycle: 0, offset: 0, splitA: [0,0,0,0,0,0,0,0], splitB: [0,0,0,0,0,0,0,0] };
-                    }
-                    j.dayPlans[dayIdx][sIdx].cycle = isBlank ? 0 : (cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100));
-                    j.dayPlans[dayIdx][sIdx].offset = isBlank ? 0 : (tp.offset || 0);
-                    if (Array.isArray(tp.splitA)) j.dayPlans[dayIdx][sIdx].splitA = [...tp.splitA];
-                    if (Array.isArray(tp.splitB)) j.dayPlans[dayIdx][sIdx].splitB = [...tp.splitB];
-                });
+                        if (!j.dayPlans[dayIdx][sIdx]) {
+                            j.dayPlans[dayIdx][sIdx] = { cycle: 0, offset: 0, splitA: [0,0,0,0,0,0,0,0], splitB: [0,0,0,0,0,0,0,0] };
+                        }
+                        j.dayPlans[dayIdx][sIdx].cycle = isBlank ? 0 : (cycleVal > 0 ? cycleVal : (sumA > 0 ? sumA : 100));
+                        j.dayPlans[dayIdx][sIdx].offset = isBlank ? 0 : (tp.offset || 0);
+                        if (Array.isArray(tp.splitA)) j.dayPlans[dayIdx][sIdx].splitA = [...tp.splitA];
+                        if (Array.isArray(tp.splitB)) j.dayPlans[dayIdx][sIdx].splitB = [...tp.splitB];
+                    });
+                }
             }
         });
     }

@@ -786,3 +786,144 @@ function getEffectiveSignalMap(j, dayIdx, pIdx) {
     const smIdx = getEffectiveSignalMapIdx(j, dayIdx, pIdx);
     return j.signalMaps[smIdx] || null;
 }
+
+
+/**
+ * UTIC TOD 운영계획을 NO 1~6 (주기별) 및 INDEX 1~16 (패턴별) 구조로 자동 재배치
+ * - NO 1: 1개 슬롯 (INDEX 1)
+ * - NO 2~6: 각 3개 슬롯씩 (INDEX 2..4, 5..7, 8..10, 11..13, 14..16)
+ * - 주기가 낮고 시작시간이 빠른 순으로 정렬
+ * - 주기가 다르면 다음 NO로 이동 (3개가 안 채워져도 빈칸으로 두고 다음 NO로 이동)
+ * - 배치된 INDEX 번호(1~16)를 일계획(schedules)의 idx로 연결
+ */
+function organizeUticTodPlans(rawItems) {
+    const NO_SLOT_RANGES = [
+        [0],          // NO 1 -> slot 0 (INDEX 1)
+        [1, 2, 3],    // NO 2 -> slot 1..3 (INDEX 2..4)
+        [4, 5, 6],    // NO 3 -> slot 4..6 (INDEX 5..7)
+        [7, 8, 9],    // NO 4 -> slot 7..9 (INDEX 8..10)
+        [10, 11, 12], // NO 5 -> slot 10..12 (INDEX 11..13)
+        [13, 14, 15]  // NO 6 -> slot 13..15 (INDEX 14..16)
+    ];
+
+    // 1. 유효한 아이템만 추출
+    const validItems = [];
+    (rawItems || []).forEach((item, origIdx) => {
+        if (!item) return;
+        const splitsA = [];
+        const splitsB = [];
+        for (let i = 1; i <= 8; i++) {
+            splitsA.push(parseInt(item['A_RING_' + i + '_PHASE_VAL']) || (Array.isArray(item.splitA) ? (parseInt(item.splitA[i - 1]) || 0) : 0) || 0);
+            splitsB.push(parseInt(item['B_RING_' + i + '_PHASE_VAL']) || (Array.isArray(item.splitB) ? (parseInt(item.splitB[i - 1]) || 0) : 0) || 0);
+        }
+        const sumA = splitsA.reduce((a, b) => a + b, 0);
+        const sumB = splitsB.reduce((a, b) => a + b, 0);
+        const rawCycle = parseInt(item.INT_OPER_CYCLE_VAL || item.cycle) || 0;
+        const rawH = parseInt(item.OPER_PLAN_HH !== undefined ? item.OPER_PLAN_HH : item.h);
+        const rawM = parseInt(item.OPER_PLAN_MI !== undefined ? item.OPER_PLAN_MI : item.m) || 0;
+        const offset = parseInt(item.INT_OPER_OFFSET_VAL !== undefined ? item.INT_OPER_OFFSET_VAL : item.offset) || 0;
+
+        // 실제 운영 계획이 존재하는 유효 슬롯
+        if (rawH !== -1 && (rawCycle > 0 || sumA > 0 || sumB > 0)) {
+            const h = isNaN(rawH) ? 0 : rawH;
+            const m = rawM;
+            const cycle = rawCycle > 0 ? rawCycle : (sumA > 0 ? sumA : (sumB > 0 ? sumB : 100));
+            validItems.push({
+                origIdx,
+                h,
+                m,
+                timeMinutes: h * 60 + m,
+                cycle,
+                offset,
+                splitA: splitsA,
+                splitB: splitsB,
+                assignedIndex: null
+            });
+        }
+    });
+
+    // 2. 주기가 낮고, 시작시간이 빠른 순 정렬
+    validItems.sort((a, b) => {
+        if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+        return a.timeMinutes - b.timeMinutes;
+    });
+
+    // 3. 동일 주기별 그룹화
+    const cycleGroups = [];
+    validItems.forEach(item => {
+        let lastGroup = cycleGroups[cycleGroups.length - 1];
+        if (!lastGroup || lastGroup.cycle !== item.cycle) {
+            lastGroup = { cycle: item.cycle, items: [] };
+            cycleGroups.push(lastGroup);
+        }
+        lastGroup.items.push(item);
+    });
+
+    // 4. 시간계획 16개 슬롯 초기화
+    const dayPlans = Array.from({ length: 16 }, () => ({
+        cycle: 0,
+        offset: 0,
+        splitA: Array(8).fill(0),
+        splitB: Array(8).fill(0)
+    }));
+
+    // 5. NO 1~6에 순서대로 배치 (주기 변경 시 다음 NO로 이동, 남은 슬롯은 비움)
+    let currentNoIdx = 0; // 0: NO 1, 1: NO 2, ... 5: NO 6
+    cycleGroups.forEach(group => {
+        if (currentNoIdx >= 6) return;
+
+        let itemIdxInGroup = 0;
+        while (itemIdxInGroup < group.items.length && currentNoIdx < 6) {
+            const slotsForThisNo = NO_SLOT_RANGES[currentNoIdx];
+            let slotPos = 0;
+
+            while (slotPos < slotsForThisNo.length && itemIdxInGroup < group.items.length) {
+                const targetSlot = slotsForThisNo[slotPos];
+                const planItem = group.items[itemIdxInGroup];
+
+                dayPlans[targetSlot] = {
+                    cycle: planItem.cycle,
+                    offset: planItem.offset,
+                    splitA: [...planItem.splitA],
+                    splitB: [...planItem.splitB]
+                };
+
+                // 배치된 INDEX 번호 (1-based: 1 ~ 16)
+                planItem.assignedIndex = targetSlot + 1;
+
+                slotPos++;
+                itemIdxInGroup++;
+            }
+
+            // 동일 주기의 배치가 끝나면, 3개가 다 차지 않았더라도 다음 주기는 다음 NO로 이동!
+            currentNoIdx++;
+        }
+    });
+
+    // 6. 상단 일계획(schedules): 하루의 운영 시간 흐름 순(timeMinutes 오름차순)으로 구성
+    const scheduleItems = [...validItems].sort((a, b) => a.timeMinutes - b.timeMinutes);
+
+    const schedules = Array.from({ length: 16 }, (_, sIdx) => {
+        if (sIdx < scheduleItems.length) {
+            const it = scheduleItems[sIdx];
+            return {
+                sIdx,
+                h: it.h,
+                m: it.m,
+                cycle: it.cycle,
+                idx: it.assignedIndex // 시간계획에 배치된 index 번호(1~16)를 일계획의 idx로 사용!
+            };
+        } else {
+            return {
+                sIdx,
+                h: -1,
+                m: 0,
+                cycle: 0,
+                idx: sIdx + 1
+            };
+        }
+    });
+
+    return { dayPlans, schedules, validItems };
+}
+window.organizeUticTodPlans = organizeUticTodPlans;
