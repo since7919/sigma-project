@@ -1654,13 +1654,13 @@
                         <div class="card-title flex-row-between" style="cursor: pointer; padding: 10px 14px;" onclick="toggleSection(this)">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 15px;">🌐</span>
-                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">경찰청 UTIC 신호데이터 일괄 동기화 (전국 지자체)</span>
+                                <span style="color: #38bdf8; font-weight: 800; font-size: 13.5px; letter-spacing: -0.3px;">시그마 클라우드 신호데이터 일괄 동기화 (전국 지자체)</span>
                             </div>
                             <span class="fold-icon">▼</span>
                         </div>
                         <div class="foldable-content" style="padding: 14px;">
                             <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; line-height: 1.6; word-break: keep-all;">
-                                경찰청 UTIC TSI Hub API로부터 선택된 지자체의 전체 교차로 TOD 운영계획(1~10 일계획) 및 시그널맵(Ring A/B)을 일괄 수집하여 클라우드 DB에 동기화합니다.
+                                시그마API가 Supabase에 최신 구축한 전체 교차로의 TOD 운영계획(1~10 일계획), 시그널맵(Ring A/B), 주현시 데이터를 고속 동기화합니다. (외부 API 미경유)
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
                                 <select id="sel-utic-batch-region" class="phase-select" style="height: 34px; width: 170px; font-size: 12px; font-weight: bold; background: rgba(0,0,0,0.6); border: 1px solid #38bdf8;">
@@ -1705,9 +1705,9 @@
                                         🚀 동기화 실행
                                     </button>
                                     <div class="sigma-tooltip-bubble pos-top">
-                                        <div class="sigma-tooltip-title">🚀 UTIC 신호 일괄 동기화 (경찰청 ➔ 중앙 DB)</div>
+                                        <div class="sigma-tooltip-title">🚀 시그마 클라우드 데이터 일괄 동기화 (Supabase ➔ SIGMA SIM)</div>
                                         <div class="sigma-tooltip-desc">
-                                            경찰청 도시교통정보센터(UTIC) TSI Hub API로부터 선택한 지자체 전체 교차로의 TOD 운영계획(1~10 일계획)과 시그널맵을 클라우드 DB에 일괄 수집/구축합니다.
+                                            시그마API가 수파베이스에 최신화해 둔 전체 교차로의 TOD 운영계획(1~10 일계획), 시그널맵, 주현시 데이터를 초고속으로 동기화합니다.
                                         </div>
                                     </div>
                                 </div>
@@ -2438,7 +2438,7 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1791726500000"></script>
     <script src="js/utils.js?v=1793531356960"></script>
-    <script src="js/ui.js?v=1793531356960"></script>
+    <script src="js/ui.js?v=1793533791446"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>

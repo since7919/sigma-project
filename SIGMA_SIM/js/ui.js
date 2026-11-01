@@ -952,13 +952,18 @@ function applyUticDataToJunction(j, resData) {
         });
     }
 
+    // 4. 주현시(Main Phase) 정보 반영
+    if (resData.mainPhase !== undefined && resData.mainPhase !== null) {
+        j.mainPhase = resData.mainPhase;
+    }
+
     j._detailLoaded = true;
 }
 window.applyUticDataToJunction = applyUticDataToJunction;
 
 /**
- * 1. 단일 교차로 UTIC 신호데이터 가져오기 (일반 사용자 기능 - 비밀번호 불필요)
- * 현재 편집 중인 교차로의 TOD 운영계획(1~10 일계획), 주간계획, 시그널맵을 가져와 편집 버퍼에 반영
+ * 1. 단일 교차로 신호데이터 가져오기 (시그마 클라우드 DB 연동)
+ * 현재 편집 중인 교차로의 TOD 운영계획(1~10 일계획), 주간계획, 시그널맵, 주현시 정보를 가져와 편집 버퍼에 반영
  */
 window.importActiveJunctionUTIC = async function() {
     if (!STATE.activeJid) {
@@ -971,17 +976,17 @@ window.importActiveJunctionUTIC = async function() {
     const regionCode = (j.id && j.id.includes('-')) ? j.id.split('-')[0] : (window.CURRENT_REGION_CODE || 'L02');
     const regionName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
 
-    const confirmMsg = `[${j.name} (${j.id} / ${regionName})] 교차로의 신호데이터를 경찰청 UTIC에서 가져오시겠습니까?\n\n`
-        + `• 대상 지자체: ${regionName} (${regionCode})\n`
-        + `• 가져올 데이터: TOD 운영계획(1~10 일계획), 주간 요일계획, 시그널맵(Ring A/B)\n`
-        + `• 일반 사용자 모드: 현재 화면의 편집창에 즉시 불러오며, 확인 후 상단의 [☁️ 클라우드 저장]을 눌러 서버에 영구 반영할 수 있습니다.`;
+    const confirmMsg = `[${j.name} (${j.id} / ${regionName})] 교차로의 신호데이터를 가져오시겠습니까?\n\n`
+        + `• 데이터 출처: 시그마 클라우드 DB (Supabase 시그마API 연동)\n`
+        + `• 가져올 데이터: TOD 운영계획(1~10 일계획), 주간계획, 시그널맵(Ring A/B), 주현시\n`
+        + `• 일반 사용자 모드: 현재 편집창에 즉시 불러오며, 확인 후 상단의 [☁️ 클라우드 저장]을 눌러 서버에 영구 반영할 수 있습니다.`;
 
     if (!confirm(confirmMsg)) {
         return;
     }
 
     if (typeof showLoading === 'function') {
-        showLoading(`[${j.name}] UTIC 신호데이터 조회 및 로딩 중...`);
+        showLoading(`[${j.name}] 시그마 클라우드 신호데이터 로딩 중...`);
     }
 
     try {
@@ -998,7 +1003,7 @@ window.importActiveJunctionUTIC = async function() {
 
         const resData = await response.json();
         if (!resData.success) {
-            throw new Error(resData.error || "UTIC 응답 데이터가 올바르지 않습니다.");
+            throw new Error(resData.error || "응답 데이터가 올바르지 않습니다.");
         }
 
         // 수신된 데이터를 현재 교차로 메모리 객체에 적용
@@ -1023,9 +1028,10 @@ window.importActiveJunctionUTIC = async function() {
             btnSave.style.cursor = 'pointer';
         }
 
-        alert(`[${j.name} (${regionName})] UTIC 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획)를 성공적으로 불러왔습니다!\n\n편집 화면에서 내용을 검토하신 후 [☁️ 클라우드 저장]을 누르면 서버 DB에 영구 반영됩니다.`);
+        const srcTxt = resData.source === 'supabase_sigma_api' ? '시그마 클라우드 DB' : '경찰청 UTIC';
+        alert(`[${j.name} (${regionName})] ${srcTxt}에서 신호데이터(시그널맵 ${resData.signalMapsCount || 6}개 플랜, TOD 1~10 일계획, 주간계획${resData.mainPhase ? `, 주현시: ${resData.mainPhase}` : ''})를 성공적으로 불러왔습니다!\n\n편집 화면에서 검토 후 [☁️ 클라우드 저장]을 누르면 영구 보존됩니다.`);
     } catch (err) {
-        alert("UTIC 신호데이터 가져오기 실패: " + err.message);
+        alert("신호데이터 가져오기 실패: " + err.message);
     } finally {
         if (typeof hideLoading === 'function') {
             hideLoading();

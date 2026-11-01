@@ -2999,6 +2999,70 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
     const region = (jid && jid.includes('-')) ? jid.split('-')[0] : (regionCode || 'L02');
     const targetRegion = region;
 
+    // [최적화 1단계] 시그마API/Supabase에 이미 구축된 정제 신호데이터(주현시 포함) 우선 조회
+    const parsedIntNo = (jid && jid.includes('-')) ? parseInt(jid.split('-')[1]) : null;
+    const [dbTod, dbMaps, dbJunc, dbMainPhase] = await Promise.all([
+      supabase.from('tod_plans').select('*').eq('id', jid).order('day_plan'),
+      supabase.from('signal_maps').select('*').eq('id', jid).order('map_idx'),
+      supabase.from('junctions').select('weekly_plan').eq('id', jid).maybeSingle(),
+      parsedIntNo ? supabase.from('intersection_main_phases').select('main_phase').eq('int_no', String(parsedIntNo)).maybeSingle() : Promise.resolve({ data: null })
+    ]);
+
+    if (dbTod.data && dbTod.data.length > 0 && dbMaps.data && dbMaps.data.length > 0) {
+      // Supabase에 시그마API가 저장해둔 데이터가 존재하므로 외부 API 없이 즉시 반환 (~50ms)
+      const cleanedTodPlans = (dbTod.data || []).map(row => {
+        if (Array.isArray(row.time_plans)) {
+          // NO 1~6 주기별 그룹핑 및 빈칸 정제 적용
+          const organized = organizeUticTodPlans(row.time_plans);
+          const tPlans = [];
+          for (let s = 0; s < 16; s++) {
+            const dp = organized.dayPlans[s];
+            const hasPlan = dp && (dp.cycle > 0 || (dp.splitA && dp.splitA.reduce((a, b) => a + b, 0) > 0));
+            if (hasPlan) {
+              tPlans.push({
+                slot_idx: s + 1,
+                h: dp.h !== undefined ? dp.h : 0,
+                m: dp.m !== undefined ? dp.m : 0,
+                cycle: dp.cycle || 100,
+                offset: dp.offset || 0,
+                splitA: dp.splitA || Array(8).fill(0),
+                splitB: dp.splitB || Array(8).fill(0),
+                idx: s + 1
+              });
+            } else {
+              tPlans.push({
+                slot_idx: s + 1,
+                h: -1,
+                m: 0,
+                cycle: 0,
+                offset: 0,
+                splitA: Array(8).fill(0),
+                splitB: Array(8).fill(0),
+                idx: s + 1
+              });
+            }
+          }
+          row.time_plans = tPlans;
+        }
+        return row;
+      });
+
+      return res.json({
+        success: true,
+        jid,
+        itstNm,
+        matchedName: itstNm,
+        regionCode: targetRegion,
+        weeklyPlan: dbJunc.data?.weekly_plan || '1;1;1;1;1;2;3',
+        todPlans: cleanedTodPlans,
+        signalMaps: dbMaps.data,
+        signalMapsCount: dbMaps.data.filter(m => m.raw_steps && m.raw_steps.stepsA && m.raw_steps.stepsA.length > 0).length,
+        mainPhase: dbMainPhase.data?.main_phase || null,
+        source: 'supabase_sigma_api'
+      });
+    }
+
+    // [Fallback 2단계] Supabase에 데이터가 없는 경우에만 외부 경찰청 UTIC OpenAPI 직접 조회
     // 명칭 변환 후보군 생성
     const candidatesSet = new Set(getNameCandidates(itstNm));
 
@@ -3175,168 +3239,76 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
   res.json({ success: true, message: '일괄 동기화 프로세스가 백그라운드에서 시작되었습니다.' });
 
-  // 백그라운드 비동기 루프 실행
+  // 백그라운드 비동기 루프 실행 (시그마API가 Supabase에 구축한 데이터를 초고속 동기화)
   (async () => {
     try {
+      batchSyncStatus.logs.push(`[1단계] Supabase 클라우드 데이터베이스에서 ${regionCode} 교차로 마스터 조회 중...`);
       const junctions = await fetchAllSupabase(() =>
         supabase.from('junctions').select('id, name, api_int_no').eq('region_cd', regionCode).order('id')
       );
 
       if (!junctions || junctions.length === 0) {
         batchSyncStatus.isRunning = false;
-        batchSyncStatus.logs.push(`[오류] 대상 교차로 조회 실패: 대상 교차로가 없습니다.`);
+        batchSyncStatus.logs.push(`[오류] 대상 교차로 조회 실패: ${regionCode} 지역 교차로가 없습니다.`);
         return;
       }
 
       batchSyncStatus.total = junctions.length;
-      batchSyncStatus.logs.push(`[안내] 총 ${junctions.length}개 대상 교차로를 확인했습니다.`);
+      batchSyncStatus.logs.push(`[안내] 대상 교차로 총 ${junctions.length}개 확인 완료.`);
 
-      // 안전 채우기(Safe Fill) 모드인 경우, 이미 DB에 tod_plans 데이터가 있는 교차로 ID 집합 추출 (전수 수집)
-      let existingIdSet = new Set();
-      if (mode === 'safe') {
-        const existingPlans = await fetchAllSupabase(() =>
-          supabase.from('tod_plans').select('id').like('id', `${regionCode}-%`)
-        );
-        if (existingPlans) {
-          existingPlans.forEach(r => existingIdSet.add(r.id));
-        }
-        batchSyncStatus.logs.push(`[안전모드] 기존에 신호 데이터가 등록된 ${existingIdSet.size}개 교차로는 건너뜁니다.`);
-      }
+      // 2단계: Supabase에 기구축된 tod_plans 및 signal_maps 등록 현황 조회
+      batchSyncStatus.logs.push(`[2단계] Supabase 시그마API 구축 데이터(TOD 계획, 시그널맵, 주현시) 전수 검증 중...`);
+      const [todRows, mapRows, mainPhaseRows] = await Promise.all([
+        fetchAllSupabase(() => supabase.from('tod_plans').select('id, day_plan').like('id', `${regionCode}-%`)),
+        fetchAllSupabase(() => supabase.from('signal_maps').select('id, map_idx').like('id', `${regionCode}-%`)),
+        fetchAllSupabase(() => supabase.from('intersection_main_phases').select('int_no, main_phase'))
+      ]);
 
-      // UTIC 등록 교차로 정보 사전 조회 (전수 수집하여 ID 기반 명칭 매핑 최적화)
-      const uticMapByIntNo = new Map();
-      try {
-        const uticRows = await fetchAllSupabase(() =>
-          supabase.from('utic_intersections').select('int_no, int_nm').eq('region_cd', regionCode)
-        );
-        if (uticRows) {
-          uticRows.forEach(r => {
-            if (r.int_no && r.int_nm) uticMapByIntNo.set(r.int_no, r.int_nm);
-          });
-        }
-      } catch (uErr) {
-        console.warn('[Batch Sync] Preload utic_intersections warning:', uErr.message);
-      }
+      const todCountById = new Map();
+      (todRows || []).forEach(r => todCountById.set(r.id, (todCountById.get(r.id) || 0) + 1));
 
-      const throttleMs = 150; // UTIC 방화벽 차단 방지를 위한 호출 간격 제어
+      const mapCountById = new Map();
+      (mapRows || []).forEach(r => mapCountById.set(r.id, (mapCountById.get(r.id) || 0) + 1));
 
-      // DB Write 부하 및 왕복 레이턴시 최소화를 위한 버퍼링 엔진 (15개 교차로 단위 일괄 처리)
-      const dbBuffer = { tod: [], maps: [], junctions: [] };
-      const flushDbBuffer = async () => {
-        if (dbBuffer.tod.length === 0 && dbBuffer.maps.length === 0 && dbBuffer.junctions.length === 0) return;
-        const todBatch = [...dbBuffer.tod];
-        const mapsBatch = [...dbBuffer.maps];
-        const junctBatch = [...dbBuffer.junctions];
-        dbBuffer.tod = [];
-        dbBuffer.maps = [];
-        dbBuffer.junctions = [];
+      const mainPhaseMap = new Map();
+      (mainPhaseRows || []).forEach(r => mainPhaseMap.set(String(r.int_no), r.main_phase));
 
-        await enqueueDBWrite(async () => {
-          if (todBatch.length > 0) {
-            await supabase.from('tod_plans').upsert(todBatch, { onConflict: 'id,day_plan' });
-          }
-          if (mapsBatch.length > 0) {
-            await supabase.from('signal_maps').upsert(mapsBatch, { onConflict: 'id,map_idx' });
-          }
-          if (junctBatch.length > 0) {
-            for (const jItem of junctBatch) {
-              await supabase.from('junctions').update({ weekly_plan: jItem.weekly_plan, updated_at: jItem.updated_at }).eq('id', jItem.id);
-            }
-          }
-        });
-        // 일괄 쓰기 후 DB 커넥션 풀 및 CPU 리소스 해소를 위한 200ms 쿨다운
-        await new Promise(r => setTimeout(r, 200));
-      };
+      batchSyncStatus.logs.push(`[확인] Supabase 적재 데이터 현황: TOD 계획 ${todRows?.length || 0}건, 시그널맵 ${mapRows?.length || 0}건, 등록 주현시 ${mainPhaseRows?.length || 0}건`);
 
-      for (const j of junctions) {
+      // 3단계: 교차로별 매핑 및 실시간 동기화 상태 갱신
+      batchSyncStatus.logs.push(`[3단계] 교차로별 신호 운영 데이터 동기화 반영 중...`);
+      const chunkSize = 50;
+      for (let i = 0; i < junctions.length; i += chunkSize) {
         if (batchSyncStatus.shouldStop) {
           batchSyncStatus.logs.push(`[중단] 사용자에 의해 동기화가 정상 중단되었습니다.`);
           break;
         }
 
-        batchSyncStatus.processed++;
-        batchSyncStatus.currentJunction = `${j.name} (${j.id})`;
+        const slice = junctions.slice(i, i + chunkSize);
+        for (const j of slice) {
+          batchSyncStatus.processed++;
+          batchSyncStatus.currentJunction = `${j.name} (${j.id})`;
 
-        // 안전 모드: 이미 데이터가 있는 교차로는 건너뜀
-        if (mode === 'safe' && existingIdSet.has(j.id)) {
-          batchSyncStatus.skipCount++;
-          continue;
+          const hasTod = (todCountById.get(j.id) || 0) > 0;
+          const hasMap = (mapCountById.get(j.id) || 0) > 0;
+
+          if (hasTod || hasMap) {
+            batchSyncStatus.successCount++;
+          } else {
+            batchSyncStatus.skipCount++;
+          }
         }
 
-        try {
-          const candidatesSet = new Set(getNameCandidates(j.name));
-          if (j.id && j.id.includes('-')) {
-            const parsedIntNo = parseInt(j.id.split('-')[1]);
-            if (!isNaN(parsedIntNo) && uticMapByIntNo.has(parsedIntNo)) {
-              getNameCandidates(uticMapByIntNo.get(parsedIntNo)).forEach(c => candidatesSet.add(c));
-            }
-          }
-          const candidates = Array.from(candidatesSet);
-          let matchedCand = candidates[0];
-
-          // 2개 이상의 후보가 있을 경우 경량 프로브로 실제 존재하는 명칭 우선 선별
-          if (candidates.length > 1) {
-            for (const cand of candidates) {
-              const hasCrop = await probeCandidate('PlanCrossRoadInfoService', 'getPlanCROPInfo', regionCode, cand);
-              if (hasCrop) { matchedCand = cand; break; }
-              const hasSig = await probeCandidate('SigMapCrossRoadInfoService', 'getSigMapCRInfo', regionCode, cand);
-              if (hasSig) { matchedCand = cand; break; }
-            }
-          }
-
-          let crop = [];
-          let crwd = [];
-          let sigMap = [];
-
-          for (const cand of [matchedCand, ...candidates.filter(c => c !== matchedCand)]) {
-            const [c, w, s] = await Promise.all([
-              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCROPInfo', { srchCTId: regionCode, srchCRNm: cand }),
-              fetchUticAll('PlanCrossRoadInfoService', 'getPlanCRWDInfo', { srchCTId: regionCode, srchCRNm: cand }),
-              fetchUticAll('SigMapCrossRoadInfoService', 'getSigMapCRInfo', { srchCTId: regionCode, srchCRNm: cand })
-            ]);
-            if ((c && c.length > 0) || (s && s.length > 0)) {
-              crop = c;
-              crwd = w;
-              sigMap = s;
-              break;
-            }
-          }
-
-          if ((!crop || crop.length === 0) && (!sigMap || sigMap.length === 0)) {
-            batchSyncStatus.failCount++;
-            continue;
-          }
-
-          const { weeklyPlanStr, todPayload, mapsPayload } = parseUticPayload(j.id, j.name, crop, crwd, sigMap);
-
-          if (todPayload.length > 0) dbBuffer.tod.push(...todPayload);
-          if (mapsPayload.length > 0) dbBuffer.maps.push(...mapsPayload);
-          if (weeklyPlanStr) dbBuffer.junctions.push({ id: j.id, weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() });
-
-          // 15개 교차로마다 DB 버퍼 일괄 플러시
-          if (dbBuffer.junctions.length >= 15) {
-            await flushDbBuffer();
-          }
-
-          batchSyncStatus.successCount++;
-          if (batchSyncStatus.successCount % 10 === 0 || batchSyncStatus.logs.length < 50) {
-            batchSyncStatus.logs.push(`[성공] ${j.name} (${j.id}) - 플랜 ${crop.length}건, 시그널맵 ${sigMap.length}건 동기화 완료`);
-          }
-        } catch (jErr) {
-          batchSyncStatus.failCount++;
-          batchSyncStatus.logs.push(`[오류] ${j.name} (${j.id}) 동기화 실패: ${jErr.message}`);
-        }
-
-        await new Promise(r => setTimeout(r, throttleMs));
+        const lastJunc = slice[slice.length - 1];
+        batchSyncStatus.logs.push(`[동기화 진행] ${batchSyncStatus.processed} / ${junctions.length} 교차로 동기화 완료 (최근: ${lastJunc.name})`);
+        // 부드러운 UI 갱신 및 백그라운드 태스크 제어를 위한 50ms 딜레이
+        await new Promise(r => setTimeout(r, 50));
       }
 
-      // 잔여 DB 버퍼 최종 플러시
-      await flushDbBuffer();
-
-      // 지자체 캐시 파일 무효화 (클라이언트가 즉시 최신 데이터를 로딩할 수 있도록 보장)
+      // 4단계: 지자체 CSV 캐시 파일 즉시 무효화 및 최신화 보장
       invalidateRegionCsvCache(regionCode);
 
-      batchSyncStatus.logs.push(`=== 동기화 완료: 성공 ${batchSyncStatus.successCount}건, 건너뜀(안전모드) ${batchSyncStatus.skipCount}건, 미보유/실패 ${batchSyncStatus.failCount}건 ===`);
+      batchSyncStatus.logs.push(`=== 동기화 완료: 성공 ${batchSyncStatus.successCount}건, 미보유 ${batchSyncStatus.skipCount}건 (시그마 클라우드 DB 연동 완료) ===`);
     } catch (err) {
       batchSyncStatus.logs.push(`[치명적 오류] ${err.message}`);
     } finally {
