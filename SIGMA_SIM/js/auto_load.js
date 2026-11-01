@@ -20,12 +20,22 @@ async function autoLoadFiles() {
 
     const regionCode = window.CURRENT_REGION_CODE || 'L01';
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceRefresh = urlParams.has('refresh');
+
+    if (forceRefresh && 'caches' in window) {
+        try {
+            await caches.delete('sigma-data-cache');
+            console.log('[Cache] Force refresh triggered: wiped sigma-data-cache');
+        } catch(e) {}
+    }
+
     let dbVersion = Date.now();
     try {
-        const vRes = await fetch('/api/sim/db-version');
+        const vRes = await fetch('/api/sim/db-version?t=' + Date.now(), { cache: 'no-store' });
         if (vRes.ok) {
             const vData = await vRes.json();
-            if (vData.version) dbVersion = "v3_" + vData.version;
+            if (vData.version) dbVersion = "v5_" + vData.version;
         }
     } catch(e) {
         console.warn('Failed to fetch DB version, bypassing cache.');

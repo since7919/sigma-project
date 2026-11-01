@@ -424,7 +424,7 @@ async function executeDBUpdate() {
             let targets = Object.values(STATE.junctions).filter(j => j._isDirty);
             // If none are dirty but user checked it, force upload all (or prompt)
             if (targets.length === 0) {
-                if(confirm("현재 변경된 교차로가 없습니다. 전체 교차로를 강제로 다시 업데이트하시겠습니까? (시간이 오래 걸릴 수 있습니다.)")) {
+                if(confirm("현재 화면에서 변경/수정된 교차로가 없습니다.\n\n[주의] 이 작업은 '현재 화면에 로드된 데이터'로 클라우드 DB를 덮어씁니다.\n최신 클라우드 데이터를 화면으로 내려받으려면 [취소] 후 화면을 새로고침하세요.\n\n그래도 화면의 전체 교차로를 클라우드로 강제 전송(덮어쓰기)하시겠습니까?")) {
                     targets = Object.values(STATE.junctions);
                 } else {
                     progInfo.textContent = '교차로 업데이트 건너뜀';

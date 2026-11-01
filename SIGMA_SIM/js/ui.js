@@ -1149,9 +1149,15 @@ async function pollUticBatchStatus() {
             if (btnStop) btnStop.style.display = 'none';
 
             if (wasRunning && st.processed > 0) {
-                setTimeout(() => {
-                    if (confirm(`[동기화 완료] Supabase 시그마 클라우드 데이터 동기화가 완료되었습니다!\n(성공: ${st.successCount}건)\n\n지금 화면을 새로고침하여 최신 데이터를 반영하시겠습니까?`)) {
-                        window.location.reload(true);
+                setTimeout(async () => {
+                    const ok = confirm(`[동기화 완료] Supabase 시그마 클라우드 데이터 동기화가 완료되었습니다!\n(성공: ${st.successCount}건)\n\n브라우저 로컬 캐시를 초기화하고 클라우드 최신 데이터를 화면에 불러오시겠습니까?`);
+                    if (ok) {
+                        try {
+                            if ('caches' in window) {
+                                await caches.delete('sigma-data-cache');
+                            }
+                        } catch(e) {}
+                        window.location.href = window.location.pathname + '?refresh=' + Date.now();
                     }
                 }, 500);
             }

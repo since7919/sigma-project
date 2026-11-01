@@ -737,7 +737,11 @@ app.get('/api/sim/logs', (req, res) => {
 });
 
 app.get('/api/sim/db-version', async (req, res) => {
-  if (!global.SIGMA_DB_VERSION) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  if (!global.SIGMA_DB_VERSION || req.query.force === '1') {
     let debugInfo = null;
     let errorInfo = null;
     try {
@@ -753,10 +757,10 @@ app.get('/api/sim/db-version', async (req, res) => {
       ].filter(d => d).map(d => new Date(d).getTime());
       debugInfo = { j: jRes, m: mRes, t: tRes };
       
-      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v4";
+      global.SIGMA_DB_VERSION = (dates.length > 0 ? Math.max(...dates) : Date.now()) + "_v5";
     } catch (e) {
       errorInfo = e.message;
-      global.SIGMA_DB_VERSION = Date.now() + "_v4";
+      global.SIGMA_DB_VERSION = Date.now() + "_v5";
     }
     global.SIGMA_DB_DEBUG = { debugInfo, errorInfo };
   }
@@ -2273,7 +2277,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
       }
 
       if (mapsPayload.length > 0) {
-        const chunkSize = 300;
+        const chunkSize = 200;
         for (let i = 0; i < mapsPayload.length; i += chunkSize) {
           await upsertWithRetry('signal_maps', mapsPayload.slice(i, i + chunkSize), 'id,map_idx');
           if (i + chunkSize < mapsPayload.length) await new Promise(r => setTimeout(r, 50));
@@ -2281,18 +2285,26 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
       }
 
       if (todPayload.length > 0) {
-        // 50,000건 테이블에서 statement_timeout을 완벽히 방지하기 위해 50개 단위 소형 배치로 분할 실행
-        const chunkSize = 50;
-        for (let i = 0; i < todPayload.length; i += chunkSize) {
-          await upsertWithRetry('tod_plans', todPayload.slice(i, i + chunkSize), 'id,day_plan');
-          if (i + chunkSize < todPayload.length) await new Promise(r => setTimeout(r, 60));
+        // RDB 대량 upsert lock 경합 및 statement timeout 방지: 기존 행 선별 삭제 후 insert
+        const todIds = [...new Set(todPayload.map(t => t.id))];
+        for (let i = 0; i < todIds.length; i += 25) {
+          const idChunk = todIds.slice(i, i + 25);
+          await supabase.from('tod_plans').delete().in('id', idChunk);
+        }
+        const insertChunk = 100;
+        for (let i = 0; i < todPayload.length; i += insertChunk) {
+          const sliceRows = todPayload.slice(i, i + insertChunk);
+          const { error: insErr } = await supabase.from('tod_plans').insert(sliceRows);
+          if (insErr) {
+            console.warn('[batch-update-junctions] tod_plans insert retry with upsert:', insErr.message);
+            await upsertWithRetry('tod_plans', sliceRows, 'id,day_plan');
+          }
+          if (i + insertChunk < todPayload.length) await new Promise(r => setTimeout(r, 40));
         }
       }
 
       const isPatched = await patchLocalCsvCache(chunks);
-      if (!isPatched) {
-          global.SIGMA_DB_VERSION = null;
-      }
+      global.SIGMA_DB_VERSION = Date.now() + '_v5';
       return { success: true, counts: { junctions: junctionsPayload.length, maps: mapsPayload.length, tods: todPayload.length } };
     });
 
@@ -2537,21 +2549,32 @@ async function probeCandidate(service, endpoint, reg, cand) {
 // 지자체별 로컬 CSV 캐시 및 메모리 캐시 무효화 함수
 function invalidateRegionCsvCache(regionCode) {
   try {
+    global.SIGMA_DB_VERSION = null;
+    global.SIGMA_DB_DEBUG = null;
+
     const scratchDir = path.join(__dirname, 'scratch');
-    const cacheFiles = [
-      `cache_db_${regionCode}_tod_plans.csv`,
-      `cache_db_${regionCode}_signal_maps.csv`,
-      `cache_db_${regionCode}_intersections.csv`
-    ];
-    cacheFiles.forEach(cf => {
-      const p = path.join(scratchDir, cf);
-      if (fs.existsSync(p)) {
-        try { fs.unlinkSync(p); } catch (e) {}
+    if (fs.existsSync(scratchDir)) {
+      const files = fs.readdirSync(scratchDir);
+      files.forEach(cf => {
+        if (cf.startsWith(`cache_db_${regionCode}_`) || cf.includes(regionCode)) {
+          try { fs.unlinkSync(path.join(scratchDir, cf)); } catch (e) {}
+        }
+      });
+    }
+
+    const rootFiles = fs.readdirSync(__dirname);
+    rootFiles.forEach(cf => {
+      if (cf.startsWith(`cache_db_${regionCode}_`)) {
+        try { fs.unlinkSync(path.join(__dirname, cf)); } catch (e) {}
       }
     });
-    Object.keys(CSV_CACHE).forEach(k => {
-      if (k.includes(`db_${regionCode}_`)) delete CSV_CACHE[k];
-    });
+
+    if (typeof CSV_CACHE === 'object' && CSV_CACHE) {
+      Object.keys(CSV_CACHE).forEach(k => {
+        if (k.includes(`db_${regionCode}_`) || k.includes(regionCode)) delete CSV_CACHE[k];
+      });
+    }
+    console.log(`[Cache] Successfully invalidated disk and memory CSV caches for ${regionCode}`);
   } catch (e) {
     console.warn(`[Cache] Error invalidating cache for ${regionCode}:`, e.message);
   }
@@ -3307,6 +3330,7 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
 
       // 4단계: 지자체 CSV 캐시 파일 즉시 무효화 및 최신화 보장
       invalidateRegionCsvCache(regionCode);
+      global.SIGMA_DB_VERSION = Date.now() + '_v5';
 
       batchSyncStatus.logs.push(`=== 동기화 완료: 성공 ${batchSyncStatus.successCount}건, 미보유 ${batchSyncStatus.skipCount}건 (시그마 클라우드 DB 연동 완료) ===`);
     } catch (err) {
