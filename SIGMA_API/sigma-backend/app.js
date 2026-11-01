@@ -1930,13 +1930,31 @@ app.post('/api/sim/update-junction', async (req, res) => {
         }
 
         if (mapsPayload.length > 0) {
-          const { error: mErr } = await supabase
-            .from('signal_maps')
-            .upsert(mapsPayload, { onConflict: 'id,map_idx' });
-          if (mErr) {
-            let debugStr = "";
-            try { debugStr = JSON.stringify(mapsPayload).substring(0, 150); } catch(e){}
-            throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message} | Payload snippet: ${debugStr}`);
+          // 단일 교차로 signal_maps는 lock contention 및 statement timeout 방지를 위해 delete 후 insert 적용
+          let mapSuccess = false;
+          let lastMapErr = null;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const { error: delErr } = await supabase.from('signal_maps').delete().eq('id', jid);
+              if (delErr) throw delErr;
+              const { error: insErr } = await supabase.from('signal_maps').insert(mapsPayload);
+              if (insErr) throw insErr;
+              mapSuccess = true;
+              break;
+            } catch (err) {
+              lastMapErr = err;
+              await new Promise(r => setTimeout(r, attempt * 300));
+            }
+          }
+          if (!mapSuccess) {
+            const { error: mErr } = await supabase
+              .from('signal_maps')
+              .upsert(mapsPayload, { onConflict: 'id,map_idx' });
+            if (mErr) {
+              let debugStr = "";
+              try { debugStr = JSON.stringify(mapsPayload).substring(0, 150); } catch(e){}
+              throw new Error(`signal_maps RDB 업서트 오류: ${lastMapErr?.message || mErr.message} | Payload snippet: ${debugStr}`);
+            }
           }
         }
       }
@@ -1957,18 +1975,31 @@ app.post('/api/sim/update-junction', async (req, res) => {
             if (val && val !== "-1") {
               const parts = val.split('|');
               const timeStr = parts[0] || "-1";
-              const isUnused = (timeStr === "-1");
-                const [h, m] = isUnused ? [-1, 0] : timeStr.split(':').map(Number);
-                timePlans.push({
-                  slot_idx: tp,
-                  h: h,
-                  m: m,
-                  cycle: parseInt(parts[1]) || 100,
-                  offset: parseInt(parts[2]) || 0,
-                  splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
-                  splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
-                  idx: parseInt(parts[5]) || 1
-                });
+              const isUnused = (timeStr === "-1" || timeStr === "-1:0");
+              const [h, m] = isUnused ? [-1, 0] : (timeStr.includes(':') ? timeStr.split(':').map(Number) : [parseInt(timeStr) || 0, 0]);
+              const rawCycle = parseInt(parts[1]);
+              const cyc = isUnused ? 0 : (isNaN(rawCycle) ? 0 : rawCycle);
+              timePlans.push({
+                slot_idx: tp,
+                h: isUnused ? -1 : (isNaN(h) ? -1 : h),
+                m: isUnused ? 0 : (isNaN(m) ? 0 : m),
+                cycle: cyc,
+                offset: parseInt(parts[2]) || 0,
+                splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
+                splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
+                idx: parseInt(parts[5]) || tp
+              });
+            } else {
+              timePlans.push({
+                slot_idx: tp,
+                h: -1,
+                m: 0,
+                cycle: 0,
+                offset: 0,
+                splitA: Array(8).fill(0),
+                splitB: Array(8).fill(0),
+                idx: tp
+              });
             }
           }
 
@@ -1983,10 +2014,31 @@ app.post('/api/sim/update-junction', async (req, res) => {
         }
 
         if (todPayload.length > 0) {
-          const { error: tErr } = await supabase
-            .from('tod_plans')
-            .upsert(todPayload, { onConflict: 'id,day_plan' });
-          if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${tErr.message}`);
+          // 50,000건 이상의 tod_plans 테이블에서 동시성 락 경합 및 statement timeout 방지:
+          // 1) 해당 jid 삭제 후 insert (ON CONFLICT 락 검사 없이 고속 처리)
+          // 2) 실패 시 지수 백오프 3회 재시도, 최후의 수단으로 upsert 시도
+          let todSuccess = false;
+          let lastTodErr = null;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              const { error: delErr } = await supabase.from('tod_plans').delete().eq('id', jid);
+              if (delErr) throw delErr;
+              const { error: insErr } = await supabase.from('tod_plans').insert(todPayload);
+              if (insErr) throw insErr;
+              todSuccess = true;
+              break;
+            } catch (err) {
+              lastTodErr = err;
+              console.warn(`[update-junction] tod_plans write attempt ${attempt} failed: ${err.message}`);
+              await new Promise(r => setTimeout(r, attempt * 400));
+            }
+          }
+          if (!todSuccess) {
+            const { error: tErr } = await supabase
+              .from('tod_plans')
+              .upsert(todPayload, { onConflict: 'id,day_plan' });
+            if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${lastTodErr?.message || tErr.message}`);
+          }
         }
       }
 
@@ -3150,6 +3202,8 @@ app.post('/api/sim/batch-sync-utic', async (req, res) => {
             }
           }
         });
+        // 일괄 쓰기 후 DB 커넥션 풀 및 CPU 리소스 해소를 위한 200ms 쿨다운
+        await new Promise(r => setTimeout(r, 200));
       };
 
       for (const j of junctions) {

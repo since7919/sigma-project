@@ -609,7 +609,7 @@ function renderSummaryTable() {
             }
             const isUnused = !isUsedAnywhere;
             const firstUsedSched = firstGlobalSched;
-            const targetCycle = (p.cycle !== undefined && p.cycle !== null && p.cycle !== "") ? Number(p.cycle) : (firstUsedSched ? (firstUsedSched.cycle || 100) : 100);
+            const targetCycle = (isUnused && sumA === 0 && sumB === 0) ? 0 : ((p.cycle !== undefined && p.cycle !== null && p.cycle !== "") ? Number(p.cycle) : (firstUsedSched ? (firstUsedSched.cycle || 0) : 0));
 
             const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
             const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
@@ -626,7 +626,7 @@ function renderSummaryTable() {
             const rowStyle = (isActive ? activeStyle : mismatchStyle) + unusedStyle;
 
             const cycleWarningStyle = hasMismatch ? 'border: 1px solid #ff4444; background: rgba(255,68,68,0.4) !important; color: #fff !important; font-weight:900; box-shadow: 0 0 8px rgba(255,68,68,0.4);' : 'color:var(--accent); font-weight:bold;';
-            const cycleTooltip = hasMismatch ? `주기 불일치 (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : `목표 주기: ${targetCycle}s`;
+            const cycleTooltip = hasMismatch ? `주기 불일치 (A합계:${Math.round(sumA)}, B합계:${Math.round(sumB)}, 목표:${targetCycle})` : (targetCycle > 0 ? `목표 주기: ${targetCycle}s` : `미사용 슬롯`);
 
             let idCell = null;
             if (i === 0) idCell = { content: '1', style: 'font-weight:bold; color:#cbd5e1; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);', attr: { rowspan: 1 } };
@@ -647,10 +647,10 @@ function renderSummaryTable() {
                     attr: { onclick: `jumpToTOD(${i})` }
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini ${targetCycle === 0 ? 'val-zero' : ''}" value="${targetCycle}" style="${cycleWarningStyle}; width: 45px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini ${targetCycle === 0 ? 'val-zero' : ''}" value="${targetCycle === 0 ? '' : targetCycle}" placeholder="-" style="${cycleWarningStyle}; width: 45px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" title="${cycleTooltip}" data-type="pattern-cycle" data-index="${i}">`
                 },
                 {
-                    content: `<input type="number" class="sigma-input input-mini ${p.offset === 0 ? 'val-zero' : ''}" value="${p.offset}" data-type="offset" style="width: 35px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" data-index="${i}">`
+                    content: `<input type="number" class="sigma-input input-mini ${(p.offset === 0 || isUnused) ? 'val-zero' : ''}" value="${isUnused && p.offset === 0 ? '' : p.offset}" placeholder="-" data-type="offset" style="width: 35px; text-align: center; color:#cbd5e1; background:transparent; border:none; font-weight:500;" data-index="${i}">`
                 },
                 {
                     style: "text-align:left; padding:1px 10px; font-family:'Outfit', monospace; font-size:11.5px; line-height:1.3;",
@@ -1166,7 +1166,16 @@ function renderTodPlanInfoTable() {
                                 const dp = (j && j.dayPlans && j.dayPlans[idx]) ? j.dayPlans[idx][rIdx] : null;
                                 const dpSumA = dp && Array.isArray(dp.splitA) ? dp.splitA.reduce((a, b) => a + b, 0) : 0;
                                 const dpSumB = dp && Array.isArray(dp.splitB) ? dp.splitB.reduce((a, b) => a + b, 0) : 0;
-                                const isScBlank = !sc || sc.h === -1 || ((sc.h === 0 || sc.h === undefined) && (sc.m === 0 || sc.m === undefined) && dpSumA === 0 && dpSumB === 0);
+                                
+                                const rawH = sc ? parseInt(sc.h, 10) : -1;
+                                const rawM = sc ? (parseInt(sc.m, 10) || 0) : 0;
+                                const rawCycle = sc ? (parseInt(sc.cycle, 10) || 0) : 0;
+
+                                // 빈 슬롯 판정: -1이거나 실제 신호배분(스플릿) 정보가 전혀 없는 00:00 기본값 슬롯은 모두 빈칸 처리
+                                const isScBlank = !sc || rawH === -1 || isNaN(rawH) || 
+                                    (rawH === 0 && rawM === 0 && dpSumA === 0 && dpSumB === 0) || 
+                                    (rawCycle === 0 && dpSumA === 0 && dpSumB === 0) ||
+                                    (rawCycle === 100 && rawH === 0 && rawM === 0 && dpSumA === 0 && dpSumB === 0);
 
                                 const isActive = (dayIdx === idx && currentSlot === rIdx && !isScBlank);
                                 const bg = isActive ? 'rgba(241,196,15,0.12)' : 'transparent';
