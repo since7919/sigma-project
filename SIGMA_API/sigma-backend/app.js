@@ -2208,18 +2208,31 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
               if (val && val !== "-1") {
                 const parts = val.split('|');
                 const timeStr = parts[0] || "-1";
-                const isUnused = (timeStr === "-1");
-                const [h, m] = isUnused ? [-1, 0] : timeStr.split(':').map(Number);
+                const isUnused = (timeStr === "-1" || timeStr === "-1:0");
+                const [h, m] = isUnused ? [-1, 0] : (timeStr.includes(':') ? timeStr.split(':').map(Number) : [parseInt(timeStr) || 0, 0]);
+                const rawCycle = parseInt(parts[1]);
+                const cyc = isUnused ? 0 : (isNaN(rawCycle) ? 0 : rawCycle);
                 timePlans.push({
                   slot_idx: tp,
-                  h: h,
-                  m: m,
-                  cycle: parseInt(parts[1]) || 100,
-                    offset: parseInt(parts[2]) || 0,
-                    splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
-                    splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
-                    idx: parseInt(parts[5]) || 1
-                  });
+                  h: isUnused ? -1 : (isNaN(h) ? -1 : h),
+                  m: isUnused ? 0 : (isNaN(m) ? 0 : m),
+                  cycle: cyc,
+                  offset: parseInt(parts[2]) || 0,
+                  splitA: parts[3] ? parts[3].split(';').map(Number) : Array(8).fill(0),
+                  splitB: parts[4] ? parts[4].split(';').map(Number) : Array(8).fill(0),
+                  idx: parseInt(parts[5]) || tp
+                });
+              } else {
+                timePlans.push({
+                  slot_idx: tp,
+                  h: -1,
+                  m: 0,
+                  cycle: 0,
+                  offset: 0,
+                  splitA: Array(8).fill(0),
+                  splitB: Array(8).fill(0),
+                  idx: tp
+                });
               }
             }
 
@@ -2235,27 +2248,44 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
         }
       }
 
+      // 헬퍼: 타임아웃 및 락 경합 방지용 재시도 함수
+      const upsertWithRetry = async (tableName, rows, conflictKey, maxAttempts = 3) => {
+        let lastError = null;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const { error } = await supabase.from(tableName).upsert(rows, { onConflict: conflictKey });
+            if (!error) return;
+            lastError = error;
+          } catch (e) {
+            lastError = e;
+          }
+          await new Promise(r => setTimeout(r, attempt * 250));
+        }
+        throw new Error(`${tableName} RDB 업서트 오류: ${lastError?.message || 'statement timeout'}`);
+      };
+
       if (junctionsPayload.length > 0) {
-        const chunkSize = 500;
+        const chunkSize = 200;
         for (let i = 0; i < junctionsPayload.length; i += chunkSize) {
-          const { error: jErr } = await supabase.from('junctions').upsert(junctionsPayload.slice(i, i + chunkSize), { onConflict: 'id' });
-          if (jErr) throw new Error(`junctions RDB 업서트 오류: ${jErr.message}`);
+          await upsertWithRetry('junctions', junctionsPayload.slice(i, i + chunkSize), 'id');
+          if (i + chunkSize < junctionsPayload.length) await new Promise(r => setTimeout(r, 50));
         }
       }
 
       if (mapsPayload.length > 0) {
-        const chunkSize = 1000;
+        const chunkSize = 300;
         for (let i = 0; i < mapsPayload.length; i += chunkSize) {
-          const { error: mErr } = await supabase.from('signal_maps').upsert(mapsPayload.slice(i, i + chunkSize), { onConflict: 'id,map_idx' });
-          if (mErr) throw new Error(`signal_maps RDB 업서트 오류: ${mErr.message}`);
+          await upsertWithRetry('signal_maps', mapsPayload.slice(i, i + chunkSize), 'id,map_idx');
+          if (i + chunkSize < mapsPayload.length) await new Promise(r => setTimeout(r, 50));
         }
       }
 
       if (todPayload.length > 0) {
-        const chunkSize = 1000;
+        // 50,000건 테이블에서 statement_timeout을 완벽히 방지하기 위해 50개 단위 소형 배치로 분할 실행
+        const chunkSize = 50;
         for (let i = 0; i < todPayload.length; i += chunkSize) {
-          const { error: tErr } = await supabase.from('tod_plans').upsert(todPayload.slice(i, i + chunkSize), { onConflict: 'id,day_plan' });
-          if (tErr) throw new Error(`tod_plans RDB 업서트 오류: ${tErr.message}`);
+          await upsertWithRetry('tod_plans', todPayload.slice(i, i + chunkSize), 'id,day_plan');
+          if (i + chunkSize < todPayload.length) await new Promise(r => setTimeout(r, 60));
         }
       }
 
@@ -3037,12 +3067,24 @@ app.post('/api/sim/sync-utic-plan', async (req, res) => {
     if (saveToDb === true) {
       await enqueueDBWrite(async () => {
         if (todPayload.length > 0) {
-          const { error: tErr } = await supabase.from('tod_plans').upsert(todPayload, { onConflict: 'id,day_plan' });
-          if (tErr) throw new Error(`tod_plans 업서트 실패: ${tErr.message}`);
+          try {
+            await supabase.from('tod_plans').delete().eq('id', jid);
+            const { error: tErr } = await supabase.from('tod_plans').insert(todPayload);
+            if (tErr) throw tErr;
+          } catch (tErr) {
+            const { error: upErr } = await supabase.from('tod_plans').upsert(todPayload, { onConflict: 'id,day_plan' });
+            if (upErr) throw new Error(`tod_plans 업서트 실패: ${upErr.message}`);
+          }
         }
         if (mapsPayload.length > 0) {
-          const { error: mErr } = await supabase.from('signal_maps').upsert(mapsPayload, { onConflict: 'id,map_idx' });
-          if (mErr) throw new Error(`signal_maps 업서트 실패: ${mErr.message}`);
+          try {
+            await supabase.from('signal_maps').delete().eq('id', jid);
+            const { error: mErr } = await supabase.from('signal_maps').insert(mapsPayload);
+            if (mErr) throw mErr;
+          } catch (mErr) {
+            const { error: upErr } = await supabase.from('signal_maps').upsert(mapsPayload, { onConflict: 'id,map_idx' });
+            if (upErr) throw new Error(`signal_maps 업서트 실패: ${upErr.message}`);
+          }
         }
         if (weeklyPlanStr) {
           await supabase.from('junctions').update({ weekly_plan: weeklyPlanStr, updated_at: new Date().toISOString() }).eq('id', jid);

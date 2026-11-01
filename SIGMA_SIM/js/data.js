@@ -432,7 +432,7 @@ async function executeDBUpdate() {
             }
             
             if (targets.length > 0) {
-                const chunkSize = 50;
+                const chunkSize = 15;
                 for (let i = 0; i < targets.length; i += chunkSize) {
                     const chunk = targets.slice(i, i + chunkSize);
                     const currentCount = Math.min(i + chunkSize, targets.length);
