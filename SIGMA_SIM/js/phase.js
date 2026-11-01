@@ -609,10 +609,9 @@ function renderSummaryTable() {
             }
             const isUnused = !isUsedAnywhere;
             const firstUsedSched = firstGlobalSched;
-            const targetCycle = (isUnused && sumA === 0 && sumB === 0) ? 0 : ((p.cycle !== undefined && p.cycle !== null && p.cycle !== "") ? Number(p.cycle) : (firstUsedSched ? (firstUsedSched.cycle || 0) : 0));
-
             const sumA = (p.splitA || []).reduce((a, b) => a + b, 0);
             const sumB = (p.splitB || []).reduce((a, b) => a + b, 0);
+            const targetCycle = (isUnused && sumA === 0 && sumB === 0) ? 0 : ((p.cycle !== undefined && p.cycle !== null && p.cycle !== "") ? Number(p.cycle) : (firstUsedSched ? (firstUsedSched.cycle || 0) : 0));
             
             const isMatchA = (Math.round(sumA) === Math.round(targetCycle));
             const isMatchB = (Math.round(sumB) === Math.round(targetCycle));
