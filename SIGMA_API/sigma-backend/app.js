@@ -287,20 +287,23 @@ async function syncUticIntersections(regionCode) {
 }
 
 
-let safetyZoneSummaryCache = { data: null, timestamp: 0, version: 2 };
+let safetyZoneSummaryCache = { data: null, timestamp: 0, version: 3 };
 app.get('/api/safetyzone/summary', async (req, res) => {
   if (safetyZoneSummaryCache.data && safetyZoneSummaryCache.version === 2 && Date.now() - safetyZoneSummaryCache.timestamp < 3600000) {
     return res.json({ success: true, data: safetyZoneSummaryCache.data });
   }
 
   const SGG_MAP = {
-    'L01': '11', 'L02': '28', 'L03': '4119', 'L04': '4121', 'L05': '4117',
-    'L06': '4129', 'L07': '4127', 'L08': '4146', 'L09': '4113', 'L10': '4128',
-    'L11': '4139', 'L12': '4148', 'L13': '4163', 'L14': '4115', 'L15': '4157',
-    'L16': '4143', 'L17': '4141', 'L18': '4136', 'L19': '4111', 'L20': '4161',
-    'L21': '4131', 'L22': '4145', 'L23': '26', 'L24': '4833', 'L25': '4812',
-    'L26': '4825', 'L28': '4831', 'L29': '27', 'L30': '30', 'L31': '29', 'L37': '4711'
-  };
+  'L01': '11', 'L02': '28', '161': '26', '155': '27', '131': '30',
+  '142': '31', '144': '29', '169': '36', '170': '41', '171': '42',
+  '172': '43', '173': '44', '174': '45', '175': '46', '176': '47',
+  '177': '48', '178': '50',
+  'L03': '4122', 'L04': '4159', 'L05': '4125', 'L06': '4215', 'L07': '4213',
+  'L08': '4146', 'L09': '4113', 'L10': '4128', 'L11': '4139', 'L12': '4413',
+  'L13': '4311', 'L14': '4511', 'L15': '4513', 'L16': '4143', 'L17': '4514',
+  'L18': '4713', 'L19': '4111', 'L20': '5011', 'L21': '5013', 'L23': '26',
+  'L29': '27', 'L30': '30'
+};
   const result = {};
   try {
     const promises = Object.entries(SGG_MAP).map(async ([regionCode, prefix]) => {
