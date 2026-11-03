@@ -19,28 +19,126 @@ function toggleLeftSidebar() {
 }
 
 /**
- * 지역 필터 함수 (공통)
+ * 지역 필터 함수 (공통 - SIGMA API 연동 24개 관할 지자체)
  */
 window.REGION_MAP = {
-    'L01': '서울특별시', 'L02': '인천광역시', 'L03': '평택시', 'L04': '안성시',
-    'L05': '과천시', 'L06': '부천시', 'L07': '광명시', 'L08': '안산시',
-    'L09': '파주시', 'L10': '오산시', 'L11': '화성시', 'L12': '동두천시',
-    'L13': '양주시', 'L14': '의정부시', 'L15': '김포시', 'L16': '의왕시',
-    'L17': '군포시', 'L18': '남양주시', 'L19': '수원시', 'L20': '경기도 광주시',
-    'L21': '구리시', 'L22': '하남시', 'L23': '부산광역시', 'L24': '양산시',
-    'L25': '창원시', 'L26': '김해시', 'L28': '거제시', 'L29': '대구광역시',
-    'L30': '대전광역시', 'L31': '광주광역시', 'L37': '포항시'
+    'L01': '서울시', 'L02': '인천시', 'L03': '평택시', 'L04': '화성시',
+    'L05': '동두천시', 'L06': '강릉시', 'L07': '원주시', 'L08': '용인시',
+    'L09': '성남시', 'L10': '고양시', 'L11': '시흥시', 'L12': '천안시',
+    'L13': '청주시', 'L14': '전주시', 'L15': '군산시', 'L16': '의왕시',
+    'L17': '익산시', 'L18': '경주시', 'L19': '수원시', 'L20': '제주시',
+    'L21': '서귀포시', 'L23': '부산시', 'L29': '대구시', 'L30': '대전시'
 };
 
 window.REGION_ORDER = [
-    'L01', 'L02', 'L03', 'L04', 'L05', 'L06', 'L07', 'L08', 'L09', 'L10',
-    'L11', 'L12', 'L13', 'L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20',
-    'L21', 'L22', 'L23', 'L24', 'L25', 'L26', 'L28', 'L29', 'L30', 'L31', 'L37'
+    'L01', 'L02', 'L03', 'L04', 'L05', 'L06', 'L07', 'L08',
+    'L09', 'L10', 'L11', 'L12', 'L13', 'L14', 'L15', 'L16',
+    'L17', 'L18', 'L19', 'L20', 'L21', 'L23', 'L29', 'L30'
 ];
+
+window.REGION_SUBTITLE = {
+    'L01': '수도권 교통허브',
+    'L02': '경인 광역교통망',
+    'L03': '경기 남부 연동망',
+    'L04': '신규 개발지구 거점',
+    'L05': '경기 북부 거점',
+    'L06': '강원 동해안 거점',
+    'L07': '강원 영서 거점',
+    'L08': '경기 남부 거점',
+    'L09': '수도권 동남부 거점',
+    'L10': '수도권 서북부 거점',
+    'L11': '경기 서남부 거점',
+    'L12': '충남 중부 거점',
+    'L13': '충북 중부 거점',
+    'L14': '전북 거점',
+    'L15': '전북 서해안 거점',
+    'L16': '수도권 연계망',
+    'L17': '전북 호남 거점',
+    'L18': '경북 동남부 거점',
+    'L19': '경기 남부 수부도시',
+    'L20': '제주 북부 거점',
+    'L21': '제주 남부 거점',
+    'L23': '동남권 광역망',
+    'L29': '대경권 광역망',
+    'L30': '충청권 광역망'
+};
+
+// SIGMA API에서 지자체 목록 최신화 가져오기
+async function syncRegionsFromApi() {
+    try {
+        const res = await fetch('/api/sim/regions');
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.regions) {
+                window.REGION_MAP = Object.assign({}, window.REGION_MAP, data.regions);
+                if (data.order && Array.isArray(data.order)) {
+                    window.REGION_ORDER = data.order;
+                }
+                if (typeof window.renderModalRegionCards === 'function') {
+                    window.renderModalRegionCards();
+                }
+            }
+        }
+    } catch (e) {
+        // 백엔드 통신 실패 시 기본 24개 지역 사용
+    }
+}
+syncRegionsFromApi();
 
 let _openAccordions = {};
 window.CURRENT_REGION_CODE = localStorage.getItem('sigma_selected_region') || 'L01';
 _openAccordions[window.CURRENT_REGION_CODE] = true;
+
+window.renderModalRegionCards = function() {
+    const grid = document.getElementById('modal-region-cards-grid');
+    if (!grid) return;
+
+    const savedRegion = localStorage.getItem('sigma_selected_region') || window.CURRENT_REGION_CODE || 'L01';
+    let html = '';
+    window.REGION_ORDER.forEach(code => {
+        const name = window.REGION_MAP[code] || code;
+        const sub = (window.REGION_SUBTITLE && window.REGION_SUBTITLE[code]) || '신호 제어망';
+        const isSelected = (code === savedRegion);
+        const borderStyle = isSelected ? 'border: 1px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.18);' : 'border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04);';
+
+        html += `
+            <button class="region-card-btn" data-region="${code}" onclick="selectRegion('${code}')" style="display: flex; flex-direction: column; align-items: flex-start; padding: 11px 13px; border-radius: 10px; ${borderStyle} color: #fff; cursor: pointer; transition: all 0.2s; text-align: left;">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 4px;">
+                    <span style="font-weight: 800; font-size: 14px; color: #f8fafc;">${name}</span>
+                    <span style="font-size: 10px; background: rgba(56,189,248,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(56,189,248,0.3);">${code}</span>
+                </div>
+                <span style="font-size: 11px; color: #94a3b8;">${sub}</span>
+            </button>
+        `;
+    });
+    grid.innerHTML = html;
+
+    // 드롭다운 갱신
+    const dd = document.getElementById('modal-all-regions-select');
+    if (dd) {
+        dd.innerHTML = '';
+        window.REGION_ORDER.forEach(code => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = `${code} - ${window.REGION_MAP[code] || code}`;
+            dd.appendChild(opt);
+        });
+        if (savedRegion) dd.value = savedRegion;
+    }
+
+    // UTIC 일괄 동기화 드롭다운도 갱신
+    const selBatch = document.getElementById('sel-utic-batch-region');
+    if (selBatch) {
+        selBatch.innerHTML = '';
+        window.REGION_ORDER.forEach(code => {
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = `${window.REGION_MAP[code] || code} (${code})`;
+            selBatch.appendChild(opt);
+        });
+        if (savedRegion) selBatch.value = savedRegion;
+    }
+};
 
 window.filterModalRegionCards = function(q) {
     const query = (q || '').trim().toLowerCase();
@@ -61,6 +159,11 @@ window.openRegionSelectModal = function(isStartup = false) {
     if (!modal) return;
 
     modal.style.display = 'flex';
+
+    // 카드 목록 렌더링
+    if (typeof window.renderModalRegionCards === 'function') {
+        window.renderModalRegionCards();
+    }
 
     // 검색창 초기화
     const searchInput = document.getElementById('modal-region-search-input');
