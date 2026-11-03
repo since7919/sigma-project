@@ -51,39 +51,39 @@ function getDistinctGroupColor(gid) {
 }
 
 /**
- * 고해상도 타일 서버 설정 (ArcGIS의 타일 미지원 'Map data not yet available' 원천 방지)
- * - CartoDB Positron: OpenStreetMap 기반 고화질 벡터 렌더, 한국 도로망/지명 완벽 지원 (기본값)
- * - CartoDB Dark Matter: 고대비 다크 지도
- * - Google Roadmap: 구글 정밀 도로 지도
+ * 고해상도 무키(No-Key)·무워터마크 타일 서버 설정
+ * - VWorld Base: 대한민국 국토교통부 표준 고해상도 지도 (기본값: API키 불필요, 워터마크 없음, 'Map data not yet available' 원천 방지)
+ * - OpenStreetMap: 글로벌 표준 오픈소스 지도 (API키 불필요, 워터마크 없음)
+ * - Dark Map: OpenStreetMap 기반 고대비 야간 다크 필터 (API키 불필요, 워터마크 없음)
  */
 function getNetworkPrintTileConfig(theme) {
     if (theme === 'dark') {
         return {
-            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             options: {
-                subdomains: 'abcd',
-                maxZoom: 22,
+                maxZoom: 19,
                 maxNativeZoom: 19,
-                attribution: false
+                attribution: false,
+                className: 'leaflet-tile-dark'
             }
         };
-    } else if (theme === 'google') {
+    } else if (theme === 'osm') {
         return {
-            url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             options: {
-                maxZoom: 22,
-                maxNativeZoom: 20,
+                maxZoom: 19,
+                maxNativeZoom: 19,
                 attribution: false
             }
         };
     } else {
-        // 기본값: 'clean' (CartoDB Positron 화이트 라이트 지도)
+        // 기본값: 'clean' (대한민국 국토교통부 브이월드 기본도 - API 키 완전 불필요, 워터마크 제로, 대한민국 도로/교차로 최적화)
         return {
-            url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            url: 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png',
             options: {
-                subdomains: 'abcd',
-                maxZoom: 22,
+                maxZoom: 19,
                 maxNativeZoom: 19,
+                minZoom: 6,
                 attribution: false
             }
         };
@@ -360,9 +360,9 @@ window.openNetworkPrintModal = async function() {
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">배경 지도 스타일</label>
                         <select id="sel-print-theme" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px; font-weight:bold;">
-                            <option value="clean" selected>📄 라이트 지도 (기본 / 고화질 클린)</option>
-                            <option value="google">🗺️ 구글 도로 지도 (상세 도로망)</option>
-                            <option value="dark">🌌 다크 지도 (고대비 야간)</option>
+                            <option value="clean" selected>📄 라이트 지도 (기본 / 브이월드 무키·무워터마크)</option>
+                            <option value="osm">🌐 오픈스트리트맵 (OSM 글로벌 표준)</option>
+                            <option value="dark">🌌 다크 지도 (고대비 야간 / 무키·무워터마크)</option>
                         </select>
                     </div>
                     <div>
@@ -809,6 +809,11 @@ async function renderNetworkPrintOverlay(opts) {
                 box-sizing: border-box;
                 position: relative;
             }
+            /* 다크 모드 타일 필터 (워터마크 없는 무키 고대비 다크 렌더링) */
+            .leaflet-tile-dark, img.leaflet-tile-dark {
+                filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
+                -webkit-filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
+            }
             @media print {
                 @page {
                     size: ${opts.pageSize} landscape;
@@ -886,6 +891,12 @@ async function renderNetworkPrintOverlay(opts) {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
+                .leaflet-tile-dark, img.leaflet-tile-dark {
+                    filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
+                    -webkit-filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
             }
         </style>
 
@@ -912,7 +923,7 @@ async function renderNetworkPrintOverlay(opts) {
                     <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">지도:</span>
                     <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
                         <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 라이트 지도 (기본)</option>
-                        <option value="google"${opts.theme === 'google' ? ' selected' : ''}>🗺️ 구글 도로 지도</option>
+                        <option value="osm"${opts.theme === 'osm' ? ' selected' : ''}>🌐 오픈스트리트맵</option>
                         <option value="dark"${opts.theme === 'dark' ? ' selected' : ''}>🌌 다크 지도</option>
                     </select>
                 </div>
