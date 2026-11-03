@@ -50,6 +50,46 @@ function getDistinctGroupColor(gid) {
     return GROUP_PALETTE[Math.abs(hash) % GROUP_PALETTE.length];
 }
 
+/**
+ * 고해상도 타일 서버 설정 (ArcGIS의 타일 미지원 'Map data not yet available' 원천 방지)
+ * - CartoDB Positron: OpenStreetMap 기반 고화질 벡터 렌더, 한국 도로망/지명 완벽 지원 (기본값)
+ * - CartoDB Dark Matter: 고대비 다크 지도
+ * - Google Roadmap: 구글 정밀 도로 지도
+ */
+function getNetworkPrintTileConfig(theme) {
+    if (theme === 'dark') {
+        return {
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            options: {
+                subdomains: 'abcd',
+                maxZoom: 22,
+                maxNativeZoom: 19,
+                attribution: false
+            }
+        };
+    } else if (theme === 'google') {
+        return {
+            url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            options: {
+                maxZoom: 22,
+                maxNativeZoom: 20,
+                attribution: false
+            }
+        };
+    } else {
+        // 기본값: 'clean' (CartoDB Positron 화이트 라이트 지도)
+        return {
+            url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            options: {
+                subdomains: 'abcd',
+                maxZoom: 22,
+                maxNativeZoom: 19,
+                attribution: false
+            }
+        };
+    }
+}
+
 let _currentPrintOpts = {
     targetDistrict: 'ALL',
     pageSize: 'A4',
@@ -61,7 +101,7 @@ let _currentPrintOpts = {
     showInsetMap: true,      // 단위면적 최대밀집 확대도 표기 여부
     showJid: true,
     showBoundary: true,
-    theme: 'dark'            // 'dark' | 'clean'
+    theme: 'clean'           // 'clean' (라이트 지도 - 기본값) | 'google' | 'dark'
 };
 
 let _activePrintMap = null;
@@ -320,8 +360,9 @@ window.openNetworkPrintModal = async function() {
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">배경 지도 스타일</label>
                         <select id="sel-print-theme" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px; font-weight:bold;">
-                            <option value="dark" selected>🌌 화면과 동일한 다크 지도</option>
-                            <option value="clean">📄 화이트 라이트 지도</option>
+                            <option value="clean" selected>📄 라이트 지도 (기본 / 고화질 클린)</option>
+                            <option value="google">🗺️ 구글 도로 지도 (상세 도로망)</option>
+                            <option value="dark">🌌 다크 지도 (고대비 야간)</option>
                         </select>
                     </div>
                     <div>
@@ -380,7 +421,7 @@ window.executeNetworkPrint = async function() {
         pageSize: document.getElementById('sel-print-page-size').value || 'A4',
         orientation: 'landscape',
         labelMode: document.getElementById('sel-print-label-mode').value || 'leader',
-        theme: document.getElementById('sel-print-theme').value || 'dark',
+        theme: document.getElementById('sel-print-theme').value || 'clean',
         nodeSize: parseFloat(document.getElementById('sel-print-node-size').value) || 1.8,
         lineWidth: parseFloat(document.getElementById('sel-print-line-width').value) || 5.0,
         showInsetMap: document.getElementById('chk-print-show-inset').checked,
@@ -465,10 +506,8 @@ window.openInsetMap = function(id) {
     } else {
         const hotspot = _cachedHotspots.find(h => h.id === id);
         if (hotspot) {
-            const tileUrl = (_currentPrintOpts.theme === 'dark')
-                ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-                : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
-            renderSingleInsetDetailMap(hotspot, _cachedFilteredNodes, _cachedFilteredEdges, _currentPrintOpts, _currentPrintOpts.theme === 'dark', tileUrl);
+            const tileConf = getNetworkPrintTileConfig(_currentPrintOpts.theme);
+            renderSingleInsetDetailMap(hotspot, _cachedFilteredNodes, _cachedFilteredEdges, _currentPrintOpts, _currentPrintOpts.theme === 'dark', tileConf);
         }
     }
     updateInsetToolbarBadges();
@@ -871,9 +910,10 @@ async function renderNetworkPrintOverlay(opts) {
 
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">지도:</span>
-                    <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
-                        <option value="dark"${isDark ? ' selected' : ''}>🌌 다크 지도</option>
-                        <option value="clean"${!isDark ? ' selected' : ''}>📄 라이트 지도</option>
+                    <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
+                        <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 라이트 지도 (기본)</option>
+                        <option value="google"${opts.theme === 'google' ? ' selected' : ''}>🗺️ 구글 도로 지도</option>
+                        <option value="dark"${opts.theme === 'dark' ? ' selected' : ''}>🌌 다크 지도</option>
                     </select>
                 </div>
 
@@ -1016,11 +1056,8 @@ async function renderNetworkPrintOverlay(opts) {
         });
         _activePrintMap = printMap;
 
-        const tileUrl = isDark
-            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-            : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
-
-        L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(printMap);
+        const tileConf = getNetworkPrintTileConfig(opts.theme);
+        L.tileLayer(tileConf.url, tileConf.options).addTo(printMap);
 
         // 여백 10px 극소화로 구역 전체 화면 가득 차게 Auto-Zoom
         printMap.fitBounds(bounds, { padding: [10, 10], animate: false });
@@ -1045,7 +1082,7 @@ async function renderNetworkPrintOverlay(opts) {
 
         printMap.whenReady(() => {
             triggerRender();
-            renderAllInsets(_cachedFilteredNodes, _cachedFilteredEdges, opts, isDark, tileUrl, _cachedHotspots);
+            renderAllInsets(_cachedFilteredNodes, _cachedFilteredEdges, opts, isDark, tileConf, _cachedHotspots);
         });
 
         printMap.on('zoom', () => {
@@ -1190,11 +1227,11 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
 /**
  * 단위 면적당 상위 3대 밀집구역 상세 확대 인셋 맵 전체 렌더링
  */
-function renderAllInsets(nodes, edges, opts, isDark, tileUrl, hotspots) {
+function renderAllInsets(nodes, edges, opts, isDark, tileConf, hotspots) {
     if (!hotspots || hotspots.length === 0) return;
     hotspots.forEach(h => {
         if (_insetVisibility[h.id]) {
-            renderSingleInsetDetailMap(h, nodes, edges, opts, isDark, tileUrl);
+            renderSingleInsetDetailMap(h, nodes, edges, opts, isDark, tileConf);
         }
         const box = document.getElementById(`net-print-inset-box-${h.id}`);
         const header = document.getElementById(`net-print-inset-header-${h.id}`);
@@ -1204,7 +1241,7 @@ function renderAllInsets(nodes, edges, opts, isDark, tileUrl, hotspots) {
     });
 }
 
-function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileUrl) {
+function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileConf) {
     const mapContainerId = `net-print-inset-map-${hotspot.id}`;
     const el = document.getElementById(mapContainerId);
     if (!el) return;
@@ -1213,6 +1250,8 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileUrl
         try { _activeInsetMaps[hotspot.id].remove(); } catch(e) {}
         delete _activeInsetMaps[hotspot.id];
     }
+
+    const conf = (tileConf && tileConf.url) ? tileConf : getNetworkPrintTileConfig(opts ? opts.theme : 'clean');
 
     const centerNode = hotspot.centerNode;
     const insetMap = L.map(mapContainerId, {
@@ -1226,7 +1265,7 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileUrl
     }).setView([centerNode.lat, centerNode.lng], 16); // 250% 정밀 확대
 
     _activeInsetMaps[hotspot.id] = insetMap;
-    L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(insetMap);
+    L.tileLayer(conf.url, conf.options).addTo(insetMap);
 
     insetMap.whenReady(() => {
         // 인셋 맵 내 연동 링크선 (고유 그룹 컬러)
