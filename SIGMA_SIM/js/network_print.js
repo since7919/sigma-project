@@ -678,30 +678,6 @@ async function renderNetworkPrintOverlay(opts) {
         3: opts.showInsetMap !== false
     };
 
-    // 4. 연동 그룹별 통계 집계 (고유 색상 범례 표시용)
-    const groupCountMap = new Map();
-    filteredNodes.forEach(j => {
-        const gid = String(j.group || '0');
-        if (gid !== '0' && gid !== 'default') {
-            groupCountMap.set(gid, (groupCountMap.get(gid) || 0) + 1);
-        }
-    });
-
-    const sortedGroups = Array.from(groupCountMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8); // 상위 8개 주요 연동그룹
-
-    let groupLegendHtml = sortedGroups.map(([gid, count]) => {
-        const color = getDistinctGroupColor(gid);
-        return `
-            <div style="display:flex; align-items:center; gap:5px; font-size:10.5px; white-space:nowrap;">
-                <span style="display:inline-block; width:14px; height:4px; background:${color}; border-radius:2px;"></span>
-                <span style="font-weight:700; color:${color};">G${gid}</span>
-                <span style="color:#64748b; font-size:9.5px;">(${count})</span>
-            </div>
-        `;
-    }).join('');
-
     // 5. 오버레이 컨테이너 생성
     let container = document.getElementById('network-print-overlay');
     if (!container) {
@@ -888,21 +864,12 @@ async function renderNetworkPrintOverlay(opts) {
                     </h1>
                 </div>
 
-                <!-- 통계 및 연동그룹 범례 -->
-                <div style="display:flex; gap:14px; align-items:center; font-size:11px; color:${subColor};">
-                    <div style="display:flex; flex-direction:column; gap:2px; text-align:right;">
-                        <div><b>관할:</b> ${regionName} | <b>발행일시:</b> ${nowStr}</div>
-                        <div>
-                            <b>총 교차로:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredNodes.length}개소</span> | 
-                            <b>연동 링크:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredEdges.length}구간</span>
-                        </div>
-                    </div>
-                    <!-- 그룹별 고유 색상 범례 박스 -->
-                    <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:6px; padding:5px 10px; display:flex; flex-direction:column; gap:3px;">
-                        <div style="font-size:10px; font-weight:bold; color:${isDark ? '#38bdf8' : '#0284c7'}; margin-bottom:2px;">연동그룹(GroupID) 고유색상:</div>
-                        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px 8px;">
-                            ${groupLegendHtml}
-                        </div>
+                <!-- 통계 정보 요약 -->
+                <div style="display:flex; flex-direction:column; gap:4px; text-align:right; font-size:11.5px; color:${subColor};">
+                    <div><b>관할:</b> ${regionName} &nbsp;|&nbsp; <b>발행일시:</b> ${nowStr}</div>
+                    <div>
+                        <b>총 교차로:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredNodes.length}개소</span> &nbsp;|&nbsp; 
+                        <b>연동 링크:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredEdges.length}구간</span>
                     </div>
                 </div>
             </div>
@@ -1226,42 +1193,62 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileUrl
 }
 
 /**
- * 인셋 박스 마우스 드래그 이동 헬퍼 (창닫기 버튼 클릭 간섭 배제 & z-index 전면 승격)
+ * 인셋 박스 마우스 드래그 이동 헬퍼
+ * - 포인터 상대 오프셋 기반 무간섭 드래그 & 부모 컨테이너 기준 정밀 좌표 계산
+ * - 엉뚱한 위치로 튀는 현상 원천 해결 (오차 0px)
  */
 function makeDraggable(headerEl, containerEl) {
     let isDragging = false;
-    let startX, startY, origLeft, origTop;
+    let grabOffsetX = 0;
+    let grabOffsetY = 0;
     headerEl.style.cursor = 'grab';
 
     headerEl.onmousedown = (e) => {
         if (e.target.tagName === 'BUTTON') return; // 창닫기 버튼 클릭 시 드래그 방지
+        e.preventDefault();
+
         isDragging = true;
         headerEl.style.cursor = 'grabbing';
         document.querySelectorAll('.net-print-inset-card').forEach(el => el.style.zIndex = '15');
         containerEl.style.zIndex = '25';
 
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = containerEl.getBoundingClientRect();
-        origLeft = rect.left;
-        origTop = rect.top;
+        // 1. 클릭 시점 카드 박스 위치(Viewport)와 마우스 클릭 위치 간격(오프셋)
+        const cardRect = containerEl.getBoundingClientRect();
+        grabOffsetX = e.clientX - cardRect.left;
+        grabOffsetY = e.clientY - cardRect.top;
 
-        document.onmousemove = (ev) => {
+        // 2. 부모 컨테이너 (위치 기준 요소)
+        const parent = containerEl.offsetParent || containerEl.parentElement;
+
+        const onMouseMove = (ev) => {
             if (!isDragging) return;
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
-            containerEl.style.left = (origLeft + dx) + 'px';
-            containerEl.style.top = (origTop + dy) + 'px';
+            const parentRect = parent.getBoundingClientRect();
+
+            // 부모 기준 새 좌표 = (현재 마우스 - 클릭 오프셋) - 부모 시작점
+            let newLeft = (ev.clientX - grabOffsetX) - parentRect.left;
+            let newTop = (ev.clientY - grabOffsetY) - parentRect.top;
+
+            // 지도 래퍼 경계 내로 제한 (화면 밖 이탈 방지)
+            const maxLeft = parentRect.width - cardRect.width;
+            const maxTop = parentRect.height - cardRect.height;
+            newLeft = Math.max(4, Math.min(maxLeft - 4, newLeft));
+            newTop = Math.max(4, Math.min(maxTop - 4, newTop));
+
+            containerEl.style.left = `${newLeft}px`;
+            containerEl.style.top = `${newTop}px`;
             containerEl.style.bottom = 'auto';
             containerEl.style.right = 'auto';
         };
 
-        document.onmouseup = () => {
+        const onMouseUp = () => {
             isDragging = false;
             headerEl.style.cursor = 'grab';
-            document.onmousemove = null;
-            document.onmouseup = null;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
         };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     };
 }
 
