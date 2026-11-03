@@ -502,6 +502,35 @@ function updateInsetToolbarBadges() {
     }).join('');
 }
 
+window.triggerNetworkPrint = function() {
+    if (_activePrintMap) {
+        _activePrintMap.invalidateSize();
+        if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
+    }
+    Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+    setTimeout(() => {
+        window.print();
+    }, 80);
+};
+
+if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
+    window._netPrintEventsBound = true;
+    window.addEventListener('beforeprint', () => {
+        if (_activePrintMap) {
+            _activePrintMap.invalidateSize();
+            if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
+        }
+        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+    });
+    window.addEventListener('afterprint', () => {
+        if (_activePrintMap) {
+            _activePrintMap.invalidateSize();
+            if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
+        }
+        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+    });
+}
+
 /**
  * 지시선(Leader Line) 방사형 분산 라벨링 계산
  */
@@ -711,6 +740,9 @@ async function renderNetworkPrintOverlay(opts) {
     });
     _activeInsetMaps = {};
 
+    // 5. 인쇄 높이 엄격 계산 (A4 1장 강제 맞춤: 168mm + 헤더 14mm + 푸터 5mm = 187mm <= 204mm)
+    const printMapHeight = (opts.pageSize === 'A3') ? '252mm' : '168mm';
+
     container.innerHTML = `
         <style id="network-print-dynamic-style">
             #network-print-overlay {
@@ -730,7 +762,7 @@ async function renderNetworkPrintOverlay(opts) {
                 color: ${textColor};
                 width: 1440px;
                 max-width: 98vw;
-                padding: 18px 24px;
+                padding: 16px 20px;
                 border-radius: 8px;
                 box-shadow: 0 10px 45px rgba(0,0,0,0.7);
                 border: 1px solid ${borderColor};
@@ -740,7 +772,15 @@ async function renderNetworkPrintOverlay(opts) {
             @media print {
                 @page {
                     size: ${opts.pageSize} landscape;
-                    margin: 5mm;
+                    margin: 3mm;
+                }
+                html, body {
+                    width: 100% !important;
+                    height: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    background: ${bgColor} !important;
                 }
                 body * {
                     visibility: hidden;
@@ -749,19 +789,54 @@ async function renderNetworkPrintOverlay(opts) {
                     visibility: visible;
                 }
                 #network-print-overlay {
-                    position: absolute;
-                    top: 0; left: 0; width: 100%; height: auto;
-                    background: transparent !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-height: 100% !important;
+                    margin: 0 !important;
                     padding: 0 !important;
-                    overflow: visible !important;
+                    background: ${bgColor} !important;
+                    overflow: hidden !important;
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                 }
                 .net-print-paper {
                     box-shadow: none !important;
                     border: none !important;
                     width: 100% !important;
                     max-width: 100% !important;
-                    padding: 0 !important;
+                    height: 100% !important;
+                    max-height: 100% !important;
+                    padding: 1mm 2mm !important;
+                    margin: 0 !important;
                     background: ${bgColor} !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    justify-content: space-between !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                #net-print-map-wrapper {
+                    height: ${printMapHeight} !important;
+                    max-height: ${printMapHeight} !important;
+                    min-height: ${printMapHeight} !important;
+                    overflow: hidden !important;
+                    border: 1px solid ${borderColor} !important;
+                    border-radius: 4px !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                .net-print-inset-card {
+                    box-shadow: none !important;
+                    border-width: 2px !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                 }
                 .net-no-print {
                     display: none !important;
@@ -842,7 +917,7 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <div style="display:flex; gap:8px;">
-                <button onclick="window.print()" class="phase-action-btn phase-btn-blue" style="height:34px; padding:0 18px; font-size:13px; font-weight:bold; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                <button onclick="triggerNetworkPrint()" class="phase-action-btn phase-btn-blue" style="height:34px; padding:0 18px; font-size:13px; font-weight:bold; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
                     🖨️ PDF로 저장 / 인쇄
                 </button>
                 <button onclick="closeNetworkPrintOverlay()" class="phase-action-btn phase-btn-gray" style="height:34px; padding:0 14px; font-size:12.5px;">
@@ -854,18 +929,18 @@ async function renderNetworkPrintOverlay(opts) {
         <!-- 인쇄 도면 용지 본문 -->
         <div class="net-print-paper">
             <!-- 헤더 -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:8px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:6px; margin-bottom:8px;">
                 <div>
                     <div style="font-size:11px; font-weight:700; color:${isDark ? '#38bdf8' : '#0284c7'}; letter-spacing:1px; margin-bottom:2px;">
                         KOROAD SIGMA TRAFFIC SIGNAL MANAGEMENT SYSTEM
                     </div>
-                    <h1 style="margin:0; font-size:22px; font-weight:800; letter-spacing:-0.5px; color:${textColor};">
+                    <h1 style="margin:0; font-size:21px; font-weight:800; letter-spacing:-0.5px; color:${textColor};">
                         ${districtTitle} 신호 연동 네트워크 현황도
                     </h1>
                 </div>
 
                 <!-- 통계 정보 요약 -->
-                <div style="display:flex; flex-direction:column; gap:4px; text-align:right; font-size:11.5px; color:${subColor};">
+                <div style="display:flex; flex-direction:column; gap:3px; text-align:right; font-size:11px; color:${subColor};">
                     <div><b>관할:</b> ${regionName} &nbsp;|&nbsp; <b>발행일시:</b> ${nowStr}</div>
                     <div>
                         <b>총 교차로:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredNodes.length}개소</span> &nbsp;|&nbsp; 
@@ -874,8 +949,8 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (840px 높이로 극대화) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:840px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- 중앙 대형 맵 영역 (화면 720px, 인쇄시 168mm로 1페이지 완벽 맞춤) -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:720px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -896,24 +971,24 @@ async function renderNetworkPrintOverlay(opts) {
                 <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵 3개] (창닫기 지원 & 독립 드래그 이동) -->
                 <div id="net-print-insets-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none; z-index:15;">
                     ${hotspots.map((h, idx) => `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:16px; left:${16 + idx * 344}px; width:330px; height:240px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:12px; left:${14 + idx * 336}px; width:322px; height:216px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
                             <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:5px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab;">
                                 <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
                                     🔍 <b>#${h.id}</b> ${h.name} (${h.count}개소)
                                 </span>
-                                <div style="display:flex; align-items:center; gap:5px;">
+                                <div style="display:flex; align-items:center; gap:5px;" class="net-no-print">
                                     <span style="font-size:9px; background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">드래그</span>
                                     <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 6px; font-size:10.5px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕ 창닫기</button>
                                 </div>
                             </div>
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:205px; position:relative;"></div>
+                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:184px; position:relative;"></div>
                         </div>
                     `).join('')}
                 </div>
             </div>
 
             <!-- 하단 푸터 -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:10px; color:${subColor};">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:9.5px; color:${subColor};">
                 <div>* 본 도면은 실제 도로 배경 지도와 SIGMA 연동 그룹별 고유 알고리즘에 의해 자동 생성된 공식 도면입니다.</div>
                 <div><b>SIGMA SIM</b> | Powered by Koroad & Advanced Agentic Signal Engine</div>
             </div>
