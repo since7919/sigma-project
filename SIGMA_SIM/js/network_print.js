@@ -740,8 +740,9 @@ async function renderNetworkPrintOverlay(opts) {
     });
     _activeInsetMaps = {};
 
-    // 5. 인쇄 높이 엄격 계산 (A4 1장 강제 맞춤: 168mm + 헤더 14mm + 푸터 5mm = 187mm <= 204mm)
-    const printMapHeight = (opts.pageSize === 'A3') ? '252mm' : '168mm';
+    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (A4 가로 297:210 표준 규격 비율)
+    // 브라우저 지도 폭 1100px : 높이 680px (1.617:1) === 인쇄 지도 폭 279mm : 높이 172.5mm (1.617:1)
+    const printMapHeight = (opts.pageSize === 'A3') ? '248mm' : '172.5mm';
 
     container.innerHTML = `
         <style id="network-print-dynamic-style">
@@ -760,8 +761,8 @@ async function renderNetworkPrintOverlay(opts) {
             .net-print-paper {
                 background: ${bgColor};
                 color: ${textColor};
-                width: 1440px;
-                max-width: 98vw;
+                width: 1140px;
+                max-width: 96vw;
                 padding: 16px 20px;
                 border-radius: 8px;
                 box-shadow: 0 10px 45px rgba(0,0,0,0.7);
@@ -772,7 +773,7 @@ async function renderNetworkPrintOverlay(opts) {
             @media print {
                 @page {
                     size: ${opts.pageSize} landscape;
-                    margin: 3mm;
+                    margin: 4mm;
                 }
                 html, body {
                     width: 100% !important;
@@ -811,7 +812,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     height: 100% !important;
                     max-height: 100% !important;
-                    padding: 1mm 2mm !important;
+                    padding: 2mm 5mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
@@ -849,8 +850,8 @@ async function renderNetworkPrintOverlay(opts) {
             }
         </style>
 
-        <!-- 상단 실시간 도면 최적화 툴바 -->
-        <div class="net-no-print" style="width:1440px; max-width:98vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:10px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 8px 25px rgba(0,0,0,0.4);">
+        <!-- 상단 실시간 도면 최적화 툴바 (도면 규격 1140px에 정렬) -->
+        <div class="net-no-print" style="width:1140px; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:8px 14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 10px; box-shadow:0 8px 25px rgba(0,0,0,0.4);">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#38bdf8;">구역:</span>
@@ -949,8 +950,8 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (화면 720px, 인쇄시 168mm로 1페이지 완벽 맞춤) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:720px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- 중앙 대형 맵 영역 (화면 1100x680px, 인쇄 279x172.5mm로 1.617:1 비율 완전 일치) -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:680px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -971,7 +972,7 @@ async function renderNetworkPrintOverlay(opts) {
                 <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵 3개] (창닫기 지원 & 독립 드래그 이동) -->
                 <div id="net-print-insets-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none; z-index:15;">
                     ${hotspots.map((h, idx) => `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:12px; left:${14 + idx * 336}px; width:322px; height:216px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:10px; left:${12 + idx * 328}px; width:316px; height:208px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
                             <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:5px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab;">
                                 <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
                                     🔍 <b>#${h.id}</b> ${h.name} (${h.count}개소)
@@ -981,7 +982,7 @@ async function renderNetworkPrintOverlay(opts) {
                                     <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 6px; font-size:10.5px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕ 창닫기</button>
                                 </div>
                             </div>
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:184px; position:relative;"></div>
+                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:176px; position:relative;"></div>
                         </div>
                     `).join('')}
                 </div>
