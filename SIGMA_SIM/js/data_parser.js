@@ -936,6 +936,7 @@ function processGeoJSON(json) {
 function processBoundaryGeoJSON(json) {
     try {
         const data = typeof json === 'string' ? JSON.parse(json) : json;
+        STATE.boundaryGeoJson = data;
         if (STATE.boundaryLayer && window.map) window.map.removeLayer(STATE.boundaryLayer);
         STATE.boundaryLayer = L.geoJSON(data, {
             style: { color: "#555", weight: 2, fillOpacity: 0.1, dashArray: '5,5' }

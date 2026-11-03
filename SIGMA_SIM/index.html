@@ -793,7 +793,13 @@
                             <button class="phase-action-btn phase-btn-green" style="flex: 1;" onclick="analyzeCycleNetwork()">실행</button>
                         </div>
                         
-                        <button class="phase-action-btn phase-btn-gray" style="margin-top: 4px;" onclick="clearDBFile('links')">망 데이터 전체 초기화</button>
+                        <div style="height: 1px; background: #3e3e42; margin: 2px 0;"></div>
+
+                        <button class="phase-action-btn phase-btn-blue" style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: bold; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.25);" onclick="openNetworkPrintModal()">
+                            🖨️ 연동망 도면 출력 (PDF)
+                        </button>
+                        
+                        <button class="phase-action-btn phase-btn-gray" style="margin-top: 2px;" onclick="clearDBFile('links')">망 데이터 전체 초기화</button>
                     </div>
                 </div>
             </div>
@@ -2318,6 +2324,7 @@
     <script src="js/civil.js?v=1792716000000"></script>
     <script src="js/home.js?v=1791726500000"></script>
     <script src="js/rng_road_network.js?v=1791726500000"></script>
+    <script src="js/network_print.js?v=1793710000000"></script>
     <script src="js/table_logic.js?v=1792716000000"></script>
     <script src="js/phase_diagram_interactive.js?v=1791726500000"></script>
     <script src="js/init.js?v=1791726500000"></script>
