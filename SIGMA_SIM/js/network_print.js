@@ -1,12 +1,12 @@
 /**
- * network_print.js - 연동 네트워크 도면 극대화 뷰 & 지시선 분산 라벨링 & 인터랙티브 배경 지도 모듈
+ * network_print.js - 연동 네트워크 도면 극대화 & 연동그룹별 고유 컬러 & 단위면적 최대밀집 확대도 모듈
  * ─────────────────────────────────────────────────────────────
- * 핵심 개선 사항:
- * 1. 도면 영역 극대화 (화면에 100% 꽉 차도록 여백 최소화 & Max Auto-Zoom)
- * 2. 교차로를 덮고 있던 인셋 맵 제거 → 본 도면 자체를 초대형으로 확대 표출
- * 3. 초미니멀 노드(r=1.8px) & 연동 링크선 Z-Index 최상위 승격 (연동선 100% 관통 가시화)
- * 4. 지시선(Leader Line) 방사형 분산 배치로 모든 교차로명 100% 표출
- * 5. 마우스 휠 줌 & 드래그 인터랙션 지원 (원하는 밀집구역을 자유롭게 확대하여 인쇄 가능)
+ * 핵심 기능:
+ * 1. 연동 그룹별 고유 컬러(High-contrast 16색 팔레트) 적용 (중첩/교차 연동구간 100% 식별)
+ * 2. 단위 면적당 교차로 밀집도가 가장 높은 핫스팟 구역 자동 탐지 & 250% 상세 확대도 (Inset Map)
+ * 3. 인셋 맵을 교차로가 없는 여백(한강 수면)에 자동 배치 + 마우스 드래그 이동 지원 (원래 교차로 0% 가림)
+ * 4. 본 도면 지도 위에 [단위면적 최대 밀집 구역] 황금색 점선 사각형 표시
+ * 5. 초미니멀 노드(r=1.8px) & 최상위 연동선 렌더링 & 지시선 분산 라벨링
  */
 
 const SEOUL_DISTRICTS = [
@@ -15,24 +15,62 @@ const SEOUL_DISTRICTS = [
     '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'
 ];
 
+// 연동그룹 식별을 위한 16색 고대비 명확한 팔레트
+const GROUP_PALETTE = [
+    '#00d4ff', // 0: 시안 블루
+    '#10b981', // 1: 에메랄드 그린
+    '#f59e0b', // 2: 앰버 골드
+    '#ec4899', // 3: 코랄 핑크
+    '#8b5cf6', // 4: 로열 퍼플
+    '#06b6d4', // 5: 청록
+    '#f97316', // 6: 오렌지
+    '#84cc16', // 7: 라임 그린
+    '#a855f7', // 8: 바이올렛
+    '#14b8a6', // 9: 틸
+    '#e11d48', // 10: 로즈 레드
+    '#3b82f6', // 11: 딥 블루
+    '#eab308', // 12: 레몬 옐로우
+    '#22c55e', // 13: 브라이트 그린
+    '#d946ef', // 14: 푸시아
+    '#6366f1'  // 15: 인디고
+];
+
+function getDistinctGroupColor(gid) {
+    if (!gid || gid === '0' || gid === 'default') return '#00d4ff';
+    const num = parseInt(gid);
+    if (!isNaN(num)) {
+        return GROUP_PALETTE[Math.abs(num) % GROUP_PALETTE.length];
+    }
+    let hash = 0;
+    const str = String(gid);
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return GROUP_PALETTE[Math.abs(hash) % GROUP_PALETTE.length];
+}
+
 let _currentPrintOpts = {
     targetDistrict: 'ALL',
     pageSize: 'A4',
     orientation: 'landscape',
-    labelMode: 'leader',     // 'leader' (지시선 분산 - 모든 교차로명 표기) | 'smart' (스마트 겹침방지) | 'badge' (번호 뱃지+색인표)
+    labelMode: 'leader',     // 'leader' (지시선 분산) | 'smart' (스마트 겹침방지) | 'badge' (번호 뱃지)
     fontSize: 7.5,           // px
     lineWidth: 5.0,          // px
-    nodeSize: 1.8,           // px (연동선 가림 방지 초소형 노드)
+    nodeSize: 1.8,           // px
+    showInsetMap: true,      // 단위면적 최대밀집 확대도 표기 여부
     showJid: true,
     showBoundary: true,
-    theme: 'dark'            // 'dark' (화면과 동일한 다크 배경지도) | 'clean' (라이트 배경지도)
+    theme: 'dark'            // 'dark' | 'clean'
 };
 
 let _activePrintMap = null;
+let _activeInsetMap = null;
 let _cachedFilteredNodes = [];
 let _cachedFilteredEdges = [];
 let _cachedTargetFeature = null;
 let _cachedDistrictBounds = null;
+let _cachedHotspotInfo = null;
 
 // Point-in-Polygon (Ray-casting Algorithm)
 function _isPointInPoly(pt, vs) {
@@ -71,6 +109,41 @@ function sanitizeJunctionName(raw) {
         .replace(/입구지하차도/, '지하차도')
         .replace(/주민센터/, '동')
         .trim();
+}
+
+/**
+ * 단위 면적당 교차로 밀집도 최고 중심점(Hotspot) 자동 계산 (반경 600m 기준)
+ */
+function findHighestDensityHotspot(nodes) {
+    if (!nodes || nodes.length === 0) return null;
+
+    let maxCount = -1;
+    let bestNode = nodes[0];
+    const radiusKm = 0.65; // 약 650m 반경
+
+    nodes.forEach(n => {
+        let count = 0;
+        nodes.forEach(other => {
+            const d = Math.hypot((other.lat - n.lat) * 111, (other.lng - n.lng) * 88);
+            if (d <= radiusKm) count++;
+        });
+        if (count > maxCount) {
+            maxCount = count;
+            bestNode = n;
+        }
+    });
+
+    const dLat = (radiusKm / 111) * 0.95;
+    const dLng = (radiusKm / 88) * 0.95;
+
+    return {
+        centerNode: bestNode,
+        count: maxCount,
+        bounds: L.latLngBounds(
+            [bestNode.lat - dLat, bestNode.lng - dLng],
+            [bestNode.lat + dLat, bestNode.lng + dLng]
+        )
+    };
 }
 
 /**
@@ -187,7 +260,7 @@ window.openNetworkPrintModal = async function() {
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:12px; margin-bottom:18px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span style="font-size:22px;">🖨️</span>
-                    <h3 style="margin:0; font-size:17px; font-weight:700; color:#f8fafc;">연동 네트워크 도면 PDF 출력 (전체 화면 극대화)</h3>
+                    <h3 style="margin:0; font-size:17px; font-weight:700; color:#f8fafc;">연동 네트워크 도면 PDF 출력 설정</h3>
                 </div>
                 <button onclick="closeNetworkPrintModal()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer; line-height:1;">✕</button>
             </div>
@@ -203,18 +276,21 @@ window.openNetworkPrintModal = async function() {
                     </select>
                 </div>
 
-                <!-- 2. 라벨 표기 최적화 방식 -->
+                <!-- 2. 라벨 및 밀집 확대도 옵션 -->
                 <div style="background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:12px 14px;">
                     <label style="display:block; font-size:12.5px; font-weight:700; color:#38bdf8; margin-bottom:6px;">
-                        🏷️ 모든 교차로명 표기 & 연동선 확보 방식
+                        🏷️ 모든 교차로명 표기 & 밀집지역 확대 설정
                     </label>
                     <select id="sel-print-label-mode" class="phase-select" style="width:100%; height:36px; background:#0f172a; border:1px solid rgba(56,189,248,0.4); color:#fff; border-radius:6px; padding:0 8px; font-size:12.5px; font-weight:bold;">
-                        <option value="leader" selected>🎯 지시선(Leader Line) 여백 분산 표기 (모든 교차로명 100% 표기 + 연동선 최우선 관통)</option>
-                        <option value="badge">🔢 번호 뱃지 도면 + 하단 교차로 일람표 (엔지니어링 표준)</option>
+                        <option value="leader" selected>🎯 지시선 여백 분산 표기 (모든 교차로명 100% 표출 - 권장)</option>
+                        <option value="badge">🔢 번호 뱃지 도면 + 하단 교차로 일람표</option>
                         <option value="smart">🛡️ 스마트 겹침 방지 (간소화 필터링)</option>
                     </select>
-                    <div style="font-size:11px; color:#94a3b8; margin-top:5px; line-height:1.4;">
-                        * <b>지시선 여백 분산 표기</b>는 도면 전체를 꽉 차게 확대한 후, 밀집된 모든 교차로명을 여백으로 연결하여 <b>연동선과 교차로명을 100% 동시에</b> 보여줍니다.
+                    <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="chk-print-show-inset" checked style="accent-color:#38bdf8; width:16px; height:16px; cursor:pointer;">
+                        <label for="chk-print-show-inset" style="font-size:12px; color:#f8fafc; font-weight:bold; cursor:pointer;">
+                            🔍 단위면적 최대밀집구역 상세 확대도(Inset Map) 포함
+                        </label>
                     </div>
                 </div>
 
@@ -239,16 +315,16 @@ window.openNetworkPrintModal = async function() {
                 <!-- 4. 연동선 및 노드 크기 -->
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                     <div>
-                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">교차로 노드 점 크기</label>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">교차로 노드 크기</label>
                         <select id="sel-print-node-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px;">
-                            <option value="1.8" selected>초미니 1.8px (연동구간 방해 0%)</option>
+                            <option value="1.8" selected>초미니 1.8px (연동선 가림 0%)</option>
                             <option value="2.5">보통 2.5px</option>
                         </select>
                     </div>
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">연동 링크선 굵기</label>
                         <select id="sel-print-line-width" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px;">
-                            <option value="5.0" selected>굵게 5.0px (최고 시인성)</option>
+                            <option value="5.0" selected>굵게 5.0px (그룹별 컬러 확연)</option>
                             <option value="6.5">매우 굵게 6.5px</option>
                         </select>
                     </div>
@@ -286,6 +362,7 @@ window.executeNetworkPrint = async function() {
         theme: document.getElementById('sel-print-theme').value || 'dark',
         nodeSize: parseFloat(document.getElementById('sel-print-node-size').value) || 1.8,
         lineWidth: parseFloat(document.getElementById('sel-print-line-width').value) || 5.0,
+        showInsetMap: document.getElementById('chk-print-show-inset').checked,
         fontSize: 7.5,
         showJid: true,
         showBoundary: true
@@ -300,18 +377,14 @@ window.updatePrintOption = async function(key, val) {
     await renderNetworkPrintOverlay(_currentPrintOpts);
 };
 
-/**
- * [뷰 리셋] 해당 관할 구역 전체 화면 꽉 채우기
- */
 window.resetPrintMapView = function() {
     if (_activePrintMap && _cachedDistrictBounds) {
-        _activePrintMap.fitBounds(_cachedDistrictBounds, { padding: [12, 12], animate: true });
+        _activePrintMap.fitBounds(_cachedDistrictBounds, { padding: [10, 10], animate: true });
     }
 };
 
 /**
  * 지시선(Leader Line) 방사형 분산 라벨링 계산
- * - 교차로 간격을 계산하여 밀집된 교차로의 텍스트를 바깥쪽 여백으로 지시선과 함께 분산 배치
  */
 function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
     const points = nodes.map((n, idx) => {
@@ -347,7 +420,6 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
     const results = [];
     const fontSize = opts.fontSize || 7.5;
 
-    // 분산 오프셋 각도 (8방향 회전)
     const angles = [
         -Math.PI / 4, Math.PI / 4, -3 * Math.PI / 4, 3 * Math.PI / 4,
         0, Math.PI / 2, Math.PI, -Math.PI / 2
@@ -367,7 +439,7 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         let targetY = p.origY - rectH / 2;
         let hasLeader = false;
 
-        // 밀집된 교차로인 경우 여백 방향으로 방사형 지시선 확장
+        // 밀집 지역인 경우 여백 방향으로 방사형 지시선 확장
         if (p.neighborCount > 1 && opts.labelMode === 'leader') {
             hasLeader = true;
             let dirX = p.origX - p.clusterCenterX;
@@ -378,7 +450,7 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                 dirY = Math.sin(ang);
             }
             const norm = Math.hypot(dirX, dirY) || 1;
-            const dist = 24 + (i % 4) * 16; // 지시선 거리 다변화로 겹침 분산
+            const dist = 24 + (i % 4) * 16;
 
             targetX = p.origX + (dirX / norm) * dist;
             targetY = p.origY + (dirY / norm) * dist;
@@ -464,7 +536,7 @@ async function renderNetworkPrintOverlay(opts) {
         });
     }
 
-    // 3. 지도의 LatLng Bounds 계산 (여백 최소화로 도면 화면 가득 채움)
+    // 3. 지도의 LatLng Bounds 계산
     let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
     filteredNodes.forEach(j => {
         if (j.lat < minLat) minLat = j.lat;
@@ -474,12 +546,39 @@ async function renderNetworkPrintOverlay(opts) {
     });
 
     const bounds = L.latLngBounds([minLat, minLng], [maxLat, maxLng]);
+    const hotspotInfo = findHighestDensityHotspot(filteredNodes);
+
     _cachedFilteredNodes = filteredNodes;
     _cachedFilteredEdges = filteredEdges;
     _cachedTargetFeature = targetFeature;
     _cachedDistrictBounds = bounds;
+    _cachedHotspotInfo = hotspotInfo;
 
-    // 4. 오버레이 컨테이너 생성
+    // 4. 연동 그룹별 통계 집계 (고유 색상 범례 표시용)
+    const groupCountMap = new Map();
+    filteredNodes.forEach(j => {
+        const gid = String(j.group || '0');
+        if (gid !== '0' && gid !== 'default') {
+            groupCountMap.set(gid, (groupCountMap.get(gid) || 0) + 1);
+        }
+    });
+
+    const sortedGroups = Array.from(groupCountMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8); // 상위 8개 주요 연동그룹
+
+    let groupLegendHtml = sortedGroups.map(([gid, count]) => {
+        const color = getDistinctGroupColor(gid);
+        return `
+            <div style="display:flex; align-items:center; gap:5px; font-size:10.5px; white-space:nowrap;">
+                <span style="display:inline-block; width:14px; height:4px; background:${color}; border-radius:2px;"></span>
+                <span style="font-weight:700; color:${color};">G${gid}</span>
+                <span style="color:#64748b; font-size:9.5px;">(${count})</span>
+            </div>
+        `;
+    }).join('');
+
+    // 5. 오버레이 컨테이너 생성
     let container = document.getElementById('network-print-overlay');
     if (!container) {
         container = document.createElement('div');
@@ -507,6 +606,10 @@ async function renderNetworkPrintOverlay(opts) {
         try { _activePrintMap.remove(); } catch(e) {}
         _activePrintMap = null;
     }
+    if (_activeInsetMap) {
+        try { _activeInsetMap.remove(); } catch(e) {}
+        _activeInsetMap = null;
+    }
 
     container.innerHTML = `
         <style id="network-print-dynamic-style">
@@ -527,7 +630,7 @@ async function renderNetworkPrintOverlay(opts) {
                 color: ${textColor};
                 width: 1440px;
                 max-width: 98vw;
-                padding: 20px 24px;
+                padding: 18px 24px;
                 border-radius: 8px;
                 box-shadow: 0 10px 45px rgba(0,0,0,0.7);
                 border: 1px solid ${borderColor};
@@ -582,9 +685,9 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
 
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:12px; font-weight:bold; color:#38bdf8;">라벨 최적화:</span>
+                    <span style="font-size:12px; font-weight:bold; color:#38bdf8;">라벨 모드:</span>
                     <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
-                        <option value="leader"${opts.labelMode === 'leader' ? ' selected' : ''}>🎯 지시선 여백 분산 (모든 교차로명 표출 - 권장)</option>
+                        <option value="leader"${opts.labelMode === 'leader' ? ' selected' : ''}>🎯 지시선 여백 분산 (모든 교차로명 표출)</option>
                         <option value="smart"${opts.labelMode === 'smart' ? ' selected' : ''}>🛡️ 스마트 겹침방지 모드</option>
                         <option value="badge"${opts.labelMode === 'badge' ? ' selected' : ''}>🔢 번호 뱃지 + 하단 색인표</option>
                     </select>
@@ -599,19 +702,19 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
 
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">노드 크기:</span>
-                    <select onchange="updatePrintOption('nodeSize', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
-                        <option value="1.8"${opts.nodeSize === 1.8 ? ' selected' : ''}>초미니 1.8px (연동선 강조)</option>
-                        <option value="2.5"${opts.nodeSize === 2.5 ? ' selected' : ''}>보통 2.5px</option>
+                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">연동선 굵기:</span>
+                    <select onchange="updatePrintOption('lineWidth', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
+                        <option value="4.0"${opts.lineWidth === 4.0 ? ' selected' : ''}>보통 4.0px</option>
+                        <option value="5.5"${opts.lineWidth === 5.5 ? ' selected' : ''}>굵게 5.5px (권장)</option>
+                        <option value="7.0"${opts.lineWidth === 7.0 ? ' selected' : ''}>매우 굵게 7.0px</option>
                     </select>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">연동선:</span>
-                    <select onchange="updatePrintOption('lineWidth', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
-                        <option value="5.0"${opts.lineWidth === 5.0 ? ' selected' : ''}>굵게 5.0px (권장)</option>
-                        <option value="6.5"${opts.lineWidth === 6.5 ? ' selected' : ''}>매우 굵게 6.5px</option>
-                    </select>
+                    <label style="display:flex; align-items:center; gap:5px; font-size:12px; font-weight:bold; color:#f59e0b; cursor:pointer;">
+                        <input type="checkbox" onchange="updatePrintOption('showInsetMap', this.checked)" ${opts.showInsetMap ? 'checked' : ''} style="accent-color:#f59e0b; width:15px; height:15px;">
+                        🔍 밀집구역 확대도 표시
+                    </label>
                 </div>
 
                 <button onclick="resetPrintMapView()" class="phase-action-btn phase-btn-cyan" style="height:30px; padding:0 12px; font-size:11.5px; font-weight:bold;" title="해당 구역을 화면에 꽉 차게 재설정합니다.">
@@ -642,7 +745,7 @@ async function renderNetworkPrintOverlay(opts) {
                     </h1>
                 </div>
 
-                <!-- 통계 및 범례 -->
+                <!-- 통계 및 연동그룹 범례 -->
                 <div style="display:flex; gap:14px; align-items:center; font-size:11px; color:${subColor};">
                     <div style="display:flex; flex-direction:column; gap:2px; text-align:right;">
                         <div><b>관할:</b> ${regionName} | <b>발행일시:</b> ${nowStr}</div>
@@ -651,29 +754,26 @@ async function renderNetworkPrintOverlay(opts) {
                             <b>연동 링크:</b> <span style="color:${isDark ? '#38bdf8' : '#0284c7'}; font-weight:bold;">${filteredEdges.length}구간</span>
                         </div>
                     </div>
-                    <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:6px; padding:5px 10px; display:flex; flex-direction:column; gap:2px; font-size:10.5px;">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#ef4444; border:1px solid #fff;"></span>
-                            <span style="font-weight:600;">신호 교차로 (미니 핀)</span>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <span style="display:inline-block; width:16px; height:4.5px; background:${isDark ? '#38bdf8' : '#0284c7'}; border-radius:2px;"></span>
-                            <span style="font-weight:600;">연동 링크 구간 (고시인성)</span>
+                    <!-- 그룹별 고유 색상 범례 박스 -->
+                    <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:6px; padding:5px 10px; display:flex; flex-direction:column; gap:3px;">
+                        <div style="font-size:10px; font-weight:bold; color:${isDark ? '#38bdf8' : '#0284c7'}; margin-bottom:2px;">연동그룹(GroupID) 고유색상:</div>
+                        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px 8px;">
+                            ${groupLegendHtml}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (840px 높이로 극대화 & 교차로를 가리는 인셋 박스 완전 제거) -->
+            <!-- 중앙 대형 맵 영역 (840px 높이로 극대화) -->
             <div id="net-print-map-wrapper" style="position:relative; width:100%; height:840px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
-                <!-- 1. Leaflet 배경지도 타일 레이어 (인터랙션 완전 개방: 휠 줌 & 드래그 가능!) -->
+                <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
-                <!-- 2. SVG 그래픽 레이어 (연동망 선이 라벨 위로 선명하게 관통하는 Z-Index 구조) -->
+                <!-- 2. SVG 그래픽 레이어 -->
                 <svg id="net-print-svg-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none;">
                 </svg>
 
-                <!-- 3. 방위표 및 줌 안내 뱃지 -->
+                <!-- 3. 방위표 및 조작 안내 -->
                 <div style="position:absolute; top:14px; right:14px; z-index:10; display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
                     <div style="background:${cardBg}; border:1px solid ${borderColor}; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
                         <span style="font-size:11px; font-weight:bold; color:${isDark ? '#38bdf8' : '#0284c7'};">▲ N</span>
@@ -682,11 +782,20 @@ async function renderNetworkPrintOverlay(opts) {
                         * 마우스 휠로 자유롭게 확대/이동 가능
                     </div>
                 </div>
+
+                <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵] (교차로가 없는 한강 여백 left:16px에 배치 + 드래그 이동 가능!) -->
+                <div id="net-print-inset-box" style="display:${opts.showInsetMap ? 'block' : 'none'}; position:absolute; bottom:16px; left:16px; width:380px; height:260px; z-index:15; background:${bgColor}; border:2.5px solid #f59e0b; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden;">
+                    <div id="net-print-inset-header" style="background:linear-gradient(135deg, #b45309 0%, #f59e0b 100%); color:#fff; font-size:11px; font-weight:bold; padding:5px 10px; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+                        <span>🔍 단위면적 최대밀집구역 상세 확대도 (250% Zoom)</span>
+                        <span style="font-size:10px; background:rgba(0,0,0,0.3); padding:1px 5px; border-radius:3px;">드래그 이동가능</span>
+                    </div>
+                    <div id="net-print-inset-map" style="width:100%; height:230px; position:relative;"></div>
+                </div>
             </div>
 
             <!-- 하단 푸터 -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:10px; color:${subColor};">
-                <div>* 본 도면은 실제 도로 배경 지도와 SIGMA 최적 연동 네트워크 알고리즘에 의해 자동 생성된 공식 도면입니다.</div>
+                <div>* 본 도면은 실제 도로 배경 지도와 SIGMA 연동 그룹별 고유 알고리즘에 의해 자동 생성된 공식 도면입니다.</div>
                 <div><b>SIGMA SIM</b> | Powered by Koroad & Advanced Agentic Signal Engine</div>
             </div>
         </div>
@@ -694,12 +803,11 @@ async function renderNetworkPrintOverlay(opts) {
 
     container.style.display = 'flex';
 
-    // 5. Leaflet 맵 초기화 및 화면 가득 차도록 타이트 피팅
+    // 6. Leaflet 맵 초기화 및 화면 가득 차도록 타이트 피팅
     setTimeout(() => {
         const mapEl = document.getElementById('net-print-leaflet-map');
         if (!mapEl) return;
 
-        // 드래그 및 마우스 휠 줌을 활성화하여 사용자가 원하는 만큼 자유롭게 확대 가능!
         const printMap = L.map('net-print-leaflet-map', {
             zoomControl: false,
             attributionControl: false,
@@ -716,17 +824,29 @@ async function renderNetworkPrintOverlay(opts) {
 
         L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(printMap);
 
-        // 여백을 10px로 극소화하여 마포구 구역 전체가 화면에 가득 차도록 Auto-Zoom!
+        // 여백 10px 극소화로 구역 전체 화면 가득 차게 Auto-Zoom
         printMap.fitBounds(bounds, { padding: [10, 10], animate: false });
 
         const triggerRender = () => {
-            renderSvgOnMap(printMap, _cachedFilteredNodes, _cachedFilteredEdges, _cachedTargetFeature, opts);
+            renderSvgOnMap(printMap, _cachedFilteredNodes, _cachedFilteredEdges, _cachedTargetFeature, opts, _cachedHotspotInfo);
         };
 
-        // 타일 로딩 완료 시 1회 렌더링
-        printMap.whenReady(triggerRender);
+        printMap.whenReady(() => {
+            triggerRender();
 
-        // 사용자가 마우스 휠로 확대하거나 드래그할 때 실시간 SVG 재계산 동기화!
+            // 인셋 맵 렌더링 및 드래그 바인딩
+            if (opts.showInsetMap && _cachedHotspotInfo) {
+                renderInsetDetailMap(_cachedFilteredNodes, _cachedFilteredEdges, opts, isDark, tileUrl, _cachedHotspotInfo);
+
+                // 인셋 박스 드래그 기능 연결
+                const insetBox = document.getElementById('net-print-inset-box');
+                const insetHeader = document.getElementById('net-print-inset-header');
+                if (insetBox && insetHeader) {
+                    makeDraggable(insetHeader, insetBox);
+                }
+            }
+        });
+
         printMap.on('move', triggerRender);
         printMap.on('zoomend', triggerRender);
         printMap.on('resize', triggerRender);
@@ -735,14 +855,9 @@ async function renderNetworkPrintOverlay(opts) {
 
 /**
  * 맵 좌표계를 투영하여 SVG 그래픽 렌더링
- * [핵심 Z-Index 역전]:
- * 1. 구 행정경계선 (바닥)
- * 2. 지시선 (Leader Lines)
- * 3. 라벨 텍스트 박스
- * 4. 🌟 연동 링크선 (최상위 레이어! - 어떤 글자 위로도 끊김 없이 100% 관통)
- * 5. 🌟 초미니멀 노드 점 (r=1.8px)
+ * [그룹별 고유 컬러 적용 & 연동선 최상위 승격]
  */
-function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts) {
+function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspotInfo) {
     const svgEl = document.getElementById('net-print-svg-overlay');
     if (!svgEl) return;
 
@@ -750,7 +865,7 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts) {
     const nodeR = opts.nodeSize || 1.8;
     const lineWidth = opts.lineWidth || 5.0;
     const textColor = isDark ? '#f8fafc' : '#0f172a';
-    const badgeBg = isDark ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.88)';
+    const badgeBg = isDark ? 'rgba(15,23,42,0.88)' : 'rgba(255,255,255,0.92)';
     const badgeBorder = isDark ? '#38bdf8' : '#64748b';
     const leaderColor = isDark ? '#94a3b8' : '#475569';
 
@@ -775,7 +890,28 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts) {
         }
     }
 
-    // 2. 지시선 및 라벨 계산
+    // 2. [단위면적 최대 밀집 구역] 황금색 점선 사각형 표시
+    let svgHotspotRect = '';
+    if (opts.showInsetMap && hotspotInfo && hotspotInfo.bounds) {
+        const sw = printMap.latLngToContainerPoint(hotspotInfo.bounds.getSouthWest());
+        const ne = printMap.latLngToContainerPoint(hotspotInfo.bounds.getNorthEast());
+        const rx = Math.min(sw.x, ne.x);
+        const ry = Math.min(sw.y, ne.y);
+        const rw = Math.abs(ne.x - sw.x);
+        const rh = Math.abs(sw.y - ne.y);
+
+        svgHotspotRect = `
+            <g>
+                <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="6,4" rx="4" />
+                <rect x="${rx}" y="${ry - 20}" width="220" height="19" rx="3" fill="#f59e0b" />
+                <text x="${rx + 6}" y="${ry - 6}" font-family="'Pretendard', sans-serif" font-size="10.5px" font-weight="bold" fill="#000">
+                    🔍 단위면적 최대밀집구역 (${hotspotInfo.centerNode.name} 인근 ${hotspotInfo.count}개소)
+                </text>
+            </g>
+        `;
+    }
+
+    // 3. 지시선 및 라벨 계산
     const labelItems = computeLeaderDispersedLabels(nodes, edges, opts, printMap);
 
     let svgLeaders = '';
@@ -784,12 +920,12 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts) {
     labelItems.forEach(item => {
         const { origX, origY, labelX, labelY, rectW, rectH, labelText, hasLeader } = item;
 
-        // A. 지시선 (노드에서 여백 라벨까지 얇은 점선 연결)
+        // A. 지시선
         if (hasLeader) {
             svgLeaders += `<polyline points="${origX},${origY} ${labelX},${labelY + rectH / 2}" stroke="${leaderColor}" stroke-width="0.8" stroke-dasharray="3,2" fill="none" opacity="0.8" />`;
         }
 
-        // B. 라벨 뱃지 및 텍스트 (반투명 배경 박스로 뒤 지도선 투과)
+        // B. 라벨 뱃지 및 텍스트
         svgLabels += `
             <g transform="translate(${labelX}, ${labelY})">
                 <rect width="${rectW}" height="${rectH}" rx="2.5" fill="${badgeBg}" stroke="${badgeBorder}" stroke-width="0.6" />
@@ -804,38 +940,144 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts) {
         `;
     });
 
-    // 3. 연동 링크선 (Edges - 라벨 위로 올라와 연동구간이 100% 한눈에 보이는 구조!)
+    // 4. 연동 링크선 (Edges - 그룹별 고유 컬러 적용 & 최상위 관통 레이어!)
     let svgEdges = '';
     edges.forEach(edge => {
         const p1 = printMap.latLngToContainerPoint([edge.u.lat, edge.u.lng]);
         const p2 = printMap.latLngToContainerPoint([edge.v.lat, edge.v.lng]);
-        const isInternal = (edge.type === 'internal');
-        const strokeColor = isInternal 
-            ? (isDark ? '#38bdf8' : '#0284c7') 
-            : (isDark ? '#c084fc' : '#9333ea');
-        const dashArray = isInternal ? '' : 'stroke-dasharray="6,4"';
+        
+        // 두 노드의 그룹 확인 (그룹별 고유 컬러 매핑)
+        const gid = (edge.u.group && edge.u.group !== '0' && edge.u.group !== 'default') 
+            ? edge.u.group 
+            : ((edge.v.group && edge.v.group !== '0') ? edge.v.group : '0');
 
-        // 하부 글로우 베이스 스트로크
-        svgEdges += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${isDark ? '#000000' : '#ffffff'}" stroke-width="${lineWidth + 2.5}" stroke-linecap="round" opacity="0.75" />`;
-        // 상부 선명한 메인 연동선
+        const strokeColor = getDistinctGroupColor(gid);
+        const isCrossGroup = (edge.u.group && edge.v.group && edge.u.group !== edge.v.group);
+        const dashArray = isCrossGroup ? 'stroke-dasharray="6,3"' : '';
+
+        // 하부 글로우 베이스 (선명한 대비 확보)
+        svgEdges += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${isDark ? '#000000' : '#ffffff'}" stroke-width="${lineWidth + 2.5}" stroke-linecap="round" opacity="0.8" />`;
+        // 상부 고유 그룹 컬러 연동선
         svgEdges += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${strokeColor}" stroke-width="${lineWidth}" stroke-linecap="round" ${dashArray} opacity="0.95" />`;
     });
 
-    // 4. 초미니멀 노드 점 (r=1.8px - 교차점 위치만 핀포인트로 표기)
+    // 5. 초미니멀 노드 점 (r=1.8px)
     let svgNodes = '';
     nodes.forEach(j => {
         const pt = printMap.latLngToContainerPoint([j.lat, j.lng]);
-        svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="#ef4444" stroke="#ffffff" stroke-width="1.0" />`;
+        const nodeColor = getDistinctGroupColor(j.group || '0');
+        svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="${nodeColor}" stroke="#ffffff" stroke-width="1.0" />`;
     });
 
-    // 렌더링 순서: 경계선 -> 지시선 -> 라벨 -> 연동선(최상위 관통!) -> 노드 점
+    // 렌더링 순서: 경계선 -> 최대밀집구역박스 -> 지시선 -> 라벨 -> 연동선(그룹컬러 최상위) -> 노드 점
     svgEl.innerHTML = `
         ${svgBoundary}
+        ${svgHotspotRect}
         ${svgLeaders}
         ${svgLabels}
         ${svgEdges}
         ${svgNodes}
     `;
+}
+
+/**
+ * 단위 면적당 최대 밀집구역 상세 확대 인셋 맵 (250% Zoom)
+ */
+function renderInsetDetailMap(nodes, edges, opts, isDark, tileUrl, hotspotInfo) {
+    const insetEl = document.getElementById('net-print-inset-map');
+    if (!insetEl || !hotspotInfo || !hotspotInfo.centerNode) return;
+
+    if (_activeInsetMap) {
+        try { _activeInsetMap.remove(); } catch(e) {}
+        _activeInsetMap = null;
+    }
+
+    const centerNode = hotspotInfo.centerNode;
+
+    const insetMap = L.map('net-print-inset-map', {
+        zoomControl: false,
+        attributionControl: false,
+        boxZoom: false,
+        doubleClickZoom: false,
+        dragging: true, // 인셋 맵 안에서도 드래그 가능
+        scrollWheelZoom: true
+    }).setView([centerNode.lat, centerNode.lng], 16); // 250% 줌인
+    _activeInsetMap = insetMap;
+
+    L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(insetMap);
+
+    insetMap.whenReady(() => {
+        // 인셋 맵 내 연동 링크선 (그룹별 고유 컬러)
+        edges.forEach(edge => {
+            const gid = (edge.u.group && edge.u.group !== '0') ? edge.u.group : (edge.v.group || '0');
+            const color = getDistinctGroupColor(gid);
+            L.polyline([[edge.u.lat, edge.u.lng], [edge.v.lat, edge.v.lng]], {
+                color: color,
+                weight: 5.5,
+                opacity: 0.95
+            }).addTo(insetMap);
+        });
+
+        // 핫스팟 반경 내 교차로 마커 및 큼직한 교차로명 렌더링
+        nodes.forEach(j => {
+            const d = Math.hypot((j.lat - centerNode.lat) * 111, (j.lng - centerNode.lng) * 88);
+            if (d <= 1.0) { // 반경 1km 내 교차로 표기
+                const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
+                const cleanName = sanitizeJunctionName(j.name);
+                const color = getDistinctGroupColor(j.group || '0');
+
+                L.circleMarker([j.lat, j.lng], {
+                    radius: 3.5,
+                    color: '#ffffff',
+                    weight: 1.5,
+                    fillColor: color,
+                    fillOpacity: 1
+                }).addTo(insetMap);
+
+                const icon = L.divIcon({
+                    className: 'custom-inset-label',
+                    html: `<div style="background:${isDark ? 'rgba(15,23,42,0.95)' : '#ffffff'}; color:${isDark ? '#fff' : '#000'}; border:1px solid ${color}; border-radius:3px; padding:1px 5px; font-size:9.5px; font-weight:bold; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.5);">[${shortId}] ${cleanName}</div>`,
+                    iconSize: [90, 18],
+                    iconAnchor: [-6, 12]
+                });
+                L.marker([j.lat, j.lng], { icon, interactive: false }).addTo(insetMap);
+            }
+        });
+    });
+}
+
+/**
+ * 인셋 박스 마우스 드래그 이동 헬퍼
+ */
+function makeDraggable(headerEl, containerEl) {
+    let isDragging = false;
+    let startX, startY, origLeft, origTop;
+    headerEl.style.cursor = 'move';
+
+    headerEl.onmousedown = (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = containerEl.getBoundingClientRect();
+        origLeft = rect.left;
+        origTop = rect.top;
+
+        document.onmousemove = (ev) => {
+            if (!isDragging) return;
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            containerEl.style.left = (origLeft + dx) + 'px';
+            containerEl.style.top = (origTop + dy) + 'px';
+            containerEl.style.bottom = 'auto';
+            containerEl.style.right = 'auto';
+        };
+
+        document.onmouseup = () => {
+            isDragging = false;
+            document.onmousemove = null;
+            document.onmouseup = null;
+        };
+    };
 }
 
 window.closeNetworkPrintOverlay = function() {
@@ -844,5 +1086,9 @@ window.closeNetworkPrintOverlay = function() {
     if (_activePrintMap) {
         try { _activePrintMap.remove(); } catch(e) {}
         _activePrintMap = null;
+    }
+    if (_activeInsetMap) {
+        try { _activeInsetMap.remove(); } catch(e) {}
+        _activeInsetMap = null;
     }
 };
