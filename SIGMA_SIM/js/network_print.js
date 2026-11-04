@@ -949,7 +949,7 @@ async function renderNetworkPrintOverlay(opts) {
                 }
                 .net-print-inset-card {
                     box-shadow: none !important;
-                    border-width: 2px !important;
+                    border-width: 1px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
@@ -1129,17 +1129,18 @@ async function renderNetworkPrintOverlay(opts) {
                             defaultLeftPct = 1.2 + idx * 30.5;
                         }
                         return `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${defaultWidthPct}%; height:${defaultHeightPct}%; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
-                            <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:4px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab; height:24px; box-sizing:border-box;">
-                                <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                    🔍 <b>#${h.id}</b> ${h.name} (${h.count}개소)
-                                </span>
-                                <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;" class="net-no-print">
-                                    <span style="font-size:9px; background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">드래그</span>
-                                    <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 5px; font-size:10px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕</button>
-                                </div>
-                            </div>
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:calc(100% - 24px); position:relative;"></div>
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${defaultWidthPct}%; height:${defaultHeightPct}%; background:${bgColor}; border:1.2px solid ${h.color}; border-radius:4px; box-shadow:0 4px 14px rgba(0,0,0,0.4); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
+                            <!-- 투명 드래그 핸들 (상단 터치 영역) -->
+                            <div id="net-print-inset-header-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:26px; z-index:9; cursor:grab; user-select:none;"></div>
+                            
+                            <!-- 미니멀 식별 뱃지 (#1, #2, #3) -->
+                            <span style="position:absolute; top:4px; left:4px; z-index:10; background:${h.color}; color:#fff; font-size:9.5px; font-weight:bold; padding:1px 5px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.5); pointer-events:none; line-height:1.2;">#${h.id}</span>
+                            
+                            <!-- 미니멀 닫기 버튼 (화면용) -->
+                            <button onclick="closeInsetMap(${h.id})" class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:10; background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.3); color:#fff; border-radius:3px; width:18px; height:18px; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0;" title="확대창 닫기">✕</button>
+
+                            <!-- 100% 전체 화면 지도 캔버스 -->
+                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:100%; position:relative;"></div>
                         </div>
                     `;}).join('')}
                 </div>
@@ -1248,29 +1249,7 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
         }
     }
 
-    // 2. [단위면적 상위 3대 밀집구역] 점선 사각형 및 타이틀 배지 표시 (창닫기 시 본도면에서도 숨김)
-    let svgHotspots = '';
-    if (hotspots && hotspots.length > 0) {
-        hotspots.forEach(h => {
-            if (!_insetVisibility[h.id]) return; // 닫힌 창의 사각형은 본도면에서도 자동 숨김
-            const sw = printMap.latLngToContainerPoint(h.bounds.getSouthWest());
-            const ne = printMap.latLngToContainerPoint(h.bounds.getNorthEast());
-            const rx = Math.min(sw.x, ne.x);
-            const ry = Math.min(sw.y, ne.y);
-            const rw = Math.abs(ne.x - sw.x);
-            const rh = Math.abs(sw.y - ne.y);
-
-            svgHotspots += `
-                <g>
-                    <rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="${h.color}15" stroke="${h.color}" stroke-width="2.5" stroke-dasharray="6,4" rx="4" />
-                    <rect x="${rx}" y="${ry - 20}" width="210" height="19" rx="3" fill="${h.color}" />
-                    <text x="${rx + 6}" y="${ry - 6}" font-family="'Pretendard', sans-serif" font-size="10.5px" font-weight="bold" fill="#000">
-                        🔍 제${h.id} 밀집구역 (${h.name} 일대 ${h.count}개소)
-                    </text>
-                </g>
-            `;
-        });
-    }
+    // 2. [단위면적 상위 3대 밀집구역] 본도면 점선 및 배지 표시 완전 제거 (혼란 방지 및 본도면 도로망 시인성 극대화)
 
     // 3. 지시선 및 라벨 계산
     const labelItems = computeLeaderDispersedLabels(nodes, edges, opts, printMap);
@@ -1336,10 +1315,9 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
         svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="${nodeColor}" stroke="#ffffff" stroke-width="1.0" />`;
     });
 
-    // 렌더링 순서: 경계선 -> 최대밀집구역박스 -> 지시선 -> 라벨 -> 연동선(그룹컬러 최상위) -> 노드 점
+    // 렌더링 순서: 경계선 -> 지시선 -> 라벨 -> 연동선(그룹컬러 최상위) -> 노드 점
     svgEl.innerHTML = `
         ${svgBoundary}
-        ${svgHotspots}
         ${svgLeaders}
         ${svgLabels}
         ${svgEdges}
