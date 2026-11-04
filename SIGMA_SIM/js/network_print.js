@@ -52,9 +52,10 @@ function getDistinctGroupColor(gid) {
 
 /**
  * 고해상도 무키(No-Key)·무워터마크 타일 서버 설정
- * - VWorld Base: 대한민국 국토교통부 표준 고해상도 지도 (기본값: API키 불필요, 워터마크 없음, 'Map data not yet available' 원천 방지)
- * - OpenStreetMap: 글로벌 표준 오픈소스 지도 (API키 불필요, 워터마크 없음)
- * - Dark Map: OpenStreetMap 기반 고대비 야간 다크 필터 (API키 불필요, 워터마크 없음)
+ * - clean (기본값): 그레이톤 도로망 캔버스 지도 (알록달록한 배경 색상 완전 배제, 도로망 윤곽 선명화, 무키·무워터마크)
+ * - color: 대한민국 국토교통부 브이월드 표준 컬러 지도 (원본)
+ * - osm: 글로벌 표준 오픈스트리트맵 모노톤 도로망 (API키 불필요)
+ * - dark: OpenStreetMap 기반 고대비 야간 다크 필터 (API키 불필요)
  */
 function getNetworkPrintTileConfig(theme) {
     if (theme === 'dark') {
@@ -67,17 +68,8 @@ function getNetworkPrintTileConfig(theme) {
                 className: 'leaflet-tile-dark'
             }
         };
-    } else if (theme === 'osm') {
-        return {
-            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            options: {
-                maxZoom: 19,
-                maxNativeZoom: 19,
-                attribution: false
-            }
-        };
-    } else {
-        // 기본값: 'clean' (대한민국 국토교통부 브이월드 기본도 - API 키 완전 불필요, 워터마크 제로, 대한민국 도로/교차로 최적화)
+    } else if (theme === 'color') {
+        // 원본 컬러 지도 (풀컬러 VWorld)
         return {
             url: 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png',
             options: {
@@ -85,6 +77,28 @@ function getNetworkPrintTileConfig(theme) {
                 maxNativeZoom: 19,
                 minZoom: 6,
                 attribution: false
+            }
+        };
+    } else if (theme === 'osm') {
+        return {
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            options: {
+                maxZoom: 19,
+                maxNativeZoom: 19,
+                attribution: false,
+                className: 'leaflet-tile-grayscale'
+            }
+        };
+    } else {
+        // 기본값: 'clean' (대한민국 국토교통부 표준 그레이톤 도로망 캔버스 지도 - 무키·무워터마크)
+        return {
+            url: 'https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png',
+            options: {
+                maxZoom: 19,
+                maxNativeZoom: 19,
+                minZoom: 6,
+                attribution: false,
+                className: 'leaflet-tile-grayscale'
             }
         };
     }
@@ -360,8 +374,9 @@ window.openNetworkPrintModal = async function() {
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">배경 지도 스타일</label>
                         <select id="sel-print-theme" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px; font-weight:bold;">
-                            <option value="clean" selected>📄 라이트 지도 (기본 / 브이월드 무키·무워터마크)</option>
-                            <option value="osm">🌐 오픈스트리트맵 (OSM 글로벌 표준)</option>
+                            <option value="clean" selected>📄 그레이톤 도로망 (기본 / 권장)</option>
+                            <option value="color">🗺️ 컬러 도로 지도 (원본 풀컬러)</option>
+                            <option value="osm">🌐 오픈스트리트맵 (OSM 그레이)</option>
                             <option value="dark">🌌 다크 지도 (고대비 야간 / 무키·무워터마크)</option>
                         </select>
                     </div>
@@ -809,10 +824,21 @@ async function renderNetworkPrintOverlay(opts) {
                 box-sizing: border-box;
                 position: relative;
             }
+            /* 그레이톤 도로망 캔버스 필터 (알록달록한 배경 완전 배제, 도로망 윤곽 선명화) */
+            .leaflet-tile-grayscale, img.leaflet-tile-grayscale {
+                filter: grayscale(100%) brightness(105%) contrast(85%) opacity(0.85) !important;
+                -webkit-filter: grayscale(100%) brightness(105%) contrast(85%) opacity(0.85) !important;
+            }
             /* 다크 모드 타일 필터 (워터마크 없는 무키 고대비 다크 렌더링) */
             .leaflet-tile-dark, img.leaflet-tile-dark {
                 filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
                 -webkit-filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
+            }
+            /* 교차로명 라벨 기본 프레임 및 박스 제거 */
+            .custom-inset-label {
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
             }
             @media print {
                 @page {
@@ -891,6 +917,12 @@ async function renderNetworkPrintOverlay(opts) {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
+                .leaflet-tile-grayscale, img.leaflet-tile-grayscale {
+                    filter: grayscale(100%) brightness(105%) contrast(85%) opacity(0.85) !important;
+                    -webkit-filter: grayscale(100%) brightness(105%) contrast(85%) opacity(0.85) !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
                 .leaflet-tile-dark, img.leaflet-tile-dark {
                     filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
                     -webkit-filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%) !important;
@@ -922,7 +954,8 @@ async function renderNetworkPrintOverlay(opts) {
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">지도:</span>
                     <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
-                        <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 라이트 지도 (기본)</option>
+                        <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 그레이톤 도로망 (기본)</option>
+                        <option value="color"${opts.theme === 'color' ? ' selected' : ''}>🗺️ 컬러 도로 지도</option>
                         <option value="osm"${opts.theme === 'osm' ? ' selected' : ''}>🌐 오픈스트리트맵</option>
                         <option value="dark"${opts.theme === 'dark' ? ' selected' : ''}>🌌 다크 지도</option>
                     </select>
@@ -1180,14 +1213,20 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
             svgLeaders += `<polyline points="${origX},${origY} ${labelX},${labelY + rectH / 2}" stroke="${leaderColor}" stroke-width="0.8" stroke-dasharray="3,2" fill="none" opacity="0.8" />`;
         }
 
-        // B. 라벨 뱃지 및 텍스트
+        // B. 교차로명 라벨 텍스트 (배경 사각 프레임 제거 -> 지도의 도로망 시인성 극대화)
+        // 텍스트 후광(Halo Stroke)을 부여하여 어떤 배경 위에서도 글자 본체가 선명하게 식별됨
+        const textHalo = isDark ? '#080c16' : '#ffffff';
         svgLabels += `
             <g transform="translate(${labelX}, ${labelY})">
-                <rect width="${rectW}" height="${rectH}" rx="2.5" fill="${badgeBg}" stroke="${badgeBorder}" stroke-width="0.6" />
-                <text x="3.5" y="${rectH - 3.5}" 
+                <text x="2" y="${rectH - 3.5}" 
                       font-family="'Pretendard', 'Noto Sans KR', sans-serif" 
                       font-size="${opts.fontSize}px" 
                       font-weight="700" 
+                      paint-order="stroke fill"
+                      stroke="${textHalo}"
+                      stroke-width="2.6px"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
                       fill="${textColor}">
                     ${labelText}
                 </text>
@@ -1308,7 +1347,7 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileCon
 
                 const icon = L.divIcon({
                     className: 'custom-inset-label',
-                    html: `<div style="background:${isDark ? 'rgba(15,23,42,0.92)' : '#ffffff'}; color:${isDark ? '#fff' : '#000'}; border:1px solid ${color}; border-radius:3px; padding:1px 5px; font-size:9.5px; font-weight:bold; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.5);">[${shortId}] ${cleanName}</div>`,
+                    html: `<div style="background:transparent; color:${isDark ? '#ffffff' : '#0f172a'}; border:none; padding:0; font-size:9.5px; font-weight:700; text-shadow:${isDark ? '0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000' : '0 0 3px #fff, 0 0 3px #fff, 1px 1px 2px #fff'}; white-space:nowrap;">[${shortId}] ${cleanName}</div>`,
                     iconSize: [90, 18],
                     iconAnchor: [-6, 12]
                 });
