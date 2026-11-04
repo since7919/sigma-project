@@ -381,10 +381,12 @@ window.openNetworkPrintModal = async function() {
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">용지 규격 및 방향</label>
-                        <select id="sel-print-page-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px;">
-                            <option value="A4" selected>A4 가로 (화면 꽉 차게 확대)</option>
-                            <option value="A3">A3 가로 (대형 고해상도)</option>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">용지 규격 및 출력 방향</label>
+                        <select id="sel-print-page-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px; font-weight:600;">
+                            <option value="A4_landscape" selected>📄 A4 가로 (기본 도면)</option>
+                            <option value="A4_portrait">📑 A4 세로 (수직 도면)</option>
+                            <option value="A3_landscape">📄 A3 가로 (대형 고해상도)</option>
+                            <option value="A3_portrait">📑 A3 세로 (대형 수직 도면)</option>
                         </select>
                     </div>
                 </div>
@@ -431,10 +433,13 @@ window.closeNetworkPrintModal = function() {
  */
 window.executeNetworkPrint = async function() {
     const selDistrict = document.getElementById('sel-print-target-district');
+    const pageVal = document.getElementById('sel-print-page-size').value || 'A4_landscape';
+    const [pSize, pOrient] = pageVal.includes('_') ? pageVal.split('_') : [pageVal, 'landscape'];
+
     _currentPrintOpts = {
         targetDistrict: selDistrict ? selDistrict.value : 'ALL',
-        pageSize: document.getElementById('sel-print-page-size').value || 'A4',
-        orientation: 'landscape',
+        pageSize: pSize || 'A4',
+        orientation: pOrient || 'landscape',
         labelMode: document.getElementById('sel-print-label-mode').value || 'leader',
         theme: document.getElementById('sel-print-theme').value || 'clean',
         nodeSize: parseFloat(document.getElementById('sel-print-node-size').value) || 1.8,
@@ -794,9 +799,16 @@ async function renderNetworkPrintOverlay(opts) {
     });
     _activeInsetMaps = {};
 
-    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (A4 가로 297:210 표준 규격 비율)
-    // 브라우저 지도 폭 1100px : 높이 680px (1.617:1) === 인쇄 지도 폭 279mm : 높이 172.5mm (1.617:1)
-    const printMapHeight = (opts.pageSize === 'A3') ? '248mm' : '172.5mm';
+    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (A4/A3 가로·세로 규격 비율 대응)
+    const isPortrait = (opts.orientation === 'portrait');
+    const paperWidth = isPortrait ? '780px' : '1140px';
+    const screenMapHeight = isPortrait ? '940px' : '680px';
+    let printMapHeight;
+    if (isPortrait) {
+        printMapHeight = (opts.pageSize === 'A3') ? '376mm' : '258mm';
+    } else {
+        printMapHeight = (opts.pageSize === 'A3') ? '248mm' : '172.5mm';
+    }
 
     container.innerHTML = `
         <style id="network-print-dynamic-style">
@@ -815,7 +827,7 @@ async function renderNetworkPrintOverlay(opts) {
             .net-print-paper {
                 background: ${bgColor};
                 color: ${textColor};
-                width: 1140px;
+                width: ${paperWidth};
                 max-width: 96vw;
                 padding: 16px 20px;
                 border-radius: 8px;
@@ -842,7 +854,7 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${opts.pageSize} landscape;
+                    size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
                     margin: 4mm;
                 }
                 html, body {
@@ -932,13 +944,29 @@ async function renderNetworkPrintOverlay(opts) {
             }
         </style>
 
-        <!-- 상단 실시간 도면 최적화 툴바 (도면 규격 1140px에 정렬) -->
-        <div class="net-no-print" style="width:1140px; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:8px 14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 10px; box-shadow:0 8px 25px rgba(0,0,0,0.4);">
+        <!-- 상단 실시간 도면 최적화 툴바 (도면 규격에 정렬) -->
+        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:8px 14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 10px; box-shadow:0 8px 25px rgba(0,0,0,0.4);">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#38bdf8;">구역:</span>
                     <select onchange="updatePrintOption('targetDistrict', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
                         ${districtSelectHtml}
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">방향:</span>
+                    <select onchange="updatePrintOption('orientation', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
+                        <option value="landscape"${!isPortrait ? ' selected' : ''}>📄 가로 (Landscape)</option>
+                        <option value="portrait"${isPortrait ? ' selected' : ''}>📑 세로 (Portrait)</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">용지:</span>
+                    <select onchange="updatePrintOption('pageSize', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
+                        <option value="A4"${opts.pageSize === 'A4' || !opts.pageSize ? ' selected' : ''}>A4</option>
+                        <option value="A3"${opts.pageSize === 'A3' ? ' selected' : ''}>A3</option>
                     </select>
                 </div>
 
@@ -1034,8 +1062,8 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (화면 1100x680px, 인쇄 279x172.5mm로 1.617:1 비율 완전 일치) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:680px; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 일치) -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:${screenMapHeight}; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -1055,8 +1083,13 @@ async function renderNetworkPrintOverlay(opts) {
 
                 <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵 3개] (창닫기 지원 & 독립 드래그 이동) -->
                 <div id="net-print-insets-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none; z-index:15;">
-                    ${hotspots.map((h, idx) => `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:10px; left:${12 + idx * 328}px; width:316px; height:208px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
+                    ${hotspots.map((h, idx) => {
+                        const insetW = isPortrait ? 232 : 316;
+                        const insetH = isPortrait ? 165 : 208;
+                        const mapH = isPortrait ? 133 : 176;
+                        const insetLeft = isPortrait ? (10 + idx * 242) : (12 + idx * 328);
+                        return `
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:10px; left:${insetLeft}px; width:${insetW}px; height:${insetH}px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
                             <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:5px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab;">
                                 <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
                                     🔍 <b>#${h.id}</b> ${h.name} (${h.count}개소)
@@ -1066,9 +1099,9 @@ async function renderNetworkPrintOverlay(opts) {
                                     <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 6px; font-size:10.5px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕ 창닫기</button>
                                 </div>
                             </div>
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:176px; position:relative;"></div>
+                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:${mapH}px; position:relative;"></div>
                         </div>
-                    `).join('')}
+                    `;}).join('')}
                 </div>
             </div>
 
