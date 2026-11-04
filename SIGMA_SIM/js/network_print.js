@@ -842,37 +842,31 @@ async function renderNetworkPrintOverlay(opts) {
     const isPortrait = (opts.orientation === 'portrait');
     const isA3 = (opts.pageSize === 'A3');
 
-    let paperWidth, screenMapHeight, printMapHeight, aspectRatio, pageSizeMm;
+    let paperWidth, screenMapHeight, aspectRatio;
 
     if (isPortrait) {
-        paperWidth = '800px';
         if (isA3) {
-            // A3 세로 (297 × 420mm -> 가용 너비 281mm, 가용 높이 368mm)
-            pageSizeMm = '297mm 420mm';
-            screenMapHeight = 1006;
-            printMapHeight = '368mm';
-            aspectRatio = '281 / 368';
+            // A3 세로 (297 × 420mm -> 가용 너비 281mm, 가용 높이 384mm, 비율 0.732)
+            paperWidth = '860px';
+            screenMapHeight = 1131;
+            aspectRatio = '281 / 384';
         } else {
-            // A4 세로 (210 × 297mm -> 가용 너비 194mm, 가용 높이 248mm)
-            pageSizeMm = '210mm 297mm';
-            screenMapHeight = 982;
-            printMapHeight = '248mm';
-            aspectRatio = '194 / 248';
+            // A4 세로 (210 × 297mm -> 가용 너비 194mm, 가용 높이 260mm, 비율 0.746)
+            paperWidth = '800px';
+            screenMapHeight = 1029;
+            aspectRatio = '194 / 260';
         }
     } else {
-        paperWidth = '1140px';
         if (isA3) {
-            // A3 가로 (420 × 297mm -> 가용 너비 404mm, 가용 높이 250mm)
-            pageSizeMm = '420mm 297mm';
-            screenMapHeight = 681;
-            printMapHeight = '250mm';
-            aspectRatio = '404 / 250';
+            // A3 가로 (420 × 297mm -> 가용 너비 404mm, 가용 높이 261mm, 비율 1.548)
+            paperWidth = '1200px';
+            screenMapHeight = 749;
+            aspectRatio = '404 / 261';
         } else {
-            // A4 가로 (297 × 210mm -> 가용 너비 281mm, 가용 높이 166mm)
-            pageSizeMm = '297mm 210mm';
-            screenMapHeight = 650;
-            printMapHeight = '166mm';
-            aspectRatio = '281 / 166';
+            // A4 가로 (297 × 210mm -> 가용 너비 281mm, 가용 높이 173mm, 비율 1.624)
+            paperWidth = '1140px';
+            screenMapHeight = 677;
+            aspectRatio = '281 / 173';
         }
     }
 
@@ -920,7 +914,8 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${pageSizeMm};
+                    size: ${isPortrait ? 'portrait' : 'landscape'};
+                    size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
                     margin: 4mm;
                 }
                 html, body {
@@ -930,6 +925,8 @@ async function renderNetworkPrintOverlay(opts) {
                     padding: 0 !important;
                     overflow: hidden !important;
                     background: ${bgColor} !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                 }
                 body > *:not(#network-print-overlay) {
                     display: none !important;
@@ -939,14 +936,16 @@ async function renderNetworkPrintOverlay(opts) {
                 }
                 #network-print-overlay {
                     display: block !important;
-                    position: static !important;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
                     width: 100% !important;
                     height: 100% !important;
-                    max-height: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     background: ${bgColor} !important;
                     overflow: hidden !important;
+                    box-sizing: border-box !important;
                     page-break-after: avoid !important;
                     break-after: avoid !important;
                     page-break-inside: avoid !important;
@@ -959,7 +958,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     height: 100% !important;
                     max-height: 100% !important;
-                    padding: 1.5mm 4mm !important;
+                    padding: 1.5mm 3mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
@@ -972,20 +971,23 @@ async function renderNetworkPrintOverlay(opts) {
                     box-sizing: border-box !important;
                 }
                 .net-print-header {
-                    padding-bottom: 4px !important;
-                    margin-bottom: 5px !important;
+                    flex-shrink: 0 !important;
+                    padding-bottom: 3px !important;
+                    margin-bottom: 4px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
                 #net-print-map-wrapper {
+                    flex: 1 1 auto !important;
                     width: 100% !important;
-                    height: ${printMapHeight} !important;
-                    max-height: ${printMapHeight} !important;
-                    min-height: ${printMapHeight} !important;
-                    aspect-ratio: ${aspectRatio} !important;
+                    height: 100% !important;
+                    min-height: 0 !important;
+                    aspect-ratio: auto !important;
                     overflow: hidden !important;
                     border: 1px solid ${borderColor} !important;
                     border-radius: 4px !important;
+                    box-sizing: border-box !important;
+                    position: relative !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
