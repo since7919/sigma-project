@@ -109,7 +109,7 @@ let _currentPrintOpts = {
     pageSize: 'A4',
     orientation: 'landscape',
     labelMode: 'leader',     // 'leader' (지시선 분산) | 'smart' (스마트 겹침방지) | 'badge' (번호 뱃지)
-    fontSize: 7.5,           // px
+    fontSize: 7.2,           // px (기본 7.2px)
     lineWidth: 5.0,          // px
     nodeSize: 1.8,           // px
     showInsetMap: true,      // 단위면적 최대밀집 확대도 표기 여부
@@ -391,20 +391,31 @@ window.openNetworkPrintModal = async function() {
                     </div>
                 </div>
 
-                <!-- 4. 연동선 및 노드 크기 -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <!-- 4. 연동선, 노드 및 글자 크기 -->
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">라벨 글자 크기</label>
+                        <select id="sel-print-font-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(56,189,248,0.4); color:#fff; border-radius:6px; padding:0 6px; font-size:12px; font-weight:bold;">
+                            <option value="6.0">초소형 (6.0px - 밀집용)</option>
+                            <option value="7.2" selected>작게 (7.2px - 권장)</option>
+                            <option value="8.5">보통 (8.5px)</option>
+                            <option value="10.0">크게 (10.0px - A3용)</option>
+                            <option value="12.0">특대 (12.0px)</option>
+                        </select>
+                    </div>
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">교차로 노드 크기</label>
-                        <select id="sel-print-node-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px;">
-                            <option value="1.8" selected>초미니 1.8px (연동선 가림 0%)</option>
+                        <select id="sel-print-node-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 6px; font-size:12px;">
+                            <option value="1.8" selected>초미니 1.8px (0% 가림)</option>
                             <option value="2.5">보통 2.5px</option>
                         </select>
                     </div>
                     <div>
-                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">연동 링크선 굵기</label>
-                        <select id="sel-print-line-width" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px;">
-                            <option value="5.0" selected>굵게 5.0px (그룹별 컬러 확연)</option>
-                            <option value="6.5">매우 굵게 6.5px</option>
+                        <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">연동선 굵기</label>
+                        <select id="sel-print-line-width" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 6px; font-size:12px;">
+                            <option value="4.0">보통 4.0px</option>
+                            <option value="5.5" selected>굵게 5.5px (권장)</option>
+                            <option value="7.0">매우 굵게 7.0px</option>
                         </select>
                     </div>
                 </div>
@@ -435,6 +446,7 @@ window.executeNetworkPrint = async function() {
     const selDistrict = document.getElementById('sel-print-target-district');
     const pageVal = document.getElementById('sel-print-page-size').value || 'A4_landscape';
     const [pSize, pOrient] = pageVal.includes('_') ? pageVal.split('_') : [pageVal, 'landscape'];
+    const fontVal = document.getElementById('sel-print-font-size');
 
     _currentPrintOpts = {
         targetDistrict: selDistrict ? selDistrict.value : 'ALL',
@@ -445,7 +457,7 @@ window.executeNetworkPrint = async function() {
         nodeSize: parseFloat(document.getElementById('sel-print-node-size').value) || 1.8,
         lineWidth: parseFloat(document.getElementById('sel-print-line-width').value) || 5.0,
         showInsetMap: document.getElementById('chk-print-show-inset').checked,
-        fontSize: 7.5,
+        fontSize: fontVal ? parseFloat(fontVal.value) : 7.2,
         showJid: true,
         showBoundary: true
     };
@@ -456,6 +468,12 @@ window.executeNetworkPrint = async function() {
 
 window.updatePrintOption = async function(key, val) {
     _currentPrintOpts[key] = val;
+    if (key === 'fontSize' || key === 'labelMode' || key === 'lineWidth' || key === 'nodeSize') {
+        if (_activePrintMap && window.triggerSvgOverlayRender) {
+            window.triggerSvgOverlayRender();
+            return;
+        }
+    }
     await renderNetworkPrintOverlay(_currentPrintOpts);
 };
 
@@ -630,21 +648,49 @@ if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
 }
 
 /**
- * 지시선(Leader Line) 방사형 분산 라벨링 계산
+ * 2D Axis-Aligned Bounding Box (AABB) 사각 영역 충돌 검사
+ */
+function isAABBOverlap(r1, r2, padding = 1.5) {
+    return !(
+        r1.x + r1.w + padding < r2.x ||
+        r2.x + r2.w + padding < r1.x ||
+        r1.y + r1.h + padding < r2.y ||
+        r2.y + r2.h + padding < r1.y
+    );
+}
+
+/**
+ * 지시선(Leader Line) 방사형 분산 및 스마트 AABB 충돌 방지 라벨링 계산
  */
 function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
+    // 1. 노드별 연결 링크(Degree) 수 계산 -> 우선순위 산출
+    const degreeMap = new Map();
+    edges.forEach(e => {
+        const uId = String(e.u.id);
+        const vId = String(e.v.id);
+        degreeMap.set(uId, (degreeMap.get(uId) || 0) + 1);
+        degreeMap.set(vId, (degreeMap.get(vId) || 0) + 1);
+    });
+
     const points = nodes.map((n, idx) => {
         const pt = mapInstance.latLngToContainerPoint([n.lat, n.lng]);
+        const deg = degreeMap.get(String(n.id)) || 0;
+        const hasGroup = (n.group && n.group !== '0' && n.group !== 'default');
+        // 우선순위 스코어: 간선 연결 링크수 * 10 + 연동그룹 보유 * 5
+        const priorityScore = deg * 10 + (hasGroup ? 5 : 0);
+
         return {
             node: n,
             origX: pt.x,
             origY: pt.y,
-            index: idx
+            index: idx,
+            degree: deg,
+            priority: priorityScore
         };
     });
 
-    // 1. 노드 간 거리 기반 밀집도(Density) 계산
-    const densityRadius = 26; // px
+    // 2. 노드 간 거리 기반 밀집도(Density) 계산
+    const densityRadius = 28; // px
     points.forEach(p => {
         let neighborCount = 0;
         let sumX = 0, sumY = 0;
@@ -663,56 +709,107 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         p.clusterCenterY = sumY / neighborCount;
     });
 
+    const fontSize = opts.fontSize || 7.2;
+    const isSmart = (opts.labelMode === 'smart');
+    const isBadge = (opts.labelMode === 'badge');
+
+    // 스마트 모드: 주요 간선 및 환승 사거리(우선순위 높은 노드)부터 먼저 배치
+    const sortedPoints = isSmart ? [...points].sort((a, b) => b.priority - a.priority) : points;
+
+    const placedBoxes = []; // 이미 배치 확정된 라벨 사각형 목록 [{x, y, w, h}]
     const results = [];
-    const fontSize = opts.fontSize || 7.5;
 
     const angles = [
         -Math.PI / 4, Math.PI / 4, -3 * Math.PI / 4, 3 * Math.PI / 4,
         0, Math.PI / 2, Math.PI, -Math.PI / 2
     ];
 
-    points.forEach((p, i) => {
+    sortedPoints.forEach((p, i) => {
         const j = p.node;
         const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
         let cleanName = sanitizeJunctionName(j.name);
         let labelText = opts.showJid ? `[${shortId}] ${cleanName}` : cleanName;
 
+        if (isBadge) {
+            labelText = `${p.index + 1}`;
+        }
+
         const charCount = labelText.length;
-        const rectW = charCount * (fontSize * 0.70) + 8;
+        const rectW = charCount * (fontSize * 0.72) + 6;
         const rectH = fontSize + 4;
 
-        let targetX = p.origX + 5;
-        let targetY = p.origY - rectH / 2;
+        let bestX = p.origX + 5;
+        let bestY = p.origY - rectH / 2;
         let hasLeader = false;
+        let showLabel = true;
 
-        // 밀집 지역인 경우 여백 방향으로 방사형 지시선 확장
-        if (p.neighborCount > 1 && opts.labelMode === 'leader') {
-            hasLeader = true;
-            let dirX = p.origX - p.clusterCenterX;
-            let dirY = p.origY - p.clusterCenterY;
-            if (Math.hypot(dirX, dirY) < 1) {
-                const ang = angles[i % angles.length];
-                dirX = Math.cos(ang);
-                dirY = Math.sin(ang);
+        if (isSmart) {
+            // [스마트 겹침방지 알고리즘]
+            // 후보 6개 위치 다방향 슬롯 탐색:
+            // 1) 오른쪽, 2) 왼쪽, 3) 위, 4) 아래, 5) 우상단 지시선, 6) 좌상단 지시선
+            const candidates = [
+                { x: p.origX + 5, y: p.origY - rectH / 2, hasLeader: false },
+                { x: p.origX - rectW - 5, y: p.origY - rectH / 2, hasLeader: false },
+                { x: p.origX - rectW / 2, y: p.origY - rectH - 5, hasLeader: false },
+                { x: p.origX - rectW / 2, y: p.origY + 5, hasLeader: false },
+                { x: p.origX + 20, y: p.origY - rectH / 2 - 12, hasLeader: true },
+                { x: p.origX - rectW - 20, y: p.origY - rectH / 2 - 12, hasLeader: true }
+            ];
+
+            let chosen = null;
+            for (const cand of candidates) {
+                const box = { x: cand.x, y: cand.y, w: rectW, h: rectH };
+                const overlap = placedBoxes.some(placed => isAABBOverlap(box, placed, 1.8));
+                if (!overlap) {
+                    chosen = cand;
+                    break;
+                }
             }
-            const norm = Math.hypot(dirX, dirY) || 1;
-            const dist = 24 + (i % 4) * 16;
 
-            targetX = p.origX + (dirX / norm) * dist;
-            targetY = p.origY + (dirY / norm) * dist;
+            if (chosen) {
+                bestX = chosen.x;
+                bestY = chosen.y;
+                hasLeader = chosen.hasLeader;
+                placedBoxes.push({ x: bestX, y: bestY, w: rectW, h: rectH });
+            } else {
+                // 인접 중요 교차로와 겹치므로 과감히 생략 -> 글자 겹침 0% 달성!
+                // (확대창 인셋 맵에서 250% 상세 확인 가능)
+                showLabel = false;
+            }
+        } else if (opts.labelMode === 'leader') {
+            // [지시선 여백 분산 모드]
+            if (p.neighborCount > 1) {
+                hasLeader = true;
+                let dirX = p.origX - p.clusterCenterX;
+                let dirY = p.origY - p.clusterCenterY;
+                if (Math.hypot(dirX, dirY) < 1) {
+                    const ang = angles[i % angles.length];
+                    dirX = Math.cos(ang);
+                    dirY = Math.sin(ang);
+                }
+                const norm = Math.hypot(dirX, dirY) || 1;
+                const dist = 24 + (i % 5) * 14;
+
+                bestX = p.origX + (dirX / norm) * dist;
+                bestY = p.origY + (dirY / norm) * dist;
+            }
+            placedBoxes.push({ x: bestX, y: bestY, w: rectW, h: rectH });
+        } else {
+            // 기본 모드
+            placedBoxes.push({ x: bestX, y: bestY, w: rectW, h: rectH });
         }
 
         results.push({
             node: j,
             origX: p.origX,
             origY: p.origY,
-            labelX: targetX,
-            labelY: targetY,
+            labelX: bestX,
+            labelY: bestY,
             rectW: rectW,
             rectH: rectH,
             labelText: labelText,
             hasLeader: hasLeader,
-            showLabel: true
+            showLabel: showLabel
         });
     });
 
@@ -1056,8 +1153,19 @@ async function renderNetworkPrintOverlay(opts) {
                     <span style="font-size:12px; font-weight:bold; color:#38bdf8;">라벨:</span>
                     <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
                         <option value="leader"${opts.labelMode === 'leader' ? ' selected' : ''}>🎯 지시선 여백 분산 (모든 교차로명 표출)</option>
-                        <option value="smart"${opts.labelMode === 'smart' ? ' selected' : ''}>🛡️ 스마트 겹침방지 모드</option>
+                        <option value="smart"${opts.labelMode === 'smart' ? ' selected' : ''}>🛡️ 스마트 겹침방지 모드 (충돌 필터링)</option>
                         <option value="badge"${opts.labelMode === 'badge' ? ' selected' : ''}>🔢 번호 뱃지 + 하단 색인표</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <span style="font-size:12px; font-weight:bold; color:#38bdf8;">글자:</span>
+                    <select onchange="updatePrintOption('fontSize', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
+                        <option value="6.0"${opts.fontSize === 6.0 ? ' selected' : ''}>초소형 6.0px (밀집 최적)</option>
+                        <option value="7.2"${(!opts.fontSize || opts.fontSize === 7.2 || opts.fontSize === 7.5) ? ' selected' : ''}>작게 7.2px (기본)</option>
+                        <option value="8.5"${opts.fontSize === 8.5 ? ' selected' : ''}>보통 8.5px</option>
+                        <option value="10.0"${opts.fontSize === 10.0 ? ' selected' : ''}>크게 10.0px (A3용)</option>
+                        <option value="12.0"${opts.fontSize === 12.0 ? ' selected' : ''}>특대 12.0px</option>
                     </select>
                 </div>
 
@@ -1308,6 +1416,8 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
     let svgLabels = '';
 
     labelItems.forEach(item => {
+        if (!item.showLabel) return; // 스마트 겹침방지: 인접 중요 교차로와 충돌 시 생략 (글자 겹침 0% 달성)
+
         const { origX, origY, labelX, labelY, rectW, rectH, labelText, hasLeader } = item;
 
         // A. 지시선
