@@ -562,38 +562,70 @@ function updateInsetToolbarBadges() {
 }
 
 let _savedPrintBounds = null;
+let _savedPrintCenter = null;
+let _savedPrintZoom = null;
 
 window.triggerNetworkPrint = function() {
     if (_activePrintMap) {
+        _savedPrintCenter = _activePrintMap.getCenter();
+        _savedPrintZoom = _activePrintMap.getZoom();
         _savedPrintBounds = _activePrintMap.getBounds();
         _activePrintMap.invalidateSize({ animate: false });
+        if (_savedPrintCenter && _savedPrintZoom !== null) {
+            _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
+        }
         if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
     }
-    Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
+    Object.values(_activeInsetMaps).forEach(m => {
+        if (m) {
+            const c = m.getCenter();
+            const z = m.getZoom();
+            m.invalidateSize({ animate: false });
+            if (c && z !== null) m.setView(c, z, { animate: false });
+        }
+    });
     setTimeout(() => {
         window.print();
-    }, 120);
+    }, 150);
 };
 
 if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
     window._netPrintEventsBound = true;
     window.addEventListener('beforeprint', () => {
         if (_activePrintMap) {
-            const b = _savedPrintBounds || _activePrintMap.getBounds();
             _activePrintMap.invalidateSize({ animate: false });
-            if (b) _activePrintMap.fitBounds(b, { padding: [0, 0], animate: false });
+            if (_savedPrintCenter && _savedPrintZoom !== null) {
+                _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
+            } else if (_savedPrintBounds) {
+                _activePrintMap.fitBounds(_savedPrintBounds, { padding: [0, 0], animate: false });
+            }
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
+        Object.values(_activeInsetMaps).forEach(m => {
+            if (m) {
+                const c = m.getCenter();
+                const z = m.getZoom();
+                m.invalidateSize({ animate: false });
+                if (c && z !== null) m.setView(c, z, { animate: false });
+            }
+        });
     });
     window.addEventListener('afterprint', () => {
         if (_activePrintMap) {
-            const b = _savedPrintBounds || _activePrintMap.getBounds();
             _activePrintMap.invalidateSize({ animate: false });
-            if (b) _activePrintMap.fitBounds(b, { padding: [0, 0], animate: false });
+            if (_savedPrintCenter && _savedPrintZoom !== null) {
+                _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
+            }
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
+        Object.values(_activeInsetMaps).forEach(m => {
+            if (m) {
+                const c = m.getCenter();
+                const z = m.getZoom();
+                m.invalidateSize({ animate: false });
+                if (c && z !== null) m.setView(c, z, { animate: false });
+            }
+        });
     });
 }
 
@@ -810,33 +842,37 @@ async function renderNetworkPrintOverlay(opts) {
     const isPortrait = (opts.orientation === 'portrait');
     const isA3 = (opts.pageSize === 'A3');
 
-    let paperWidth, screenMapHeight, printMapHeight, aspectRatio;
+    let paperWidth, screenMapHeight, printMapHeight, aspectRatio, pageSizeMm;
 
     if (isPortrait) {
         paperWidth = '800px';
         if (isA3) {
-            // A3 세로 (297x420mm -> 인쇄 가용 277x380mm, 비율 0.729)
-            screenMapHeight = 1042;
-            printMapHeight = '380mm';
-            aspectRatio = '277 / 380';
+            // A3 세로 (297 × 420mm -> 가용 너비 281mm, 가용 높이 368mm)
+            pageSizeMm = '297mm 420mm';
+            screenMapHeight = 1006;
+            printMapHeight = '368mm';
+            aspectRatio = '281 / 368';
         } else {
-            // A4 세로 (210x297mm -> 인쇄 가용 190x257mm, 비율 0.739)
-            screenMapHeight = 1028;
-            printMapHeight = '257mm';
-            aspectRatio = '190 / 257';
+            // A4 세로 (210 × 297mm -> 가용 너비 194mm, 가용 높이 248mm)
+            pageSizeMm = '210mm 297mm';
+            screenMapHeight = 982;
+            printMapHeight = '248mm';
+            aspectRatio = '194 / 248';
         }
     } else {
         paperWidth = '1140px';
         if (isA3) {
-            // A3 가로 (420x297mm -> 인쇄 가용 400x257mm, 비율 1.556)
-            screenMapHeight = 707;
-            printMapHeight = '257mm';
-            aspectRatio = '400 / 257';
+            // A3 가로 (420 × 297mm -> 가용 너비 404mm, 가용 높이 250mm)
+            pageSizeMm = '420mm 297mm';
+            screenMapHeight = 681;
+            printMapHeight = '250mm';
+            aspectRatio = '404 / 250';
         } else {
-            // A4 가로 (297x210mm -> 인쇄 가용 277x170mm, 비율 1.629)
-            screenMapHeight = 675;
-            printMapHeight = '170mm';
-            aspectRatio = '277 / 170';
+            // A4 가로 (297 × 210mm -> 가용 너비 281mm, 가용 높이 166mm)
+            pageSizeMm = '297mm 210mm';
+            screenMapHeight = 650;
+            printMapHeight = '166mm';
+            aspectRatio = '281 / 166';
         }
     }
 
@@ -884,8 +920,8 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
-                    margin: 5mm;
+                    size: ${pageSizeMm};
+                    margin: 4mm;
                 }
                 html, body {
                     width: 100% !important;
@@ -895,16 +931,15 @@ async function renderNetworkPrintOverlay(opts) {
                     overflow: hidden !important;
                     background: ${bgColor} !important;
                 }
-                body * {
-                    visibility: hidden;
+                body > *:not(#network-print-overlay) {
+                    display: none !important;
                 }
                 #network-print-overlay, #network-print-overlay * {
-                    visibility: visible;
+                    visibility: visible !important;
                 }
                 #network-print-overlay {
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
+                    display: block !important;
+                    position: static !important;
                     width: 100% !important;
                     height: 100% !important;
                     max-height: 100% !important;
@@ -924,7 +959,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     height: 100% !important;
                     max-height: 100% !important;
-                    padding: 2mm 5mm !important;
+                    padding: 1.5mm 4mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
@@ -934,6 +969,13 @@ async function renderNetworkPrintOverlay(opts) {
                     break-inside: avoid !important;
                     page-break-after: avoid !important;
                     break-after: avoid !important;
+                    box-sizing: border-box !important;
+                }
+                .net-print-header {
+                    padding-bottom: 4px !important;
+                    margin-bottom: 5px !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                 }
                 #net-print-map-wrapper {
                     width: 100% !important;
@@ -950,6 +992,12 @@ async function renderNetworkPrintOverlay(opts) {
                 .net-print-inset-card {
                     box-shadow: none !important;
                     border-width: 1px !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                .net-print-footer {
+                    margin-top: 4px !important;
+                    font-size: 8.5px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
@@ -1074,7 +1122,7 @@ async function renderNetworkPrintOverlay(opts) {
         <!-- 인쇄 도면 용지 본문 -->
         <div class="net-print-paper">
             <!-- 헤더 -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:6px; margin-bottom:8px;">
+            <div class="net-print-header" style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:6px; margin-bottom:8px;">
                 <div>
                     <div style="font-size:11px; font-weight:700; color:${isDark ? '#38bdf8' : '#0284c7'}; letter-spacing:1px; margin-bottom:2px;">
                         KOROAD SIGMA TRAFFIC SIGNAL MANAGEMENT SYSTEM
@@ -1147,7 +1195,7 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <!-- 하단 푸터 -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:9.5px; color:${subColor};">
+            <div class="net-print-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:9.5px; color:${subColor};">
                 <div>* 본 도면은 실제 도로 배경 지도와 SIGMA 연동 그룹별 고유 알고리즘에 의해 자동 생성된 공식 도면입니다.</div>
                 <div><b>SIGMA SIM</b> | Powered by Koroad & Advanced Agentic Signal Engine</div>
             </div>
