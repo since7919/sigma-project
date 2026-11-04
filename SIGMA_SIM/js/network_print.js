@@ -561,32 +561,39 @@ function updateInsetToolbarBadges() {
     }).join('');
 }
 
+let _savedPrintBounds = null;
+
 window.triggerNetworkPrint = function() {
     if (_activePrintMap) {
-        _activePrintMap.invalidateSize();
+        _savedPrintBounds = _activePrintMap.getBounds();
+        _activePrintMap.invalidateSize({ animate: false });
         if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
     }
-    Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+    Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
     setTimeout(() => {
         window.print();
-    }, 80);
+    }, 120);
 };
 
 if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
     window._netPrintEventsBound = true;
     window.addEventListener('beforeprint', () => {
         if (_activePrintMap) {
-            _activePrintMap.invalidateSize();
+            const b = _savedPrintBounds || _activePrintMap.getBounds();
+            _activePrintMap.invalidateSize({ animate: false });
+            if (b) _activePrintMap.fitBounds(b, { padding: [0, 0], animate: false });
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
     });
     window.addEventListener('afterprint', () => {
         if (_activePrintMap) {
-            _activePrintMap.invalidateSize();
+            const b = _savedPrintBounds || _activePrintMap.getBounds();
+            _activePrintMap.invalidateSize({ animate: false });
+            if (b) _activePrintMap.fitBounds(b, { padding: [0, 0], animate: false });
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize());
+        Object.values(_activeInsetMaps).forEach(m => m && m.invalidateSize({ animate: false }));
     });
 }
 
@@ -799,15 +806,38 @@ async function renderNetworkPrintOverlay(opts) {
     });
     _activeInsetMaps = {};
 
-    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (A4/A3 가로·세로 규격 비율 대응)
+    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (WYSIWYG: A4/A3 가로·세로 규격 정밀 매핑)
     const isPortrait = (opts.orientation === 'portrait');
-    const paperWidth = isPortrait ? '780px' : '1140px';
-    const screenMapHeight = isPortrait ? '940px' : '680px';
-    let printMapHeight;
+    const isA3 = (opts.pageSize === 'A3');
+
+    let paperWidth, screenMapHeight, printMapHeight, aspectRatio;
+
     if (isPortrait) {
-        printMapHeight = (opts.pageSize === 'A3') ? '376mm' : '258mm';
+        paperWidth = '800px';
+        if (isA3) {
+            // A3 세로 (297x420mm -> 인쇄 가용 277x380mm, 비율 0.729)
+            screenMapHeight = 1042;
+            printMapHeight = '380mm';
+            aspectRatio = '277 / 380';
+        } else {
+            // A4 세로 (210x297mm -> 인쇄 가용 190x257mm, 비율 0.739)
+            screenMapHeight = 1028;
+            printMapHeight = '257mm';
+            aspectRatio = '190 / 257';
+        }
     } else {
-        printMapHeight = (opts.pageSize === 'A3') ? '248mm' : '172.5mm';
+        paperWidth = '1140px';
+        if (isA3) {
+            // A3 가로 (420x297mm -> 인쇄 가용 400x257mm, 비율 1.556)
+            screenMapHeight = 707;
+            printMapHeight = '257mm';
+            aspectRatio = '400 / 257';
+        } else {
+            // A4 가로 (297x210mm -> 인쇄 가용 277x170mm, 비율 1.629)
+            screenMapHeight = 675;
+            printMapHeight = '170mm';
+            aspectRatio = '277 / 170';
+        }
     }
 
     container.innerHTML = `
@@ -855,7 +885,7 @@ async function renderNetworkPrintOverlay(opts) {
             @media print {
                 @page {
                     size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
-                    margin: 4mm;
+                    margin: 5mm;
                 }
                 html, body {
                     width: 100% !important;
@@ -906,9 +936,11 @@ async function renderNetworkPrintOverlay(opts) {
                     break-after: avoid !important;
                 }
                 #net-print-map-wrapper {
+                    width: 100% !important;
                     height: ${printMapHeight} !important;
                     max-height: ${printMapHeight} !important;
                     min-height: ${printMapHeight} !important;
+                    aspect-ratio: ${aspectRatio} !important;
                     overflow: hidden !important;
                     border: 1px solid ${borderColor} !important;
                     border-radius: 4px !important;
@@ -1063,7 +1095,7 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 일치) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:${screenMapHeight}; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:${screenMapHeight}px; aspect-ratio:${aspectRatio}; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -1081,25 +1113,33 @@ async function renderNetworkPrintOverlay(opts) {
                     </div>
                 </div>
 
-                <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵 3개] (창닫기 지원 & 독립 드래그 이동) -->
+                <!-- 4. [단위면적 최대 밀집구역 상세 확대 인셋 맵 3개] (백분율 배치로 인쇄 1:1 완벽 일치 & 드래그 보존) -->
                 <div id="net-print-insets-container" style="position:absolute; bottom:0; left:0; width:100%; height:100%; pointer-events:none; z-index:15;">
                     ${hotspots.map((h, idx) => {
-                        const insetW = isPortrait ? 232 : 316;
-                        const insetH = isPortrait ? 165 : 208;
-                        const mapH = isPortrait ? 133 : 176;
-                        const insetLeft = isPortrait ? (10 + idx * 242) : (12 + idx * 328);
+                        let defaultLeftPct, defaultBottomPct, defaultWidthPct, defaultHeightPct;
+                        if (isPortrait) {
+                            defaultWidthPct = 31.5;
+                            defaultHeightPct = 18.0;
+                            defaultBottomPct = 1.2;
+                            defaultLeftPct = 1.2 + idx * 33.0;
+                        } else {
+                            defaultWidthPct = 29.5;
+                            defaultHeightPct = 31.0;
+                            defaultBottomPct = 1.5;
+                            defaultLeftPct = 1.2 + idx * 30.5;
+                        }
                         return `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:10px; left:${insetLeft}px; width:${insetW}px; height:${insetH}px; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto;">
-                            <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:5px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab;">
-                                <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${defaultWidthPct}%; height:${defaultHeightPct}%; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.7); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
+                            <div id="net-print-inset-header-${h.id}" style="background:linear-gradient(135deg, ${h.color}cc 0%, ${h.color} 100%); color:#fff; font-size:11px; font-weight:bold; padding:4px 8px; display:flex; justify-content:space-between; align-items:center; user-select:none; cursor:grab; height:24px; box-sizing:border-box;">
+                                <span style="display:flex; align-items:center; gap:5px; text-shadow:0 1px 2px rgba(0,0,0,0.6); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                                     🔍 <b>#${h.id}</b> ${h.name} (${h.count}개소)
                                 </span>
-                                <div style="display:flex; align-items:center; gap:5px;" class="net-no-print">
+                                <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;" class="net-no-print">
                                     <span style="font-size:9px; background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">드래그</span>
-                                    <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 6px; font-size:10.5px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕ 창닫기</button>
+                                    <button onclick="closeInsetMap(${h.id})" style="background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:3px; padding:1px 5px; font-size:10px; font-weight:bold; cursor:pointer;" title="이 확대창 닫기">✕</button>
                                 </div>
                             </div>
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:${mapH}px; position:relative;"></div>
+                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:calc(100% - 24px); position:relative;"></div>
                         </div>
                     `;}).join('')}
                 </div>
@@ -1443,6 +1483,18 @@ function makeDraggable(headerEl, containerEl) {
             headerEl.style.cursor = 'grab';
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+
+            // 드래그 종료 시 부모 기준 백분율(%)로 확정 변환 (인쇄 1:1 완벽 일치 보장)
+            const parentRect = parent.getBoundingClientRect();
+            const currentRect = containerEl.getBoundingClientRect();
+            if (parentRect.width > 0 && parentRect.height > 0) {
+                const pctLeft = (((currentRect.left - parentRect.left) / parentRect.width) * 100).toFixed(2);
+                const pctTop = (((currentRect.top - parentRect.top) / parentRect.height) * 100).toFixed(2);
+                containerEl.style.left = `${pctLeft}%`;
+                containerEl.style.top = `${pctTop}%`;
+                containerEl.style.bottom = 'auto';
+                containerEl.style.right = 'auto';
+            }
         };
 
         document.addEventListener('mousemove', onMouseMove);
