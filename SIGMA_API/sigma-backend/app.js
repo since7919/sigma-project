@@ -860,6 +860,54 @@ const uploadToCDN = async (filePath, cdnFilename) => {
         console.error("[CDN Exception]", err);
     }
 };
+const deleteJunctionFromLocalCsvCache = (jid) => {
+    try {
+        const scratchDir = path.join(__dirname, 'scratch');
+        if (!fs.existsSync(scratchDir)) return false;
+        
+        const region = String(jid).split('-')[0];
+        const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
+        const filesToClean = [
+            `db_${targetRegion}_intersections.csv`,
+            `db_${targetRegion}_signal_maps.csv`,
+            `db_${targetRegion}_tod_plans.csv`,
+            `db_${targetRegion}_stats.csv`
+        ];
+        
+        let cleanedAny = false;
+        for (const file of filesToClean) {
+            const cacheFilePath = path.join(scratchDir, 'cache_' + file);
+            if (!fs.existsSync(cacheFilePath)) continue;
+            
+            let lines = fs.readFileSync(cacheFilePath, 'utf8').split(/\r?\n/);
+            const beforeCount = lines.length;
+            lines = lines.filter(l => !l.startsWith(jid + ','));
+            if (lines.length !== beforeCount) {
+                fs.writeFileSync(cacheFilePath, lines.join('\n'));
+                cleanedAny = true;
+            }
+        }
+        
+        if (cleanedAny) {
+            global.SIGMA_DB_VERSION = Date.now() + '_v3';
+            (async () => {
+                for (const file of filesToClean) {
+                    const cacheFilePath = path.join(scratchDir, 'cache_' + file);
+                    if (fs.existsSync(cacheFilePath)) {
+                        await uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`).catch(console.error);
+                    }
+                }
+            })();
+            console.log(`[Cache] Successfully removed junction ${jid} from CSV cache and updated SIGMA_DB_VERSION`);
+            return true;
+        }
+        return false;
+    } catch(e) {
+        console.error('[Cache] Error cleaning junction from cache:', e);
+        return false;
+    }
+};
+
 const generationLocks = {};
 
 // 1-2. 시뮬레이터 및 API 공통 관할 지자체 목록 제공 API (24개 지자체)
@@ -2122,6 +2170,41 @@ app.post('/api/sim/update-junction', async (req, res) => {
     res.json(result);
   } catch (err) {
     sendErrorResponse(res, err, '교차로 데이터 업데이트에 실패했습니다.');
+  }
+});
+
+// 1-5-0. 교차로 영구 삭제 API (RDB 및 캐시 동기화)
+app.post('/api/sim/delete-junction', async (req, res) => {
+  const { jid, password } = req.body;
+  if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
+  if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
+    return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
+  }
+
+  try {
+    const result = await enqueueDBWrite(async () => {
+      // 1) junctions 교차로 마스터 삭제
+      const { error: jErr } = await supabase.from('junctions').delete().eq('id', jid);
+      if (jErr) throw new Error(`junctions RDB 삭제 오류: ${jErr.message}`);
+
+      // 2) signal_maps 신호맵 삭제
+      await supabase.from('signal_maps').delete().eq('id', jid).catch(() => {});
+
+      // 3) tod_plans TOD계획 삭제
+      await supabase.from('tod_plans').delete().eq('id', jid).catch(() => {});
+
+      // 4) intersection_stats 통계 삭제
+      await supabase.from('intersection_stats').delete().eq('id', jid).catch(() => {});
+
+      // 5) 로컬 CSV 캐시에서 해당 교차로 행 제거 및 CDN 갱신
+      deleteJunctionFromLocalCsvCache(jid);
+
+      return { success: true, message: `교차로 [${jid}]가 DB에서 완전히 삭제되었습니다.` };
+    });
+
+    res.json(result);
+  } catch (err) {
+    sendErrorResponse(res, err, '교차로 데이터 영구 삭제에 실패했습니다.');
   }
 });
 

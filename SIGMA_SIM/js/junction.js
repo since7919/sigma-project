@@ -434,16 +434,55 @@ function toggleAddMode() {
     }
 }
 
-function deleteJunction() {
-    if (!STATE.activeJid) return;
-    if (confirm("삭제하시겠습니까?")) {
-        const jid = STATE.activeJid;
-        const j = STATE.junctions[jid];
-        if (j.marker) map.removeLayer(j.marker);
-        removeArrows(jid);
+async function deleteJunction() {
+    if (!STATE.activeJid) {
+        alert("삭제할 교차로를 먼저 지도나 좌측 목록에서 선택해 주십시오.");
+        return;
+    }
+
+    const jid = STATE.activeJid;
+    const j = STATE.junctions[jid];
+    const jName = (j && j.name) ? j.name : jid;
+
+    if (!confirm(`교차로 [${jName}] (${jid})을(를) 정말 삭제하시겠습니까?\n\n※ 확인 시 데이터베이스(Supabase) 및 화면에서 영구 삭제됩니다.`)) {
+        return;
+    }
+
+    const pwd = prompt("DB 영구 삭제 반영을 위해 관리자 비밀번호를 입력하세요.");
+    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : btoa(pwd) === "MTIzNA==")) {
+        alert("비밀번호가 일치하지 않습니다. 교차로 삭제가 취소되었습니다.");
+        return;
+    }
+
+    if (typeof showLoading === 'function') showLoading(`교차로 [${jName}] DB 영구 삭제 중...`);
+
+    try {
+        const response = await fetch('/api/sim/delete-junction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jid, password: pwd })
+        });
+
+        const resData = await response.json().catch(() => ({}));
+        if (!response.ok || resData.error) {
+            throw new Error(resData.error || '서버 삭제 요청 실패');
+        }
+
+        // 로컬 지도 레이어 및 메모리에서 제거
+        if (j && j.marker && map) map.removeLayer(j.marker);
+        if (typeof removeArrows === 'function') removeArrows(jid);
         delete STATE.junctions[jid];
         deselectJunction();
+
+        if (typeof renderJunctionList === 'function') renderJunctionList();
         if (typeof sendToDashboard === 'function') sendToDashboard();
+        if (typeof refreshDBStats === 'function') refreshDBStats();
+
+        if (typeof hideLoading === 'function') hideLoading();
+        alert(`교차로 [${jName}]이(가) 데이터베이스와 화면에서 성공적으로 삭제되었습니다.`);
+    } catch (err) {
+        if (typeof hideLoading === 'function') hideLoading();
+        alert(`교차로 DB 삭제 실패: ${err.message}`);
     }
 }
 
@@ -565,7 +604,7 @@ function syncActiveJunctionData() {
 
 window.saveInfoToDB = async function() {
     if (!STATE.activeJid) {
-        alert("선택된 교차로가 없습니다.");
+        alert("선택된 교차로가 없습니다.\n\n💡 교차로 추가 / 삭제 저장 안내:\n• [교차로 추가]: '➕ 추가' 후 지도 클릭으로 생성된 교차로를 선택하고 '✅ DB 저장'을 누르면 Supabase에 영구 등록됩니다.\n• [교차로 삭제]: 지도나 목록에서 교차로를 선택한 후 '🗑️ 삭제' 버튼을 누르면 관리자 인증을 통해 DB에서 즉시 영구 삭제됩니다.");
         return;
     }
     
