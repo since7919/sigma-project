@@ -939,16 +939,18 @@ async function renderNetworkPrintOverlay(opts) {
     const isPortrait = (opts.orientation === 'portrait');
     const isA3 = (opts.pageSize === 'A3');
 
-    let paperWidth, screenMapHeight, aspectRatio;
+    let paperWidth, screenMapHeight, aspectRatio, pageSizeRule;
 
     if (isPortrait) {
         if (isA3) {
             // A3 세로 (297 × 420mm -> 가용 너비 281mm, 가용 높이 384mm, 비율 0.732)
+            pageSizeRule = '297mm 420mm';
             paperWidth = '860px';
             screenMapHeight = 1131;
             aspectRatio = '281 / 384';
         } else {
             // A4 세로 (210 × 297mm -> 가용 너비 194mm, 가용 높이 260mm, 비율 0.746)
+            pageSizeRule = '210mm 297mm';
             paperWidth = '800px';
             screenMapHeight = 1029;
             aspectRatio = '194 / 260';
@@ -956,11 +958,13 @@ async function renderNetworkPrintOverlay(opts) {
     } else {
         if (isA3) {
             // A3 가로 (420 × 297mm -> 가용 너비 404mm, 가용 높이 261mm, 비율 1.548)
+            pageSizeRule = '420mm 297mm';
             paperWidth = '1200px';
             screenMapHeight = 749;
             aspectRatio = '404 / 261';
         } else {
             // A4 가로 (297 × 210mm -> 가용 너비 281mm, 가용 높이 173mm, 비율 1.624)
+            pageSizeRule = '297mm 210mm';
             paperWidth = '1140px';
             screenMapHeight = 677;
             aspectRatio = '281 / 173';
@@ -1011,16 +1015,17 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${isPortrait ? 'portrait' : 'landscape'};
+                    size: ${pageSizeRule};
                     size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
                     margin: 4mm;
                 }
                 html, body {
                     width: 100% !important;
+                    min-width: 100% !important;
                     height: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    overflow: hidden !important;
+                    overflow: visible !important;
                     background: ${bgColor} !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
@@ -1033,15 +1038,16 @@ async function renderNetworkPrintOverlay(opts) {
                 }
                 #network-print-overlay {
                     display: block !important;
-                    position: fixed !important;
-                    top: 0 !important;
-                    left: 0 !important;
+                    position: static !important;
                     width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
                     height: 100% !important;
+                    min-height: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     background: ${bgColor} !important;
-                    overflow: hidden !important;
+                    overflow: visible !important;
                     box-sizing: border-box !important;
                     page-break-after: avoid !important;
                     break-after: avoid !important;
@@ -1052,8 +1058,10 @@ async function renderNetworkPrintOverlay(opts) {
                     box-shadow: none !important;
                     border: none !important;
                     width: 100% !important;
+                    min-width: 100% !important;
                     max-width: 100% !important;
                     height: 100% !important;
+                    min-height: 100% !important;
                     max-height: 100% !important;
                     padding: 1.5mm 3mm !important;
                     margin: 0 !important;
@@ -1077,6 +1085,8 @@ async function renderNetworkPrintOverlay(opts) {
                 #net-print-map-wrapper {
                     flex: 1 1 auto !important;
                     width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
                     height: 100% !important;
                     min-height: 0 !important;
                     aspect-ratio: auto !important;
@@ -1087,6 +1097,11 @@ async function renderNetworkPrintOverlay(opts) {
                     position: relative !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
+                }
+                #net-print-leaflet-map, #net-print-svg-overlay {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    height: 100% !important;
                 }
                 .net-print-inset-card {
                     box-shadow: none !important;
