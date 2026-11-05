@@ -15,6 +15,27 @@ const SEOUL_DISTRICTS = [
     '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'
 ];
 
+const INCHEON_DISTRICTS = [
+    '중구', '동구', '미추홀구', '연수구', '남동구', '부평구', '계양구', '서구', '강화군', '옹진군'
+];
+
+/**
+ * 교차로의 소속 지역 코드(Region Code)를 정확히 판별
+ */
+function resolveJunctionRegion(j, defaultRegion = 'L01') {
+    if (!j) return defaultRegion;
+    if (j.region) return j.region;
+    const jid = String(j.id || '');
+    if (jid.startsWith('L01-') || jid.startsWith('krd-') || jid.startsWith('110-')) return 'L01';
+    if (jid.startsWith('L02-')) return 'L02';
+    if (window.REGION_MAP) {
+        for (const code of Object.keys(window.REGION_MAP)) {
+            if (jid.startsWith(`${code}-`)) return code;
+        }
+    }
+    return defaultRegion;
+}
+
 // 연동그룹 식별을 위한 16색 고대비 명확한 팔레트
 const GROUP_PALETTE = [
     '#00d4ff', // 0: 시안 블루
@@ -237,11 +258,22 @@ async function getAvailablePrintDistricts() {
         } catch(e) {}
     }
 
-    const junctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
+    const allJunctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
+    // 현재 활성 지역 교차로만 선별 (타 지역 잔여 노드 혼입 100% 방지)
+    const junctions = allJunctions.filter(j => {
+        if (!j.lat || !j.lng || isNaN(j.lat) || isNaN(j.lng)) return false;
+        if (j.lat < 33 || j.lat > 39 || j.lng < 124 || j.lng > 132) return false;
+        return resolveJunctionRegion(j, regionCode) === regionCode;
+    });
+
     const districtMap = new Map();
 
     if (regionCode === 'L01') {
         SEOUL_DISTRICTS.forEach(d => {
+            districtMap.set(d, { name: d, count: 0, feature: null });
+        });
+    } else if (regionCode === 'L02') {
+        INCHEON_DISTRICTS.forEach(d => {
             districtMap.set(d, { name: d, count: 0, feature: null });
         });
     }
@@ -281,7 +313,7 @@ async function getAvailablePrintDistricts() {
 
         if (!matched && off) {
             for (const [dName, dObj] of districtMap.entries()) {
-                const pureName = dName.replace(/구$/, '');
+                const pureName = dName.replace(/(구|군)$/, '');
                 if (off === pureName || off === dName || off.includes(pureName)) {
                     dObj.count++;
                     matched = true;
@@ -291,7 +323,7 @@ async function getAvailablePrintDistricts() {
         }
 
         if (!matched && off) {
-            const cleanName = off.endsWith('구') ? off : (off + '구');
+            const cleanName = (off.endsWith('구') || off.endsWith('군')) ? off : (off + '구');
             if (!districtMap.has(cleanName)) {
                 districtMap.set(cleanName, { name: cleanName, count: 0, feature: null });
             }
@@ -321,9 +353,16 @@ window.openNetworkPrintModal = async function() {
         document.body.appendChild(modal);
     }
 
-    const currentRegion = (window.REGION_MAP && window.REGION_MAP[window.CURRENT_REGION_CODE]) || (window.CURRENT_REGION_CODE || '서울시');
+    const currentRegionCode = window.CURRENT_REGION_CODE || 'L01';
+    const currentRegion = (window.REGION_MAP && window.REGION_MAP[currentRegionCode]) || (currentRegionCode || '서울시');
     const districts = await getAvailablePrintDistricts();
-    const totalJunctions = Object.keys((typeof STATE !== 'undefined' && STATE.junctions) || {}).length;
+    
+    const allJunctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
+    const totalJunctions = allJunctions.filter(j => {
+        if (!j.lat || !j.lng || isNaN(j.lat) || isNaN(j.lng)) return false;
+        if (j.lat < 33 || j.lat > 39 || j.lng < 124 || j.lng > 132) return false;
+        return resolveJunctionRegion(j, currentRegionCode) === currentRegionCode;
+    }).length;
 
     let districtOptions = `<option value="ALL">🌐 ${currentRegion} 전역 (전체 ${totalJunctions}개 교차로)</option>`;
     districts.forEach(d => {
@@ -820,21 +859,34 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
  * 인쇄용 오버레이 렌더링 & 실제 배경지도 및 SVG 마운트
  */
 async function renderNetworkPrintOverlay(opts) {
-    const junctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
-    if (junctions.length === 0) {
+    const currentRegionCode = window.CURRENT_REGION_CODE || 'L01';
+    const allJunctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
+    if (allJunctions.length === 0) {
         alert("교차로 데이터가 없습니다. 먼저 교차로 데이터를 불러와 주십시오.");
         return;
     }
 
-    // 1. 관할 구역 필터링
+    // 1. 현재 활성 지역 교차로만 선별 (타 지역 잔여 노드 혼입 100% 방지)
+    const regionJunctions = allJunctions.filter(j => {
+        if (!j.lat || !j.lng || isNaN(j.lat) || isNaN(j.lng)) return false;
+        if (j.lat < 33 || j.lat > 39 || j.lng < 124 || j.lng > 132) return false;
+        return resolveJunctionRegion(j, currentRegionCode) === currentRegionCode;
+    });
+
+    if (regionJunctions.length === 0) {
+        alert("선택된 지역의 유효한 교차로 데이터가 없습니다.");
+        return;
+    }
+
+    // 2. 관할 구역 필터링
     const districts = await getAvailablePrintDistricts();
     const targetDistrictObj = districts.find(d => d.name === opts.targetDistrict);
     const targetFeature = targetDistrictObj ? targetDistrictObj.feature : null;
-    const cleanTargetName = opts.targetDistrict.replace(/구$/, '');
+    const cleanTargetName = opts.targetDistrict.replace(/(구|군)$/, '');
 
-    let filteredNodes = junctions;
+    let filteredNodes = regionJunctions;
     if (opts.targetDistrict !== 'ALL') {
-        filteredNodes = junctions.filter(j => {
+        filteredNodes = regionJunctions.filter(j => {
             if (targetFeature && _checkPointInFeature(j.lng, j.lat, targetFeature)) {
                 return true;
             }
@@ -851,11 +903,11 @@ async function renderNetworkPrintOverlay(opts) {
         return;
     }
 
-    // 2. 연동망 링크 추출
+    // 3. 연동망 링크 추출 (현재 지역 노드 기반)
     if (!window.RoadManager || !window.RoadManager.edges || window.RoadManager.edges.length === 0) {
         if (typeof RoadNetworkManager !== 'undefined') {
             if (!window.RoadManager) window.RoadManager = new RoadNetworkManager();
-            window.RoadManager.generate(junctions);
+            window.RoadManager.generate(regionJunctions);
         }
     }
 
@@ -879,9 +931,31 @@ async function renderNetworkPrintOverlay(opts) {
         });
     }
 
-    // 3. 지도의 LatLng Bounds 계산
+    // 4. 지도의 LatLng Bounds 계산 (도심 클러스터 스마트 피팅)
+    // 인천(L02) 등 원거리 도서(백령도/연평도 등 경도 < 126.3°)가 포함된 광역시의 경우,
+    // 원거리 도서를 포함하면 중심점이 서해 한가운데 바다로 잡히고 본토가 화면 밖으로 밀려나는 지리적 문제 방지!
+    let boundsNodes = filteredNodes;
+    if (opts.targetDistrict === 'ALL' && currentRegionCode === 'L02') {
+        const mainlandNodes = filteredNodes.filter(j => j.lng >= 126.35 && j.lat >= 37.25);
+        if (mainlandNodes.length >= 20) {
+            boundsNodes = mainlandNodes;
+        }
+    } else if (filteredNodes.length >= 50) {
+        // 이상치 좌표(Outlier)로 인한 바운즈 왜곡 자동 방지 (상하위 1% 클리핑)
+        const lats = filteredNodes.map(n => n.lat).sort((a, b) => a - b);
+        const lngs = filteredNodes.map(n => n.lng).sort((a, b) => a - b);
+        const p1Lat = lats[Math.floor(lats.length * 0.01)];
+        const p99Lat = lats[Math.floor(lats.length * 0.99)];
+        const p1Lng = lngs[Math.floor(lngs.length * 0.01)];
+        const p99Lng = lngs[Math.floor(lngs.length * 0.99)];
+        const clipped = filteredNodes.filter(n => n.lat >= p1Lat && n.lat <= p99Lat && n.lng >= p1Lng && n.lng <= p99Lng);
+        if (clipped.length >= 20) {
+            boundsNodes = clipped;
+        }
+    }
+
     let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-    filteredNodes.forEach(j => {
+    boundsNodes.forEach(j => {
         if (j.lat < minLat) minLat = j.lat;
         if (j.lat > maxLat) maxLat = j.lat;
         if (j.lng < minLng) minLng = j.lng;
