@@ -159,6 +159,7 @@ async function autoLoadFiles() {
     if (typeof updateCurrentRegionLabel === 'function') updateCurrentRegionLabel(regionCode);
     if (typeof refreshDBStats === 'function') refreshDBStats();
     if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
+    if (typeof renderStats === 'function') renderStats(); // [핵심] 1초 만에 기본 통계 화면 즉각 렌더링
 
     const t1 = performance.now();
     console.log(`[Perf] Phase 1: Core Map & Junctions opened in ${(t1-t0).toFixed(1)}ms`);
@@ -179,6 +180,7 @@ async function autoLoadFiles() {
 
             // 1) 그룹 정보 및 연동선
             await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
+            if (typeof renderStats === 'function') renderStats();
             
             // 2) 행정경계 & 연동구간
             await Promise.all([
@@ -194,6 +196,7 @@ async function autoLoadFiles() {
             Object.values(STATE.junctions).forEach(j => {
                 j._detailLoaded = true;
             });
+            if (typeof renderStats === 'function') renderStats();
 
             // 4) 기타 통계 및 연보
             await Promise.all([

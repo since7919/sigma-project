@@ -274,7 +274,7 @@ function updateStatFilters() {
     const policeSel = document.getElementById('stat-police-filter');
     if (!officeSel || !policeSel) return;
 
-    const junctions = Object.values(STATE.junctions);
+    const junctions = Object.values(STATE.junctions || {});
     if (junctions.length === 0) return;
 
     const offices = [...new Set(junctions.map(j => (j.office || "").trim()).filter(Boolean))].sort();
@@ -310,10 +310,16 @@ function updateStatFilters() {
 function renderStats() {
     console.log("[Stats] renderStats called");
     try {
+        if (!STATE || !STATE.junctions) return;
         // [추가] 필터 업데이트 (최초 로드 시나 데이터 변경 시 대응)
         updateStatFilters();
 
-    let junctions = Object.values(STATE.junctions);
+        let junctions = Object.values(STATE.junctions);
+        if (junctions.length === 0) {
+            if (document.getElementById("stat-no-data")) document.getElementById("stat-no-data").style.display = "block";
+            if (document.getElementById("stat-content")) document.getElementById("stat-content").style.display = "none";
+            return;
+        }
     
     // [추가] 필터 적용
     const officeFilter = document.getElementById('stat-office-filter')?.value || 'ALL';
@@ -400,9 +406,9 @@ function renderStats() {
         for (let h = 0; h < 24; h++) {
             const sec = h * 3600;
             junctions.forEach(j => {
-                const sched = getLinkedSchedule(j, dIdx) || j.schedules[dIdx];
-                const activeIdx = findActiveSchedIdx(sched, sec);
-                const activeSched = sched[activeIdx];
+                const sched = getLinkedSchedule(j, dIdx) || (j.schedules ? j.schedules[dIdx] : null);
+                const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, sec) : 0;
+                const activeSched = (sched && Array.isArray(sched)) ? sched[activeIdx] : null;
                 if (activeSched) {
                     const c = activeSched.cycle || 100;
                     if (c > 0) { cycleMatrix[dIdx][h] += c; cycleCountMatrix[dIdx][h]++; }
@@ -450,9 +456,9 @@ function renderStats() {
     const distDatasets = selectedDayIndices.map(dIdx => {
         const cycleCounts = Array(cycleRangeLabels.length).fill(0);
         junctions.forEach(j => {
-            const sched = getLinkedSchedule(j, dIdx) || j.schedules[dIdx];
-            const activeIdx = findActiveSchedIdx(sched, targetSec);
-            const activeSched = sched[activeIdx];
+            const sched = getLinkedSchedule(j, dIdx) || (j.schedules ? j.schedules[dIdx] : null);
+            const activeIdx = (sched && Array.isArray(sched)) ? findActiveSchedIdx(sched, targetSec) : 0;
+            const activeSched = (sched && Array.isArray(sched)) ? sched[activeIdx] : null;
             const c = activeSched ? (activeSched.cycle || 100) : 100;
             if (c >= 50 && c <= 250) {
                 const bucket = Math.round((c - 50) / 10);
@@ -491,8 +497,8 @@ function renderStats() {
         const activeMovs = [...new Set([...(j.movA || []), ...(j.movB || [])])].filter(m => m > 0).length;
         totalPhases += activePhases;
         totalMovs += activeMovs;
-        const sumA = plan.splitA.reduce((a, b) => a + b, 0);
-        const sumB = plan.splitB.reduce((a, b) => a + b, 0);
+        const sumA = Array.isArray(plan.splitA) ? plan.splitA.reduce((a, b) => a + b, 0) : 0;
+        const sumB = Array.isArray(plan.splitB) ? plan.splitB.reduce((a, b) => a + b, 0) : 0;
         if (sumA > 0) {
             totalIntegrityCount++;
             if (sumB === 0 || sumA === sumB) validIntegrityCount++;
@@ -505,7 +511,7 @@ function renderStats() {
 
     // 6개 타일 최종 동기화
     if (document.getElementById('stat-total-groups')) 
-        document.getElementById('stat-total-groups').innerText = Object.keys(STATE.groups).length.toLocaleString();
+        document.getElementById('stat-total-groups').innerText = Object.keys(STATE.groups || {}).length.toLocaleString();
     
     // [수정] 특수 보호구역 수 산출 (어린이, 노인, 장애인 보호구역 통합)
     let specialZoneCount = 0;
@@ -639,8 +645,11 @@ function renderStats() {
  * ══════════════════════════════════════════ */
 function updateChart(id, type, data, axisOpts) {
     axisOpts = axisOpts || {};
-    if (charts[id]) charts[id].destroy();
-    const ctx = document.getElementById(id).getContext('2d');
+    if (charts[id]) { try { charts[id].destroy(); } catch(e){} }
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     charts[id] = new Chart(ctx, {
         type: type,
         data: data,
@@ -820,7 +829,7 @@ function _rowsToCsvString(rows) {
 function _loadStatsCsv(csvText) {
     const text = csvText.replace(/^\uFEFF/, '');
     const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) throw new Error('데이터가 부족합니다.');
+    if (lines.length < 2) return;
     const headers = _parseCsvLine(lines[0]);
     
     // [최적화] 인덱스를 미리 계산하여 매 반복마다 row 객체를 생성하지 않도록 함
