@@ -77,7 +77,7 @@ async function processIntersectionCSV(csv, isAppend = false) {
             group: parseInt(getCol(cols, colIdx.group)) || 0, weeklyPlan: getCol(cols, colIdx.weeklyPlan) || "1;1;1;1;1;2;3",
             controller: getCol(cols, colIdx.controller) || "",
             apiIntNo: isNaN(apiIntNo) ? null : apiIntNo,
-            signalMaps: Array.from({ length: 6 }, () => createEmptySignalMap()), dayPlans: Array.from({ length: 10 }, () => createEmptyPlans()),
+            signalMaps: Array.from({ length: 10 }, () => createEmptySignalMap()), dayPlans: Array.from({ length: 10 }, () => createEmptyPlans()),
             schedules: Array.from({ length: 10 }, () => createEmptySched()), dayPlanMapIds: new Array(10).fill(0), extra: {}
         };
         headers.forEach((h, idx) => { if (cols[idx] !== undefined) newJuncts[id].extra[h] = cols[idx]; });

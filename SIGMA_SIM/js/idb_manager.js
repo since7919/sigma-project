@@ -72,11 +72,17 @@ const SigmaIDB = (function() {
             const store = tx.objectStore('junctions');
             const list = Object.values(junctionsMap || {});
             list.forEach(j => {
-                // Leaflet marker 등 순환 참조 객체 제외하고 저장
+                // Leaflet marker 등 순환 참조 및 DOM 엘리먼트 객체 제외하고 저장
                 const clean = { ...j };
                 delete clean.marker;
                 delete clean.arrows;
-                store.put(clean);
+                delete clean.overlayElemCache;
+                delete clean.popup;
+                try {
+                    store.put(clean);
+                } catch (pe) {
+                    console.warn('[IDB] Skipping uncloneable junction:', j.id, pe);
+                }
             });
             tx.oncomplete = () => resolve(true);
             tx.onerror = () => resolve(false);

@@ -455,6 +455,11 @@ async function deleteJunction(targetJid) {
         if (typeof removeArrows === 'function') removeArrows(jid);
         delete STATE.junctions[jid];
         STATE.sortedJunctions = null;
+        STATE.selectedJids = (STATE.selectedJids || []).filter(id => id !== jid);
+        if (window.RoadManager) {
+            if (window.RoadManager.selectedNode && window.RoadManager.selectedNode.id === jid) window.RoadManager.selectedNode = null;
+            if (typeof window.RoadManager.render === 'function') window.RoadManager.render();
+        }
         if (STATE.activeJid === jid) deselectJunction();
         if (map) map.closePopup();
         if (typeof renderJunctionList === 'function') renderJunctionList();
@@ -494,6 +499,11 @@ async function deleteJunction(targetJid) {
         if (typeof removeArrows === 'function') removeArrows(jid);
         delete STATE.junctions[jid];
         STATE.sortedJunctions = null;
+        STATE.selectedJids = (STATE.selectedJids || []).filter(id => id !== jid);
+        if (window.RoadManager) {
+            if (window.RoadManager.selectedNode && window.RoadManager.selectedNode.id === jid) window.RoadManager.selectedNode = null;
+            if (typeof window.RoadManager.render === 'function') window.RoadManager.render();
+        }
         if (STATE.activeJid === jid) deselectJunction();
         if (map) map.closePopup();
 

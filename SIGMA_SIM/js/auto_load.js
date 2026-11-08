@@ -12,8 +12,12 @@ const VERIFIED_EXCEL_PRELOAD = {
  */
 
 async function autoLoadFiles() {
+    // [안정성] 로딩 세션 ID 발급 (지역 변경 시 이전 백그라운드 스트리밍 중단 보장)
+    window.SIGMA_LOAD_SESSION_ID = (window.SIGMA_LOAD_SESSION_ID || 0) + 1;
+    const currentSessionId = window.SIGMA_LOAD_SESSION_ID;
+
     // Mini-game auto-start removed
-    console.log("SIGMA - Starting Auto-load sequence (Verified Regional Path)...");
+    console.log(`SIGMA - Starting Auto-load sequence (Session #${currentSessionId}, Verified Regional Path)...`);
     const t0 = performance.now();
 
     if (!STATE.loadedFiles) STATE.loadedFiles = {};
@@ -176,7 +180,8 @@ async function autoLoadFiles() {
     // 메인 화면 조작을 방해하지 않고, 백그라운드에서 신호맵/운영계획/연동망 비동기 수신
     (async () => {
         try {
-            console.log("SIGMA - Background lazy streaming started...");
+            if (window.SIGMA_LOAD_SESSION_ID !== currentSessionId) return;
+            console.log(`SIGMA - Background lazy streaming started for Session #${currentSessionId}...`);
 
             // 1) 그룹 정보 및 연동선
             await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
@@ -188,8 +193,10 @@ async function autoLoadFiles() {
                 fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계')
             ]);
 
+            if (window.SIGMA_LOAD_SESSION_ID !== currentSessionId) return;
             // 3) 대용량 신호맵 및 TOD 운영계획 백그라운드 스트리밍
             await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
+            if (window.SIGMA_LOAD_SESSION_ID !== currentSessionId) return;
             await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획');
 
             // 전 교차로 세부 플래그 설정
