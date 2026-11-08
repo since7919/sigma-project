@@ -862,30 +862,46 @@ async function fetchJunctionDetail(jid) {
         const data = await res.json();
         
         if (data.success) {
+            // signalMaps 배열 보장
+            if (!j.signalMaps || !Array.isArray(j.signalMaps)) {
+                j.signalMaps = typeof createEmptySignalMaps === 'function' ? createEmptySignalMaps() : [];
+            }
+
             // signal_maps
-            data.signal_maps.forEach(row => {
-                const midx = parseInt(row.map_idx);
-                if (isNaN(midx) || midx >= 10) return;
-                const sm = j.signalMaps[midx];
-                ["mov_a","mov_b","ped_mov_a","ped_mov_b","yellow_a","yellow_b","allred_a","allred_b","ped_a","ped_b","ped_delay_a","ped_delay_b","ped_flash_a","ped_flash_b","ped_green_a","ped_green_b"].forEach(k => {
-                    if (row[k] !== undefined && row[k] !== null) {
-                        const camelK = k.replace(/_([a-z])/g, g => g[1].toUpperCase());
-                        if (Array.isArray(row[k])) {
-                            sm[camelK] = row[k].map(Number);
-                        } else if (String(row[k]).length > 0) {
-                            sm[camelK] = String(row[k]).split(';').map(Number);
-                        }
+            if (Array.isArray(data.signal_maps)) {
+                data.signal_maps.forEach(row => {
+                    const midx = parseInt(row.map_idx);
+                    if (isNaN(midx) || midx >= 10) return;
+                    while (j.signalMaps.length <= midx) {
+                        j.signalMaps.push(typeof createEmptySignalMap === 'function' ? createEmptySignalMap() : {});
                     }
+                    if (!j.signalMaps[midx]) {
+                        j.signalMaps[midx] = typeof createEmptySignalMap === 'function' ? createEmptySignalMap() : {};
+                    }
+                    const sm = j.signalMaps[midx];
+                    ["mov_a","mov_b","ped_mov_a","ped_mov_b","yellow_a","yellow_b","allred_a","allred_b","ped_a","ped_b","ped_delay_a","ped_delay_b","ped_flash_a","ped_flash_b","ped_green_a","ped_green_b"].forEach(k => {
+                        if (row[k] !== undefined && row[k] !== null) {
+                            const camelK = k.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                            if (Array.isArray(row[k])) {
+                                sm[camelK] = row[k].map(Number);
+                            } else if (String(row[k]).length > 0) {
+                                sm[camelK] = String(row[k]).split(';').map(Number);
+                            }
+                        }
+                    });
+                    if (row.main_movements) {
+                        sm.mainMovements = Array.isArray(row.main_movements) ? row.main_movements : String(row.main_movements).split(';');
+                    }
+                    let st = row.start_time || ""; if (st.includes(';')) st = "";
+                    let et = row.end_time || ""; if (et.includes(';')) et = "";
                 });
-                if (row.main_movements) {
-                    sm.mainMovements = Array.isArray(row.main_movements) ? row.main_movements : String(row.main_movements).split(';');
-                }
-                let st = row.start_time || ""; if (st.includes(';')) st = "";
-                let et = row.end_time || ""; if (et.includes(';')) et = "";
-                
-            });
+            }
 
             // tod_plans (NO 1~6 주기별 그룹핑 및 INDEX 1~16 자동 배치 연동)
+            if (!j.dayPlanMapIds) j.dayPlanMapIds = Array(10).fill(0);
+            if (!j.dayPlans) j.dayPlans = [];
+            if (!j.schedules) j.schedules = [];
+
             if (Array.isArray(data.tod_plans)) {
                 data.tod_plans.forEach(row => {
                     const dIdx = parseInt(row.day_plan) - 1;
@@ -931,12 +947,12 @@ async function fetchJunctionDetail(jid) {
                     }
                 });
             }
-
-            j._detailLoaded = true;
-            
         }
     } catch (err) {
         console.error(`Error loading details for ${jid}:`, err);
+    } finally {
+        // [중요] 성공/실패 여부와 관계없이 _detailLoaded 플래그를 세팅하여 무한 재귀 루프 방지
+        j._detailLoaded = true;
     }
 }
 

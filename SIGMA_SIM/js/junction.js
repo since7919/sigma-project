@@ -251,6 +251,7 @@ function selectJunction(jid, isMulti = false) {
               <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
               <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
               <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
+              <button class="btn-detail" style="background:#e74c3c; margin-top:3px;" onclick="deleteJunction('${jid}'); map.closePopup();">🗑️ 교차로 삭제</button>
             </div>
           </div>
         `, { className: 'custom-popup', closeButton: true });
@@ -434,22 +435,42 @@ function toggleAddMode() {
     }
 }
 
-async function deleteJunction() {
-    if (!STATE.activeJid) {
+async function deleteJunction(targetJid) {
+    const jid = targetJid || STATE.activeJid;
+    if (!jid || !STATE.junctions[jid]) {
         alert("삭제할 교차로를 먼저 지도나 좌측 목록에서 선택해 주십시오.");
         return;
     }
 
-    const jid = STATE.activeJid;
     const j = STATE.junctions[jid];
     const jName = (j && j.name) ? j.name : jid;
 
+    // 만약 아직 DB에 저장되지 않은 신규/임시 교차로인 경우
+    if (j._isNew || String(jid).startsWith('J-')) {
+        if (!confirm(`[임시 교차로] 아직 DB에 저장되지 않은 교차로 [${jName}] (${jid})을(를) 화면에서 즉시 삭제하시겠습니까?`)) {
+            return;
+        }
+        // 로컬 지도 레이어 및 메모리에서 즉각 제거
+        if (j && j.marker && map) map.removeLayer(j.marker);
+        if (typeof removeArrows === 'function') removeArrows(jid);
+        delete STATE.junctions[jid];
+        STATE.sortedJunctions = null;
+        if (STATE.activeJid === jid) deselectJunction();
+        if (map) map.closePopup();
+        if (typeof renderJunctionList === 'function') renderJunctionList();
+        if (typeof sendToDashboard === 'function') sendToDashboard();
+        if (typeof refreshDBStats === 'function') refreshDBStats();
+        alert(`교차로 [${jName}]이(가) 화면에서 삭제되었습니다.`);
+        return;
+    }
+
+    // 이미 DB에 존재하는 정규 교차로인 경우
     if (!confirm(`교차로 [${jName}] (${jid})을(를) 정말 삭제하시겠습니까?\n\n※ 확인 시 데이터베이스(Supabase) 및 화면에서 영구 삭제됩니다.`)) {
         return;
     }
 
     const pwd = prompt("DB 영구 삭제 반영을 위해 관리자 비밀번호를 입력하세요.");
-    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : btoa(pwd) === "MTIzNA==")) {
+    if (!pwd || !(typeof verifyAdminAuth === "function" ? await verifyAdminAuth(pwd) : (btoa(pwd) === "MTIzNA==" || pwd === "1234"))) {
         alert("비밀번호가 일치하지 않습니다. 교차로 삭제가 취소되었습니다.");
         return;
     }
@@ -473,7 +494,8 @@ async function deleteJunction() {
         if (typeof removeArrows === 'function') removeArrows(jid);
         delete STATE.junctions[jid];
         STATE.sortedJunctions = null;
-        deselectJunction();
+        if (STATE.activeJid === jid) deselectJunction();
+        if (map) map.closePopup();
 
         // [3단계 연동] IndexedDB에서도 해당 교차로 트랜잭션 즉시 삭제
         if (window.SigmaIDB) {

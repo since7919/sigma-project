@@ -98,7 +98,9 @@ function initMapClickHandlers() {
                 marker: null, arrows: {}, arrowConfigs: {},
                 flashEnable: false, flashTimes: [],
                 flashYellows: [], flashReds: [],
-                opIntervention: { enable: false, rows: [] }
+                opIntervention: { enable: false, rows: [] },
+                _detailLoaded: true,
+                _isNew: true
             };
             drawJunction(jid); selectJunction(jid);
             AppStateMachine.setMode(CONFIG.APP_MODE.SELECT); // 추가 후 기본 모드로 복귀
