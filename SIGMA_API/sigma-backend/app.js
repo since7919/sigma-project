@@ -874,7 +874,7 @@ const deleteJunctionFromLocalCsvCache = (jid) => {
                             const lines = content.split(/\r?\n/).filter(line => {
                                 const trimmed = line.replace(/^\ufeff/, '').trim();
                                 if (!trimmed) return false;
-                                return !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",');
+                                return !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",') && !trimmed.startsWith(jid + ';') && !trimmed.startsWith('"' + jid + '";');
                             });
                             fs.writeFileSync(filePath, lines.join('\n'));
                             console.log(`[Cache] Successfully removed ${jid} from ${file}`);

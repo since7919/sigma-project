@@ -445,31 +445,7 @@ async function deleteJunction(targetJid) {
     const j = STATE.junctions[jid];
     const jName = (j && j.name) ? j.name : jid;
 
-    // 만약 아직 DB에 저장되지 않은 신규/임시 교차로인 경우
-    if (j._isNew || String(jid).startsWith('J-')) {
-        if (!confirm(`[임시 교차로] 아직 DB에 저장되지 않은 교차로 [${jName}] (${jid})을(를) 화면에서 즉시 삭제하시겠습니까?`)) {
-            return;
-        }
-        // 로컬 지도 레이어 및 메모리에서 즉각 제거
-        if (j && j.marker && map) map.removeLayer(j.marker);
-        if (typeof removeArrows === 'function') removeArrows(jid);
-        delete STATE.junctions[jid];
-        STATE.sortedJunctions = null;
-        STATE.selectedJids = (STATE.selectedJids || []).filter(id => id !== jid);
-        if (window.RoadManager) {
-            if (window.RoadManager.selectedNode && window.RoadManager.selectedNode.id === jid) window.RoadManager.selectedNode = null;
-            if (typeof window.RoadManager.render === 'function') window.RoadManager.render();
-        }
-        if (STATE.activeJid === jid) deselectJunction();
-        if (map) map.closePopup();
-        if (typeof renderJunctionList === 'function') renderJunctionList();
-        if (typeof sendToDashboard === 'function') sendToDashboard();
-        if (typeof refreshDBStats === 'function') refreshDBStats();
-        alert(`교차로 [${jName}]이(가) 화면에서 삭제되었습니다.`);
-        return;
-    }
-
-    // 이미 DB에 존재하는 정규 교차로인 경우
+    // 교차로 영구 삭제 (RDB Supabase, IndexedDB, Cache API 및 화면 동시 반영)
     if (!confirm(`교차로 [${jName}] (${jid})을(를) 정말 삭제하시겠습니까?\n\n※ 확인 시 데이터베이스(Supabase) 및 화면에서 영구 삭제됩니다.`)) {
         return;
     }
@@ -525,7 +501,7 @@ async function deleteJunction(targetJid) {
                             if (text.includes(jid)) {
                                 const newLines = text.split(/\r?\n/).filter(line => {
                                     const trimmed = line.replace(/^\ufeff/, '').trim();
-                                    return trimmed && !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",');
+                                    return trimmed && !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",') && !trimmed.startsWith(jid + ';') && !trimmed.startsWith('"' + jid + '";');
                                 });
                                 const newBody = newLines.join('\n');
                                 await cache.put(req, new Response(newBody, {
@@ -706,6 +682,9 @@ window.saveInfoToDB = async function() {
         });
         const result = await response.json();
         if (result.success) {
+            if (STATE.junctions[STATE.activeJid]) {
+                STATE.junctions[STATE.activeJid]._isNew = false;
+            }
             if (typeof invalidateSigmaCache === 'function') {
                 await invalidateSigmaCache('intersections');
                 await invalidateSigmaCache('signal_maps');
