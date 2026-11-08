@@ -2183,20 +2183,30 @@ app.post('/api/sim/delete-junction', async (req, res) => {
 
   try {
     const result = await enqueueDBWrite(async () => {
-      // 1) junctions 교차로 마스터 삭제
+      // 1) 외래키(FK) 제약조건 고려하여 자식 테이블 데이터 먼저 삭제
+      try {
+        await supabase.from('signal_maps').delete().eq('id', jid);
+      } catch (e) {
+        console.warn(`[delete-junction] signal_maps delete warning for ${jid}:`, e.message);
+      }
+
+      try {
+        await supabase.from('tod_plans').delete().eq('id', jid);
+      } catch (e) {
+        console.warn(`[delete-junction] tod_plans delete warning for ${jid}:`, e.message);
+      }
+
+      try {
+        await supabase.from('intersection_stats').delete().eq('id', jid);
+      } catch (e) {
+        console.warn(`[delete-junction] intersection_stats delete warning for ${jid}:`, e.message);
+      }
+
+      // 2) junctions 부모 테이블 교차로 마스터 삭제
       const { error: jErr } = await supabase.from('junctions').delete().eq('id', jid);
       if (jErr) throw new Error(`junctions RDB 삭제 오류: ${jErr.message}`);
 
-      // 2) signal_maps 신호맵 삭제
-      await supabase.from('signal_maps').delete().eq('id', jid).catch(() => {});
-
-      // 3) tod_plans TOD계획 삭제
-      await supabase.from('tod_plans').delete().eq('id', jid).catch(() => {});
-
-      // 4) intersection_stats 통계 삭제
-      await supabase.from('intersection_stats').delete().eq('id', jid).catch(() => {});
-
-      // 5) 로컬 CSV 캐시에서 해당 교차로 행 제거 및 CDN 갱신
+      // 3) 로컬 CSV 캐시에서 해당 교차로 행 제거 및 CDN 갱신
       deleteJunctionFromLocalCsvCache(jid);
 
       return { success: true, message: `교차로 [${jid}]가 DB에서 완전히 삭제되었습니다.` };
