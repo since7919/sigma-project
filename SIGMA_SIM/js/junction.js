@@ -472,7 +472,18 @@ async function deleteJunction() {
         if (j && j.marker && map) map.removeLayer(j.marker);
         if (typeof removeArrows === 'function') removeArrows(jid);
         delete STATE.junctions[jid];
+        STATE.sortedJunctions = null;
         deselectJunction();
+
+        // [핵심] 브라우저 Cache Storage 완전 소거하여 새로고침(F5) 시 구버전 캐시 복원 100% 차단!
+        if ('caches' in window) {
+            try {
+                await caches.delete('sigma-data-cache');
+                console.log('[Cache] Successfully purged sigma-data-cache after deletion');
+            } catch (ce) {
+                console.warn('[Cache] Cache purge error:', ce);
+            }
+        }
 
         if (typeof renderJunctionList === 'function') renderJunctionList();
         if (typeof sendToDashboard === 'function') sendToDashboard();

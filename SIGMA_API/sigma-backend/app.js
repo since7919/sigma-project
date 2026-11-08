@@ -863,49 +863,36 @@ const uploadToCDN = async (filePath, cdnFilename) => {
 const deleteJunctionFromLocalCsvCache = (jid) => {
     try {
         const scratchDir = path.join(__dirname, 'scratch');
-        if (!fs.existsSync(scratchDir)) return false;
-        
-        const region = String(jid).split('-')[0];
-        const targetRegion = (region === 'L01' || region === 'L02') ? region : 'L01';
-        const filesToClean = [
-            `db_${targetRegion}_intersections.csv`,
-            `db_${targetRegion}_signal_maps.csv`,
-            `db_${targetRegion}_tod_plans.csv`,
-            `db_${targetRegion}_stats.csv`
-        ];
-        
-        let cleanedAny = false;
-        for (const file of filesToClean) {
-            const cacheFilePath = path.join(scratchDir, 'cache_' + file);
-            if (!fs.existsSync(cacheFilePath)) continue;
-            
-            let lines = fs.readFileSync(cacheFilePath, 'utf8').split(/\r?\n/);
-            const beforeCount = lines.length;
-            lines = lines.filter(l => !l.startsWith(jid + ','));
-            if (lines.length !== beforeCount) {
-                fs.writeFileSync(cacheFilePath, lines.join('\n'));
-                cleanedAny = true;
-            }
-        }
-        
-        if (cleanedAny) {
-            global.SIGMA_DB_VERSION = Date.now() + '_v3';
-            (async () => {
-                for (const file of filesToClean) {
-                    const cacheFilePath = path.join(scratchDir, 'cache_' + file);
-                    if (fs.existsSync(cacheFilePath)) {
-                        await uploadToCDN(cacheFilePath, `cache_${file}_latest.csv`).catch(console.error);
+        if (fs.existsSync(scratchDir)) {
+            const files = fs.readdirSync(scratchDir);
+            for (const file of files) {
+                if (file.startsWith('cache_db_') && file.endsWith('.csv')) {
+                    const filePath = path.join(scratchDir, file);
+                    try {
+                        const content = fs.readFileSync(filePath, 'utf8');
+                        if (content.includes(jid)) {
+                            const lines = content.split(/\r?\n/).filter(line => {
+                                const trimmed = line.replace(/^\ufeff/, '').trim();
+                                if (!trimmed) return false;
+                                return !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",');
+                            });
+                            fs.writeFileSync(filePath, lines.join('\n'));
+                            console.log(`[Cache] Successfully removed ${jid} from ${file}`);
+                        }
+                    } catch (fe) {
+                        try { fs.unlinkSync(filePath); } catch (ue) {}
                     }
                 }
-            })();
-            console.log(`[Cache] Successfully removed junction ${jid} from CSV cache and updated SIGMA_DB_VERSION`);
-            return true;
+            }
         }
-        return false;
     } catch(e) {
         console.error('[Cache] Error cleaning junction from cache:', e);
-        return false;
     }
+
+    // 무조건 최신 고유 버전으로 강제 업데이트하여 클라이언트 Cache-Busting 보장
+    global.SIGMA_DB_VERSION = Date.now() + '_v5';
+    console.log('[Cache] Updated global.SIGMA_DB_VERSION to', global.SIGMA_DB_VERSION);
+    return true;
 };
 
 const generationLocks = {};
@@ -2209,7 +2196,7 @@ app.post('/api/sim/delete-junction', async (req, res) => {
       // 3) 로컬 CSV 캐시에서 해당 교차로 행 제거 및 CDN 갱신
       deleteJunctionFromLocalCsvCache(jid);
 
-      return { success: true, message: `교차로 [${jid}]가 DB에서 완전히 삭제되었습니다.` };
+      return { success: true, dbVersion: global.SIGMA_DB_VERSION, message: `교차로 [${jid}]가 DB에서 완전히 삭제되었습니다.` };
     });
 
     res.json(result);
