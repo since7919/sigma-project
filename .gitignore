@@ -13,3 +13,6 @@ build/
 config.php
 SIGMA_API/sigma-backend/scratch/
 node_modules/
+
+archive/
+SIGMA_SIM/scratch/
