@@ -475,13 +475,37 @@ async function deleteJunction() {
         STATE.sortedJunctions = null;
         deselectJunction();
 
-        // [핵심] 브라우저 Cache Storage 완전 소거하여 새로고침(F5) 시 구버전 캐시 복원 100% 차단!
+        // [3단계 연동] IndexedDB에서도 해당 교차로 트랜잭션 즉시 삭제
+        if (window.SigmaIDB) {
+            window.SigmaIDB.deleteJunction(jid).catch(() => {});
+        }
+
+        // [1단계 혁신: 증분 캐시 패치] 전체 캐시 파기 대신 로컬 캐시 내 해당 jid 행만 즉시 정밀 삭감
         if ('caches' in window) {
             try {
-                await caches.delete('sigma-data-cache');
-                console.log('[Cache] Successfully purged sigma-data-cache after deletion');
+                const cache = await caches.open('sigma-data-cache');
+                const keys = await cache.keys();
+                for (const req of keys) {
+                    if (req.url.includes('/api/sim/data')) {
+                        const cachedRes = await cache.match(req);
+                        if (cachedRes) {
+                            const text = await cachedRes.text();
+                            if (text.includes(jid)) {
+                                const newLines = text.split(/\r?\n/).filter(line => {
+                                    const trimmed = line.replace(/^\ufeff/, '').trim();
+                                    return trimmed && !trimmed.startsWith(jid + ',') && !trimmed.startsWith('"' + jid + '",');
+                                });
+                                const newBody = newLines.join('\n');
+                                await cache.put(req, new Response(newBody, {
+                                    headers: cachedRes.headers
+                                }));
+                                console.log(`[Cache] Incremental patch: removed ${jid} from cached CSV (${req.url})`);
+                            }
+                        }
+                    }
+                }
             } catch (ce) {
-                console.warn('[Cache] Cache purge error:', ce);
+                console.warn('[Cache] Incremental cache patch error:', ce);
             }
         }
 

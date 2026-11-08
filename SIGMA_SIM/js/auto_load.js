@@ -129,103 +129,22 @@ async function autoLoadFiles() {
         }
     }
 
-    // [Step 1] 최우선 순위: 교차로마스터, 신호맵데이터, 운영계획 (병렬 로딩)
-        // [수정] 교차로마스터가 먼저 파싱완료되어야 신호맵, 운영계획이 정상 매핑됨 (레이스 컨디션 방지)
-    
+    // [Step 1] 최우선 순위: 교차로 마스터 로딩 & 즉시 화면 개방 (Fast-First UX)
     function updateLoading(text) {
         if (typeof showLoading === 'function') showLoading(text);
     }
-    updateLoading("기초 데이터 확인 중...");
+    updateLoading("교차로 네트워크 데이터 로딩 중...");
 
-    updateLoading("교차로마스터 다운로드 중... (1/8)");
     await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_intersections.csv`, 'inter', typeof processIntersectionCSV === 'function' ? processIntersectionCSV : null, '교차로마스터');
     
+    // [Fast-First] 교차로 기본 마스터 완료 즉시 사이드바 및 지도 표출, 모달 즉각 해제!
     if (typeof renderJunctionList === 'function') { 
-    renderJunctionList(); 
-    const sb = document.getElementById('left-search-sidebar'); 
-    if(sb) sb.classList.remove('hidden'); 
-}
-
-    
-    const smUrl = `/api/sim/data?file=db_${regionCode}_signal_maps.csv&v=${dbVersion}`;
-    const cache = await caches.open('sigma-data-cache');
-    const cachedSm = await cache.match(smUrl);
-    if (!cachedSm && typeof initMiniGameMaster === 'function') {
-        try { initMiniGameMaster(); } catch(e) {}
-    }
-    
-    updateLoading("신호맵데이터 다운로드 중... (초기 로딩 시 데이터량에 따라 최대 5~10분 이상 소요될 수 있습니다) (2/8)");
-
-    const smRes = await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
-    updateLoading("운영계획 다운로드 중... (거의 다 되었습니다) (3/8)");
-    const tpRes = await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획');
-    
-    // DB 로드 완료 시 모든 교차로의 상세 정보가 로드된 것으로 간주하여
-    // 이후 UI 클릭 시 서버에서 데이터를 덮어쓰지 않도록 _detailLoaded 플래그 설정
-    Object.values(STATE.junctions).forEach(j => {
-        j._detailLoaded = true;
-    });
-
-    const t1 = performance.now();
-    console.log(`[Perf] Step 1 (DB Fetch & Parse) completed in ${(t1-t0).toFixed(1)}ms`);
-
-    // [Step 2] 그 다음: 그룹정보 마스터 (완료 후 교차로 목록 렌더링)
-    updateLoading("그룹정보 다운로드 중... (4/8)");
-    await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
-    
-    const t2 = performance.now();
-    
-    // 그룹정보까지 로딩 완료 시 교차로 목록 렌더링 및 UI 갱신
-    if (typeof refreshDBStats === 'function') refreshDBStats();
-    if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
-    
-    if (typeof renderJunctionList === 'function') {
-        const rt0 = performance.now();
-        renderJunctionList();
-        const rt1 = performance.now();
-        
-        const sidebar = document.getElementById('left-search-sidebar');
-        if (sidebar) {
-            sidebar.classList.remove('hidden');
-            document.body.classList.add('left-sidebar-open');
-            console.log(`[Perf] Sidebar Rendered in ${(rt1-rt0).toFixed(1)}ms. Total time from start: ${(rt1-t0).toFixed(1)}ms`);
-            
-            // UI에 프로파일링 결과 표시 (사용자 확인용)
-            setTimeout(() => {
-                const resultsEl = document.getElementById('phase-search-results');
-                if (resultsEl) {
-                    resultsEl.innerHTML = `<div style="padding:10px;font-size:12px;color:red;">로드: ${(t1-t0).toFixed(0)}ms<br>목록렌더: ${(rt1-rt0).toFixed(0)}ms</div>`;
-                    resultsEl.classList.remove('hidden');
-                }
-            }, 1000);
-        }
+        renderJunctionList(); 
+        const sb = document.getElementById('left-search-sidebar'); 
+        if (sb) sb.classList.remove('hidden'); 
+        document.body.classList.add('left-sidebar-open');
     }
 
-    // [Step 3] 나머지 백그라운드 우선순위: 연동구간, 행정경계, 접근로 통계, 신호운영연보
-    // 지도가 로드될 때까지 최대 5초 대기 (행정경계나 연동구간은 지도 객체가 필요할 수 있음)
-    let mapWaitCount = 0;
-    while (!window.map && mapWaitCount < 10) {
-        await new Promise(r => setTimeout(r, 500));
-        mapWaitCount++;
-    }
-
-    // 백그라운드 병렬 로딩
-    updateLoading("기타 연동 및 통계 다운로드 중... (5/8)");
-    const priority3 = [
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
-        fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
-    ];
-    
-    await Promise.all(priority3);
-    
-    // 전체 로딩 후 다시 한 번 UI 갱신
-    if (typeof refreshDBStats === 'function') refreshDBStats();
-    if (typeof renderStats === 'function') renderStats();
-    if (typeof updateCurrentRegionLabel === 'function') updateCurrentRegionLabel(regionCode);
-
-    // 선택된 지역의 교차로 위치로 지도 시점 자동 이동 (Fit Bounds)
     if (window.map && STATE && STATE.junctions) {
         const junctions = Object.values(STATE.junctions).filter(j => j.lat && j.lng && !isNaN(j.lat) && !isNaN(j.lng));
         if (junctions.length > 0) {
@@ -237,8 +156,61 @@ async function autoLoadFiles() {
         }
     }
 
-    console.log("SIGMA - All Auto-load sequence completed.");
+    if (typeof updateCurrentRegionLabel === 'function') updateCurrentRegionLabel(regionCode);
+    if (typeof refreshDBStats === 'function') refreshDBStats();
+    if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
+
+    const t1 = performance.now();
+    console.log(`[Perf] Phase 1: Core Map & Junctions opened in ${(t1-t0).toFixed(1)}ms`);
+
+    // [3단계 연동] 교차로 기본 데이터 IndexedDB 동기화
+    if (window.SigmaIDB && STATE.junctions) {
+        window.SigmaIDB.saveJunctions(STATE.junctions).catch(() => {});
+    }
+
+    // [중요] 사용자가 즉시 조작할 수 있도록 로딩 스피너 즉시 해제!
     if (typeof hideLoading === 'function') hideLoading();
+
+    // [Step 2] 백그라운드 지연 로딩 (Background Lazy Streaming)
+    // 메인 화면 조작을 방해하지 않고, 백그라운드에서 신호맵/운영계획/연동망 비동기 수신
+    (async () => {
+        try {
+            console.log("SIGMA - Background lazy streaming started...");
+
+            // 1) 그룹 정보 및 연동선
+            await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_groups.csv`, 'groups', typeof processGroupCSV === 'function' ? processGroupCSV : null, '그룹정보 마스터', true);
+            
+            // 2) 행정경계 & 연동구간
+            await Promise.all([
+                fetchAndProcess(`/api/sim/data?file=db_${regionCode}_coordlink.geojson`, 'links', typeof processGeoJSON === 'function' ? processGeoJSON : null, '연동구간'),
+                fetchAndProcess(`/api/sim/data?file=db_${regionCode}_poly.geojson`, 'poly', typeof processBoundaryGeoJSON === 'function' ? processBoundaryGeoJSON : null, '행정경계')
+            ]);
+
+            // 3) 대용량 신호맵 및 TOD 운영계획 백그라운드 스트리밍
+            await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_signal_maps.csv`, 'maps', typeof processSignalMapCSV === 'function' ? processSignalMapCSV : null, '신호맵데이터');
+            await fetchAndProcess(`/api/sim/data?file=db_${regionCode}_tod_plans.csv`, 'plans', typeof processTodPlanCSV === 'function' ? processTodPlanCSV : null, '운영계획');
+
+            // 전 교차로 세부 플래그 설정
+            Object.values(STATE.junctions).forEach(j => {
+                j._detailLoaded = true;
+            });
+
+            // 4) 기타 통계 및 연보
+            await Promise.all([
+                fetchAndProcess(`/api/sim/data?file=db_${regionCode}_stats.csv`, 'stats', typeof _loadStatsCsv === 'function' ? _loadStatsCsv : null, '접근로 통계'),
+                fetchAndProcess(`/api/sim/data?file=db_${regionCode}_yearbook.csv`, 'yearbook', typeof processCivilCSV === 'function' ? processCivilCSV : null, '신호운영연보')
+            ]);
+
+            const tEnd = performance.now();
+            console.log(`[Perf] Phase 2: All background datasets fully synced in ${(tEnd-t0).toFixed(1)}ms`);
+
+            if (typeof refreshDBStats === 'function') refreshDBStats();
+            if (typeof renderStats === 'function') renderStats();
+            if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
+        } catch (bgErr) {
+            console.warn('[Auto-load] Background streaming warning:', bgErr);
+        }
+    })();
 }
 
 /** 버퍼 디코딩 헬퍼 */
