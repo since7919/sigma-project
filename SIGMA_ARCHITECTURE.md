@@ -478,7 +478,39 @@ sequenceDiagram
 
 > [!IMPORTANT]
 > **새로운 대화 세션 시작 시 필수 확인 사항:**
-> 1. 본 문서([`SIGMA_ARCHITECTURE.md`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_ARCHITECTURE.md))를 최우선 정독하여 파일 간 역할 분담을 확인하십시오.
+> 1. 본 문서([`SIGMA_ARCHITECTURE.md`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_ARCHITECTURE.md))와 루트의 [`GEMINI.md`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/GEMINI.md)를 최우선 정독하여 파일 간 역할 분담을 확인하십시오.
 > 2. 절대로 대형 파일([`data.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/data.js), [`stats.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/stats.js))에 무분별하게 신규 기능을 누적하지 마십시오. 새로운 기능은 독립 모듈로 생성하고 [`index.html`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/index.html)에 등록하십시오.
 > 3. 일회성 테스트 스크립트 작성 시 반드시 `archive/patch_history/` 경로에 작성하여 루트 디렉토리가 오염되지 않도록 관리하십시오.
 > 4. 프론트엔드 코드 수정 후에는 항상 `node --check <file>`을 통해 문법 검증을 선행하십시오.
+
+---
+
+## 3.5 배포 인프라 및 환경 변수 명세 (Deployment & Environment)
+
+| 구성 요소 | 호스팅 / 인프라 | 식별자 / 접속 정보 | 역할 및 환경 변수 |
+| :--- | :--- | :--- | :--- |
+| **웹 서비스 (Backend & Sim)** | Render Cloud | `https://sigma-project-245n.onrender.com` | `PORT` (기본 3001), Express 기반 API 및 정적 파일 호스팅 (`/sim`) |
+| **클라우드 데이터베이스** | Supabase PostgreSQL | `since7919` 프로젝트 | `SUPABASE_URL`, `SUPABASE_KEY` (RLS 적용) |
+| **관리자 보안 암호** | 인라인 / 환경변수 | 기본값: `1234` | `ADMIN_WRITE_PASSWORD` (교차로 영구 삭제 및 DB 동기화 검증용) |
+| **AI LLM 공급자** | Groq / Google Gemini | 백엔드 API 연동 | `GROQ_API_KEY`, `GEMINI_API_KEY` (교통 리포트 및 챗봇 질의응답) |
+
+---
+
+## 3.6 과거 5대 장애 원인 및 재발 방지 가이드 (Troubleshooting SOP)
+
+1. **Supabase JS PostgREST 비동기 핸들러 에러 (`.delete().eq().catch is not a function`)**:
+   - **원인**: Supabase Client v2의 PostgrestFilterBuilder는 일반 Promise가 아닌 thenable 객체이므로 직접 체이닝된 `.catch()`가 정의되지 않음.
+   - **해결 원칙**: 반드시 `const { data, error } = await supabase.from(...).delete().eq(...)` 형태로 `await` 구조분해 할당을 사용하십시오.
+2. **교차로 상세 패칭 무한 재귀 및 결측값 크래시 (`Cannot set properties of undefined (setting 'mOvl')`)**:
+   - **원인**: 백엔드에서 반환된 `signal_maps` 배열의 요소가 결측되거나 비정형 데이터일 때 `signalMaps[midx]`가 undefined 상태로 프로퍼티 접근 시도.
+   - **해결 원칙**: [`data.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/data.js) `fetchJunctionDetail`에서 반드시 `createEmptySignalMap()` 기본 객체를 사전 채우고, 성공/실패 여부와 무관하게 `finally` 블록에서 `j._detailLoaded = true;`를 설정하여 무한 재조회를 차단하십시오.
+3. **새로고침 시 삭제 교차로 부활 (Ghost Junctions)**:
+   - **원인**: RDB에서는 삭제되었으나 브라우저 Cache API의 CSV 파일이나 IndexedDB 로컬 저장소에 이전 데이터가 잔존하여 발생.
+   - **해결 원칙**: 삭제 트랜잭션 시 [`junction.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/junction.js)의 4단계(메모리 삭제 → 백엔드 RDB 삭제 → IndexedDB 삭제 → `sigma-data-cache` CSV 행 인크리멘탈 필터링)를 반드시 동시 수행하십시오.
+4. **GitHub Push Protection 차단 (`GH013 Secret Detected`)**:
+   - **원인**: 과거 디버깅 스크립트에 실제 API Key가 평문 포함되어 원격 Git 푸시 차단.
+   - **해결 원칙**: API 키는 절대로 소스코드에 하드코딩하지 말고 `.env`를 활용하며, 일회성 스크립트는 `.gitignore`에 등록된 `archive/patch_history/` 내에 격리하십시오.
+5. **통계 화면 빈 화면 (Empty Stats Dashboard)**:
+   - **원인**: 백그라운드 지연 로딩(3단계)이 끝날 때까지 통계 렌더링을 기다리도록 구성되어 초기 로딩 시 먹통 현상 발생.
+   - **해결 원칙**: [`stats.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/stats.js)는 1단계 코어 데이터(IndexedDB 마스터) 수신 즉시 초기 통계를 계산하여 즉각 표출하고, 3단계 완료 시 지표를 업데이트하는 2단계 점진 렌더링 방식을 유지하십시오.
+
