@@ -1388,6 +1388,13 @@ async function renderNetworkPrintOverlay(opts) {
 
                             <!-- 100% 전체 화면 지도 캔버스 -->
                             <div id="net-print-inset-map-${h.id}" style="width:100%; height:100%; position:relative;"></div>
+
+                            <!-- 우측 하단 리사이즈 핸들 (화면 전용) -->
+                            <div id="net-print-inset-resizer-${h.id}" class="net-no-print" style="position:absolute; bottom:0; right:0; width:18px; height:18px; cursor:nwse-resize; z-index:20; display:flex; align-items:flex-end; justify-content:flex-end; padding:2px; box-sizing:border-box; user-select:none;" title="마우스로 드래그하여 미니창 크기 자유 조절">
+                                <svg width="12" height="12" viewBox="0 0 12 12" style="fill:none; stroke:${h.color}; stroke-width:1.8; opacity:0.85;">
+                                    <path d="M11 2L2 11M11 6L6 11M11 10L10 11" />
+                                </svg>
+                            </div>
                         </div>
                     `;}).join('')}
                 </div>
@@ -1585,8 +1592,12 @@ function renderAllInsets(nodes, edges, opts, isDark, tileConf, hotspots) {
         }
         const box = document.getElementById(`net-print-inset-box-${h.id}`);
         const header = document.getElementById(`net-print-inset-header-${h.id}`);
+        const resizer = document.getElementById(`net-print-inset-resizer-${h.id}`);
         if (box && header) {
             makeDraggable(header, box);
+        }
+        if (box && resizer) {
+            makeResizable(resizer, box, h.id);
         }
     });
 }
@@ -1721,6 +1732,102 @@ function makeDraggable(headerEl, containerEl) {
                 containerEl.style.top = `${pctTop}%`;
                 containerEl.style.bottom = 'auto';
                 containerEl.style.right = 'auto';
+            }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+}
+
+/**
+ * 인셋 박스 마우스 드래그 크기 조절 (Resize) 헬퍼
+ * - 우측 하단 핸들을 잡고 드래그하여 가로/세로 크기 자유 조절
+ * - 최소 크기 (140px * 100px) 및 부모 래퍼 경계 초과 방지
+ * - 드래그 종료 시 부모 기준 백분율(%)로 변환하여 고해상도 PDF 인쇄 1:1 일치
+ */
+function makeResizable(resizerEl, containerEl, hotspotId) {
+    let isResizing = false;
+    let startX = 0, startY = 0;
+    let startW = 0, startH = 0;
+
+    resizerEl.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const parent = containerEl.offsetParent || containerEl.parentElement;
+        const rect = containerEl.getBoundingClientRect();
+        startW = rect.width;
+        startH = rect.height;
+
+        // 시작 시 top/left가 미지정 상태(bottom/left 기준)인 경우, top을 현재 위치로 고정하여 자연스러운 크기 확장 보장
+        if (parent) {
+            const parentRect = parent.getBoundingClientRect();
+            const currentTop = rect.top - parentRect.top;
+            const currentLeft = rect.left - parentRect.left;
+            containerEl.style.top = `${currentTop}px`;
+            containerEl.style.left = `${currentLeft}px`;
+            containerEl.style.bottom = 'auto';
+            containerEl.style.right = 'auto';
+        }
+
+        document.querySelectorAll('.net-print-inset-card').forEach(el => el.style.zIndex = '15');
+        containerEl.style.zIndex = '25';
+
+        const onMouseMove = (ev) => {
+            if (!isResizing) return;
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+
+            let newW = Math.max(140, startW + dx);
+            let newH = Math.max(100, startH + dy);
+
+            if (parent) {
+                const parentRect = parent.getBoundingClientRect();
+                const containerRect = containerEl.getBoundingClientRect();
+                const maxW = parentRect.right - containerRect.left - 6;
+                const maxH = parentRect.bottom - containerRect.top - 6;
+                newW = Math.min(newW, Math.max(140, maxW));
+                newH = Math.min(newH, Math.max(100, maxH));
+            }
+
+            containerEl.style.width = `${newW}px`;
+            containerEl.style.height = `${newH}px`;
+
+            if (_activeInsetMaps[hotspotId]) {
+                _activeInsetMaps[hotspotId].invalidateSize();
+            }
+        };
+
+        const onMouseUp = () => {
+            isResizing = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            if (parent) {
+                const parentRect = parent.getBoundingClientRect();
+                const currentRect = containerEl.getBoundingClientRect();
+                if (parentRect.width > 0 && parentRect.height > 0) {
+                    const pctLeft = (((currentRect.left - parentRect.left) / parentRect.width) * 100).toFixed(2);
+                    const pctTop = (((currentRect.top - parentRect.top) / parentRect.height) * 100).toFixed(2);
+                    const pctWidth = ((currentRect.width / parentRect.width) * 100).toFixed(2);
+                    const pctHeight = ((currentRect.height / parentRect.height) * 100).toFixed(2);
+
+                    containerEl.style.left = `${pctLeft}%`;
+                    containerEl.style.top = `${pctTop}%`;
+                    containerEl.style.width = `${pctWidth}%`;
+                    containerEl.style.height = `${pctHeight}%`;
+                    containerEl.style.bottom = 'auto';
+                    containerEl.style.right = 'auto';
+                }
+            }
+
+            if (_activeInsetMaps[hotspotId]) {
+                _activeInsetMaps[hotspotId].invalidateSize();
             }
         };
 
