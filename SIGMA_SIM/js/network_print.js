@@ -1160,6 +1160,13 @@ async function renderNetworkPrintOverlay(opts) {
                 border: none !important;
                 box-shadow: none !important;
             }
+            /* 인셋 미니창 전방위(8방향) 리사이즈 핸들 호버 효과 */
+            .net-print-resizer {
+                transition: background-color 0.15s ease;
+            }
+            .net-print-resizer:hover {
+                background-color: rgba(56, 189, 248, 0.45);
+            }
             @media print {
                 @page {
                     size: ${pageSizeRule};
@@ -1479,8 +1486,18 @@ async function renderNetworkPrintOverlay(opts) {
                             <!-- 100% 전체 화면 지도 캔버스 -->
                             <div id="net-print-inset-map-${h.id}" style="width:100%; height:100%; position:relative;"></div>
 
-                            <!-- 우측 하단 리사이즈 핸들 (화면 전용) -->
-                            <div id="net-print-inset-resizer-${h.id}" class="net-no-print" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; z-index:30; display:flex; align-items:flex-end; justify-content:flex-end; padding:2px; box-sizing:border-box; background:rgba(15,23,42,0.7); border-top-left-radius:6px; border:1px solid rgba(255,255,255,0.25); border-bottom:none; border-right:none;" title="마우스로 드래그하여 미니창 크기 자유 조절">
+                            <!-- 8-방향 리사이즈 핸들 (상/하/좌/우 테두리 및 4개 모서리 전방위 지원) -->
+                            <!-- 4개 테두리 리사이저 -->
+                            <div class="net-print-resizer net-no-print" data-dir="n" style="position:absolute; top:0; left:16px; right:52px; height:8px; cursor:ns-resize; z-index:30;" title="상단 테두리: 세로 크기 조절 (위/아래)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="s" style="position:absolute; bottom:0; left:16px; right:24px; height:8px; cursor:ns-resize; z-index:30;" title="하단 테두리: 세로 크기 조절 (위/아래)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="w" style="position:absolute; top:16px; bottom:16px; left:0; width:8px; cursor:ew-resize; z-index:30;" title="좌측 테두리: 가로 크기 조절 (좌/우)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="e" style="position:absolute; top:28px; bottom:24px; right:0; width:8px; cursor:ew-resize; z-index:30;" title="우측 테두리: 가로 크기 조절 (좌/우)"></div>
+
+                            <!-- 4개 모서리 리사이저 -->
+                            <div class="net-print-resizer net-no-print" data-dir="nw" style="position:absolute; top:0; left:0; width:16px; height:16px; cursor:nwse-resize; z-index:32;" title="좌상단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="ne" style="position:absolute; top:0; right:0; width:16px; height:16px; cursor:nesw-resize; z-index:32;" title="우상단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="sw" style="position:absolute; bottom:0; left:0; width:16px; height:16px; cursor:nesw-resize; z-index:32;" title="좌하단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="se" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; z-index:32; display:flex; align-items:flex-end; justify-content:flex-end; padding:2px; box-sizing:border-box; background:rgba(15,23,42,0.7); border-top-left-radius:6px; border:1px solid rgba(255,255,255,0.25); border-bottom:none; border-right:none;" title="우하단 모서리: 대각선 크기 조절">
                                 <svg width="14" height="14" viewBox="0 0 14 14" style="fill:none; stroke:${h.color}; stroke-width:2; opacity:0.95;">
                                     <path d="M13 3L3 13M13 8L8 13M13 13L13 13" />
                                 </svg>
@@ -1682,12 +1699,11 @@ function renderAllInsets(nodes, edges, opts, isDark, tileConf, hotspots) {
         }
         const box = document.getElementById(`net-print-inset-box-${h.id}`);
         const header = document.getElementById(`net-print-inset-header-${h.id}`);
-        const resizer = document.getElementById(`net-print-inset-resizer-${h.id}`);
         if (box && header) {
             makeDraggable(header, box);
         }
-        if (box && resizer) {
-            makeResizable(resizer, box, h.id);
+        if (box) {
+            make8WayResizable(box, h.id);
         }
     });
 }
@@ -1831,100 +1847,133 @@ function makeDraggable(headerEl, containerEl) {
 }
 
 /**
- * 인셋 박스 마우스 드래그 크기 조절 (Resize) 헬퍼
- * - 우측 하단 핸들을 잡고 드래그하여 가로/세로 크기 자유 조절
- * - 하단 도킹 상태(기본): 아래 여백이 좁을 때 바닥을 유지하고 위쪽(Upwards) 및 오른쪽으로 시원하게 확장!
- * - 자유 이동 상태: 사용자가 창을 화면 중앙/상단으로 옮긴 경우 top을 고정하고 우하단으로 확장
- * - 드래그 종료 시 부모 기준 백분율(%)로 변환하여 고해상도 PDF 인쇄 1:1 일치
+ * 인셋 박스 전방위(8-방향) 크기 조절 헬퍼
+ * - 상/하/좌/우 4개 테두리 및 4개 모서리(nw, ne, sw, se) 전방위 자유 리사이즈 지원
+ * - 최소 크기 (140px * 100px) 및 도면 래퍼 경계 초과 방지
+ * - 바닥에 밀착된 경우 위쪽(Upwards) 및 좌우로 부드럽게 지능적 확장
+ * - 드래그 완료 시 부모 기준 백분율(%)로 확정 변환하여 인쇄 1:1 완벽 일치 보장
  */
-function makeResizable(resizerEl, containerEl, hotspotId) {
-    let isResizing = false;
-    let startX = 0, startY = 0;
-    let startW = 0, startH = 0;
-    let startLeft = 0, startTop = 0;
-    let isBottomDocked = false;
+function make8WayResizable(containerEl, hotspotId) {
+    const resizers = containerEl.querySelectorAll('.net-print-resizer');
+    if (!resizers || resizers.length === 0) return;
 
-    resizerEl.onmousedown = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+    const cursorMap = {
+        'n': 'ns-resize',
+        's': 'ns-resize',
+        'w': 'ew-resize',
+        'e': 'ew-resize',
+        'nw': 'nwse-resize',
+        'se': 'nwse-resize',
+        'ne': 'nesw-resize',
+        'sw': 'nesw-resize'
+    };
 
-        isResizing = true;
-        startX = e.clientX;
-        startY = e.clientY;
+    resizers.forEach(resizerEl => {
+        const dir = resizerEl.getAttribute('data-dir');
+        if (!dir) return;
 
-        const parent = containerEl.offsetParent || containerEl.parentElement;
-        const rect = containerEl.getBoundingClientRect();
-        startW = rect.width;
-        startH = rect.height;
+        resizerEl.onmousedown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
 
-        const parentRect = parent ? parent.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight, bottom: window.innerHeight, right: window.innerWidth };
-        startLeft = rect.left - parentRect.left;
-        startTop = rect.top - parentRect.top;
+            const parent = containerEl.offsetParent || containerEl.parentElement;
+            if (!parent) return;
 
-        // 컨테이너가 하단에 가깝게 위치해 있는지 판별 (아래 여백 40px 미만 또는 bottom 스타일 유지 중)
-        const spaceBelow = parentRect.bottom - rect.bottom;
-        isBottomDocked = (spaceBelow < 40) || (containerEl.style.bottom && containerEl.style.bottom !== 'auto');
+            const parentRect = parent.getBoundingClientRect();
+            const rect = containerEl.getBoundingClientRect();
 
-        document.querySelectorAll('.net-print-inset-card').forEach(el => el.style.zIndex = '15');
-        containerEl.style.zIndex = '25';
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startLeft = rect.left - parentRect.left;
+            const startTop = rect.top - parentRect.top;
+            const startW = rect.width;
+            const startH = rect.height;
 
-        const onMouseMove = (ev) => {
-            if (!isResizing) return;
-            const dx = ev.clientX - startX;
-            const dy = ev.clientY - startY;
+            // 하단 여백 검사 (바닥에 맞닿아 있는지 판별)
+            const spaceBelow = parentRect.bottom - rect.bottom;
+            const isBottomDocked = (spaceBelow < 35) || (containerEl.style.bottom && containerEl.style.bottom !== 'auto');
 
-            let newW, newH;
+            // 드래그 중에는 부모 기준 절대 픽셀(px)로 고정하여 정밀 연산 보장
+            containerEl.style.left = `${startLeft}px`;
+            containerEl.style.top = `${startTop}px`;
+            containerEl.style.width = `${startW}px`;
+            containerEl.style.height = `${startH}px`;
+            containerEl.style.bottom = 'auto';
+            containerEl.style.right = 'auto';
 
-            if (isBottomDocked) {
-                // [하단 도킹 모드]
-                // 마우스 드래그(dx, dy)에 따라 가로/세로 확장
-                newW = Math.max(140, startW + dx);
-                newH = Math.max(100, startH + dy);
+            document.querySelectorAll('.net-print-inset-card').forEach(el => el.style.zIndex = '15');
+            containerEl.style.zIndex = '25';
 
-                // 부모 상단 경계 초과 방지 (상단 15px 여백 확보)
-                const maxAllowedH = (rect.bottom - parentRect.top) - 15;
-                newH = Math.min(newH, maxAllowedH);
+            const activeCursor = cursorMap[dir] || 'nwse-resize';
+            document.body.style.cursor = activeCursor;
+            document.body.style.userSelect = 'none';
 
-                // 가로 한계: 우측 초과 시 왼쪽으로 부드럽게 시프트
-                const maxAllowedW = parentRect.width - startLeft - 10;
-                if (newW > maxAllowedW) {
-                    const shiftLeft = Math.max(10, parentRect.width - newW - 10);
-                    containerEl.style.left = `${shiftLeft}px`;
+            const minW = 140;
+            const minH = 100;
+
+            const onMouseMove = (ev) => {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
+
+                let newLeft = startLeft;
+                let newTop = startTop;
+                let newW = startW;
+                let newH = startH;
+
+                // 1. 가로축 리사이즈 (East / West)
+                if (dir.includes('e')) {
+                    // 오른쪽으로 드래그: 너비 확장
+                    newW = Math.max(minW, startW + dx);
+                    const maxAllowedW = parentRect.width - startLeft - 4;
+                    if (newW > maxAllowedW) {
+                        // 오른쪽 벽에 닿을 경우 left를 왼쪽으로 자연스럽게 밀어줌
+                        const shiftLeft = Math.max(4, parentRect.width - newW - 4);
+                        newLeft = shiftLeft;
+                    }
+                } else if (dir.includes('w')) {
+                    // 왼쪽으로 드래그: 좌측 위치 이동 및 너비 확장
+                    const clampedDx = Math.min(startW - minW, Math.max(-startLeft + 4, dx));
+                    newLeft = startLeft + clampedDx;
+                    newW = startW - clampedDx;
                 }
 
+                // 2. 세로축 리사이즈 (South / North)
+                if (dir.includes('n')) {
+                    // 위쪽으로 드래그 (상단 테두리, 좌상단/우상단 모서리)
+                    // dy < 0 (위로 이동) -> 높이 증가 & top 상향 이동
+                    const clampedDy = Math.min(startH - minH, Math.max(-startTop + 4, dy));
+                    newTop = startTop + clampedDy;
+                    newH = startH - clampedDy;
+                } else if (dir.includes('s')) {
+                    // 아래쪽으로 드래그 (하단 테두리, 좌하단/우하단 모서리)
+                    if (isBottomDocked && spaceBelow < 35) {
+                        // 만약 바닥에 붙어있는 상태에서 아래로 당기면, 바닥을 유지하고 위쪽으로 자연스럽게 확장
+                        newH = Math.max(minH, startH + dy);
+                        const maxAllowedH = (rect.bottom - parentRect.top) - 10;
+                        newH = Math.min(newH, maxAllowedH);
+                        newTop = rect.bottom - parentRect.top - newH;
+                    } else {
+                        // 아래 여백이 충분한 경우 정상적으로 아래쪽으로 확장
+                        newH = Math.max(minH, Math.min(parentRect.height - startTop - 4, startH + dy));
+                    }
+                }
+
+                containerEl.style.left = `${newLeft}px`;
+                containerEl.style.top = `${newTop}px`;
                 containerEl.style.width = `${newW}px`;
                 containerEl.style.height = `${newH}px`;
 
-                // bottom을 유지하거나, 만약 bottom이 없었다면 top을 재계산하여 바닥 위치 유지
-                if (containerEl.style.bottom === 'auto') {
-                    const newTop = rect.bottom - parentRect.top - newH;
-                    containerEl.style.top = `${newTop}px`;
+                if (_activeInsetMaps[hotspotId]) {
+                    _activeInsetMaps[hotspotId].invalidateSize();
                 }
-            } else {
-                // [자유 배치 모드] (창이 이미 상단/중앙으로 이동된 경우)
-                newW = Math.max(140, startW + dx);
-                newH = Math.max(100, startH + dy);
+            };
 
-                const maxAllowedW = parentRect.right - rect.left - 10;
-                const maxAllowedH = parentRect.bottom - rect.top - 10;
-                newW = Math.min(newW, maxAllowedW);
-                newH = Math.min(newH, maxAllowedH);
+            const onMouseUp = () => {
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
 
-                containerEl.style.width = `${newW}px`;
-                containerEl.style.height = `${newH}px`;
-            }
-
-            if (_activeInsetMaps[hotspotId]) {
-                _activeInsetMaps[hotspotId].invalidateSize();
-            }
-        };
-
-        const onMouseUp = () => {
-            isResizing = false;
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-
-            if (parent) {
                 const pRect = parent.getBoundingClientRect();
                 const cRect = containerEl.getBoundingClientRect();
                 if (pRect.width > 0 && pRect.height > 0) {
@@ -1934,29 +1983,22 @@ function makeResizable(resizerEl, containerEl, hotspotId) {
                     const pctHeight = ((cRect.height / pRect.height) * 100).toFixed(2);
 
                     containerEl.style.left = `${pctLeft}%`;
+                    containerEl.style.top = `${pctTop}%`;
                     containerEl.style.width = `${pctWidth}%`;
                     containerEl.style.height = `${pctHeight}%`;
-
-                    if (isBottomDocked) {
-                        const pctBottom = (((pRect.bottom - cRect.bottom) / pRect.height) * 100).toFixed(2);
-                        containerEl.style.bottom = `${pctBottom}%`;
-                        containerEl.style.top = 'auto';
-                    } else {
-                        containerEl.style.top = `${pctTop}%`;
-                        containerEl.style.bottom = 'auto';
-                    }
+                    containerEl.style.bottom = 'auto';
                     containerEl.style.right = 'auto';
                 }
-            }
 
-            if (_activeInsetMaps[hotspotId]) {
-                _activeInsetMaps[hotspotId].invalidateSize();
-            }
+                if (_activeInsetMaps[hotspotId]) {
+                    _activeInsetMaps[hotspotId].invalidateSize();
+                }
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
         };
-
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    };
+    });
 }
 
 window.closeNetworkPrintOverlay = function() {
