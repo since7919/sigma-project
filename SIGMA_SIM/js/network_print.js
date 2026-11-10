@@ -213,7 +213,7 @@ function findTopDensityHotspots(nodes, maxCount = 3) {
 
     scores.sort((a, b) => b.count - a.count);
 
-    const colors = ['#f59e0b', '#06b6d4', '#ec4899']; // 1위: 앰버 골드, 2위: 시안 블루, 3위: 코랄 핑크
+    const colors = ['#ea580c', '#0284c7', '#e11d48']; // 1위: 진한 오렌지, 2위: 딥 오션블루, 3위: 딥 로즈레드 (고대비 선명한 식별)
     const hotspots = [];
 
     for (const item of scores) {
@@ -663,7 +663,7 @@ function updateInsetToolbarBadges() {
     container.innerHTML = _cachedHotspots.map(h => {
         const isOpen = !!_insetVisibility[h.id];
         return `
-            <button onclick="toggleInsetMap(${h.id})" style="background:${isOpen ? h.color + '22' : '#0f172a'}; border:1px solid ${isOpen ? h.color : '#475569'}; color:${isOpen ? h.color : '#64748b'}; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:bold; cursor:pointer;" title="${isOpen ? '확대창 닫기' : '확대창 열기'}">
+            <button onclick="toggleInsetMap(${h.id})" style="background:${isOpen ? h.color : '#0f172a'}; border:1px solid ${isOpen ? '#ffffff' : '#475569'}; color:${isOpen ? '#ffffff' : '#94a3b8'}; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:900; cursor:pointer; box-shadow:${isOpen ? '0 1px 4px rgba(0,0,0,0.5)' : 'none'};" title="${isOpen ? '확대창 닫기' : '확대창 열기'}">
                 #${h.id} ${isOpen ? 'ON' : 'OFF'}
             </button>
         `;
@@ -1607,7 +1607,7 @@ async function renderNetworkPrintOverlay(opts) {
                     <span style="font-size:12px; font-weight:bold; color:#f59e0b; white-space:nowrap;">🔍 확대영역(3개):</span>
                     <div id="net-print-inset-toolbar-buttons" style="display:flex; gap:4px;">
                         ${hotspots.map(h => `
-                            <button onclick="toggleInsetMap(${h.id})" style="background:${h.color}22; border:1px solid ${h.color}; color:${h.color}; border-radius:4px; padding:2px 7px; font-size:11px; font-weight:bold; cursor:pointer;" title="${h.title} 토글">
+                            <button onclick="toggleInsetMap(${h.id})" style="background:${h.color}; border:1px solid #ffffff; color:#ffffff; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:900; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,0.5);" title="${h.title} 토글">
                                 #${h.id} ON
                             </button>
                         `).join('')}
@@ -1704,17 +1704,16 @@ async function renderNetworkPrintOverlay(opts) {
                         const curWidthPct = (defaultWidthPct * curScale).toFixed(1);
                         const curHeightPct = (defaultHeightPct * curScale).toFixed(1);
                         return `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${curWidthPct}%; height:${curHeightPct}%; background:${bgColor}; border:1.5px solid ${h.color}; border-radius:4px; box-shadow:0 4px 14px rgba(0,0,0,0.5); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${curWidthPct}%; height:${curHeightPct}%; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:5px; box-shadow:0 4px 16px rgba(0,0,0,0.6); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
                             <!-- 상단 드래그 헤더 (이동 터치 영역) -->
                             <div id="net-print-inset-header-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:28px; z-index:9; cursor:grab; user-select:none; background:linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);"></div>
                             
-                            <!-- 미니멀 식별 뱃지 (#1, #2, #3) -->
-                            <span style="position:absolute; top:4px; left:4px; z-index:10; background:${h.color}; color:#fff; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.5); pointer-events:none; line-height:1.2;">#${h.id}</span>
+                            <!-- 선명하고 진한 식별 뱃지 (#1, #2, #3) -->
+                            <span style="position:absolute; top:4px; left:4px; z-index:10; background:${h.color}; color:#ffffff; font-size:11px; font-weight:900; padding:3px 8px; border-radius:4px; border:1px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.7); pointer-events:none; line-height:1.2; letter-spacing:0.5px;">#${h.id}</span>
                             
-                            <!-- 상단 우측 버튼 그룹: 새로고침 (🔄), 크기 변경 (⤢) 및 닫기 (✕) -->
-                            <div class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:20; display:flex; gap:3px;">
+                            <!-- 상단 우측 버튼 그룹: 새로고침 (🔄) 및 닫기 (✕) -->
+                            <div class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:20; display:flex; gap:4px;">
                                 <button id="net-print-inset-refresh-${h.id}" onclick="refreshSingleInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#38bdf8; border-radius:3px; width:22px; height:20px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0; transition:transform 0.45s ease;" title="현재 화면 영역 기준으로 교차로명 새로고침">🔄</button>
-                                <button onclick="toggleSingleInsetScale(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#38bdf8; border-radius:3px; width:22px; height:20px; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0; transition:all 0.2s;" title="클릭할 때마다 크기 변경 (100% ↔ 135% ↔ 170% ↔ 210%)">⤢</button>
                                 <button onclick="closeInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#ef4444; border-radius:3px; width:20px; height:20px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0;" title="확대창 닫기">✕</button>
                             </div>
 
@@ -1860,11 +1859,11 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
             svgHotspots += `
                 <g class="net-hotspot-box" id="net-hotspot-box-${h.id}">
                     <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" 
-                          fill="${h.color}" fill-opacity="0.04" 
-                          stroke="${h.color}" stroke-width="1.8" stroke-dasharray="6,4" rx="4" />
-                    <rect x="${bx + 4}" y="${by + 4}" width="26" height="15" rx="3" fill="${h.color}" />
-                    <text x="${bx + 17}" y="${by + 15}" 
-                          font-family="'Pretendard', sans-serif" font-size="9.5px" font-weight="900" 
+                          fill="${h.color}" fill-opacity="0.08" 
+                          stroke="${h.color}" stroke-width="2.6" stroke-dasharray="6,4" rx="4" />
+                    <rect x="${bx + 4}" y="${by + 4}" width="32" height="18" rx="3" fill="${h.color}" stroke="#ffffff" stroke-width="1.2" />
+                    <text x="${bx + 20}" y="${by + 17}" 
+                          font-family="'Pretendard', sans-serif" font-size="11.5px" font-weight="900" 
                           fill="#ffffff" text-anchor="middle">#${h.id}</text>
                 </g>
             `;
