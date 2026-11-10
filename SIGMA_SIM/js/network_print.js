@@ -1489,9 +1489,14 @@ async function renderNetworkPrintOverlay(opts) {
                 }
                 .net-print-inset-card {
                     box-shadow: none !important;
-                    border-width: 1px !important;
+                    border-width: 2.5px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                .net-print-inset-header {
+                    background: transparent !important;
                 }
                 .net-print-footer {
                     margin-top: 4px !important;
@@ -1705,36 +1710,59 @@ async function renderNetworkPrintOverlay(opts) {
                         const curHeightPct = (defaultHeightPct * curScale).toFixed(1);
                         return `
                         <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${curWidthPct}%; height:${curHeightPct}%; background:${bgColor}; border:3px solid ${h.color}; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.65); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
-                            <!-- 상단 드래그 헤더 (이동 터치 영역) -->
-                            <div id="net-print-inset-header-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:30px; z-index:9; cursor:grab; user-select:none; background:linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);"></div>
-                            
-                            <!-- 선명하고 진한 고대비 식별 뱃지 (#1, #2, #3) - 완전 불투명(Solid) & 굵은 테두리 -->
-                            <div style="position:absolute; top:5px; left:5px; z-index:35; background:${h.color}; color:#ffffff; font-size:12.5px; font-weight:900; padding:3px 9px; border-radius:4px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(0,0,0,0.8); pointer-events:none; line-height:1.2; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
-                                #${h.id}
-                            </div>
-                            
-                            <!-- 상단 우측 버튼 그룹: 새로고침 (🔄) 및 닫기 (✕) -->
-                            <div class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:20; display:flex; gap:4px;">
-                                <button id="net-print-inset-refresh-${h.id}" onclick="refreshSingleInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#38bdf8; border-radius:3px; width:22px; height:20px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0; transition:transform 0.45s ease;" title="현재 화면 영역 기준으로 교차로명 새로고침">🔄</button>
-                                <button onclick="closeInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#ef4444; border-radius:3px; width:20px; height:20px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0;" title="확대창 닫기">✕</button>
+                            <!-- 1. 인셋 지도 캔버스 (z-index:1 로 기본 레이어 격리 -> 상단 UI 간섭 원천 배제) -->
+                            <div id="net-print-inset-map-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></div>
+
+                            <!-- 2. 상단 고대비 UI 헤더 바 (드래그 핸들 + 넘버/아이콘 뱃지 + 조작 버튼) - z-index:1000 지도 위 완벽 배치 -->
+                            <div id="net-print-inset-header-${h.id}" class="net-print-inset-header" style="position:absolute; top:0; left:0; width:100%; height:34px; z-index:1000; cursor:grab; user-select:none; display:flex; align-items:center; justify-content:space-between; padding:0 6px; box-sizing:border-box; background:linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.75) 75%, transparent 100%);">
+                                
+                                <!-- 좌측: 고선명 불투명 핫스팟 넘버 및 아이콘 뱃지 (#1, #2, #3) -->
+                                <div style="display:flex; align-items:center; gap:5px; background:${h.color}; color:#ffffff; font-size:13px; font-weight:900; padding:3px 9px; border-radius:5px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(0,0,0,0.85); pointer-events:none; line-height:1.2; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.9); flex-shrink:0;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.6));">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <span>#${h.id}</span>
+                                </div>
+
+                                <!-- 중앙: 드래그 이동 안내 힌트 (온스크린 전용) -->
+                                <div class="net-no-print" style="display:flex; align-items:center; gap:3px; opacity:0.75; pointer-events:none;">
+                                    <span style="color:#ffffff; font-size:10.5px; font-weight:700; letter-spacing:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9);">⠿ 드래그 이동</span>
+                                </div>
+
+                                <!-- 우측: 고대비 액션 아이콘 버튼 그룹 (새로고침 🔄 & 닫기 ✕) -->
+                                <div class="net-no-print" style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                                    <button id="net-print-inset-refresh-${h.id}" onclick="refreshSingleInsetMap(${h.id})" 
+                                            style="background:#0f172a; border:1.8px solid #38bdf8; color:#38bdf8; border-radius:4px; width:28px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; box-shadow:0 2px 6px rgba(0,0,0,0.7); transition:all 0.2s;" 
+                                            title="현재 화면 영역 기준으로 교차로명 새로고침">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                                        </svg>
+                                    </button>
+                                    <button onclick="closeInsetMap(${h.id})" 
+                                            style="background:#0f172a; border:1.8px solid #f43f5e; color:#f43f5e; border-radius:4px; width:26px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; box-shadow:0 2px 6px rgba(0,0,0,0.7); transition:all 0.2s;" 
+                                            title="확대창 닫기">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- 100% 전체 화면 지도 캔버스 -->
-                            <div id="net-print-inset-map-${h.id}" style="width:100%; height:100%; position:relative;"></div>
-
-                            <!-- 8-방향 리사이즈 핸들 (상/하/좌/우 테두리 및 4개 모서리 전방위 지원) -->
+                            <!-- 3. 8-방향 리사이즈 핸들 (상/하/좌/우 테두리 및 4개 모서리 전방위 지원) - z-index:1200 -->
                             <!-- 4개 테두리 리사이저 -->
-                            <div class="net-print-resizer net-no-print" data-dir="n" style="position:absolute; top:0; left:16px; right:52px; height:8px; cursor:ns-resize; z-index:30;" title="상단 테두리: 세로 크기 조절 (위/아래)"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="s" style="position:absolute; bottom:0; left:16px; right:24px; height:8px; cursor:ns-resize; z-index:30;" title="하단 테두리: 세로 크기 조절 (위/아래)"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="w" style="position:absolute; top:16px; bottom:16px; left:0; width:8px; cursor:ew-resize; z-index:30;" title="좌측 테두리: 가로 크기 조절 (좌/우)"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="e" style="position:absolute; top:28px; bottom:24px; right:0; width:8px; cursor:ew-resize; z-index:30;" title="우측 테두리: 가로 크기 조절 (좌/우)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="n" style="position:absolute; top:0; left:16px; right:52px; height:8px; cursor:ns-resize; z-index:1200;" title="상단 테두리: 세로 크기 조절 (위/아래)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="s" style="position:absolute; bottom:0; left:16px; right:24px; height:8px; cursor:ns-resize; z-index:1200;" title="하단 테두리: 세로 크기 조절 (위/아래)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="w" style="position:absolute; top:16px; bottom:16px; left:0; width:8px; cursor:ew-resize; z-index:1200;" title="좌측 테두리: 가로 크기 조절 (좌/우)"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="e" style="position:absolute; top:34px; bottom:24px; right:0; width:8px; cursor:ew-resize; z-index:1200;" title="우측 테두리: 가로 크기 조절 (좌/우)"></div>
 
                             <!-- 4개 모서리 리사이저 -->
-                            <div class="net-print-resizer net-no-print" data-dir="nw" style="position:absolute; top:0; left:0; width:16px; height:16px; cursor:nwse-resize; z-index:32;" title="좌상단 모서리: 대각선 크기 조절"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="ne" style="position:absolute; top:0; right:0; width:16px; height:16px; cursor:nesw-resize; z-index:32;" title="우상단 모서리: 대각선 크기 조절"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="sw" style="position:absolute; bottom:0; left:0; width:16px; height:16px; cursor:nesw-resize; z-index:32;" title="좌하단 모서리: 대각선 크기 조절"></div>
-                            <div class="net-print-resizer net-no-print" data-dir="se" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; z-index:32; display:flex; align-items:flex-end; justify-content:flex-end; padding:2px; box-sizing:border-box; background:rgba(15,23,42,0.7); border-top-left-radius:6px; border:1px solid rgba(255,255,255,0.25); border-bottom:none; border-right:none;" title="우하단 모서리: 대각선 크기 조절">
-                                <svg width="14" height="14" viewBox="0 0 14 14" style="fill:none; stroke:${h.color}; stroke-width:2; opacity:0.95;">
+                            <div class="net-print-resizer net-no-print" data-dir="nw" style="position:absolute; top:0; left:0; width:16px; height:16px; cursor:nwse-resize; z-index:1200;" title="좌상단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="ne" style="position:absolute; top:0; right:0; width:16px; height:16px; cursor:nesw-resize; z-index:1200;" title="우상단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="sw" style="position:absolute; bottom:0; left:0; width:16px; height:16px; cursor:nesw-resize; z-index:1200;" title="좌하단 모서리: 대각선 크기 조절"></div>
+                            <div class="net-print-resizer net-no-print" data-dir="se" style="position:absolute; bottom:0; right:0; width:24px; height:24px; cursor:nwse-resize; z-index:1200; display:flex; align-items:flex-end; justify-content:flex-end; padding:2px; box-sizing:border-box; background:rgba(15,23,42,0.85); border-top-left-radius:6px; border:1.5px solid #ffffff; border-bottom:none; border-right:none; box-shadow:0 2px 6px rgba(0,0,0,0.6);" title="우하단 모서리: 대각선 크기 조절">
+                                <svg width="14" height="14" viewBox="0 0 14 14" style="fill:none; stroke:#ffffff; stroke-width:2.2; opacity:0.95;">
                                     <path d="M13 3L3 13M13 8L8 13M13 13L13 13" />
                                 </svg>
                             </div>
@@ -1863,9 +1891,9 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
                     <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" 
                           fill="${h.color}" fill-opacity="0.08" 
                           stroke="${h.color}" stroke-width="2.6" stroke-dasharray="6,4" rx="4" />
-                    <rect x="${bx + 4}" y="${by + 4}" width="32" height="18" rx="3" fill="${h.color}" stroke="#ffffff" stroke-width="1.2" />
-                    <text x="${bx + 20}" y="${by + 17}" 
-                          font-family="'Pretendard', sans-serif" font-size="11.5px" font-weight="900" 
+                    <rect x="${bx + 4}" y="${by + 4}" width="40" height="22" rx="4" fill="${h.color}" stroke="#ffffff" stroke-width="2" />
+                    <text x="${bx + 24}" y="${by + 19}" 
+                          font-family="'Pretendard', sans-serif" font-size="12.5px" font-weight="900" 
                           fill="#ffffff" text-anchor="middle">#${h.id}</text>
                 </g>
             `;
@@ -2038,7 +2066,7 @@ function makeDraggable(headerEl, containerEl) {
     headerEl.style.cursor = 'grab';
 
     headerEl.onmousedown = (e) => {
-        if (e.target.tagName === 'BUTTON') return; // 창닫기 버튼 클릭 시 드래그 방지
+        if (e.target.closest('button')) return; // 새로고침 및 창닫기 버튼(SVG 포함) 클릭 시 드래그 방지
         e.preventDefault();
 
         isDragging = true;
