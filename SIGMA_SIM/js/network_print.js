@@ -1704,12 +1704,14 @@ async function renderNetworkPrintOverlay(opts) {
                         const curWidthPct = (defaultWidthPct * curScale).toFixed(1);
                         const curHeightPct = (defaultHeightPct * curScale).toFixed(1);
                         return `
-                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${curWidthPct}%; height:${curHeightPct}%; background:${bgColor}; border:2.5px solid ${h.color}; border-radius:5px; box-shadow:0 4px 16px rgba(0,0,0,0.6); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
+                        <div id="net-print-inset-box-${h.id}" class="net-print-inset-card" style="display:${_insetVisibility[h.id] ? 'block' : 'none'}; position:absolute; bottom:${defaultBottomPct}%; left:${defaultLeftPct}%; width:${curWidthPct}%; height:${curHeightPct}%; background:${bgColor}; border:3px solid ${h.color}; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.65); overflow:hidden; pointer-events:auto; box-sizing:border-box;">
                             <!-- 상단 드래그 헤더 (이동 터치 영역) -->
-                            <div id="net-print-inset-header-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:28px; z-index:9; cursor:grab; user-select:none; background:linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);"></div>
+                            <div id="net-print-inset-header-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:30px; z-index:9; cursor:grab; user-select:none; background:linear-gradient(180deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0) 100%);"></div>
                             
-                            <!-- 선명하고 진한 식별 뱃지 (#1, #2, #3) -->
-                            <span style="position:absolute; top:4px; left:4px; z-index:10; background:${h.color}; color:#ffffff; font-size:11px; font-weight:900; padding:3px 8px; border-radius:4px; border:1px solid #ffffff; box-shadow:0 2px 6px rgba(0,0,0,0.7); pointer-events:none; line-height:1.2; letter-spacing:0.5px;">#${h.id}</span>
+                            <!-- 선명하고 진한 고대비 식별 뱃지 (#1, #2, #3) - 완전 불투명(Solid) & 굵은 테두리 -->
+                            <div style="position:absolute; top:5px; left:5px; z-index:35; background:${h.color}; color:#ffffff; font-size:12.5px; font-weight:900; padding:3px 9px; border-radius:4px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(0,0,0,0.8); pointer-events:none; line-height:1.2; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.6);">
+                                #${h.id}
+                            </div>
                             
                             <!-- 상단 우측 버튼 그룹: 새로고침 (🔄) 및 닫기 (✕) -->
                             <div class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:20; display:flex; gap:4px;">
