@@ -129,7 +129,7 @@ let _currentPrintOpts = {
     targetDistrict: 'ALL',
     pageSize: 'A4',
     orientation: 'landscape',
-    labelMode: 'leader',     // 'leader' (지시선 분산) | 'smart' (스마트 겹침방지) | 'badge' (번호 뱃지)
+    labelMode: 'leader',     // 'leader' (지시선 여백 분산 - 전수 표출) | 'smart' (스마트 겹침방지)
     fontSize: 7.2,           // px (기본 7.2px)
     lineWidth: 5.0,          // px
     nodeSize: 1.8,           // px
@@ -399,7 +399,6 @@ window.openNetworkPrintModal = async function() {
                     </label>
                     <select id="sel-print-label-mode" class="phase-select" style="width:100%; height:36px; background:#0f172a; border:1px solid rgba(56,189,248,0.4); color:#fff; border-radius:6px; padding:0 8px; font-size:12.5px; font-weight:bold;">
                         <option value="leader" selected>🎯 지시선 여백 분산 표기 (모든 교차로명 100% 표출 - 권장)</option>
-                        <option value="badge">🔢 번호 뱃지 도면 + 하단 교차로 일람표</option>
                         <option value="smart">🛡️ 스마트 겹침 방지 (간소화 필터링)</option>
                     </select>
                     <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
@@ -809,7 +808,6 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
 
     const fontSize = opts.fontSize || 7.2;
     const isSmart = (opts.labelMode === 'smart');
-    const isBadge = (opts.labelMode === 'badge');
 
     // 스마트 모드: 주요 간선 및 환승 사거리(우선순위 높은 노드)부터 먼저 배치
     const sortedPoints = isSmart ? [...points].sort((a, b) => b.priority - a.priority) : points;
@@ -827,10 +825,6 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
         let cleanName = sanitizeJunctionName(j.name);
         let labelText = opts.showJid ? `[${shortId}] ${cleanName}` : cleanName;
-
-        if (isBadge) {
-            labelText = `${p.index + 1}`;
-        }
 
         const charCount = labelText.length;
         const rectW = charCount * (fontSize * 0.72) + 6;
@@ -1306,9 +1300,8 @@ async function renderNetworkPrintOverlay(opts) {
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#38bdf8;">라벨:</span>
                     <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
-                        <option value="leader"${opts.labelMode === 'leader' ? ' selected' : ''}>🎯 지시선 여백 분산 (모든 교차로명 표출)</option>
+                        <option value="leader"${opts.labelMode === 'leader' || opts.labelMode === 'badge' ? ' selected' : ''}>🎯 지시선 여백 분산 (모든 교차로명 표출)</option>
                         <option value="smart"${opts.labelMode === 'smart' ? ' selected' : ''}>🛡️ 스마트 겹침방지 모드 (충돌 필터링)</option>
-                        <option value="badge"${opts.labelMode === 'badge' ? ' selected' : ''}>🔢 번호 뱃지 + 하단 색인표</option>
                     </select>
                 </div>
 
