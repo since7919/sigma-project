@@ -882,37 +882,37 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         }
     }
 
-    // [화면 밖 노드 라벨 필터링] 화면 바깥(뷰포트 외부)의 노드는 라벨 및 지시선 연산에서 완전 제외!
-    // 지도를 확대(예: 888%)하거나 화면을 이동했을 때 화면 테두리에 수백 개의 라벨이 뭉쳐 벽을 이루는 현상 원천 방지
-    const mapBounds = (mapInstance && mapInstance.getBounds) ? mapInstance.getBounds().pad(0.04) : null;
-    const targetNodes = mapBounds ? nodes.filter(n => mapBounds.contains([n.lat, n.lng])) : nodes;
-    if (targetNodes.length === 0) return [];
+    // [화면 밖 노드 100% 원천 배제 필터링]
+    // 픽셀 컨테이너 좌표(origX, origY) 기준으로 실제 화면 뷰포트 영역(0 ~ mapW, 0 ~ mapH) 내에
+    // 위치하는 교차로만 엄격하게 선별 (화면 밖 노드는 라벨 및 지시선 연산에서 100% 원천 차단!)
+    const points = [];
+    nodes.forEach((n, idx) => {
+        const lat = parseFloat(n.lat);
+        const lng = parseFloat(n.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
 
-    // 1. 노드별 연결 링크(Degree) 수 계산 -> 주요 연동축 우선순위 산출
-    const degreeMap = new Map();
-    edges.forEach(e => {
-        const uId = String(e.u.id);
-        const vId = String(e.v.id);
-        degreeMap.set(uId, (degreeMap.get(uId) || 0) + 1);
-        degreeMap.set(vId, (degreeMap.get(vId) || 0) + 1);
-    });
+        const pt = mapInstance.latLngToContainerPoint([lat, lng]);
+        // 화면 가장자리(0 ~ mapW, 0 ~ mapH) 외부 노드는 라벨 달기 일체 금지
+        if (pt.x < -2 || pt.x > mapW + 2 || pt.y < -2 || pt.y > mapH + 2) {
+            return;
+        }
 
-    const points = targetNodes.map((n, idx) => {
-        const pt = mapInstance.latLngToContainerPoint([n.lat, n.lng]);
         const deg = degreeMap.get(String(n.id)) || 0;
         const hasGroup = (n.group && n.group !== '0' && n.group !== 'default');
         // 우선순위 스코어: 간선 연결 수 * 10 + 연동그룹 보유 * 5
         const priorityScore = deg * 10 + (hasGroup ? 5 : 0);
 
-        return {
+        points.push({
             node: n,
             origX: pt.x,
             origY: pt.y,
             index: idx,
             degree: deg,
             priority: priorityScore
-        };
+        });
     });
+
+    if (points.length === 0) return [];
 
     // 2. 노드 간 거리 기반 밀집도(Density) 및 클러스터 중심점 계산
     const densityRadius = 32; // px
@@ -974,18 +974,20 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         let bestCandidate = null;
 
         if (isSmart) {
-            // [스마트 겹침방지 모드: 6개 슬롯 탐색 후 미발견 시 생략]
+            // [스마트 겹침방지 모드: 8방향 근접 슬롯 탐색 후 미발견 시 생략]
             const candidates = [
                 { x: p.origX + 5, y: p.origY - rectH / 2, hasLeader: false },
                 { x: p.origX - rectW - 5, y: p.origY - rectH / 2, hasLeader: false },
-                { x: p.origX - rectW / 2, y: p.origY - rectH - 5, hasLeader: false },
-                { x: p.origX - rectW / 2, y: p.origY + 5, hasLeader: false },
-                { x: p.origX + 22, y: p.origY - rectH / 2 - 12, hasLeader: true },
-                { x: p.origX - rectW - 22, y: p.origY - rectH / 2 - 12, hasLeader: true }
+                { x: p.origX - rectW / 2, y: p.origY - rectH - 4, hasLeader: false },
+                { x: p.origX - rectW / 2, y: p.origY + 4, hasLeader: false },
+                { x: p.origX + 5, y: p.origY - rectH - 2, hasLeader: false },
+                { x: p.origX - rectW - 5, y: p.origY - rectH - 2, hasLeader: false },
+                { x: p.origX + 5, y: p.origY + 2, hasLeader: false },
+                { x: p.origX - rectW - 5, y: p.origY + 2, hasLeader: false }
             ];
             for (const cand of candidates) {
                 const box = { x: cand.x, y: cand.y, w: rectW, h: rectH };
-                if (!isBoxColliding(box, placedBoxes, 1.8, mapW, mapH)) {
+                if (!isBoxColliding(box, placedBoxes, 1.5, mapW, mapH)) {
                     bestCandidate = cand;
                     break;
                 }
@@ -996,23 +998,35 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                     node: j, origX: p.origX, origY: p.origY,
                     labelX: bestCandidate.x, labelY: bestCandidate.y,
                     rectW, rectH, labelText,
-                    hasLeader: bestCandidate.hasLeader,
+                    hasLeader: false,
                     showLabel: true
                 });
             }
         } else {
-            // [대안 A: 나선형 빈공간 탐색 지시선 엔진 - 100% 전수 무중첩 표출]
-            // 1단계: 한적한 노드(이웃 노드 없음)는 노드 우측 5px 밀착 배치 우선 시도 (지시선 불필요)
-            if (p.neighborCount <= 1) {
-                const immBox = { x: p.origX + 5, y: p.origY - rectH / 2, w: rectW, h: rectH };
-                if (!isBoxColliding(immBox, placedBoxes, 1.8, mapW, mapH)) {
-                    bestCandidate = { x: immBox.x, y: immBox.y, hasLeader: false };
+            // [지시선 최소화 스마트 밀착 분산 엔진 - 전수 표출 & 지시선 90% 이상 제거]
+            // 1단계: 노드 인접 8방향 초근접 밀착 배치 우선 시도 (거리 4~6px) -> 지시선 0% (완전 없음)
+            const closeSlots = [
+                { x: p.origX + 5, y: p.origY - rectH / 2 },          // 우(E)
+                { x: p.origX - rectW - 5, y: p.origY - rectH / 2 },  // 좌(W)
+                { x: p.origX - rectW / 2, y: p.origY - rectH - 4 },  // 상(N)
+                { x: p.origX - rectW / 2, y: p.origY + 4 },          // 하(S)
+                { x: p.origX + 5, y: p.origY - rectH - 2 },          // 우상(NE)
+                { x: p.origX - rectW - 5, y: p.origY - rectH - 2 },  // 좌상(NW)
+                { x: p.origX + 5, y: p.origY + 2 },                  // 우하(SE)
+                { x: p.origX - rectW - 5, y: p.origY + 2 }           // 좌하(SW)
+            ];
+
+            for (const slot of closeSlots) {
+                const testBox = { x: slot.x, y: slot.y, w: rectW, h: rectH };
+                if (!isBoxColliding(testBox, placedBoxes, 1.5, mapW, mapH)) {
+                    bestCandidate = { x: slot.x, y: slot.y, hasLeader: false };
+                    break;
                 }
             }
 
-            // 2단계: 나선형 16방향 동심원 방사 탐색 (Spiral Raycasting)
+            // 2단계: 8방향이 막힌 경우에만 반경을 단계적으로 넓혀가며 빈 공간 탐색 (14px ~ 110px)
             if (!bestCandidate) {
-                const radii = [12, 22, 34, 48, 64, 82, 102, 124, 148, 175, 205];
+                const radii = [14, 22, 32, 44, 58, 74, 92, 112, 134];
                 
                 // 클러스터 중심 반대 방향(외곽 여백)을 최우선 각도로 정렬
                 let preferredAngle = 0;
@@ -1039,7 +1053,6 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
 
                         let testX = cx;
                         let testY = cy - rectH / 2;
-                        // 좌측 방위는 라벨의 우측 끝이 노드 쪽을 향하도록 앵커링
                         if (Math.cos(ang) < -0.3) {
                             testX = cx - rectW;
                         } else if (Math.abs(Math.cos(ang)) <= 0.3) {
@@ -1047,11 +1060,13 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                         }
 
                         const testBox = { x: testX, y: testY, w: rectW, h: rectH };
-                        if (!isBoxColliding(testBox, placedBoxes, 1.8, mapW, mapH)) {
+                        if (!isBoxColliding(testBox, placedBoxes, 1.5, mapW, mapH)) {
+                            // 거리가 32px 미만인 근접 배치는 노드와 시각적으로 바로 매칭되므로 지시선 생략!
+                            const distFromNode = Math.hypot(testX + rectW / 2 - p.origX, testY + rectH / 2 - p.origY);
                             bestCandidate = {
                                 x: testX,
                                 y: testY,
-                                hasLeader: (r > 15)
+                                hasLeader: (distFromNode >= 32)
                             };
                             found = true;
                             break;
@@ -1060,13 +1075,14 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                 }
             }
 
-            // 3단계: 안전 폴백 (화면 경계 내 안전 위치 배치하여 100% 전수 표출 보장)
+            // 3단계: 안전 폴백 (화면 내 안전 배치)
             if (!bestCandidate) {
-                const fallbackDist = 35 + (p.index % 8) * 16;
+                const fallbackDist = 20 + (p.index % 6) * 10;
                 const fallbackAngle = allSearchAngles[p.index % allSearchAngles.length];
                 const fbX = Math.max(6, Math.min(mapW - rectW - 6, p.origX + Math.cos(fallbackAngle) * fallbackDist));
                 const fbY = Math.max(6, Math.min(mapH - rectH - 6, p.origY + Math.sin(fallbackAngle) * fallbackDist));
-                bestCandidate = { x: fbX, y: fbY, hasLeader: true };
+                const fbDist = Math.hypot(fbX - p.origX, fbY - p.origY);
+                bestCandidate = { x: fbX, y: fbY, hasLeader: (fbDist >= 34) };
             }
 
             placedBoxes.push({ x: bestCandidate.x, y: bestCandidate.y, w: rectW, h: rectH });
@@ -1810,12 +1826,12 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
 
         const { origX, origY, labelX, labelY, rectW, rectH, labelText, hasLeader } = item;
 
-        // A. 지시선 (텍스트 위치에 따라 좌/우 접점 최적 연결 및 시점 미니도트)
+        // A. 지시선 (거리 32px 이상의 극소수 밀집 교차로만 초미세 은은한 가이드선으로 연결)
         if (hasLeader) {
             const targetX = (labelX < origX) ? (labelX + rectW) : labelX;
             const targetY = labelY + rectH / 2;
-            svgLeaders += `<polyline points="${origX},${origY} ${targetX},${targetY}" stroke="${leaderColor}" stroke-width="0.85" stroke-dasharray="3,2" fill="none" opacity="0.85" />`;
-            svgLeaders += `<circle cx="${origX}" cy="${origY}" r="1.2" fill="${leaderColor}" />`;
+            svgLeaders += `<polyline points="${origX},${origY} ${targetX},${targetY}" stroke="${leaderColor}" stroke-width="0.55" stroke-dasharray="2,2" fill="none" opacity="0.45" />`;
+            svgLeaders += `<circle cx="${origX}" cy="${origY}" r="0.9" fill="${leaderColor}" opacity="0.5" />`;
         }
 
         // B. 교차로명 라벨 텍스트 (텍스트 후광 Halo Stroke 적용으로 어떤 배경 위에서도 선명함 보장)
@@ -1867,9 +1883,15 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
 
     // 5. 초미니멀 노드 점 (r=1.8px) - 화면 안의 노드만 선별 렌더링
     let svgNodes = '';
+    const mapBox = printMap.getContainer();
+    const curW = (mapBox && mapBox.clientWidth) ? mapBox.clientWidth : 1200;
+    const curH = (mapBox && mapBox.clientHeight) ? mapBox.clientHeight : 750;
     nodes.forEach(j => {
-        if (mapBounds && !mapBounds.contains([j.lat, j.lng])) return;
-        const pt = printMap.latLngToContainerPoint([j.lat, j.lng]);
+        const lat = parseFloat(j.lat);
+        const lng = parseFloat(j.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+        const pt = printMap.latLngToContainerPoint([lat, lng]);
+        if (pt.x < -4 || pt.x > curW + 4 || pt.y < -4 || pt.y > curH + 4) return;
         const nodeColor = getDistinctGroupColor(j.group || '0');
         svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="${nodeColor}" stroke="#ffffff" stroke-width="1.0" />`;
     });
