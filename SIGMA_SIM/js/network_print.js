@@ -143,6 +143,7 @@ let _activePrintMap = null;
 let _baseFitZoom = null;
 let _cachedHotspots = [];
 let _activeInsetMaps = {}; // { [id]: L.Map }
+let _insetLabelLayers = {}; // { [id]: L.LayerGroup } - 인셋 맵별 동적 교차로 라벨/마커 레이어 그룹
 let _insetVisibility = { 1: true, 2: true, 3: true };
 let _insetBaseSizes = {}; // { [id]: { w, h, bottom, left } }
 let _insetCurrentScale = { 1: 1.0, 2: 1.0, 3: 1.0 };
@@ -682,13 +683,83 @@ function applyInsetScale(id, scale) {
         }
     }
 
-    // 맵 캔버스 리사이징 갱신
+    // 맵 캔버스 리사이징 갱신 및 라벨 재동기화
     if (_activeInsetMaps[id]) {
         setTimeout(() => {
             _activeInsetMaps[id].invalidateSize();
+            updateInsetMapLabels(id);
         }, 50);
     }
 }
+
+/**
+ * 인셋 맵의 현재 뷰포트 영역(화면 좌표)에 위치한 교차로 노드 및 라벨 동적 렌더링
+ * - 초기 설정 영역을 벗어나 임의 위치로 패닝(드래그 이동)하거나 줌을 변경해도 
+ *   새로 설정된 화면 영역의 모든 교차로명을 100% 누락 없이 자동 표출
+ */
+function updateInsetMapLabels(id) {
+    const insetMap = _activeInsetMaps[id];
+    if (!insetMap || !insetMap.getBounds) return;
+
+    if (!_insetLabelLayers[id]) {
+        _insetLabelLayers[id] = L.layerGroup().addTo(insetMap);
+    }
+    const layerGroup = _insetLabelLayers[id];
+    layerGroup.clearLayers();
+
+    const bounds = insetMap.getBounds().pad(0.06);
+    const nodes = _cachedFilteredNodes || [];
+    const isDark = (_currentPrintOpts && _currentPrintOpts.theme === 'dark');
+
+    nodes.forEach(j => {
+        if (!j.lat || !j.lng || !bounds.contains([j.lat, j.lng])) return;
+
+        const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
+        const cleanName = sanitizeJunctionName(j.name);
+        const color = getDistinctGroupColor(j.group || '0');
+
+        // 원형 노드 마커 (r=3.5px)
+        L.circleMarker([j.lat, j.lng], {
+            radius: 3.5,
+            color: '#ffffff',
+            weight: 1.5,
+            fillColor: color,
+            fillOpacity: 1
+        }).addTo(layerGroup);
+
+        // 선명한 교차로명 라벨 (텍스트 후광 Halo 효과 적용)
+        const icon = L.divIcon({
+            className: 'custom-inset-label',
+            html: `<div style="background:transparent; color:${isDark ? '#ffffff' : '#0f172a'}; border:none; padding:0; font-size:9.5px; font-weight:700; text-shadow:${isDark ? '0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000' : '0 0 3px #fff, 0 0 3px #fff, 1px 1px 2px #fff'}; white-space:nowrap;">[${shortId}] ${cleanName}</div>`,
+            iconSize: [90, 18],
+            iconAnchor: [-6, 12]
+        });
+        L.marker([j.lat, j.lng], { icon, interactive: false }).addTo(layerGroup);
+    });
+}
+
+/**
+ * 단일 미니탐색창(인셋 맵) 강제 새로고침
+ * - 현재 화면 영역을 기준으로 교차로명 및 노드 마커 즉각 재연산 & 재표출
+ */
+window.refreshSingleInsetMap = function(id) {
+    const map = _activeInsetMaps[id];
+    if (!map) return;
+
+    map.invalidateSize({ animate: false });
+    updateInsetMapLabels(id);
+
+    // 버튼 회전 시각 피드백
+    const btn = document.getElementById(`net-print-inset-refresh-${id}`);
+    if (btn) {
+        btn.style.transform = 'rotate(360deg)';
+        btn.style.transition = 'transform 0.45s ease';
+        setTimeout(() => {
+            btn.style.transform = '';
+            btn.style.transition = '';
+        }, 500);
+    }
+};
 
 let _savedPrintBounds = null;
 let _savedInsetBounds = {};
@@ -800,6 +871,12 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         }
     }
 
+    // [화면 밖 노드 라벨 필터링] 화면 바깥(뷰포트 외부)의 노드는 라벨 및 지시선 연산에서 완전 제외!
+    // 지도를 확대(예: 888%)하거나 화면을 이동했을 때 화면 테두리에 수백 개의 라벨이 뭉쳐 벽을 이루는 현상 원천 방지
+    const mapBounds = (mapInstance && mapInstance.getBounds) ? mapInstance.getBounds().pad(0.04) : null;
+    const targetNodes = mapBounds ? nodes.filter(n => mapBounds.contains([n.lat, n.lng])) : nodes;
+    if (targetNodes.length === 0) return [];
+
     // 1. 노드별 연결 링크(Degree) 수 계산 -> 주요 연동축 우선순위 산출
     const degreeMap = new Map();
     edges.forEach(e => {
@@ -809,7 +886,7 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         degreeMap.set(vId, (degreeMap.get(vId) || 0) + 1);
     });
 
-    const points = nodes.map((n, idx) => {
+    const points = targetNodes.map((n, idx) => {
         const pt = mapInstance.latLngToContainerPoint([n.lat, n.lng]);
         const deg = degreeMap.get(String(n.id)) || 0;
         const hasGroup = (n.group && n.group !== '0' && n.group !== 'default');
@@ -1148,6 +1225,10 @@ async function renderNetworkPrintOverlay(opts) {
         try { _activeInsetMaps[k]?.remove(); } catch(e) {}
     });
     _activeInsetMaps = {};
+    Object.keys(_insetLabelLayers).forEach(k => {
+        try { _insetLabelLayers[k]?.clearLayers(); } catch(e) {}
+    });
+    _insetLabelLayers = {};
 
     // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (WYSIWYG: A4/A3 가로·세로 규격 정밀 매핑)
     const isPortrait = (opts.orientation === 'portrait');
@@ -1542,8 +1623,9 @@ async function renderNetworkPrintOverlay(opts) {
                             <!-- 미니멀 식별 뱃지 (#1, #2, #3) -->
                             <span style="position:absolute; top:4px; left:4px; z-index:10; background:${h.color}; color:#fff; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.5); pointer-events:none; line-height:1.2;">#${h.id}</span>
                             
-                            <!-- 상단 우측 버튼 그룹: 크기 변경 (⤢) 및 닫기 (✕) -->
+                            <!-- 상단 우측 버튼 그룹: 새로고침 (🔄), 크기 변경 (⤢) 및 닫기 (✕) -->
                             <div class="net-no-print" style="position:absolute; top:4px; right:4px; z-index:20; display:flex; gap:3px;">
+                                <button id="net-print-inset-refresh-${h.id}" onclick="refreshSingleInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#38bdf8; border-radius:3px; width:22px; height:20px; font-size:12px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0; transition:transform 0.45s ease;" title="현재 화면 영역 기준으로 교차로명 새로고침">🔄</button>
                                 <button onclick="toggleSingleInsetScale(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#38bdf8; border-radius:3px; width:22px; height:20px; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0; transition:all 0.2s;" title="클릭할 때마다 크기 변경 (100% ↔ 135% ↔ 170% ↔ 210%)">⤢</button>
                                 <button onclick="closeInsetMap(${h.id})" style="background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.4); color:#ef4444; border-radius:3px; width:20px; height:20px; font-size:11px; font-weight:bold; display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1; padding:0;" title="확대창 닫기">✕</button>
                             </div>
@@ -1741,8 +1823,14 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
     });
 
     // 4. 연동 링크선 (Edges - 그룹별 고유 컬러 적용 & 최상위 관통 레이어!)
+    const mapBounds = (printMap && printMap.getBounds) ? printMap.getBounds().pad(0.05) : null;
     let svgEdges = '';
     edges.forEach(edge => {
+        // 화면 바깥의 링크선은 렌더링 스킵 (성능 최적화)
+        if (mapBounds && !mapBounds.contains([edge.u.lat, edge.u.lng]) && !mapBounds.contains([edge.v.lat, edge.v.lng])) {
+            return;
+        }
+
         const p1 = printMap.latLngToContainerPoint([edge.u.lat, edge.u.lng]);
         const p2 = printMap.latLngToContainerPoint([edge.v.lat, edge.v.lng]);
         
@@ -1761,9 +1849,10 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
         svgEdges += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${strokeColor}" stroke-width="${lineWidth}" stroke-linecap="round" ${dashArray} opacity="0.95" />`;
     });
 
-    // 5. 초미니멀 노드 점 (r=1.8px)
+    // 5. 초미니멀 노드 점 (r=1.8px) - 화면 안의 노드만 선별 렌더링
     let svgNodes = '';
     nodes.forEach(j => {
+        if (mapBounds && !mapBounds.contains([j.lat, j.lng])) return;
         const pt = printMap.latLngToContainerPoint([j.lat, j.lng]);
         const nodeColor = getDistinctGroupColor(j.group || '0');
         svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="${nodeColor}" stroke="#ffffff" stroke-width="1.0" />`;
@@ -1838,32 +1927,13 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileCon
             }).addTo(insetMap);
         });
 
-        // 핫스팟 반경 내 교차로 마커 및 큼직한 교차로명 라벨
-        nodes.forEach(j => {
-            const d = Math.hypot((j.lat - centerNode.lat) * 111, (j.lng - centerNode.lng) * 88);
-            if (d <= 0.9) {
-                const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
-                const cleanName = sanitizeJunctionName(j.name);
-                const color = getDistinctGroupColor(j.group || '0');
-
-                L.circleMarker([j.lat, j.lng], {
-                    radius: 3.5,
-                    color: '#ffffff',
-                    weight: 1.5,
-                    fillColor: color,
-                    fillOpacity: 1
-                }).addTo(insetMap);
-
-                const icon = L.divIcon({
-                    className: 'custom-inset-label',
-                    html: `<div style="background:transparent; color:${isDark ? '#ffffff' : '#0f172a'}; border:none; padding:0; font-size:9.5px; font-weight:700; text-shadow:${isDark ? '0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000' : '0 0 3px #fff, 0 0 3px #fff, 1px 1px 2px #fff'}; white-space:nowrap;">[${shortId}] ${cleanName}</div>`,
-                    iconSize: [90, 18],
-                    iconAnchor: [-6, 12]
-                });
-                L.marker([j.lat, j.lng], { icon, interactive: false }).addTo(insetMap);
-            }
-        });
+        // 뷰포트 영역 내 교차로 노드 마커 및 선명한 라벨 초기 렌더링
+        updateInsetMapLabels(hotspot.id);
     });
+
+    // 사용자가 미니탐색창을 드래그 이동(pan)하거나 줌(zoom)할 때마다 새로 설정된 화면 영역의 교차로명을 즉시 동적 갱신
+    insetMap.on('moveend', () => updateInsetMapLabels(hotspot.id));
+    insetMap.on('zoomend', () => updateInsetMapLabels(hotspot.id));
 }
 
 /**
@@ -2084,6 +2154,7 @@ function make8WayResizable(containerEl, hotspotId) {
 
                 if (_activeInsetMaps[hotspotId]) {
                     _activeInsetMaps[hotspotId].invalidateSize();
+                    updateInsetMapLabels(hotspotId);
                 }
             };
 
@@ -2104,4 +2175,8 @@ window.closeNetworkPrintOverlay = function() {
         try { _activeInsetMaps[k]?.remove(); } catch(e) {}
     });
     _activeInsetMaps = {};
+    Object.keys(_insetLabelLayers).forEach(k => {
+        try { _insetLabelLayers[k]?.clearLayers(); } catch(e) {}
+    });
+    _insetLabelLayers = {};
 };
