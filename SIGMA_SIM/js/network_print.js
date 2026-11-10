@@ -692,68 +692,54 @@ function applyInsetScale(id, scale) {
 }
 
 let _savedPrintBounds = null;
-let _savedPrintCenter = null;
-let _savedPrintZoom = null;
+let _savedInsetBounds = {};
 
 window.triggerNetworkPrint = function() {
     if (_activePrintMap) {
-        _savedPrintCenter = _activePrintMap.getCenter();
-        _savedPrintZoom = _activePrintMap.getZoom();
         _savedPrintBounds = _activePrintMap.getBounds();
-        _activePrintMap.invalidateSize({ animate: false });
-        if (_savedPrintCenter && _savedPrintZoom !== null) {
-            _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
-        }
-        if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
     }
-    Object.values(_activeInsetMaps).forEach(m => {
-        if (m) {
-            const c = m.getCenter();
-            const z = m.getZoom();
-            m.invalidateSize({ animate: false });
-            if (c && z !== null) m.setView(c, z, { animate: false });
-        }
+    Object.entries(_activeInsetMaps).forEach(([id, m]) => {
+        if (m) _savedInsetBounds[id] = m.getBounds();
     });
     setTimeout(() => {
         window.print();
-    }, 150);
+    }, 120);
 };
 
 if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
     window._netPrintEventsBound = true;
     window.addEventListener('beforeprint', () => {
         if (_activePrintMap) {
+            if (!_savedPrintBounds) {
+                _savedPrintBounds = _activePrintMap.getBounds();
+            }
             _activePrintMap.invalidateSize({ animate: false });
-            if (_savedPrintCenter && _savedPrintZoom !== null) {
-                _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
-            } else if (_savedPrintBounds) {
+            if (_savedPrintBounds) {
+                // 화면에 보이는 구역 범위와 1:1 완벽 일치하도록 타이트 피팅 (인쇄 시 불필요한 외곽 영역 노출 원천 차단)
                 _activePrintMap.fitBounds(_savedPrintBounds, { padding: [0, 0], animate: false });
             }
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => {
+        Object.entries(_activeInsetMaps).forEach(([id, m]) => {
             if (m) {
-                const c = m.getCenter();
-                const z = m.getZoom();
+                if (!_savedInsetBounds[id]) _savedInsetBounds[id] = m.getBounds();
                 m.invalidateSize({ animate: false });
-                if (c && z !== null) m.setView(c, z, { animate: false });
+                if (_savedInsetBounds[id]) {
+                    m.fitBounds(_savedInsetBounds[id], { padding: [0, 0], animate: false });
+                }
             }
         });
     });
     window.addEventListener('afterprint', () => {
-        if (_activePrintMap) {
+        if (_activePrintMap && _savedPrintBounds) {
             _activePrintMap.invalidateSize({ animate: false });
-            if (_savedPrintCenter && _savedPrintZoom !== null) {
-                _activePrintMap.setView(_savedPrintCenter, _savedPrintZoom, { animate: false });
-            }
+            _activePrintMap.fitBounds(_savedPrintBounds, { padding: [0, 0], animate: false });
             if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
         }
-        Object.values(_activeInsetMaps).forEach(m => {
-            if (m) {
-                const c = m.getCenter();
-                const z = m.getZoom();
+        Object.entries(_activeInsetMaps).forEach(([id, m]) => {
+            if (m && _savedInsetBounds[id]) {
                 m.invalidateSize({ animate: false });
-                if (c && z !== null) m.setView(c, z, { animate: false });
+                m.fitBounds(_savedInsetBounds[id], { padding: [0, 0], animate: false });
             }
         });
     });
@@ -1169,7 +1155,6 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${pageSizeRule};
                     size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
                     margin: 4mm;
                 }
@@ -1243,7 +1228,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     height: 100% !important;
                     min-height: 0 !important;
-                    aspect-ratio: auto !important;
+                    aspect-ratio: ${aspectRatio} !important;
                     overflow: hidden !important;
                     border: 1px solid ${borderColor} !important;
                     border-radius: 4px !important;
@@ -1431,8 +1416,8 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 일치) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; height:${screenMapHeight}px; aspect-ratio:${aspectRatio}; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 완벽 일치) -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; aspect-ratio:${aspectRatio}; max-height:calc(92vh - 110px); border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -1678,13 +1663,13 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
         svgNodes += `<circle cx="${pt.x}" cy="${pt.y}" r="${nodeR}" fill="${nodeColor}" stroke="#ffffff" stroke-width="1.0" />`;
     });
 
-    // 렌더링 순서: 경계선 -> 지시선 -> 라벨 -> 연동선(그룹컬러 최상위) -> 노드 점
+    // 렌더링 순서: 경계선 -> 연동축 링크선 -> 노드 점 -> 지시선 -> 교차로명 라벨 (텍스트 최상위 노출 보장)
     svgEl.innerHTML = `
         ${svgBoundary}
-        ${svgLeaders}
-        ${svgLabels}
         ${svgEdges}
         ${svgNodes}
+        ${svgLeaders}
+        ${svgLabels}
     `;
 }
 
