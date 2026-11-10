@@ -882,6 +882,19 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
         }
     }
 
+    // 1. 노드별 연결 링크(Degree) 수 계산 -> 주요 연동축 우선순위 산출
+    const degreeMap = new Map();
+    if (edges && edges.length > 0) {
+        edges.forEach(e => {
+            if (e && e.u && e.v) {
+                const uId = String(e.u.id);
+                const vId = String(e.v.id);
+                degreeMap.set(uId, (degreeMap.get(uId) || 0) + 1);
+                degreeMap.set(vId, (degreeMap.get(vId) || 0) + 1);
+            }
+        });
+    }
+
     // [화면 밖 노드 100% 원천 배제 필터링]
     // 픽셀 컨테이너 좌표(origX, origY) 기준으로 실제 화면 뷰포트 영역(0 ~ mapW, 0 ~ mapH) 내에
     // 위치하는 교차로만 엄격하게 선별 (화면 밖 노드는 라벨 및 지시선 연산에서 100% 원천 차단!)
@@ -1855,14 +1868,9 @@ function renderSvgOnMap(printMap, nodes, edges, targetFeature, opts, hotspots) {
     });
 
     // 4. 연동 링크선 (Edges - 그룹별 고유 컬러 적용 & 최상위 관통 레이어!)
-    const mapBounds = (printMap && printMap.getBounds) ? printMap.getBounds().pad(0.05) : null;
     let svgEdges = '';
     edges.forEach(edge => {
-        // 화면 바깥의 링크선은 렌더링 스킵 (성능 최적화)
-        if (mapBounds && !mapBounds.contains([edge.u.lat, edge.u.lng]) && !mapBounds.contains([edge.v.lat, edge.v.lng])) {
-            return;
-        }
-
+        if (!edge || !edge.u || !edge.v) return;
         const p1 = printMap.latLngToContainerPoint([edge.u.lat, edge.u.lng]);
         const p2 = printMap.latLngToContainerPoint([edge.v.lat, edge.v.lng]);
         
