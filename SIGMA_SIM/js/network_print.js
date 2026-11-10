@@ -129,20 +129,22 @@ let _currentPrintOpts = {
     targetDistrict: 'ALL',
     pageSize: 'A4',
     orientation: 'landscape',
-    labelMode: 'leader',     // 'leader' (지시선 여백 분산 - 전수 표출) | 'smart' (스마트 겹침방지)
+    labelMode: 'smart',      // 'smart' (스마트 겹침방지 - 기본값) | 'leader' (지시선 빈공간 분산)
     fontSize: 7.2,           // px (기본 7.2px)
     lineWidth: 5.0,          // px
     nodeSize: 1.8,           // px
     showInsetMap: true,      // 단위면적 최대밀집 확대도 표기 여부
     showJid: false,          // 교차로 번호(ID) 제거, 교차로명만 단독 표출
     showBoundary: true,
-    theme: 'clean'           // 'clean' (라이트 지도 - 기본값) | 'google' | 'dark'
+    theme: 'clean'           // 'clean' (그레이톤 도로망 - 기본값) | 'color' | 'osm' | 'dark'
 };
 
 let _activePrintMap = null;
+let _activePrintTileLayer = null; // 메인 맵 활성 타일 레이어 (테마 변경 시 보존용)
 let _baseFitZoom = null;
 let _cachedHotspots = [];
 let _activeInsetMaps = {}; // { [id]: L.Map }
+let _activeInsetTileLayers = {}; // { [id]: L.TileLayer } - 인셋 맵별 타일 레이어 (테마 변경 시 보존용)
 let _insetLabelLayers = {}; // { [id]: L.LayerGroup } - 인셋 맵별 동적 교차로 라벨/마커 레이어 그룹
 let _insetVisibility = { 1: true, 2: true, 3: true };
 let _insetBaseSizes = {}; // { [id]: { w, h, bottom, left } }
@@ -399,8 +401,8 @@ window.openNetworkPrintModal = async function() {
                         🏷️ 모든 교차로명 표기 & 밀집지역 확대 설정
                     </label>
                     <select id="sel-print-label-mode" class="phase-select" style="width:100%; height:36px; background:#0f172a; border:1px solid rgba(56,189,248,0.4); color:#fff; border-radius:6px; padding:0 8px; font-size:12.5px; font-weight:bold;">
-                        <option value="leader" selected>🎯 나선형 빈공간 지시선 분산 (모든 교차로명 100% 무중첩 표출 - 권장)</option>
-                        <option value="smart">🛡️ 스마트 겹침 방지 (간소화 필터링)</option>
+                        <option value="smart" selected>🛡️ 스마트 겹침 방지 (기본 / 지시선 없이 깔끔함)</option>
+                        <option value="leader">🎯 나선형 빈공간 지시선 분산 (모든 교차로명 100% 전수 표출)</option>
                     </select>
                     <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" id="chk-print-show-inset" checked style="accent-color:#38bdf8; width:16px; height:16px; cursor:pointer;">
@@ -499,7 +501,7 @@ window.executeNetworkPrint = async function() {
         targetDistrict: selDistrict ? selDistrict.value : 'ALL',
         pageSize: pSize || 'A4',
         orientation: pOrient || 'landscape',
-        labelMode: document.getElementById('sel-print-label-mode').value || 'leader',
+        labelMode: document.getElementById('sel-print-label-mode').value || 'smart',
         theme: document.getElementById('sel-print-theme').value || 'clean',
         nodeSize: parseFloat(document.getElementById('sel-print-node-size').value) || 1.8,
         lineWidth: parseFloat(document.getElementById('sel-print-line-width').value) || 5.0,
@@ -515,6 +517,8 @@ window.executeNetworkPrint = async function() {
 
 window.updatePrintOption = async function(key, val) {
     _currentPrintOpts[key] = val;
+
+    // 1. 단순 시각/스타일 속성 변경 (SVG 오버레이만 즉시 재연산)
     if (key === 'fontSize' || key === 'labelMode' || key === 'lineWidth' || key === 'nodeSize' || key === 'showJid') {
         if (_activePrintMap && window.triggerSvgOverlayRender) {
             window.triggerSvgOverlayRender();
@@ -524,6 +528,43 @@ window.updatePrintOption = async function(key, val) {
         });
         return;
     }
+
+    // 2. [핵심 개선] 배경 지도 테마 변경 시 화면 세팅(배율, 화면 위치, 미니창 크기/위치) 100% 보존!
+    if (key === 'theme') {
+        const newConf = getNetworkPrintTileConfig(val);
+
+        // A. 메인 맵 타일 레이어만 교체 (화면 뷰포트와 줌 레벨 완전 보존)
+        if (_activePrintMap) {
+            if (_activePrintTileLayer) {
+                try { _activePrintMap.removeLayer(_activePrintTileLayer); } catch(e) {}
+            }
+            _activePrintTileLayer = L.tileLayer(newConf.url, newConf.options).addTo(_activePrintMap);
+            if (_activePrintTileLayer.bringToBack) _activePrintTileLayer.bringToBack();
+        }
+
+        // B. 인셋 미니창들의 타일 레이어 교체 (크기 및 위치 완전 보존)
+        Object.keys(_activeInsetMaps).forEach(id => {
+            const m = _activeInsetMaps[id];
+            if (m) {
+                if (_activeInsetTileLayers[id]) {
+                    try { m.removeLayer(_activeInsetTileLayers[id]); } catch(e) {}
+                }
+                _activeInsetTileLayers[id] = L.tileLayer(newConf.url, newConf.options).addTo(m);
+                if (_activeInsetTileLayers[id].bringToBack) _activeInsetTileLayers[id].bringToBack();
+            }
+        });
+
+        // C. 다크/라이트 테마에 따른 텍스트/Halo 색상 실시간 반영
+        if (window.triggerSvgOverlayRender) {
+            window.triggerSvgOverlayRender();
+        }
+        [1, 2, 3].forEach(id => {
+            if (_activeInsetMaps[id]) updateInsetMapLabels(id);
+        });
+        return;
+    }
+
+    // 3. 구역(district) 또는 용지 규격/방향 변경 시에만 도면 전체 재구축
     await renderNetworkPrintOverlay(_currentPrintOpts);
 };
 
@@ -1261,10 +1302,12 @@ async function renderNetworkPrintOverlay(opts) {
         try { _activePrintMap.remove(); } catch(e) {}
         _activePrintMap = null;
     }
+    _activePrintTileLayer = null;
     Object.keys(_activeInsetMaps).forEach(k => {
         try { _activeInsetMaps[k]?.remove(); } catch(e) {}
     });
     _activeInsetMaps = {};
+    _activeInsetTileLayers = {};
     Object.keys(_insetLabelLayers).forEach(k => {
         try { _insetLabelLayers[k]?.clearLayers(); } catch(e) {}
     });
@@ -1508,8 +1551,8 @@ async function renderNetworkPrintOverlay(opts) {
                 <div style="display:flex; align-items:center; gap:5px;">
                     <span style="font-size:12px; font-weight:bold; color:#38bdf8;">라벨:</span>
                     <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; padding:0 6px; font-weight:bold;">
+                        <option value="smart"${opts.labelMode === 'smart' || !opts.labelMode ? ' selected' : ''}>🛡️ 스마트 겹침방지 (기본 / 깔끔함)</option>
                         <option value="leader"${opts.labelMode === 'leader' || opts.labelMode === 'badge' ? ' selected' : ''}>🎯 나선형 빈공간 분산 (100% 전수 표출)</option>
-                        <option value="smart"${opts.labelMode === 'smart' ? ' selected' : ''}>🛡️ 스마트 겹침방지 (간소화)</option>
                     </select>
                 </div>
 
@@ -1728,7 +1771,7 @@ async function renderNetworkPrintOverlay(opts) {
         _activePrintMap = printMap;
 
         const tileConf = getNetworkPrintTileConfig(opts.theme);
-        L.tileLayer(tileConf.url, tileConf.options).addTo(printMap);
+        _activePrintTileLayer = L.tileLayer(tileConf.url, tileConf.options).addTo(printMap);
 
         // 여백 10px 극소화로 구역 전체 화면 가득 차게 Auto-Zoom
         printMap.fitBounds(bounds, { padding: [10, 10], animate: false });
@@ -1959,7 +2002,7 @@ function renderSingleInsetDetailMap(hotspot, nodes, edges, opts, isDark, tileCon
     }).setView([centerNode.lat, centerNode.lng], 16); // 250% 정밀 확대
 
     _activeInsetMaps[hotspot.id] = insetMap;
-    L.tileLayer(conf.url, conf.options).addTo(insetMap);
+    _activeInsetTileLayers[hotspot.id] = L.tileLayer(conf.url, conf.options).addTo(insetMap);
 
     insetMap.whenReady(() => {
         // 인셋 맵 내 연동 링크선 (고유 그룹 컬러)
@@ -2217,10 +2260,12 @@ window.closeNetworkPrintOverlay = function() {
         try { _activePrintMap.remove(); } catch(e) {}
         _activePrintMap = null;
     }
+    _activePrintTileLayer = null;
     Object.keys(_activeInsetMaps).forEach(k => {
         try { _activeInsetMaps[k]?.remove(); } catch(e) {}
     });
     _activeInsetMaps = {};
+    _activeInsetTileLayers = {};
     Object.keys(_insetLabelLayers).forEach(k => {
         try { _insetLabelLayers[k]?.clearLayers(); } catch(e) {}
     });
