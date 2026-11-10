@@ -1496,7 +1496,7 @@ async function renderNetworkPrintOverlay(opts) {
                     print-color-adjust: exact !important;
                 }
                 .net-print-inset-header {
-                    background: transparent !important;
+                    display: none !important;
                 }
                 .net-print-footer {
                     margin-top: 4px !important;
@@ -1713,8 +1713,8 @@ async function renderNetworkPrintOverlay(opts) {
                             <!-- 1. 인셋 지도 캔버스 (z-index:1 로 기본 레이어 격리 -> 상단 UI 간섭 원천 배제) -->
                             <div id="net-print-inset-map-${h.id}" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></div>
 
-                            <!-- 2. 상단 고대비 UI 헤더 바 (드래그 핸들 + 넘버/아이콘 뱃지 + 조작 버튼) - z-index:1000 지도 위 완벽 배치 -->
-                            <div id="net-print-inset-header-${h.id}" class="net-print-inset-header" style="position:absolute; top:0; left:0; width:100%; height:34px; z-index:1000; cursor:grab; user-select:none; display:flex; align-items:center; justify-content:space-between; padding:0 6px; box-sizing:border-box; background:linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.75) 75%, transparent 100%);">
+                            <!-- 2. 상단 고대비 UI 헤더 바 (드래그 핸들 + 넘버/아이콘 뱃지 + 조작 버튼) - z-index:1000 지도 위 완벽 배치 (인쇄/PDF 출력 시 비표출) -->
+                            <div id="net-print-inset-header-${h.id}" class="net-print-inset-header net-no-print" style="position:absolute; top:0; left:0; width:100%; height:34px; z-index:1000; cursor:grab; user-select:none; display:flex; align-items:center; justify-content:space-between; padding:0 6px; box-sizing:border-box; background:linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(15,23,42,0.75) 75%, transparent 100%);">
                                 
                                 <!-- 좌측: 고선명 불투명 핫스팟 넘버 및 아이콘 뱃지 (#1, #2, #3) -->
                                 <div style="display:flex; align-items:center; gap:5px; background:${h.color}; color:#ffffff; font-size:13px; font-weight:900; padding:3px 9px; border-radius:5px; border:2px solid #ffffff; box-shadow:0 3px 8px rgba(0,0,0,0.85); pointer-events:none; line-height:1.2; letter-spacing:0.5px; text-shadow:0 1px 2px rgba(0,0,0,0.9); flex-shrink:0;">
