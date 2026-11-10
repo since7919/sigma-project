@@ -134,7 +134,7 @@ let _currentPrintOpts = {
     lineWidth: 5.0,          // px
     nodeSize: 1.8,           // px
     showInsetMap: true,      // 단위면적 최대밀집 확대도 표기 여부
-    showJid: true,
+    showJid: false,          // 교차로 번호(ID) 제거, 교차로명만 단독 표출
     showBoundary: true,
     theme: 'clean'           // 'clean' (라이트 지도 - 기본값) | 'google' | 'dark'
 };
@@ -408,6 +408,12 @@ window.openNetworkPrintModal = async function() {
                             🔍 단위면적 최대밀집구역 상세 확대도(Inset Map) 포함
                         </label>
                     </div>
+                    <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="chk-print-show-jid" style="accent-color:#38bdf8; width:16px; height:16px; cursor:pointer;">
+                        <label for="chk-print-show-jid" style="font-size:12px; color:#cbd5e1; cursor:pointer;">
+                            교차로 번호([ID]) 포함하여 표기 (기본: 교차로명만 깔끔하게 표출)
+                        </label>
+                    </div>
                 </div>
 
                 <!-- 3. 배경 지도 및 테마 -->
@@ -499,7 +505,7 @@ window.executeNetworkPrint = async function() {
         lineWidth: parseFloat(document.getElementById('sel-print-line-width').value) || 5.0,
         showInsetMap: document.getElementById('chk-print-show-inset').checked,
         fontSize: fontVal ? parseFloat(fontVal.value) : 7.2,
-        showJid: true,
+        showJid: document.getElementById('chk-print-show-jid') ? document.getElementById('chk-print-show-jid').checked : false,
         showBoundary: true
     };
 
@@ -509,11 +515,14 @@ window.executeNetworkPrint = async function() {
 
 window.updatePrintOption = async function(key, val) {
     _currentPrintOpts[key] = val;
-    if (key === 'fontSize' || key === 'labelMode' || key === 'lineWidth' || key === 'nodeSize') {
+    if (key === 'fontSize' || key === 'labelMode' || key === 'lineWidth' || key === 'nodeSize' || key === 'showJid') {
         if (_activePrintMap && window.triggerSvgOverlayRender) {
             window.triggerSvgOverlayRender();
-            return;
         }
+        [1, 2, 3].forEach(id => {
+            if (_activeInsetMaps[id]) updateInsetMapLabels(id);
+        });
+        return;
     }
     await renderNetworkPrintOverlay(_currentPrintOpts);
 };
@@ -717,6 +726,8 @@ function updateInsetMapLabels(id) {
         const shortId = String(j.id).replace(/^[A-Za-z0-9]+-/, '');
         const cleanName = sanitizeJunctionName(j.name);
         const color = getDistinctGroupColor(j.group || '0');
+        const showJid = !!(_currentPrintOpts && _currentPrintOpts.showJid);
+        const labelText = showJid ? `[${shortId}] ${cleanName}` : cleanName;
 
         // 원형 노드 마커 (r=3.5px)
         L.circleMarker([j.lat, j.lng], {
@@ -730,7 +741,7 @@ function updateInsetMapLabels(id) {
         // 선명한 교차로명 라벨 (텍스트 후광 Halo 효과 적용)
         const icon = L.divIcon({
             className: 'custom-inset-label',
-            html: `<div style="background:transparent; color:${isDark ? '#ffffff' : '#0f172a'}; border:none; padding:0; font-size:9.5px; font-weight:700; text-shadow:${isDark ? '0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000' : '0 0 3px #fff, 0 0 3px #fff, 1px 1px 2px #fff'}; white-space:nowrap;">[${shortId}] ${cleanName}</div>`,
+            html: `<div style="background:transparent; color:${isDark ? '#ffffff' : '#0f172a'}; border:none; padding:0; font-size:9.5px; font-weight:700; text-shadow:${isDark ? '0 0 3px #000, 0 0 3px #000, 1px 1px 2px #000' : '0 0 3px #fff, 0 0 3px #fff, 1px 1px 2px #fff'}; white-space:nowrap;">${labelText}</div>`,
             iconSize: [90, 18],
             iconAnchor: [-6, 12]
         });
@@ -1482,6 +1493,11 @@ async function renderNetworkPrintOverlay(opts) {
                         <option value="10.0"${opts.fontSize === 10.0 ? ' selected' : ''}>크게 10.0px (A3용)</option>
                         <option value="12.0"${opts.fontSize === 12.0 ? ' selected' : ''}>특대 12.0px</option>
                     </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:5px; background:#1e293b; border:1px solid rgba(56,189,248,0.4); border-radius:4px; height:30px; padding:0 8px; cursor:pointer;" onclick="const chk=document.getElementById('net-print-show-jid'); if(event.target!==chk){chk.checked=!chk.checked; updatePrintOption('showJid', chk.checked);}" title="교차로 식별번호([ID]) 표출 여부 토글 (체크 해제 시 교차로명만 깔끔하게 표출)">
+                    <input type="checkbox" id="net-print-show-jid" ${opts.showJid ? 'checked' : ''} onchange="updatePrintOption('showJid', this.checked)" style="accent-color:#38bdf8; cursor:pointer; width:14px; height:14px;">
+                    <span style="font-size:12px; font-weight:bold; color:${opts.showJid ? '#38bdf8' : '#cbd5e1'}; user-select:none; cursor:pointer;">ID 번호</span>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:5px;">
