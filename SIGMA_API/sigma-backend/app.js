@@ -141,6 +141,9 @@ app.post('/api/sim/upload-file', express.json({ limit: '50mb' }), async (req, re
         updated_at: new Date().toISOString()
       }, { onConflict: 'file_name' });
       if (error) throw error;
+      if (CSV_CACHE[file_name]) {
+        delete CSV_CACHE[file_name];
+      }
       return { success: true };
     });
     res.json(result);
