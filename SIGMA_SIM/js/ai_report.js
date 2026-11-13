@@ -124,7 +124,8 @@ async function startAIAnalysis() {
     let targetStats = calculateStats(targetIntersections);
     
     try {
-        if (typeof recordAIRequest === 'function') recordAIRequest();
+        if (typeof window.recordAIRequest === 'function') window.recordAIRequest();
+        else if (typeof recordAIRequest === 'function') recordAIRequest();
         const response = await fetch('/api/ai/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -459,6 +460,8 @@ window.generateAIReportProgrammatic = async function(baseTarget = 'ALL', targetT
 
     let reportText = '';
     try {
+        if (typeof window.recordAIRequest === 'function') window.recordAIRequest();
+        else if (typeof recordAIRequest === 'function') recordAIRequest();
         const response = await fetch('/api/ai/report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -232,7 +232,10 @@ function injectChatbotUI() {
             <div style="background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), transparent); padding: 20px; border-bottom: 1px solid rgba(0, 212, 255, 0.3); display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="color: #00d4ff; font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(0,212,255,0.6);">SIGMA AI 챗봇 <span style="font-size: 10px; color: #4ade80; border: 1px solid #4ade80; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Powered by Groq & GPT-OSS 120B</span></div>
-                    <div style="color: #94a3b8; font-size: 10px; font-weight: 500;">v5.0 NLU (Slot Filling Engine)</div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+                        <span style="color: #94a3b8; font-size: 10px; font-weight: 500;">v5.0 NLU Engine</span>
+                        <span id="chatbot-quota-display" style="font-size: 10px; color: #81c784; font-weight: 600; background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08);">⚡ Groq 잔여: 일일 14,400회 | 분당 30회</span>
+                    </div>
                 </div>
                 <button onclick="toggleChatbot()" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 24px; opacity: 0.6;">&times;</button>
             </div>
@@ -277,8 +280,13 @@ function toggleChatbot() {
     const btnEl = document.getElementById('chatbot-toggle-btn');
     if (windowEl) windowEl.style.display = chatbotOpen ? 'flex' : 'none';
     if (btnEl) btnEl.style.transform = chatbotOpen ? 'scale(0.8) rotate(15deg)' : 'scale(1) rotate(0deg)';
-    if (chatbotOpen && typeof renderChatbotChips === 'function') {
-        renderChatbotChips(window.CURRENT_REGION_CODE);
+    if (chatbotOpen) {
+        if (typeof renderChatbotChips === 'function') {
+            renderChatbotChips(window.CURRENT_REGION_CODE);
+        }
+        if (typeof window.updateQuotaUI === 'function') {
+            window.updateQuotaUI();
+        }
     }
 }
 
@@ -795,8 +803,14 @@ async function processAgentQuery(queryText) {
         };
     }
 
-    // 2. 검색된 데이터를 Gemini 백엔드 API로 전송 (Augmented Generation)
+    // 2. 검색된 데이터를 Groq GPT-OSS 백엔드 API로 전송 (Augmented Generation)
     try {
+        if (typeof window.recordAIRequest === 'function') {
+            window.recordAIRequest();
+        } else if (typeof recordAIRequest === 'function') {
+            recordAIRequest();
+        }
+
         const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

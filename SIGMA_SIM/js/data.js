@@ -1070,38 +1070,51 @@ function getQuotaStats() {
 }
 
 function updateQuotaUI() {
-    const displayEl = document.getElementById('ai-quota-display');
-    if (!displayEl) return;
-    
     const stats = getQuotaStats();
     const minCount = stats.minute.length;
     const dayCount = stats.daily.length;
     
-    let minColor = minCount >= QUOTA_MIN_LIMIT ? "#ef5350" : "#81c784";
-    let dayColor = dayCount >= QUOTA_DAILY_LIMIT ? "#ef5350" : "#81c784";
+    const remainingDaily = Math.max(0, QUOTA_DAILY_LIMIT - dayCount);
+    const remainingMinute = Math.max(0, QUOTA_MIN_LIMIT - minCount);
     
-    displayEl.innerHTML = `
-        <span>🕒 API 잔여량: </span>
-        <span style="color: ${dayColor}; font-weight: ${dayCount >= QUOTA_DAILY_LIMIT ? 'bold' : 'normal'};" title="일일 14,400회 한도 (매일 자정 UTC 초기화)">
-            일일 ${dayCount}/${QUOTA_DAILY_LIMIT}회
-        </span>
-        <span style="color: #666;">|</span>
-        <span style="color: ${minColor}; font-weight: ${minCount >= QUOTA_MIN_LIMIT ? 'bold' : 'normal'};" title="분당 30회 한도 (Groq API 제한)">
-            분당 ${minCount}/${QUOTA_MIN_LIMIT}회
-        </span>
-    `;
+    let minColor = remainingMinute <= 5 ? "#ef5350" : (remainingMinute <= 10 ? "#ffb74d" : "#81c784");
+    let dayColor = remainingDaily <= 100 ? "#ef5350" : (remainingDaily <= 1000 ? "#ffb74d" : "#81c784");
+    
+    const displayEl = document.getElementById('ai-quota-display');
+    if (displayEl) {
+        displayEl.innerHTML = `
+            <span>🕒 API 잔여량: </span>
+            <span style="color: ${dayColor}; font-weight: ${remainingDaily <= 100 ? 'bold' : 'normal'};" title="일일 한도 14,400회 중 ${dayCount.toLocaleString()}회 사용됨 (매일 자정 UTC 초기화)">
+                일일 ${remainingDaily.toLocaleString()}/${QUOTA_DAILY_LIMIT.toLocaleString()}회
+            </span>
+            <span style="color: #666;">|</span>
+            <span style="color: ${minColor}; font-weight: ${remainingMinute <= 5 ? 'bold' : 'normal'};" title="분당 한도 30회 중 ${minCount}회 사용됨 (Groq API 제한)">
+                분당 ${remainingMinute}/${QUOTA_MIN_LIMIT}회
+            </span>
+        `;
+    }
+
+    const chatQuotaEl = document.getElementById('chatbot-quota-display');
+    if (chatQuotaEl) {
+        chatQuotaEl.innerHTML = `⚡ Groq 잔여: 일일 ${remainingDaily.toLocaleString()}회 | 분당 ${remainingMinute}회`;
+        chatQuotaEl.style.color = minColor;
+    }
 }
 
 function recordAIRequest() {
     let stats = getQuotaStats();
     stats.daily.push(Date.now());
     stats.minute.push(Date.now());
-    localStorage.setItem('geminiQuotaStats', JSON.stringify(stats));
+    try {
+        localStorage.setItem('geminiQuotaStats', JSON.stringify(stats));
+    } catch (e) {}
     updateQuotaUI();
 }
 
 // Initial update and periodic refresh
 document.addEventListener('DOMContentLoaded', updateQuotaUI);
 setInterval(updateQuotaUI, 5000);
-// Export to window if needed
+// Export to window
+window.recordAIRequest = recordAIRequest;
 window.updateQuotaUI = updateQuotaUI;
+window.getQuotaStats = getQuotaStats;
