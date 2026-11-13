@@ -237,6 +237,154 @@ function calculateStats(inters) {
     }
     return { error: "Stats engine unavailable" };
 }
+window.calculateStats = calculateStats;
+
+function generateClientFallbackReport(baseName, targetName, baseStats, targetStats) {
+    const calcDiff = (b, t) => {
+        const numB = parseFloat(b) || 0;
+        const numT = parseFloat(t) || 0;
+        const diff = (numT - numB).toFixed(1);
+        return diff > 0 ? `+${diff}` : `${diff}`;
+    };
+    const calcRate = (b, t) => {
+        const numB = parseFloat(b) || 0;
+        const numT = parseFloat(t) || 0;
+        if (numB === 0) return '-';
+        return `${((numT / numB) * 100).toFixed(1)}%`;
+    };
+
+    return `## 📊 ${baseName} vs ${targetName} 교통운영 AI 비교분석 리포트
+
+### 1. 거시적 운영 특성 비교
+- **총 교차로 수**: [${baseName}] **${baseStats.totalJunctions?.toLocaleString() || 0}개소** 대비 [${targetName}] **${targetStats.totalJunctions?.toLocaleString() || 0}개소**로 집계됨.
+- **평균 신호주기**: [${baseName}] **${baseStats.avgCycle || 0}초**, [${targetName}] **${targetStats.avgCycle || 0}초** (편차: ${calcDiff(baseStats.avgCycle, targetStats.avgCycle)}초).
+- **연동화율**: [${baseName}] **${baseStats.coordRate || 0}%**, [${targetName}] **${targetStats.coordRate || 0}%** 수준으로 연동망이 구성되어 있음.
+
+### 2. 미시 및 세부 운영 구조 비교
+- **보호 좌회전**: [${baseName}] ${baseStats.cntLeftProt || 0}개소 vs [${targetName}] ${targetStats.cntLeftProt || 0}개소.
+- **비보호 좌회전**: [${baseName}] ${baseStats.cntLeftUnprot || 0}개소 vs [${targetName}] ${targetStats.cntLeftUnprot || 0}개소.
+- **대각선 횡단보도**: [${baseName}] ${baseStats.cntDiagonal || 0}개소 vs [${targetName}] ${targetStats.cntDiagonal || 0}개소.
+- **과포화 운영(160초 이상 고주기)**: [${baseName}] ${baseStats.highCycleCount || 0}개소 vs [${targetName}] ${targetStats.highCycleCount || 0}개소.
+- **보행자 평균 지체**: [${baseName}] ${baseStats.avgPedWait || 0}초 (${baseStats.pedLos || 'B'}) vs [${targetName}] ${targetStats.avgPedWait || 0}초 (${targetStats.pedLos || 'B'}).
+
+### 3. 핵심 운영 지표 비교 요약표
+| 지표명 | 기준 (${baseName}) | 비교 대상 (${targetName}) | 편차 (Target - Base) | 점유/비율 |
+| :--- | :---: | :---: | :---: | :---: |
+| **총 교차로 수** | ${baseStats.totalJunctions || 0}개소 | ${targetStats.totalJunctions || 0}개소 | ${calcDiff(baseStats.totalJunctions, targetStats.totalJunctions)}개소 | ${calcRate(baseStats.totalJunctions, targetStats.totalJunctions)} |
+| **평균 신호주기** | ${baseStats.avgCycle || 0}초 | ${targetStats.avgCycle || 0}초 | ${calcDiff(baseStats.avgCycle, targetStats.avgCycle)}초 | ${calcRate(baseStats.avgCycle, targetStats.avgCycle)} |
+| **최대 신호주기** | ${baseStats.maxCycle || 0}초 | ${targetStats.maxCycle || 0}초 | ${calcDiff(baseStats.maxCycle, targetStats.maxCycle)}초 | - |
+| **최빈 신호주기** | ${baseStats.baseCycle || 0}초 (${baseStats.baseCycleRate || 0}%) | ${targetStats.baseCycle || 0}초 (${targetStats.baseCycleRate || 0}%) | - | - |
+| **연동화율** | ${baseStats.coordRate || 0}% | ${targetStats.coordRate || 0}% | ${calcDiff(baseStats.coordRate, targetStats.coordRate)}%p | - |
+| **과포화 운영(160s+)** | ${baseStats.highCycleCount || 0}개소 | ${targetStats.highCycleCount || 0}개소 | ${calcDiff(baseStats.highCycleCount, targetStats.highCycleCount)}개소 | - |
+| **보행자 평균 지체** | ${baseStats.avgPedWait || 0}초 (${baseStats.pedLos || 'B'}) | ${targetStats.avgPedWait || 0}초 (${targetStats.pedLos || 'B'}) | ${calcDiff(baseStats.avgPedWait, targetStats.avgPedWait)}초 | - |
+
+\`\`\`text
+[평균 신호주기 비교 (초)]
+${baseName} : ${'█'.repeat(Math.min(25, Math.max(1, Math.round((baseStats.avgCycle || 100) / 6))))} (${baseStats.avgCycle || 0}초)
+${targetName} : ${'█'.repeat(Math.min(25, Math.max(1, Math.round((targetStats.avgCycle || 100) / 6))))} (${targetStats.avgCycle || 0}초)
+\`\`\`
+
+### 4. 분석 종합 및 결론
+본 분석은 SIGMA SIM 엔진에 등록된 교차로 및 시간대별 운영계획(TOD) 데이터를 기반으로 산출되었습니다.
+두 지역 간 신호주기 편차 및 연동화율을 토대로 간선도로 축별 대기행렬 관리 및 감응제어 도입 타당성을 검토하시기 바랍니다.`;
+}
+
+/**
+ * 🤖 AI 챗봇 및 외부 모듈 연동용 비교분석 리포트 생성 코어 함수
+ */
+window.generateAIReportProgrammatic = async function(baseTarget = 'ALL', targetTarget = '마포구') {
+    const allJunctions = Object.values((typeof STATE !== 'undefined' && STATE.junctions) || {});
+    if (allJunctions.length === 0) {
+        throw new Error('교차로 데이터가 준비되지 않았습니다.');
+    }
+
+    const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+    const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+
+    const resolveNameAndList = (val) => {
+        if (!val || val === 'ALL' || val.includes('전체') || val.includes('전역')) {
+            return { name: `${regionName} 전체`, list: allJunctions };
+        }
+        let clean = val.replace(/^(office\||police\|)/, '').replace(/(구청|경찰서)$/, '').trim();
+        let matched = allJunctions.filter(j => 
+            (j.office && j.office.includes(clean)) || 
+            (j.police && j.police.includes(clean)) ||
+            (j.name && j.name.includes(clean))
+        );
+        if (matched.length === 0 && !clean.endsWith('구') && !clean.endsWith('군')) {
+            matched = allJunctions.filter(j => 
+                (j.office && j.office.includes(clean + '구')) ||
+                (j.police && j.police.includes(clean + '경찰서'))
+            );
+        }
+        const displayName = clean.endsWith('구') || clean.endsWith('군') ? clean : (matched.length > 0 && matched[0].office ? matched[0].office.replace(/구청$/, '구') : clean + '구');
+        return { name: displayName, list: matched.length > 0 ? matched : allJunctions };
+    };
+
+    const baseObj = resolveNameAndList(baseTarget);
+    const targetObj = resolveNameAndList(targetTarget);
+
+    const baseStats = calculateStats(baseObj.list);
+    const targetStats = calculateStats(targetObj.list);
+
+    let reportText = '';
+    try {
+        const response = await fetch('/api/ai/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                baseName: baseObj.name,
+                targetName: targetObj.name,
+                baseStats: baseStats,
+                targetStats: targetStats
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.report) {
+                reportText = data.report;
+            }
+        }
+    } catch(err) {
+        console.warn('API Report generation failed, falling back to client report synthesis:', err);
+    }
+
+    if (!reportText) {
+        reportText = generateClientFallbackReport(baseObj.name, targetObj.name, baseStats, targetStats);
+    }
+
+    // 전용 인쇄용 데이터 동기화
+    window.__lastAIReportHTML = typeof marked !== 'undefined' ? marked.parse(reportText) : reportText;
+    window.__lastAIReportTitle = `${baseObj.name} vs ${targetObj.name} SIGMA AI 비교분석 리포트`;
+
+    // STATS VIEW의 ai-report-box 도 동기화
+    const box = document.getElementById('ai-report-box');
+    const content = document.getElementById('ai-report-content');
+    const setup = document.getElementById('ai-report-setup');
+    if (box && content) {
+        box.style.display = 'block';
+        if (setup) setup.style.display = 'none';
+        content.style.display = 'block';
+        let formatted = typeof marked !== 'undefined' ? marked.parse(reportText) : reportText;
+        content.innerHTML = `
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px;">
+                <button onclick="printAIReport()" style="background: rgba(255,183,77,0.1); border: 1px solid #ffb74d; color: #ffb74d; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🖨️ PDF 출력</button>
+                <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 4px 12px; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">🔄 다시 분석하기</button>
+            </div>
+            <div class="ai-report-markdown">${formatted}</div>
+        `;
+    }
+
+    return {
+        success: true,
+        baseName: baseObj.name,
+        targetName: targetObj.name,
+        baseStats,
+        targetStats,
+        report: reportText
+    };
+};
 
 function printAIReport() {
     if (!window.__lastAIReportHTML) {

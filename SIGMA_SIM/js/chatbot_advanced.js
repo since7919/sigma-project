@@ -73,6 +73,13 @@ function injectChatbotUI() {
     <style>
         .chat-chip { display: inline-block; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3); color: #00d4ff; padding: 5px 12px; border-radius: 15px; font-size: 11px; margin: 2px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
         .chat-chip:hover { background: #00d4ff; color: #0f172a; transform: translateY(-2px); }
+        #chatbot-messages table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+        #chatbot-messages th, #chatbot-messages td { border: 1px solid rgba(255,255,255,0.15); padding: 6px 8px; text-align: center; }
+        #chatbot-messages th { background: rgba(0,212,255,0.15); color: #00d4ff; font-weight: bold; }
+        #chatbot-messages pre { background: rgba(0,0,0,0.5); padding: 8px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 11px; }
+        #chatbot-messages code { background: rgba(0,212,255,0.1); color: #00e5ff; padding: 2px 4px; border-radius: 3px; font-size: 11px; }
+        #chatbot-messages h2, #chatbot-messages h3 { margin: 8px 0 4px 0; color: #fff; font-size: 14px; }
+        #chatbot-messages ul { margin: 6px 0; padding-left: 20px; }
     </style>
     <div id="chatbot-container" style="position: fixed; bottom: 30px; right: 20px; z-index: 10000; font-family: 'Pretendard', sans-serif;">
         <div id="chatbot-window" style="display: none; width: 400px; height: 650px; background: rgba(15, 20, 25, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(0, 212, 255, 0.4); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); flex-direction: column; overflow: hidden; margin-bottom: 20px; transition: all 0.3s;">
@@ -86,12 +93,12 @@ function injectChatbotUI() {
             <div style="padding: 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <div style="color: #64748b; font-size: 10px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">💡 NLU 슬롯 필링 테스트</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span class="chat-chip" onclick="quickQuery('서울시 전체와 마포구 통계를 비교하는 리포트를 만들어줘')">📊 서울시 vs 마포구 비교리포트</span>
                     <span class="chat-chip" onclick="quickQuery('마포구의 연동구간 도면을 출력해줘')">🖨️ 마포구 도면 출력(PDF)</span>
                     <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
                     <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
                     <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
                     <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
-                    <span class="chat-chip" onclick="quickQuery('서초구 신호주기가 140초 이상인 곳 비교해줘')">📊 서초구 140초 이상 주기</span>
                 </div>
             </div>
             <div id="chatbot-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; color: #eee; scrollbar-width: none;">
@@ -140,20 +147,26 @@ function addMessageToUI(text, isUser = false) {
     const div = document.createElement('div');
     div.style.padding = '14px 18px';
     div.style.borderRadius = '14px';
-    div.style.maxWidth = '85%';
+    div.style.maxWidth = '88%';
     div.style.lineHeight = '1.6';
+    div.style.wordBreak = 'break-word';
     if (isUser) {
         div.style.alignSelf = 'flex-end';
         div.style.background = 'rgba(0, 212, 255, 0.15)';
         div.style.color = '#fff';
         div.style.border = '1px solid rgba(0, 212, 255, 0.3)';
+        div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     } else {
         div.style.alignSelf = 'flex-start';
         div.style.background = 'rgba(255, 255, 255, 0.05)';
         div.style.color = '#e2e8f0';
         div.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        if (typeof marked !== 'undefined' && (text.includes('#') || text.includes('|') || text.includes('```') || text.includes('- '))) {
+            div.innerHTML = marked.parse(text);
+        } else {
+            div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        }
     }
-    div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
     msgContainer.appendChild(div);
     msgContainer.scrollTo({ top: msgContainer.scrollHeight, behavior: 'smooth' });
 }
@@ -210,6 +223,7 @@ function tokenizeAndFillSlots(rawText, validRegions) {
     }
 
     if (text.match(/(?:시공도|TSD|tsd|타임스페이스)/)) slots.action = "SHOW_TSD";
+    else if (text.match(/(?:리포트|보고서|비교분석)/) || (text.match(/(?:비교|차이)/) && text.match(/(?:통계|만들어|분석|작성|생성)/))) slots.action = "AI_REPORT";
     else if (text.match(/(?:도면|연동망\s*(?:도면|출력|생성)|연동구간\s*(?:도면|출력|생성)|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
     else if (text.match(/(?:DB\s*센터|데이터베이스|통계\s*뷰|통계\s*화면|신호배분|연감\s*화면|노드링크)/)) slots.action = "SWITCH_TAB";
     else if (text.match(/(?:비교|차이|어느\s*곳)/)) slots.action = "COMPARE";
@@ -396,6 +410,82 @@ async function processAgentQuery(queryText) {
         return {
             msg: `📈 **[${groupName}] (그룹 ID: ${targetGid})**의 연동 시공도(TSD)를 성공적으로 로드했습니다.\n\n- **소속 교차로 수**: ${members.length}개소\n- **화면 제어**: [Group TOD] 탭으로 자동 전환하여 시간대별 주기, 오프셋(Offset) 및 시공도 차트를 표출했습니다.${isPopupRequested ? '\n- 🔍 시공도 비교분석 전용 팝업 창을 띄웠습니다.' : ''}`,
             action: 'SHOW_TSD'
+        };
+    }
+
+    // 📊 [AI 비교분석 리포트 액션 처리]
+    if (slots.action === "AI_REPORT" || queryText.includes("리포트") || queryText.includes("보고서") || (queryText.includes("비교") && queryText.includes("통계"))) {
+        const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+        const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+
+        let base = null;
+        let target = null;
+
+        // "A와 B", "A 과 B", "A 대비 B", "A vs B" 패턴 매칭
+        const pairRegex = /([가-힣]+(?:\s*전체|\s*전역|구|군|시))\s*(?:와|과|대비|및|,|\s+vs\s+)\s*([가-힣]+(?:\s*전체|\s*전역|구|군|시))/i;
+        const pairMatch = queryText.match(pairRegex);
+        if (pairMatch) {
+            base = pairMatch[1].trim();
+            target = pairMatch[2].trim();
+        } else if (slots.regions.length >= 2) {
+            base = slots.regions[0];
+            target = slots.regions[1];
+        } else if (slots.regions.length === 1) {
+            base = `${regionName} 전체`;
+            target = slots.regions[0];
+        } else {
+            const guMatch = queryText.match(/([가-힣]+구|[가-힣]+군)/);
+            if (guMatch) {
+                base = `${regionName} 전체`;
+                target = guMatch[1];
+            } else {
+                base = `${regionName} 전체`;
+                target = (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]?.office) 
+                    ? STATE.junctions[STATE.activeJid].office.replace(/구청$/, '구') 
+                    : '마포구';
+            }
+        }
+
+        // STATS VIEW 화면으로 자동 전환
+        switchTabInSim('tab-stats');
+
+        if (typeof window.generateAIReportProgrammatic === 'function') {
+            try {
+                const reportRes = await window.generateAIReportProgrammatic(base, target);
+                const actionButtons = `\n\n---\n<div style="display:flex; gap:8px; margin-top:8px;">` +
+                    `<button onclick="if(typeof printAIReport==='function')printAIReport();" style="background:rgba(255,183,77,0.15); border:1px solid #ffb74d; color:#ffb74d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">🖨️ PDF 리포트 인쇄</button>` +
+                    `<button onclick="switchTabInSim('tab-stats')" style="background:rgba(0,212,255,0.15); border:1px solid #00d4ff; color:#00d4ff; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">📊 통계 화면(STATS VIEW) 확인</button>` +
+                    `</div>`;
+                return {
+                    msg: reportRes.report + actionButtons,
+                    action: 'AI_REPORT'
+                };
+            } catch (err) {
+                console.error("AI Report generation error:", err);
+            }
+        }
+
+        // Fallback 직접 생성
+        let bList = data;
+        let tList = data;
+        if (target && !target.includes('전체') && !target.includes('전역')) {
+            const cleanT = target.replace(/(?:구|군|구청|경찰서)$/, '');
+            tList = data.filter(j => (j.office && j.office.includes(cleanT)) || (j.police && j.police.includes(cleanT)));
+            if (tList.length === 0) tList = data;
+        }
+        const bStats = typeof calculateStats === 'function' ? calculateStats(bList) : {};
+        const tStats = typeof calculateStats === 'function' ? calculateStats(tList) : {};
+
+        let fallbackMsg = `## 📊 ${base || regionName + ' 전체'} vs ${target || '선택 지역'} 비교분석 리포트\n\n` +
+            `- **총 교차로 수**: [${base || regionName}] ${bStats.totalJunctions || data.length}개소 vs [${target}] ${tStats.totalJunctions || tList.length}개소\n` +
+            `- **평균 신호주기**: [${base || regionName}] ${bStats.avgCycle || 0}초 vs [${target}] ${tStats.avgCycle || 0}초\n` +
+            `- **연동화율**: [${base || regionName}] ${bStats.coordRate || 0}% vs [${target}] ${tStats.coordRate || 0}%\n` +
+            `- **과포화 운영(160s+)**: [${base || regionName}] ${bStats.highCycleCount || 0}개소 vs [${target}] ${tStats.highCycleCount || 0}개소\n\n` +
+            `> STATS VIEW 탭에서 [AI 비교 분석 리포트 생성] 버튼을 눌러 정식 PDF 보고서를 출력하실 수 있습니다.`;
+
+        return {
+            msg: fallbackMsg,
+            action: 'AI_REPORT'
         };
     }
 
