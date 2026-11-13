@@ -1,3 +1,40 @@
+
+/**
+ * 🤖 [AI 챗봇 Action Engine] 시뮬레이터 UI 및 시공도 제어 헬퍼
+ */
+function showGroupTsdInSim(targetGid, openPopup = false) {
+    const gid = parseInt(targetGid, 10);
+    if (isNaN(gid) || gid === null || gid === undefined) return false;
+
+    // 1. Group TOD 탭 활성화
+    if (typeof openTab === 'function') {
+        openTab(null, 'tab-group');
+    }
+
+    // 2. 그룹 로드 및 TSD 자동 렌더링
+    if (typeof loadGroupInfo === 'function') {
+        loadGroupInfo(true, gid);
+    } else if (typeof selectGroup === 'function') {
+        selectGroup(gid);
+    }
+
+    // 3. 팝업 요청 시 전용 팝업 창 오픈
+    if (openPopup && typeof openTsdPopup === 'function') {
+        setTimeout(() => {
+            openTsdPopup();
+        }, 500);
+    }
+    return true;
+}
+
+function switchTabInSim(tabName) {
+    if (typeof openTab === 'function') {
+        openTab(null, tabName);
+        return true;
+    }
+    return false;
+}
+
 /**
  * chatbot_advanced.js
  * ----------------------------------------------------------------------
@@ -39,6 +76,7 @@ function injectChatbotUI() {
                 <div style="color: #64748b; font-size: 10px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">💡 NLU 슬롯 필링 테스트</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                     <span class="chat-chip" onclick="quickQuery('마포구의 연동구간 도면을 출력해줘')">🖨️ 마포구 도면 출력(PDF)</span>
+                    <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
                     <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
                     <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
                     <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
@@ -155,7 +193,14 @@ function tokenizeAndFillSlots(rawText, validRegions) {
     else if (hasAvg) slots.mathOp = "AVG";
 
     // 3. Action 추출
-    if (text.match(/(?:도면|연동망\s*도면|연동구간\s*도면|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
+    const groupMatch = text.match(/(?:그룹\s*(\d+)|\b(\d+)\s*번?\s*그룹|\b(\d+)\s*그룹|\b(\d+)\s*번)/i);
+    if (groupMatch) {
+        slots.groupId = parseInt(groupMatch[1] || groupMatch[2] || groupMatch[3] || groupMatch[4], 10);
+    }
+
+    if (text.match(/(?:시공도|TSD|tsd|타임스페이스)/)) slots.action = "SHOW_TSD";
+    else if (text.match(/(?:도면|연동망\s*도면|연동구간\s*도면|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
+    else if (text.match(/(?:DB\s*센터|데이터베이스|통계\s*뷰|통계\s*화면|신호배분|연감\s*화면|노드링크)/)) slots.action = "SWITCH_TAB";
     else if (text.match(/(?:비교|차이|어느\s*곳)/)) slots.action = "COMPARE";
     else if (text.match(/(?:어디|리스트|보여줘|목록|이름|어디어디)/) && !slots.mathOp) slots.action = "LIST";
     else if (text.match(/(?:\s*개|건수|얼마나|\b차이)/)) slots.action = "COUNT";
@@ -313,6 +358,53 @@ async function processAgentQuery(queryText) {
     const allRegions = [...new Set([...validOffices, ...validPolices])];
 
     const slots = tokenizeAndFillSlots(queryText, allRegions);
+    // 📈 [시공도(TSD) 액션 처리]
+    if (slots.action === "SHOW_TSD" || (queryText.includes("시공도") && !queryText.includes("도면"))) {
+        let targetGid = slots.groupId;
+
+        // 그룹 번호 미지정 시 현재 교차로 소속 그룹 또는 1번 그룹 기본 선택
+        if (targetGid === undefined || targetGid === null || isNaN(targetGid)) {
+            if (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]?.group) {
+                targetGid = parseInt(STATE.junctions[STATE.activeJid].group, 10);
+            } else if (typeof STATE !== 'undefined' && STATE.groups && Object.keys(STATE.groups).length > 0) {
+                targetGid = parseInt(Object.keys(STATE.groups)[0], 10);
+            } else {
+                targetGid = 1;
+            }
+        }
+
+        const groupObj = (typeof STATE !== 'undefined' && STATE.groups) ? STATE.groups[targetGid] : null;
+        const groupName = groupObj?.name ? groupObj.name.trim() : `그룹 ${targetGid}`;
+        const members = (typeof STATE !== 'undefined' && STATE.junctions) 
+            ? Object.values(STATE.junctions).filter(j => parseInt(j.group, 10) === targetGid) 
+            : [];
+
+        const isPopupRequested = queryText.includes("팝업") || queryText.includes("크게") || queryText.includes("새창");
+        showGroupTsdInSim(targetGid, isPopupRequested);
+
+        return {
+            msg: `📈 **[${groupName}] (그룹 ID: ${targetGid})**의 연동 시공도(TSD)를 성공적으로 로드했습니다.\n\n- **소속 교차로 수**: ${members.length}개소\n- **화면 제어**: [Group TOD] 탭으로 자동 전환하여 시간대별 주기, 오프셋(Offset) 및 시공도 차트를 표출했습니다.${isPopupRequested ? '\n- 🔍 시공도 비교분석 전용 팝업 창을 띄웠습니다.' : ''}`,
+            action: 'SHOW_TSD'
+        };
+    }
+
+    // 📂 [탭 화면 전환 액션 처리]
+    if (slots.action === "SWITCH_TAB") {
+        let targetTab = 'tab-group';
+        let tabLabel = 'Group TOD';
+        if (queryText.includes('DB') || queryText.includes('데이터베이스')) { targetTab = 'tab-db'; tabLabel = 'DB Center'; }
+        else if (queryText.includes('통계')) { targetTab = 'tab-stats'; tabLabel = 'Stats View'; }
+        else if (queryText.includes('신호배분') || queryText.includes('현시')) { targetTab = 'tab-phase'; tabLabel = 'Phase/Split'; }
+        else if (queryText.includes('연감') || queryText.includes('민원')) { targetTab = 'tab-civil'; tabLabel = 'Yearbook'; }
+        else if (queryText.includes('노드') || queryText.includes('링크')) { targetTab = 'tab-info'; tabLabel = 'Node/Link'; }
+        
+        switchTabInSim(targetTab);
+        return {
+            msg: `📂 화면을 **[${tabLabel}]** 탭으로 전환했습니다.`,
+            action: 'SWITCH_TAB'
+        };
+    }
+
     // 🖨️ [도면 출력 액션 처리]
     if (slots.action === "PRINT_DIAGRAM" || queryText.includes("도면")) {
         const matchGu = slots.cleanText.match(/([가-힣]+구|[가-힣]+군)/);
