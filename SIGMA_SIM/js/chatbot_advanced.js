@@ -35,6 +35,17 @@ function switchTabInSim(tabName) {
     return false;
 }
 
+function focusJunctionInSim(jid) {
+    if (typeof selectJunctionAndZoom === 'function') {
+        selectJunctionAndZoom(jid, true);
+        return true;
+    } else if (typeof selectJunction === 'function') {
+        selectJunction(jid);
+        return true;
+    }
+    return false;
+}
+
 /**
  * chatbot_advanced.js
  * ----------------------------------------------------------------------
@@ -199,7 +210,7 @@ function tokenizeAndFillSlots(rawText, validRegions) {
     }
 
     if (text.match(/(?:시공도|TSD|tsd|타임스페이스)/)) slots.action = "SHOW_TSD";
-    else if (text.match(/(?:도면|연동망\s*도면|연동구간\s*도면|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
+    else if (text.match(/(?:도면|연동망\s*(?:도면|출력|생성)|연동구간\s*(?:도면|출력|생성)|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
     else if (text.match(/(?:DB\s*센터|데이터베이스|통계\s*뷰|통계\s*화면|신호배분|연감\s*화면|노드링크)/)) slots.action = "SWITCH_TAB";
     else if (text.match(/(?:비교|차이|어느\s*곳)/)) slots.action = "COMPARE";
     else if (text.match(/(?:어디|리스트|보여줘|목록|이름|어디어디)/) && !slots.mathOp) slots.action = "LIST";
@@ -406,13 +417,39 @@ async function processAgentQuery(queryText) {
     }
 
     // 🖨️ [도면 출력 액션 처리]
-    if (slots.action === "PRINT_DIAGRAM" || queryText.includes("도면")) {
+    if (slots.action === "PRINT_DIAGRAM" || queryText.includes("도면") || (queryText.includes("연동망") && (queryText.includes("출력") || queryText.includes("만들어") || queryText.includes("생성")))) {
+        // 도면 닫기 명령 대응
+        if (queryText.includes("닫") || queryText.includes("종료") || queryText.includes("끄")) {
+            if (typeof window.closeNetworkPrintOverlay === 'function') {
+                window.closeNetworkPrintOverlay();
+                return {
+                    msg: "도면 출력 오버레이를 닫았습니다.",
+                    action: 'CLOSE_DIAGRAM'
+                };
+            }
+        }
+
         const matchGu = slots.cleanText.match(/([가-힣]+구|[가-힣]+군)/);
-        const district = (slots.regions.length > 0) ? slots.regions[0] : (matchGu ? matchGu[1] : '마포구');
+        let district = (slots.regions.length > 0) ? slots.regions[0] : (matchGu ? matchGu[1] : null);
+        
+        const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+        const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+
+        if (!district) {
+            if (queryText.includes("전체") || queryText.includes("전역") || queryText.includes("시 전체")) {
+                district = 'ALL';
+            } else if (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]?.office) {
+                district = STATE.junctions[STATE.activeJid].office.replace(/구청$/, '');
+            } else {
+                district = 'ALL';
+            }
+        }
+
+        const fullDistrict = (district === 'ALL' || district === '전체' || district === '전역') 
+            ? `${regionName} 전역` 
+            : (district.endsWith('구') || district.endsWith('군') ? district : district + '구');
         
         if (typeof window.printDistrictNetworkDiagram === 'function') {
-            const fullDistrict = district === 'ALL' ? '서울시 전역' : (district.endsWith('구') || district.endsWith('군') ? district : district + '구');
-            
             setTimeout(async () => {
                 await window.printDistrictNetworkDiagram(fullDistrict);
             }, 300);
@@ -425,6 +462,30 @@ async function processAgentQuery(queryText) {
             return {
                 msg: "⚠️ 연동망 도면 출력 모듈(network_print.js)이 준비되지 않았습니다.",
                 action: null
+            };
+        }
+    }
+
+    // 🔗 [연동망 레이어 표출/숨김 토글 제어]
+    if (queryText.includes("연동") && (queryText.includes("켜") || queryText.includes("꺼") || queryText.includes("보여") || queryText.includes("숨겨") || queryText.includes("토글"))) {
+        if (typeof toggleRoadNetworkVisibility === 'function') {
+            toggleRoadNetworkVisibility();
+            return {
+                msg: "🔗 지도 상의 **[신호 연동망(링크)]** 레이어 표출 상태를 토글했습니다.",
+                action: 'TOGGLE_NETWORK'
+            };
+        }
+    }
+
+    // 🎯 [교차로 지도 포커스 및 검색 이동]
+    if (queryText.includes("이동") || queryText.includes("찾아") || queryText.includes("위치")) {
+        const directMatch = data.filter(j => queryText.includes(j.name));
+        if (directMatch.length > 0) {
+            const targetJid = directMatch[0].id;
+            focusJunctionInSim(targetJid);
+            return {
+                msg: `🎯 **[${directMatch[0].name}]** (${targetJid}) 교차로로 지도를 이동하고 상세 정보를 활성화했습니다.`,
+                action: 'FOCUS_JUNCTION'
             };
         }
     }
