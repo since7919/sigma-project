@@ -280,6 +280,10 @@ window.selectRegion = function(regionCode) {
 
     renderJunctionList();
 
+    if (typeof window.updateChatbotChips === 'function') {
+        window.updateChatbotChips(regionCode);
+    }
+
     const rName = (window.REGION_MAP && window.REGION_MAP[regionCode]) || regionCode;
     if (typeof showLoading === 'function') {
         showLoading(`[${rName}] 신호데이터 및 교차로 네트워크 로딩 중...`);

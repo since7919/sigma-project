@@ -31,7 +31,9 @@ function generateAIReport() {
     const targetSel = document.getElementById('ai-target-select');
     if (!baseSel || !targetSel) return;
     
-    let optionsHtml = '<option value="ALL">서울시 전체</option>';
+    const curReg = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+    const curRegName = (window.REGION_MAP && window.REGION_MAP[curReg]) || (curReg === 'L02' ? '인천시' : '서울시');
+    let optionsHtml = `<option value="ALL">${curRegName} 전체</option>`;
     
     optionsHtml += '<optgroup label="구청(District)">';
     sortedOffices.forEach(o => { optionsHtml += `<option value="office|${o}">[구청] ${o}</option>`; });
@@ -53,8 +55,10 @@ async function startAIAnalysis() {
     const baseVal = document.getElementById('ai-base-select')?.value || 'ALL';
     const targetVal = document.getElementById('ai-target-select')?.value || 'ALL';
     
+    const curReg = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+    const curRegName = (window.REGION_MAP && window.REGION_MAP[curReg]) || (curReg === 'L02' ? '인천시' : '서울시');
     const getLabel = (val) => {
-        if (val === 'ALL') return '서울시 전체';
+        if (val === 'ALL') return `${curRegName} 전체`;
         const parts = val.split('|');
         return parts.length === 2 ? parts[1] : val;
     };
@@ -289,6 +293,89 @@ ${targetName} : ${'█'.repeat(Math.min(25, Math.max(1, Math.round((targetStats.
 두 지역 간 신호주기 편차 및 연동화율을 토대로 간선도로 축별 대기행렬 관리 및 감응제어 도입 타당성을 검토하시기 바랍니다.`;
 }
 
+window.SIGMA_REGION_DISTRICT_MAP = window.SIGMA_REGION_DISTRICT_MAP || {
+    'L01': {
+        name: '서울시',
+        fullName: '서울특별시',
+        aliases: ['서울', '서울시', '서울특별시'],
+        districts: ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구']
+    },
+    'L02': {
+        name: '인천시',
+        fullName: '인천광역시',
+        aliases: ['인천', '인천시', '인천광역시'],
+        districts: ['중구', '동구', '미추홀구', '연수구', '남동구', '부평구', '계양구', '서구', '강화군', '옹진군']
+    },
+    'L03': { name: '평택시', fullName: '평택시', aliases: ['평택', '평택시'], districts: ['평택시'] },
+    'L04': { name: '화성시', fullName: '화성시', aliases: ['화성', '화성시', '동탄'], districts: ['화성시'] },
+    'L05': { name: '동두천시', fullName: '동두천시', aliases: ['동두천', '동두천시'], districts: ['동두천시'] },
+    'L06': { name: '강릉시', fullName: '강릉시', aliases: ['강릉', '강릉시'], districts: ['강릉시'] },
+    'L07': { name: '원주시', fullName: '원주시', aliases: ['원주', '원주시'], districts: ['원주시'] },
+    'L08': { name: '용인시', fullName: '용인시', aliases: ['용인', '용인시'], districts: ['처인구', '기흥구', '수지구'] },
+    'L09': { name: '성남시', fullName: '성남시', aliases: ['성남', '성남시', '분당'], districts: ['수정구', '중원구', '분당구'] },
+    'L10': { name: '고양시', fullName: '고양시', aliases: ['고양', '고양시', '일산'], districts: ['덕양구', '일산동구', '일산서구'] },
+    'L11': { name: '시흥시', fullName: '시흥시', aliases: ['시흥', '시흥시'], districts: ['시흥시'] },
+    'L12': { name: '천안시', fullName: '천안시', aliases: ['천안', '천안시'], districts: ['동남구', '서북구'] },
+    'L13': { name: '청주시', fullName: '청주시', aliases: ['청주', '청주시'], districts: ['상당구', '서원구', '흥덕구', '청원구'] },
+    'L14': { name: '전주시', fullName: '전주시', aliases: ['전주', '전주시'], districts: ['완산구', '덕진구'] },
+    'L15': { name: '군산시', fullName: '군산시', aliases: ['군산', '군산시'], districts: ['군산시'] },
+    'L16': { name: '의왕시', fullName: '의왕시', aliases: ['의왕', '의왕시'], districts: ['의왕시'] },
+    'L17': { name: '익산시', fullName: '익산시', aliases: ['익산', '익산시'], districts: ['익산시'] },
+    'L18': { name: '경주시', fullName: '경주시', aliases: ['경주', '경주시'], districts: ['경주시'] },
+    'L19': { name: '수원시', fullName: '수원시', aliases: ['수원', '수원시'], districts: ['장안구', '권선구', '팔달구', '영통구'] },
+    'L20': { name: '제주시', fullName: '제주시', aliases: ['제주', '제주시'], districts: ['제주시'] },
+    'L21': { name: '서귀포시', fullName: '서귀포시', aliases: ['서귀포', '서귀포시'], districts: ['서귀포시'] },
+    'L23': { name: '부산시', fullName: '부산광역시', aliases: ['부산', '부산시', '부산광역시'], districts: ['중구', '서구', '동구', '영도구', '부산진구', '동래구', '남구', '북구', '해운대구', '사하구', '금정구', '강서구', '연제구', '수영구', '사상구', '기장군'] },
+    'L29': { name: '대구시', fullName: '대구광역시', aliases: ['대구', '대구시', '대구광역시'], districts: ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구', '달성군', '군위군'] },
+    'L30': { name: '대전시', fullName: '대전광역시', aliases: ['대전', '대전시', '대전광역시'], districts: ['동구', '중구', '서구', '유성구', '대덕구'] }
+};
+
+window.getRegionInfoForLocation = window.getRegionInfoForLocation || function(locationStr, currentRegionCode = 'L01') {
+    if (!locationStr) return null;
+    let clean = locationStr.trim().replace(/^(office\||police\|)/, '').replace(/(구청|경찰서)$/, '');
+
+    // 1. 시/도 단위 일치 확인 (예: '서울시', '서울', '인천시', '부산' 등)
+    for (const [code, info] of Object.entries(window.SIGMA_REGION_DISTRICT_MAP)) {
+        for (const alias of info.aliases) {
+            if (clean.includes(alias)) {
+                return { code, name: info.name, fullName: info.fullName };
+            }
+        }
+    }
+
+    // 2. 자치구/군 단위 일치 확인
+    const ambiguousDistricts = ['중구', '동구', '서구', '남구', '북구', '강서구'];
+    for (const [code, info] of Object.entries(window.SIGMA_REGION_DISTRICT_MAP)) {
+        for (const dist of info.districts) {
+            const bare = dist.replace(/(?:구|군|시)$/, '');
+            if (clean === dist || clean === bare || (clean.length >= 2 && dist.startsWith(clean))) {
+                if (ambiguousDistricts.includes(dist) || ambiguousDistricts.includes(bare)) {
+                    // 현재 선택된 지역에 속해 있다면 현재 지역 우선
+                    const curInfo = window.SIGMA_REGION_DISTRICT_MAP[currentRegionCode];
+                    if (curInfo && curInfo.districts.some(d => d.includes(bare))) {
+                        return { code: currentRegionCode, name: curInfo.name, fullName: curInfo.fullName };
+                    }
+                }
+                return { code, name: info.name, fullName: info.fullName };
+            }
+        }
+    }
+
+    // 3. 현재 로드된 STATE.junctions 에서 검색
+    if (typeof STATE !== 'undefined' && STATE.junctions) {
+        const found = Object.values(STATE.junctions).some(j => 
+            (j.office && j.office.includes(clean)) || 
+            (j.police && j.police.includes(clean)) ||
+            (j.name && j.name.includes(clean))
+        );
+        if (found) {
+            const curInfo = window.SIGMA_REGION_DISTRICT_MAP[currentRegionCode] || { name: '현재 관할', fullName: '현재 관할' };
+            return { code: currentRegionCode, name: curInfo.name, fullName: curInfo.fullName };
+        }
+    }
+    return null;
+};
+
 /**
  * 🤖 AI 챗봇 및 외부 모듈 연동용 비교분석 리포트 생성 코어 함수
  */
@@ -299,12 +386,28 @@ window.generateAIReportProgrammatic = async function(baseTarget = 'ALL', targetT
     }
 
     const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
-    const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+    const regionName = (window.REGION_MAP && window.REGION_MAP[currentRegionCode]) || (currentRegionCode === 'L02' ? '인천시' : '서울시');
 
     const resolveNameAndList = (val) => {
-        if (!val || val === 'ALL' || val.includes('전체') || val.includes('전역')) {
+        if (!val || val === 'ALL' || val === '전체' || val === '전역') {
             return { name: `${regionName} 전체`, list: allJunctions };
         }
+
+        // 지자체 불일치 검증
+        const regInfo = window.getRegionInfoForLocation ? window.getRegionInfoForLocation(val, currentRegionCode) : null;
+        if (regInfo && regInfo.code !== currentRegionCode) {
+            const err = new Error(`현재 선택된 관할 지자체는 [${regionName}]입니다. 요청하신 '${val}'은 [${regInfo.name}] 소속이므로, 상단 메뉴에서 해당 지역을 먼저 선택해야 합니다.`);
+            err.regionMismatch = true;
+            err.targetRegion = regInfo.code;
+            err.targetName = regInfo.name;
+            err.requestedLocation = val;
+            throw err;
+        }
+
+        if (val.includes('전체') || val.includes('전역')) {
+            return { name: `${regionName} 전체`, list: allJunctions };
+        }
+
         let clean = val.replace(/^(office\||police\|)/, '').replace(/(구청|경찰서)$/, '').trim();
         let matched = allJunctions.filter(j => 
             (j.office && j.office.includes(clean)) || 
@@ -317,12 +420,39 @@ window.generateAIReportProgrammatic = async function(baseTarget = 'ALL', targetT
                 (j.police && j.police.includes(clean + '경찰서'))
             );
         }
+
+        if (matched.length === 0) {
+            const err = new Error(`현재 선택된 지자체(${regionName})에서 '${val}'에 해당하는 교차로 데이터를 찾을 수 없습니다. 지역이 다른 경우 상단 메뉴에서 해당 지역을 먼저 선택해야 합니다.`);
+            err.regionMismatch = true;
+            if (regInfo) {
+                err.targetRegion = regInfo.code;
+                err.targetName = regInfo.name;
+            }
+            err.requestedLocation = val;
+            throw err;
+        }
+
         const displayName = clean.endsWith('구') || clean.endsWith('군') ? clean : (matched.length > 0 && matched[0].office ? matched[0].office.replace(/구청$/, '구') : clean + '구');
-        return { name: displayName, list: matched.length > 0 ? matched : allJunctions };
+        return { name: displayName, list: matched };
     };
 
-    const baseObj = resolveNameAndList(baseTarget);
-    const targetObj = resolveNameAndList(targetTarget);
+    let baseObj, targetObj;
+    try {
+        baseObj = resolveNameAndList(baseTarget);
+        targetObj = resolveNameAndList(targetTarget);
+    } catch (err) {
+        if (err.regionMismatch) {
+            return {
+                success: false,
+                reason: 'REGION_MISMATCH',
+                message: err.message,
+                targetRegion: err.targetRegion,
+                targetName: err.targetName,
+                requestedLocation: err.requestedLocation
+            };
+        }
+        throw err;
+    }
 
     const baseStats = calculateStats(baseObj.list);
     const targetStats = calculateStats(targetObj.list);

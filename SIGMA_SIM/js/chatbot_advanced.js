@@ -67,6 +67,152 @@ let chatContext = {
     properties: []
 };
 
+// 🏛️ [지자체 및 자치구 매핑 테이블]
+window.SIGMA_REGION_DISTRICT_MAP = window.SIGMA_REGION_DISTRICT_MAP || {
+    'L01': {
+        name: '서울시',
+        fullName: '서울특별시',
+        aliases: ['서울', '서울시', '서울특별시'],
+        districts: ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구']
+    },
+    'L02': {
+        name: '인천시',
+        fullName: '인천광역시',
+        aliases: ['인천', '인천시', '인천광역시'],
+        districts: ['중구', '동구', '미추홀구', '연수구', '남동구', '부평구', '계양구', '서구', '강화군', '옹진군']
+    },
+    'L03': { name: '평택시', fullName: '평택시', aliases: ['평택', '평택시'], districts: ['평택시'] },
+    'L04': { name: '화성시', fullName: '화성시', aliases: ['화성', '화성시', '동탄'], districts: ['화성시'] },
+    'L05': { name: '동두천시', fullName: '동두천시', aliases: ['동두천', '동두천시'], districts: ['동두천시'] },
+    'L06': { name: '강릉시', fullName: '강릉시', aliases: ['강릉', '강릉시'], districts: ['강릉시'] },
+    'L07': { name: '원주시', fullName: '원주시', aliases: ['원주', '원주시'], districts: ['원주시'] },
+    'L08': { name: '용인시', fullName: '용인시', aliases: ['용인', '용인시'], districts: ['처인구', '기흥구', '수지구'] },
+    'L09': { name: '성남시', fullName: '성남시', aliases: ['성남', '성남시', '분당'], districts: ['수정구', '중원구', '분당구'] },
+    'L10': { name: '고양시', fullName: '고양시', aliases: ['고양', '고양시', '일산'], districts: ['덕양구', '일산동구', '일산서구'] },
+    'L11': { name: '시흥시', fullName: '시흥시', aliases: ['시흥', '시흥시'], districts: ['시흥시'] },
+    'L12': { name: '천안시', fullName: '천안시', aliases: ['천안', '천안시'], districts: ['동남구', '서북구'] },
+    'L13': { name: '청주시', fullName: '청주시', aliases: ['청주', '청주시'], districts: ['상당구', '서원구', '흥덕구', '청원구'] },
+    'L14': { name: '전주시', fullName: '전주시', aliases: ['전주', '전주시'], districts: ['완산구', '덕진구'] },
+    'L15': { name: '군산시', fullName: '군산시', aliases: ['군산', '군산시'], districts: ['군산시'] },
+    'L16': { name: '의왕시', fullName: '의왕시', aliases: ['의왕', '의왕시'], districts: ['의왕시'] },
+    'L17': { name: '익산시', fullName: '익산시', aliases: ['익산', '익산시'], districts: ['익산시'] },
+    'L18': { name: '경주시', fullName: '경주시', aliases: ['경주', '경주시'], districts: ['경주시'] },
+    'L19': { name: '수원시', fullName: '수원시', aliases: ['수원', '수원시'], districts: ['장안구', '권선구', '팔달구', '영통구'] },
+    'L20': { name: '제주시', fullName: '제주시', aliases: ['제주', '제주시'], districts: ['제주시'] },
+    'L21': { name: '서귀포시', fullName: '서귀포시', aliases: ['서귀포', '서귀포시'], districts: ['서귀포시'] },
+    'L23': { name: '부산시', fullName: '부산광역시', aliases: ['부산', '부산시', '부산광역시'], districts: ['중구', '서구', '동구', '영도구', '부산진구', '동래구', '남구', '북구', '해운대구', '사하구', '금정구', '강서구', '연제구', '수영구', '사상구', '기장군'] },
+    'L29': { name: '대구시', fullName: '대구광역시', aliases: ['대구', '대구시', '대구광역시'], districts: ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구', '달성군', '군위군'] },
+    'L30': { name: '대전시', fullName: '대전광역시', aliases: ['대전', '대전시', '대전광역시'], districts: ['동구', '중구', '서구', '유성구', '대덕구'] }
+};
+
+window.getRegionInfoForLocation = window.getRegionInfoForLocation || function(locationStr, currentRegionCode = 'L01') {
+    if (!locationStr) return null;
+    let clean = locationStr.trim().replace(/^(office\||police\|)/, '').replace(/(구청|경찰서)$/, '');
+
+    // 1. 시/도 단위 일치 확인 (예: '서울시', '서울', '인천시', '부산' 등)
+    for (const [code, info] of Object.entries(window.SIGMA_REGION_DISTRICT_MAP)) {
+        for (const alias of info.aliases) {
+            if (clean.includes(alias)) {
+                return { code, name: info.name, fullName: info.fullName };
+            }
+        }
+    }
+
+    // 2. 자치구/군 단위 일치 확인
+    const ambiguousDistricts = ['중구', '동구', '서구', '남구', '북구', '강서구'];
+    for (const [code, info] of Object.entries(window.SIGMA_REGION_DISTRICT_MAP)) {
+        for (const dist of info.districts) {
+            const bare = dist.replace(/(?:구|군|시)$/, '');
+            if (clean === dist || clean === bare || (clean.length >= 2 && dist.startsWith(clean))) {
+                if (ambiguousDistricts.includes(dist) || ambiguousDistricts.includes(bare)) {
+                    // 현재 선택된 지역에 속해 있다면 현재 지역 우선
+                    const curInfo = window.SIGMA_REGION_DISTRICT_MAP[currentRegionCode];
+                    if (curInfo && curInfo.districts.some(d => d.includes(bare))) {
+                        return { code: currentRegionCode, name: curInfo.name, fullName: curInfo.fullName };
+                    }
+                }
+                return { code, name: info.name, fullName: info.fullName };
+            }
+        }
+    }
+
+    // 3. 현재 로드된 STATE.junctions 에서 검색
+    if (typeof STATE !== 'undefined' && STATE.junctions) {
+        const found = Object.values(STATE.junctions).some(j => 
+            (j.office && j.office.includes(clean)) || 
+            (j.police && j.police.includes(clean)) ||
+            (j.name && j.name.includes(clean))
+        );
+        if (found) {
+            const curInfo = window.SIGMA_REGION_DISTRICT_MAP[currentRegionCode] || { name: '현재 관할', fullName: '현재 관할' };
+            return { code: currentRegionCode, name: curInfo.name, fullName: curInfo.fullName };
+        }
+    }
+    return null;
+};
+
+// ⚠️ [지역 불일치 안내 메시지 빌더]
+function buildRegionMismatchMessage(currentRegionCode, targetRegionCode, targetLocations = []) {
+    const currentName = (window.REGION_MAP && window.REGION_MAP[currentRegionCode]) || (currentRegionCode === 'L02' ? '인천시' : '서울시');
+    const targetName = (window.REGION_MAP && window.REGION_MAP[targetRegionCode]) || targetRegionCode;
+    const locStr = targetLocations.length > 0 ? targetLocations.join(', ') : targetName;
+
+    return `⚠️ **[관할 지자체 선택 안내]**\n\n` +
+        `- **현재 선택된 지자체**: **${currentName}** (${currentRegionCode})\n` +
+        `- **요청하신 분석 대상**: **${locStr}** (소속: **${targetName}**)\n\n` +
+        `> **안내:** 지역이 다른 경우 해당 지역을 먼저 선택해야 정상적인 데이터 조회 및 분석 리포트 생성이 가능합니다.\n\n` +
+        `화면 좌측 상단 지자체 메뉴를 이용하시거나, 아래 버튼을 클릭하여 즉시 **[${targetName}]** 데이터로 전환해 주십시오.\n\n` +
+        `<div style="margin-top: 10px;">` +
+        `<button onclick="if(typeof selectRegion==='function'){selectRegion('${targetRegionCode}'); if(typeof addMessageToUI==='function')addMessageToUI('🔄 **[${targetName}]** 데이터로 전환 중입니다. 로딩 완료 후 다시 요청해 주세요.', false);}" style="background: rgba(0, 212, 255, 0.15); border: 1px solid #00d4ff; color: #00d4ff; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">` +
+        `🔄 [${targetName}] 데이터로 전환하기` +
+        `</button>` +
+        `</div>`;
+}
+
+// 💡 [지역 맞춤형 챗봇 퀵 칩 렌더러]
+function renderChatbotChips(regionCode) {
+    const container = document.getElementById('chatbot-chips-container');
+    if (!container) return;
+
+    const rCode = regionCode || (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
+    let chipsHtml = '';
+
+    if (rCode === 'L02') {
+        // 인천시 전용 추천 질문 칩
+        chipsHtml = `
+            <span class="chat-chip" onclick="quickQuery('인천시 전역과 부평구 통계를 비교하는 리포트를 만들어줘')">📊 인천시 vs 부평구 비교리포트</span>
+            <span class="chat-chip" onclick="quickQuery('부평구의 연동구간 도면을 출력해줘')">🖨️ 부평구 도면 출력(PDF)</span>
+            <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
+            <span class="chat-chip" onclick="quickQuery('부평구 대각선횡단보도 어디야?')">🔍 부평구 대각선 횡단보도</span>
+            <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
+            <span class="chat-chip" onclick="quickQuery('남동구에서 민원이 가장 많은 교차로가 어디야?')">🚨 남동구 민원 순위</span>
+        `;
+    } else if (rCode === 'L01') {
+        // 서울시 전용 추천 질문 칩
+        chipsHtml = `
+            <span class="chat-chip" onclick="quickQuery('서울시 전체와 마포구 통계를 비교하는 리포트를 만들어줘')">📊 서울시 vs 마포구 비교리포트</span>
+            <span class="chat-chip" onclick="quickQuery('마포구의 연동구간 도면을 출력해줘')">🖨️ 마포구 도면 출력(PDF)</span>
+            <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
+            <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
+            <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
+            <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
+        `;
+    } else {
+        // 기타 지자체 추천 질문 칩
+        const rName = (window.REGION_MAP && window.REGION_MAP[rCode]) || rCode;
+        chipsHtml = `
+            <span class="chat-chip" onclick="quickQuery('${rName} 전역 비교분석 리포트를 만들어줘')">📊 ${rName} 분석 리포트</span>
+            <span class="chat-chip" onclick="quickQuery('${rName} 연동구간 도면을 출력해줘')">🖨️ ${rName} 도면 출력(PDF)</span>
+            <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
+            <span class="chat-chip" onclick="quickQuery('${rName} 대각선횡단보도 어디야?')">🔍 ${rName} 대각선 횡단보도</span>
+            <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
+            <span class="chat-chip" onclick="quickQuery('${rName}에서 민원이 가장 많은 교차로가 어디야?')">🚨 ${rName} 민원 순위</span>
+        `;
+    }
+    container.innerHTML = chipsHtml;
+}
+window.updateChatbotChips = renderChatbotChips;
+
 // 1. Inject Chatbot UI
 function injectChatbotUI() {
     const chatbotHTML = `
@@ -92,14 +238,7 @@ function injectChatbotUI() {
             </div>
             <div style="padding: 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <div style="color: #64748b; font-size: 10px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">💡 NLU 슬롯 필링 테스트</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span class="chat-chip" onclick="quickQuery('서울시 전체와 마포구 통계를 비교하는 리포트를 만들어줘')">📊 서울시 vs 마포구 비교리포트</span>
-                    <span class="chat-chip" onclick="quickQuery('마포구의 연동구간 도면을 출력해줘')">🖨️ 마포구 도면 출력(PDF)</span>
-                    <span class="chat-chip" onclick="quickQuery('1번 그룹 시공도를 보여줘')">📈 1그룹 시공도(TSD)</span>
-                    <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
-                    <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
-                    <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
-                </div>
+                <div id="chatbot-chips-container" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
             </div>
             <div id="chatbot-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-size: 14px; color: #eee; scrollbar-width: none;">
                 <div style="align-self: flex-start; background: rgba(0, 212, 255, 0.05); padding: 15px; border-radius: 12px; border-left: 4px solid #00d4ff; max-width: 90%; line-height: 1.6;">
@@ -129,6 +268,7 @@ function injectChatbotUI() {
     </div>
     `;
     document.body.insertAdjacentHTML('beforeend', chatbotHTML);
+    renderChatbotChips(window.CURRENT_REGION_CODE);
 }
 
 function toggleChatbot() {
@@ -137,6 +277,9 @@ function toggleChatbot() {
     const btnEl = document.getElementById('chatbot-toggle-btn');
     if (windowEl) windowEl.style.display = chatbotOpen ? 'flex' : 'none';
     if (btnEl) btnEl.style.transform = chatbotOpen ? 'scale(0.8) rotate(15deg)' : 'scale(1) rotate(0deg)';
+    if (chatbotOpen && typeof renderChatbotChips === 'function') {
+        renderChatbotChips(window.CURRENT_REGION_CODE);
+    }
 }
 
 function handleChatbotEnter(e) { if (e.key === 'Enter') sendChatMessage(); }
@@ -416,7 +559,7 @@ async function processAgentQuery(queryText) {
     // 📊 [AI 비교분석 리포트 액션 처리]
     if (slots.action === "AI_REPORT" || queryText.includes("리포트") || queryText.includes("보고서") || (queryText.includes("비교") && queryText.includes("통계"))) {
         const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
-        const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+        const regionName = (window.REGION_MAP && window.REGION_MAP[currentRegionCode]) || (currentRegionCode === 'L02' ? '인천시' : '서울시');
 
         let base = null;
         let target = null;
@@ -442,8 +585,23 @@ async function processAgentQuery(queryText) {
                 base = `${regionName} 전체`;
                 target = (typeof STATE !== 'undefined' && STATE.activeJid && STATE.junctions && STATE.junctions[STATE.activeJid]?.office) 
                     ? STATE.junctions[STATE.activeJid].office.replace(/구청$/, '구') 
-                    : '마포구';
+                    : (currentRegionCode === 'L02' ? '부평구' : '마포구');
             }
+        }
+
+        // 지자체 불일치 검증 (서울 vs 인천 등 지역이 다른 경우 선제적 차단 및 안내)
+        const baseReg = window.getRegionInfoForLocation ? window.getRegionInfoForLocation(base, currentRegionCode) : null;
+        const targetReg = window.getRegionInfoForLocation ? window.getRegionInfoForLocation(target, currentRegionCode) : null;
+
+        if ((baseReg && baseReg.code !== currentRegionCode) || (targetReg && targetReg.code !== currentRegionCode)) {
+            const mismatchReg = (targetReg && targetReg.code !== currentRegionCode) ? targetReg : baseReg;
+            const mismatchLocs = [];
+            if (baseReg && baseReg.code !== currentRegionCode) mismatchLocs.push(base);
+            if (targetReg && targetReg.code !== currentRegionCode) mismatchLocs.push(target);
+            return {
+                msg: buildRegionMismatchMessage(currentRegionCode, mismatchReg.code, mismatchLocs),
+                action: 'REGION_MISMATCH'
+            };
         }
 
         // STATS VIEW 화면으로 자동 전환
@@ -452,6 +610,12 @@ async function processAgentQuery(queryText) {
         if (typeof window.generateAIReportProgrammatic === 'function') {
             try {
                 const reportRes = await window.generateAIReportProgrammatic(base, target);
+                if (reportRes.success === false && reportRes.reason === 'REGION_MISMATCH') {
+                    return {
+                        msg: buildRegionMismatchMessage(currentRegionCode, reportRes.targetRegion || 'L01', [reportRes.requestedLocation || target]),
+                        action: 'REGION_MISMATCH'
+                    };
+                }
                 const actionButtons = `\n\n---\n<div style="display:flex; gap:8px; margin-top:8px;">` +
                     `<button onclick="if(typeof printAIReport==='function')printAIReport();" style="background:rgba(255,183,77,0.15); border:1px solid #ffb74d; color:#ffb74d; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">🖨️ PDF 리포트 인쇄</button>` +
                     `<button onclick="switchTabInSim('tab-stats')" style="background:rgba(0,212,255,0.15); border:1px solid #00d4ff; color:#00d4ff; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">📊 통계 화면(STATS VIEW) 확인</button>` +
@@ -523,7 +687,17 @@ async function processAgentQuery(queryText) {
         let district = (slots.regions.length > 0) ? slots.regions[0] : (matchGu ? matchGu[1] : null);
         
         const currentRegionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
-        const regionName = (currentRegionCode === 'L02') ? '인천시' : '서울시';
+        const regionName = (window.REGION_MAP && window.REGION_MAP[currentRegionCode]) || (currentRegionCode === 'L02' ? '인천시' : '서울시');
+
+        if (district && district !== 'ALL' && !district.includes('전체') && !district.includes('전역')) {
+            const distReg = window.getRegionInfoForLocation ? window.getRegionInfoForLocation(district, currentRegionCode) : null;
+            if (distReg && distReg.code !== currentRegionCode) {
+                return {
+                    msg: buildRegionMismatchMessage(currentRegionCode, distReg.code, [district]),
+                    action: 'REGION_MISMATCH'
+                };
+            }
+        }
 
         if (!district) {
             if (queryText.includes("전체") || queryText.includes("전역") || queryText.includes("시 전체")) {
@@ -580,6 +754,19 @@ async function processAgentQuery(queryText) {
         }
     }
     let filtered = resolveSlotsToData(slots, data);
+
+    // 검색 결과가 없고 슬롯에 다른 지역명이 포함된 경우 지자체 불일치 안내 제공
+    if (filtered.length === 0 && slots.regions.length > 0) {
+        for (let r of slots.regions) {
+            const rReg = window.getRegionInfoForLocation ? window.getRegionInfoForLocation(r, currentRegionCode) : null;
+            if (rReg && rReg.code !== currentRegionCode) {
+                return {
+                    msg: buildRegionMismatchMessage(currentRegionCode, rReg.code, [r]),
+                    action: 'REGION_MISMATCH'
+                };
+            }
+        }
+    }
     
     // 너무 많은 데이터를 보내면 토큰 초과이므로, 최대 5개로 제한 (또는 전체 평균값만 요약해서 전송)
     let contextData = {};
