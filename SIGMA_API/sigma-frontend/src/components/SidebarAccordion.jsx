@@ -210,7 +210,7 @@ export default function SidebarAccordion({ safetyZoneSummary, rtiIntersections, 
             }
           }} style={{ position: 'relative' }}>
             <span className="acc-icon">{uticOpen ? '▼' : '▶'}</span>
-            🚓 교통신호 TSI 허브 / UTIC 개방데이터
+            🚓 UTIC 개방데이터
             <button 
               onClick={forceRefreshUtic} 
               style={{ position: 'absolute', right: '10px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.75rem', padding: '2px 6px' }}
@@ -226,8 +226,8 @@ export default function SidebarAccordion({ safetyZoneSummary, rtiIntersections, 
                   <div className="acc-sub-header" onClick={() => toggleRegion(region)}>
                     <span className="acc-icon">{uticOpenRegions[region] ? '▼' : '▶'}</span>
                     {region} <span className="acc-count">({list.length})</span>
-                    {safetyZoneSummary && safetyZoneSummary[region.substring(0,3)] && (
-                      <span title="통합보호구역(어린이/노인/장애인) 데이터 보유 지역" style={{ marginLeft: '6px', fontSize: '13px' }}>🟡</span>
+                    {list.length > 0 && (
+                      <span title="공공데이터 API 활성화 (교차로 제공)" style={{ marginLeft: '6px', fontSize: '13px' }}>🟡</span>
                     )}
                   </div>
                   {uticOpenRegions[region] && (
