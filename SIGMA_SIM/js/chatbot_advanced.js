@@ -38,6 +38,7 @@ function injectChatbotUI() {
             <div style="padding: 15px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <div style="color: #64748b; font-size: 10px; margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">💡 NLU 슬롯 필링 테스트</div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span class="chat-chip" onclick="quickQuery('마포구의 연동구간 도면을 출력해줘')">🖨️ 마포구 도면 출력(PDF)</span>
                     <span class="chat-chip" onclick="quickQuery('용산구 대각선횡단보도 어디야?')">🔍 용산구 대각선 횡단보도</span>
                     <span class="chat-chip" onclick="quickQuery('거기서 주기가 140초인 곳은 몇개야?')">문맥 기억(거기서)</span>
                     <span class="chat-chip" onclick="quickQuery('종로구에서 민원이 가장 많은 교차로가 어디야?')">🚨 종로구 민원 순위</span>
@@ -154,7 +155,8 @@ function tokenizeAndFillSlots(rawText, validRegions) {
     else if (hasAvg) slots.mathOp = "AVG";
 
     // 3. Action 추출
-    if (text.match(/(?:비교|차이|어느\s*곳)/)) slots.action = "COMPARE";
+    if (text.match(/(?:도면|연동망\s*도면|연동구간\s*도면|도면\s*출력|도면\s*인쇄|pdf\s*출력|PDF\s*출력)/)) slots.action = "PRINT_DIAGRAM";
+    else if (text.match(/(?:비교|차이|어느\s*곳)/)) slots.action = "COMPARE";
     else if (text.match(/(?:어디|리스트|보여줘|목록|이름|어디어디)/) && !slots.mathOp) slots.action = "LIST";
     else if (text.match(/(?:\s*개|건수|얼마나|\b차이)/)) slots.action = "COUNT";
     else if (text.match(/(?:이동|지역)/)) slots.action = "MAP";
@@ -311,6 +313,29 @@ async function processAgentQuery(queryText) {
     const allRegions = [...new Set([...validOffices, ...validPolices])];
 
     const slots = tokenizeAndFillSlots(queryText, allRegions);
+    // 🖨️ [도면 출력 액션 처리]
+    if (slots.action === "PRINT_DIAGRAM" || queryText.includes("도면")) {
+        const matchGu = slots.cleanText.match(/([가-힣]+구|[가-힣]+군)/);
+        const district = (slots.regions.length > 0) ? slots.regions[0] : (matchGu ? matchGu[1] : '마포구');
+        
+        if (typeof window.printDistrictNetworkDiagram === 'function') {
+            const fullDistrict = district === 'ALL' ? '서울시 전역' : (district.endsWith('구') || district.endsWith('군') ? district : district + '구');
+            
+            setTimeout(async () => {
+                await window.printDistrictNetworkDiagram(fullDistrict);
+            }, 300);
+
+            return {
+                msg: `📄 **[${fullDistrict}] 연동구간 도면 생성을 완료했습니다.**\n\n- 연동 그룹별 고유 식별선 및 단위면적 밀집구역 확대도(Inset Map)가 자동으로 구성되었습니다.\n- 잠시 후 브라우저의 **PDF 인쇄/저장 다이얼로그**가 실행됩니다.\n- 필요 시 상단 도면 최적화 툴바에서 용지(A4/A3) 및 테마를 자유롭게 조정하실 수도 있습니다.`,
+                action: 'PRINT_DIAGRAM'
+            };
+        } else {
+            return {
+                msg: "⚠️ 연동망 도면 출력 모듈(network_print.js)이 준비되지 않았습니다.",
+                action: null
+            };
+        }
+    }
     let filtered = resolveSlotsToData(slots, data);
     
     // 너무 많은 데이터를 보내면 토큰 초과이므로, 최대 5개로 제한 (또는 전체 평균값만 요약해서 전송)

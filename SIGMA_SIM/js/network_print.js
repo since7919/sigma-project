@@ -2300,3 +2300,50 @@ window.closeNetworkPrintOverlay = function() {
     });
     _insetLabelLayers = {};
 };
+
+window.renderNetworkPrintOverlay = renderNetworkPrintOverlay;
+
+/**
+ * 🤖 AI 챗봇 및 외부 모듈 연동용 도면 생성 및 PDF 출력 원클릭 API
+ */
+window.printDistrictNetworkDiagram = async function(districtName, options = {}) {
+    let target = districtName || 'ALL';
+    if (target !== 'ALL' && !target.endsWith('구') && !target.endsWith('군') && !target.endsWith('시')) {
+        target += '구';
+    }
+
+    try {
+        const districts = await getAvailablePrintDistricts();
+        const matched = districts.find(d => d.name === target || d.name.includes(target.replace(/(구|군)$/, '')));
+        if (matched) {
+            target = matched.name;
+        }
+    } catch(e) {
+        console.warn('District matching warning:', e);
+    }
+
+    _currentPrintOpts = {
+        targetDistrict: target,
+        pageSize: options.pageSize || 'A4',
+        orientation: options.orientation || 'landscape',
+        labelMode: options.labelMode || 'smart',
+        theme: options.theme || 'clean',
+        nodeSize: options.nodeSize || 1.8,
+        lineWidth: options.lineWidth || 5.0,
+        showInsetMap: options.showInsetMap !== undefined ? options.showInsetMap : true,
+        fontSize: options.fontSize || 7.2,
+        showJid: options.showJid || false,
+        showBoundary: true
+    };
+
+    await renderNetworkPrintOverlay(_currentPrintOpts);
+
+    if (options.autoPrint !== false) {
+        setTimeout(() => {
+            if (typeof window.triggerNetworkPrint === 'function') {
+                window.triggerNetworkPrint();
+            }
+        }, 1500);
+    }
+    return _currentPrintOpts;
+};
