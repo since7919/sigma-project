@@ -2465,12 +2465,14 @@
                 <div id="overlay-tab-sigmap" class="detail-tab-content" style="display: none;">
                     <!-- 시그널맵 데이터 바인딩 영역 -->
                 </div>
-                <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; padding: 20px;">
+                <div id="overlay-tab-baseinfo" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;">
                     <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
                     <!-- 교차로정보 데이터 바인딩 영역 -->
-                    <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 0; border: 1px solid #1e293b;">
+                    <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 4px; border: 1px solid #1e293b;">
                         <!-- Dynamic: info-fields-container -->
                     </div>
+                    <!-- 교차로 운영 메모 & 캘린더 영역 -->
+                    <div id="junction-notes-container"></div>
                 </div>
                 <div id="overlay-tab-optstats" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;">
                     <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
@@ -2596,6 +2598,7 @@
 
     <script src="js/overlay_ui.js?v=1793520840221"></script>
     <script src="js/db_report.js?v=1791726500000"></script>
+    <script src="js/junction_notes.js?v=1794616000000"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">

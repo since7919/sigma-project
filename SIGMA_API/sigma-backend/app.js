@@ -1903,7 +1903,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 
 // 1-5. 교차로별 DB 업데이트 API (동시성 제어 적용)
 app.post('/api/sim/update-junction', async (req, res) => {
-  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password } = req.body;
+  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password, memo, calendarEvents } = req.body;
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
   if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
     return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
@@ -2148,6 +2148,28 @@ app.post('/api/sim/update-junction', async (req, res) => {
         }
       }
 
+      // 5) 교차로 메모 및 캘린더 데이터 영구 저장 (선택적 동기화)
+      if (memo !== undefined || calendarEvents !== undefined) {
+        try {
+          const notesPayload = {
+            jid,
+            memo: typeof memo === 'string' ? memo : '',
+            calendarEvents: Array.isArray(calendarEvents) ? calendarEvents : [],
+            updatedAt: new Date().toISOString()
+          };
+          if (global.JUNCTION_NOTES_CACHE) {
+            global.JUNCTION_NOTES_CACHE[jid] = notesPayload;
+          }
+          await supabase.from('sim_csv_storage').upsert({
+            file_name: `junction_notes_${jid}.json`,
+            file_content: JSON.stringify(notesPayload),
+            updated_at: notesPayload.updatedAt
+          }, { onConflict: 'file_name' });
+        } catch (noteErr) {
+          console.warn(`[update-junction] notes save warning for ${jid}:`, noteErr.message);
+        }
+      }
+
       // [성능 최적화] RDB 저장이 완료되면 로컬 캐시 파일을 직접 패치(수정)하여 36,000건 재조회 방지
       const isPatched = await patchLocalCsvCache([{ jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines }]);
       if (!isPatched) {
@@ -2206,6 +2228,88 @@ app.post('/api/sim/delete-junction', async (req, res) => {
     res.json(result);
   } catch (err) {
     sendErrorResponse(res, err, '교차로 데이터 영구 삭제에 실패했습니다.');
+  }
+});
+
+// 1-5-0. 교차로별 운영 메모 및 캘린더 이력 조회/저장 API
+global.JUNCTION_NOTES_CACHE = global.JUNCTION_NOTES_CACHE || {};
+
+app.get('/api/sim/junction-notes/:jid', async (req, res) => {
+  const { jid } = req.params;
+  if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
+
+  try {
+    const fileName = `junction_notes_${jid}.json`;
+    if (global.JUNCTION_NOTES_CACHE[jid]) {
+      return res.json({ success: true, ...global.JUNCTION_NOTES_CACHE[jid] });
+    }
+
+    const { data, error } = await supabase
+      .from('sim_csv_storage')
+      .select('file_content, updated_at')
+      .eq('file_name', fileName)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.warn(`[junction-notes] fetch error for ${jid}:`, error.message);
+    }
+
+    if (data && data.file_content) {
+      try {
+        const parsed = typeof data.file_content === 'string' ? JSON.parse(data.file_content) : data.file_content;
+        global.JUNCTION_NOTES_CACHE[jid] = parsed;
+        return res.json({ success: true, ...parsed });
+      } catch (e) {
+        console.warn(`[junction-notes] parse error for ${jid}:`, e.message);
+      }
+    }
+
+    // 기본 빈 데이터 반환 (신규 생성 지원)
+    const emptyData = { jid, memo: '', calendarEvents: [], updatedAt: null };
+    return res.json({ success: true, ...emptyData });
+  } catch (err) {
+    console.error(`[junction-notes] GET failed for ${jid}:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/sim/junction-notes/:jid', express.json({ limit: '10mb' }), async (req, res) => {
+  const { jid } = req.params;
+  const { memo, calendarEvents } = req.body;
+  if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
+
+  try {
+    const fileName = `junction_notes_${jid}.json`;
+    const payload = {
+      jid,
+      memo: typeof memo === 'string' ? memo : '',
+      calendarEvents: Array.isArray(calendarEvents) ? calendarEvents : [],
+      updatedAt: new Date().toISOString()
+    };
+
+    global.JUNCTION_NOTES_CACHE[jid] = payload;
+
+    const result = await enqueueDBWrite(async () => {
+      const { data, error } = await supabase.from('sim_csv_storage').upsert({
+        file_name: fileName,
+        file_content: JSON.stringify(payload),
+        updated_at: payload.updatedAt
+      }, { onConflict: 'file_name' });
+
+      if (error) {
+        console.warn(`[junction-notes] Supabase upsert error:`, error.message);
+      }
+      return { success: true, ...payload };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error(`[junction-notes] POST failed for ${jid}:`, err);
+    res.status(200).json({ 
+      success: true, 
+      warning: 'DB 저장 지연, 로컬 캐시 반영됨: ' + err.message, 
+      ...(global.JUNCTION_NOTES_CACHE[jid] || { jid, memo: memo || '', calendarEvents: calendarEvents || [] }) 
+    });
   }
 });
 

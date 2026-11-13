@@ -83,7 +83,12 @@ function openDetailOverlay(jid) {
     // 신호계획정보 탭(API UI) 렌더링
     if (typeof renderOverlayPlanInfo === 'function') {
         renderOverlayPlanInfo(jid);
-    if (typeof renderBaseInfo === 'function') renderBaseInfo(jid);
+    }
+    if (typeof renderBaseInfo === 'function') {
+        renderBaseInfo(jid);
+    }
+    if (typeof renderJunctionNotes === 'function') {
+        renderJunctionNotes(jid);
     }
     
     // 상세보기 탭 버튼들 복원 및 optstats 탭 버튼 숨기기
@@ -159,6 +164,14 @@ function switchOverlayTab(tabName) {
     if (svgArea) svgArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
     if (summaryArea) summaryArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
     
+    // 교차로정보 탭 활성화 시 메모 및 캘린더 UI 렌더링
+    if (tabName === 'baseinfo') {
+        const activeJid = (typeof STATE !== 'undefined' && STATE.activeJid) ? STATE.activeJid : null;
+        if (activeJid && typeof renderJunctionNotes === 'function') {
+            renderJunctionNotes(activeJid);
+        }
+    }
+
     setTimeout(() => {
         if (typeof overlayMap !== 'undefined' && overlayMap) {
             overlayMap.invalidateSize();

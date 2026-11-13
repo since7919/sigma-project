@@ -709,6 +709,10 @@ async function updateActiveJunctionToDB() {
             payload.statsCsvLines = generateSingleJunctionStatsCSV(jid);
         }
         payload.password = pwd;
+        if (STATE.junctions && STATE.junctions[jid]) {
+            payload.memo = STATE.junctions[jid].memo || "";
+            payload.calendarEvents = STATE.junctions[jid].calendarEvents || [];
+        }
         console.log("DEBUG mapCsvLines:", payload.mapCsvLines);
 
         const response = await fetch('/api/sim/update-junction', {
