@@ -1,7 +1,53 @@
 // js/db_report.js
 function openDbReportOverlay(jid, mapIdx = 0) {
-    const j = STATE.junctions[jid];
+    const j = (STATE && STATE.junctions) ? STATE.junctions[jid] : null;
     if (!j) return alert("교차로 데이터를 찾을 수 없습니다.");
+    
+    // 로컬 스토리지 캐시에서 최신 메모/캘린더 복원 연동
+    try {
+        const localRaw = localStorage.getItem('sigma_junction_notes_' + jid);
+        if (localRaw) {
+            const localData = JSON.parse(localRaw);
+            if (localData) {
+                if (typeof localData.memo === 'string' && !j.memo) j.memo = localData.memo;
+                if (Array.isArray(localData.calendarEvents) && (!j.calendarEvents || j.calendarEvents.length === 0)) {
+                    j.calendarEvents = localData.calendarEvents;
+                }
+            }
+        }
+    } catch(e) {}
+
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    // 종합 메모 텍스트 포맷팅
+    const rawMemo = (j.memo || '').trim();
+    const memoContentHtml = rawMemo 
+        ? escapeHtml(rawMemo) 
+        : '<span style="color:#666;">○ 등록된 운영 메모가 없습니다.</span>';
+
+    // 캘린더 일자별 메모 최신순 정렬 및 포맷팅
+    const events = Array.isArray(j.calendarEvents) ? [...j.calendarEvents] : [];
+    events.sort((a, b) => {
+        const dateCmp = (b.date || '').localeCompare(a.date || '');
+        if (dateCmp !== 0) return dateCmp;
+        return (b.time || '').localeCompare(a.time || '');
+    });
+
+    const calendarEventsHtml = events.length > 0 
+        ? events.map(ev => {
+            const timeStr = ev.time ? ' ' + escapeHtml(ev.time) : '';
+            const catStr = ev.category ? '[' + escapeHtml(ev.category) + '] ' : '';
+            return '<div style="word-break:break-all; line-height:1.4; margin-bottom:2px;">• <b>' + escapeHtml(ev.date || '') + timeStr + '</b> <span style="color:#0055aa; font-weight:bold;">' + catStr + '</span>' + escapeHtml(ev.content || '') + '</div>';
+        }).join('')
+        : '<span style="color:#666;">○ 등록된 일자별 캘린더 메모가 없습니다.</span>';
     
     // Create container if not exists
     let container = document.getElementById('db-report-container');
@@ -154,12 +200,26 @@ function openDbReportOverlay(jid, mapIdx = 0) {
                         `;
                     }).join('')}
                 </table>
-                <div style="width: 39.25%; border:1px solid #000; padding:10px; font-size:11px; box-sizing:border-box;">
-                    <b>참고(295G)</b><br>
-                    ○ 루프검지기 설치현황<br>
-                    ○ 앞막힘검지기 2개 / 대기검지기 4개<br>
-                    ○ 교차로명 변경: ${j.name || ''}<br>
-                    ○ 녹색교통진흥지역 관련 서측 횡단보도 보행속도 0.8m/s 적용
+                <div style="width: 39.25%; border:1px solid #000; padding:6px 8px; font-size:10.5px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; background:#fff; color:#000;">
+                    <!-- 1. 상단: 교차로 종합 메모 영역 -->
+                    <div style="flex: 1; padding-bottom: 5px; border-bottom: 1px dashed #777; margin-bottom: 5px; overflow-y: auto; max-height: 140px;">
+                        <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #999; padding-bottom: 2px;">
+                            <span>📝 참고 / 운영 메모</span>
+                            <span style="font-size: 9.5px; color: #555; font-weight: normal;">(상세보기 메모)</span>
+                        </div>
+                        <div style="font-size: 10px; line-height: 1.45; color: #111; word-break: break-all; white-space: pre-wrap;">${memoContentHtml}</div>
+                    </div>
+
+                    <!-- 2. 하단: 캘린더 일자별 메모 영역 -->
+                    <div style="flex: 1; overflow-y: auto; max-height: 140px;">
+                        <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #999; padding-bottom: 2px;">
+                            <span>📅 일자별 점검 및 운영 이력</span>
+                            <span style="font-size: 9.5px; color: #555; font-weight: normal;">(캘린더 메모: ${events.length}건)</span>
+                        </div>
+                        <div style="font-size: 9.5px; line-height: 1.4; color: #111; display: flex; flex-direction: column; gap: 1px;">
+                            ${calendarEventsHtml}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
