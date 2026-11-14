@@ -105,19 +105,30 @@
         if (typeof j.memo !== 'string') j.memo = '';
         if (!Array.isArray(j.calendarEvents)) j.calendarEvents = [];
 
-        // 1) LocalStorage 복원 시도
+        // 1) LocalStorage 복원 시도 (다중 키 보정 검색)
         try {
-            const localRaw = localStorage.getItem(`sigma_junction_notes_${jid}`);
-            if (localRaw) {
-                const localData = JSON.parse(localRaw);
-                if (localData && typeof localData.memo === 'string' && !j.memo) {
-                    j.memo = localData.memo;
-                }
-                if (Array.isArray(localData.calendarEvents) && j.calendarEvents.length === 0) {
-                    j.calendarEvents = localData.calendarEvents;
-                }
-                if (localData.updatedAt) {
-                    JunctionNotes.state.lastSavedAt = localData.updatedAt;
+            const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+            const candidateKeys = [
+                `sigma_junction_notes_${jid}`,
+                j.id ? `sigma_junction_notes_${j.id}` : null,
+                cleanId ? `sigma_junction_notes_${cleanId}` : null
+            ].filter(Boolean);
+
+            for (const key of candidateKeys) {
+                const localRaw = localStorage.getItem(key);
+                if (localRaw) {
+                    const localData = JSON.parse(localRaw);
+                    if (localData) {
+                        if (typeof localData.memo === 'string' && (!j.memo || localData.memo.length > (j.memo || '').length)) {
+                            j.memo = localData.memo;
+                        }
+                        if (Array.isArray(localData.calendarEvents) && (!j.calendarEvents || localData.calendarEvents.length > (j.calendarEvents || []).length)) {
+                            j.calendarEvents = localData.calendarEvents;
+                        }
+                        if (localData.updatedAt && !JunctionNotes.state.lastSavedAt) {
+                            JunctionNotes.state.lastSavedAt = localData.updatedAt;
+                        }
+                    }
                 }
             }
         } catch (e) {
@@ -132,23 +143,24 @@
             const res = await fetch(`/api/sim/junction-notes/${encodeURIComponent(jid)}`);
             if (res.ok) {
                 const data = await res.json();
-                if (data && data.success) {
-                    let updated = false;
-                    if (data.memo !== undefined && data.memo !== j.memo) {
-                        j.memo = data.memo || '';
-                        updated = true;
-                    }
-                    if (Array.isArray(data.calendarEvents)) {
-                        j.calendarEvents = data.calendarEvents;
-                        updated = true;
-                    }
-                    if (data.updatedAt) {
-                        JunctionNotes.state.lastSavedAt = data.updatedAt;
-                    }
-                    if (updated) {
-                        // 로컬 캐시 갱신
-                        saveToLocalCache(jid, j);
-                        renderJunctionNotesUI();
+                if (data && data.success && data.updatedAt) {
+                    const localSavedAt = JunctionNotes.state.lastSavedAt;
+                    const isServerNewer = !localSavedAt || new Date(data.updatedAt) >= new Date(localSavedAt);
+                    if (isServerNewer) {
+                        let updated = false;
+                        if (typeof data.memo === 'string' && (data.memo || !j.memo)) {
+                            j.memo = data.memo;
+                            updated = true;
+                        }
+                        if (Array.isArray(data.calendarEvents) && (data.calendarEvents.length > 0 || !j.calendarEvents?.length)) {
+                            j.calendarEvents = data.calendarEvents;
+                            updated = true;
+                        }
+                        if (updated) {
+                            JunctionNotes.state.lastSavedAt = data.updatedAt;
+                            saveToLocalCache(jid, j);
+                            renderJunctionNotesUI();
+                        }
                     }
                 }
             }
@@ -168,7 +180,15 @@
                 calendarEvents: j.calendarEvents || [],
                 updatedAt: new Date().toISOString()
             };
-            localStorage.setItem(`sigma_junction_notes_${jid}`, JSON.stringify(payload));
+            const jsonStr = JSON.stringify(payload);
+            localStorage.setItem(`sigma_junction_notes_${jid}`, jsonStr);
+            if (j.id && j.id !== jid) {
+                localStorage.setItem(`sigma_junction_notes_${j.id}`, jsonStr);
+            }
+            const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+            if (cleanId && cleanId !== jid) {
+                localStorage.setItem(`sigma_junction_notes_${cleanId}`, jsonStr);
+            }
             if (window.SigmaIDB && typeof window.SigmaIDB.saveJunction === 'function') {
                 window.SigmaIDB.saveJunction(j).catch(() => {});
             }

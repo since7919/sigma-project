@@ -2239,28 +2239,38 @@ app.get('/api/sim/junction-notes/:jid', async (req, res) => {
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
 
   try {
-    const fileName = `junction_notes_${jid}.json`;
-    if (global.JUNCTION_NOTES_CACHE[jid]) {
-      return res.json({ success: true, ...global.JUNCTION_NOTES_CACHE[jid] });
+    const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+    const candidateKeys = [jid, cleanId].filter(Boolean);
+
+    for (const key of candidateKeys) {
+      if (global.JUNCTION_NOTES_CACHE[key]) {
+        return res.json({ success: true, ...global.JUNCTION_NOTES_CACHE[key] });
+      }
     }
 
-    const { data, error } = await supabase
-      .from('sim_csv_storage')
-      .select('file_content, updated_at')
-      .eq('file_name', fileName)
-      .maybeSingle();
+    const candidateFiles = [`junction_notes_${jid}.json`];
+    if (cleanId && cleanId !== jid) candidateFiles.push(`junction_notes_${cleanId}.json`);
 
-    if (error && error.code !== 'PGRST116') {
-      console.warn(`[junction-notes] fetch error for ${jid}:`, error.message);
-    }
+    for (const fileName of candidateFiles) {
+      const { data, error } = await supabase
+        .from('sim_csv_storage')
+        .select('file_content, updated_at')
+        .eq('file_name', fileName)
+        .maybeSingle();
 
-    if (data && data.file_content) {
-      try {
-        const parsed = typeof data.file_content === 'string' ? JSON.parse(data.file_content) : data.file_content;
-        global.JUNCTION_NOTES_CACHE[jid] = parsed;
-        return res.json({ success: true, ...parsed });
-      } catch (e) {
-        console.warn(`[junction-notes] parse error for ${jid}:`, e.message);
+      if (error && error.code !== 'PGRST116') {
+        console.warn(`[junction-notes] fetch error for ${jid}:`, error.message);
+      }
+
+      if (data && data.file_content) {
+        try {
+          const parsed = typeof data.file_content === 'string' ? JSON.parse(data.file_content) : data.file_content;
+          global.JUNCTION_NOTES_CACHE[jid] = parsed;
+          if (cleanId) global.JUNCTION_NOTES_CACHE[cleanId] = parsed;
+          return res.json({ success: true, ...parsed, updatedAt: data.updated_at || parsed.updatedAt });
+        } catch (e) {
+          console.warn(`[junction-notes] parse error for ${jid}:`, e.message);
+        }
       }
     }
 
@@ -2279,25 +2289,32 @@ app.post('/api/sim/junction-notes/:jid', express.json({ limit: '10mb' }), async 
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
 
   try {
-    const fileName = `junction_notes_${jid}.json`;
+    const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+    const nowIso = new Date().toISOString();
     const payload = {
       jid,
       memo: typeof memo === 'string' ? memo : '',
       calendarEvents: Array.isArray(calendarEvents) ? calendarEvents : [],
-      updatedAt: new Date().toISOString()
+      updatedAt: nowIso
     };
 
     global.JUNCTION_NOTES_CACHE[jid] = payload;
+    if (cleanId) global.JUNCTION_NOTES_CACHE[cleanId] = payload;
+
+    const fileNames = [`junction_notes_${jid}.json`];
+    if (cleanId && cleanId !== jid) fileNames.push(`junction_notes_${cleanId}.json`);
 
     const result = await enqueueDBWrite(async () => {
-      const { data, error } = await supabase.from('sim_csv_storage').upsert({
-        file_name: fileName,
-        file_content: JSON.stringify(payload),
-        updated_at: payload.updatedAt
-      }, { onConflict: 'file_name' });
+      for (const fileName of fileNames) {
+        const { data, error } = await supabase.from('sim_csv_storage').upsert({
+          file_name: fileName,
+          file_content: JSON.stringify(payload),
+          updated_at: payload.updatedAt
+        }, { onConflict: 'file_name' });
 
-      if (error) {
-        console.warn(`[junction-notes] Supabase upsert error:`, error.message);
+        if (error) {
+          console.warn(`[junction-notes] Supabase upsert error:`, error.message);
+        }
       }
       return { success: true, ...payload };
     });

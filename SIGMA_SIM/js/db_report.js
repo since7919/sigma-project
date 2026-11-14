@@ -1,17 +1,39 @@
 // js/db_report.js
 function openDbReportOverlay(jid, mapIdx = 0) {
-    const j = (STATE && STATE.junctions) ? STATE.junctions[jid] : null;
+    let j = (STATE && STATE.junctions) ? STATE.junctions[jid] : null;
+    if (!j && window.STATE && window.STATE.junctions) {
+        const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+        for (const k of Object.keys(window.STATE.junctions)) {
+            const cleanK = String(k).replace(/^[A-Za-z0-9]+[-_]/, '');
+            if (k === jid || cleanK === cleanId || String(window.STATE.junctions[k].id) === String(jid)) {
+                j = window.STATE.junctions[k];
+                break;
+            }
+        }
+    }
     if (!j) return alert("교차로 데이터를 찾을 수 없습니다.");
     
-    // 로컬 스토리지 캐시에서 최신 메모/캘린더 복원 연동
+    // 로컬 스토리지 캐시에서 최신 메모/캘린더 복원 연동 (다중 키 보정 검색)
     try {
-        const localRaw = localStorage.getItem('sigma_junction_notes_' + jid);
-        if (localRaw) {
-            const localData = JSON.parse(localRaw);
-            if (localData) {
-                if (typeof localData.memo === 'string' && !j.memo) j.memo = localData.memo;
-                if (Array.isArray(localData.calendarEvents) && (!j.calendarEvents || j.calendarEvents.length === 0)) {
-                    j.calendarEvents = localData.calendarEvents;
+        const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
+        const candidateKeys = [
+            'sigma_junction_notes_' + jid,
+            j.id ? 'sigma_junction_notes_' + j.id : null,
+            cleanId ? 'sigma_junction_notes_' + cleanId : null,
+            (j.id && j.id.includes('-')) ? 'sigma_junction_notes_' + j.id.split('-')[1] : null
+        ].filter(Boolean);
+
+        for (const key of candidateKeys) {
+            const localRaw = localStorage.getItem(key);
+            if (localRaw) {
+                const localData = JSON.parse(localRaw);
+                if (localData) {
+                    if (typeof localData.memo === 'string' && (!j.memo || localData.memo.length > (j.memo || '').length)) {
+                        j.memo = localData.memo;
+                    }
+                    if (Array.isArray(localData.calendarEvents) && (!j.calendarEvents || localData.calendarEvents.length > (j.calendarEvents || []).length)) {
+                        j.calendarEvents = localData.calendarEvents;
+                    }
                 }
             }
         }
