@@ -56,11 +56,35 @@
     }
 
     /**
-     * 교차로 데이터 객체 가져오기 (STATE.junctions 참조)
+     * 교차로 데이터 객체 가져오기 (STATE.junctions 다중 키 자동 해석 및 폴백 보장)
      */
     function getJunction(jid) {
-        if (!window.STATE || !window.STATE.junctions) return null;
-        return window.STATE.junctions[jid] || null;
+        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        if (!targetId) return null;
+
+        if (window.STATE && window.STATE.junctions) {
+            // 1. 직접 일치
+            if (window.STATE.junctions[targetId]) return window.STATE.junctions[targetId];
+
+            // 2. 지역 접두사 추가/제거 일치
+            if (window.STATE.junctions[`L01-${targetId}`]) return window.STATE.junctions[`L01-${targetId}`];
+            if (window.STATE.junctions[`L02-${targetId}`]) return window.STATE.junctions[`L02-${targetId}`];
+
+            const rawId = String(targetId).replace(/^[A-Z0-9]+-/, '');
+            if (window.STATE.junctions[rawId]) return window.STATE.junctions[rawId];
+
+            // 3. seq 및 ID 전체 검색
+            const list = Object.values(window.STATE.junctions);
+            const found = list.find(item => 
+                String(item.id) === String(targetId) || 
+                String(item.seq) === String(targetId) || 
+                String(item.seq) === rawId
+            );
+            if (found) return found;
+        }
+
+        // 4. 안전장치: UI 렌더링 무조건 보장을 위한 기본 객체 반환
+        return { id: targetId, name: `교차로 (${targetId})`, memo: '', calendarEvents: [] };
     }
 
     /**
@@ -70,10 +94,11 @@
      * 3) 백엔드 DB (/api/sim/junction-notes/:jid) 호출 및 동기화
      */
     async function loadJunctionNotes(jid) {
-        if (!jid) return;
-        JunctionNotes.state.jid = jid;
+        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        if (!targetId) return;
+        JunctionNotes.state.jid = targetId;
 
-        const j = getJunction(jid);
+        const j = getJunction(targetId);
         if (!j) return;
 
         // 기본 속성 초기화
@@ -218,12 +243,12 @@
         const container = document.getElementById('junction-notes-container');
         if (!container) return;
 
-        const jid = JunctionNotes.state.jid;
-        const j = getJunction(jid);
-        if (!j) {
-            container.innerHTML = '';
-            return;
-        }
+        const targetId = JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        if (!targetId) return;
+        JunctionNotes.state.jid = targetId;
+
+        const j = getJunction(targetId);
+        if (!j) return;
 
         const memo = j.memo || '';
         const events = j.calendarEvents || [];
@@ -680,6 +705,51 @@
     window.saveActiveJunctionNotesToDB = function () {
         return saveJunctionNotesToDB(true);
     };
+
+    // 자동 DOM 감지 및 초기화 리스너 (교차로정보 탭 활성화 시 무조건 렌더링 보장)
+    function setupTabObserver() {
+        const baseTab = document.getElementById('overlay-tab-baseinfo');
+        if (!baseTab) {
+            setTimeout(setupTabObserver, 500);
+            return;
+        }
+
+        const checkAndRender = () => {
+            if (baseTab.style.display !== 'none') {
+                const container = document.getElementById('junction-notes-container');
+                if (container && (!container.innerHTML || container.innerHTML.trim() === '')) {
+                    const currentJid = window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+                    if (currentJid) {
+                        loadJunctionNotes(currentJid);
+                    }
+                }
+            }
+        };
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    checkAndRender();
+                }
+            });
+        });
+
+        observer.observe(baseTab, { attributes: true });
+
+        // 탭 버튼 클릭 이벤트 직접 보강
+        const tabBtn = document.getElementById('tab-btn-baseinfo');
+        if (tabBtn) {
+            tabBtn.addEventListener('click', () => {
+                setTimeout(checkAndRender, 50);
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupTabObserver);
+    } else {
+        setupTabObserver();
+    }
 
     window.JunctionNotes = JunctionNotes;
 

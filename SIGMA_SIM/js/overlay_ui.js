@@ -18,6 +18,9 @@ function openDetailOverlay(jid) {
     const titleName = document.getElementById('overlay-title-name');
     const titleId = document.getElementById('overlay-title-id');
     window._currentOverlayJid = jid;
+    if (typeof STATE !== 'undefined') {
+        STATE.activeJid = jid;
+    }
     
     // 교차로명 및 ID 세팅
     if (typeof STATE !== 'undefined' && STATE.junctions && STATE.junctions[jid]) {
@@ -166,7 +169,7 @@ function switchOverlayTab(tabName) {
     
     // 교차로정보 탭 활성화 시 메모 및 캘린더 UI 렌더링
     if (tabName === 'baseinfo') {
-        const activeJid = (typeof STATE !== 'undefined' && STATE.activeJid) ? STATE.activeJid : null;
+        const activeJid = window._currentOverlayJid || ((typeof STATE !== 'undefined' && STATE.activeJid) ? STATE.activeJid : null);
         if (activeJid && typeof renderJunctionNotes === 'function') {
             renderJunctionNotes(activeJid);
         }
@@ -214,6 +217,10 @@ function openStatsOverlay(jid) {
     const modal = document.getElementById('detail-overlay-modal');
     const titleName = document.getElementById('overlay-title-name');
     const titleId = document.getElementById('overlay-title-id');
+    window._currentOverlayJid = jid;
+    if (typeof STATE !== 'undefined') {
+        STATE.activeJid = jid;
+    }
     
     // 교차로명 및 ID 세팅
     if (typeof STATE !== 'undefined' && STATE.junctions && STATE.junctions[jid]) {

@@ -241,6 +241,9 @@ function selectJunction(jid, isMulti = false) {
 
     if (typeof renderReservationPlan === 'function') renderReservationPlan();
     updateNameStyles();
+    if (typeof renderJunctionNotes === 'function') {
+        renderJunctionNotes(jid);
+    }
     
     if (j.marker) {
         console.log(`[Popup] Opening popup for ${jid}`);
