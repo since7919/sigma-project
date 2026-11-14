@@ -55,26 +55,32 @@
         return isNaN(d.getTime()) ? '' : days[d.getDay()];
     }
 
+    /** 전역 STATE 안전 접근 헬퍼 */
+    function getGlobalState() {
+        return (typeof window !== 'undefined' && window.STATE) ? window.STATE : (typeof STATE !== 'undefined' ? STATE : null);
+    }
+
     /**
      * 교차로 데이터 객체 가져오기 (STATE.junctions 다중 키 자동 해석 및 폴백 보장)
      */
     function getJunction(jid) {
-        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        const globalState = getGlobalState();
+        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (globalState && globalState.activeJid);
         if (!targetId) return null;
 
-        if (window.STATE && window.STATE.junctions) {
+        if (globalState && globalState.junctions) {
             // 1. 직접 일치
-            if (window.STATE.junctions[targetId]) return window.STATE.junctions[targetId];
+            if (globalState.junctions[targetId]) return globalState.junctions[targetId];
 
             // 2. 지역 접두사 추가/제거 일치
-            if (window.STATE.junctions[`L01-${targetId}`]) return window.STATE.junctions[`L01-${targetId}`];
-            if (window.STATE.junctions[`L02-${targetId}`]) return window.STATE.junctions[`L02-${targetId}`];
+            if (globalState.junctions[`L01-${targetId}`]) return globalState.junctions[`L01-${targetId}`];
+            if (globalState.junctions[`L02-${targetId}`]) return globalState.junctions[`L02-${targetId}`];
 
             const rawId = String(targetId).replace(/^[A-Z0-9]+-/, '');
-            if (window.STATE.junctions[rawId]) return window.STATE.junctions[rawId];
+            if (globalState.junctions[rawId]) return globalState.junctions[rawId];
 
             // 3. seq 및 ID 전체 검색
-            const list = Object.values(window.STATE.junctions);
+            const list = Object.values(globalState.junctions);
             const found = list.find(item => 
                 String(item.id) === String(targetId) || 
                 String(item.seq) === String(targetId) || 
@@ -94,7 +100,8 @@
      * 3) 백엔드 DB (/api/sim/junction-notes/:jid) 호출 및 동기화
      */
     async function loadJunctionNotes(jid) {
-        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        const globalState = getGlobalState();
+        const targetId = jid || JunctionNotes.state.jid || window._currentOverlayJid || (globalState && globalState.activeJid);
         if (!targetId) return;
         JunctionNotes.state.jid = targetId;
 
@@ -263,7 +270,8 @@
         const container = document.getElementById('junction-notes-container');
         if (!container) return;
 
-        const targetId = JunctionNotes.state.jid || window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+        const globalState = getGlobalState();
+        const targetId = JunctionNotes.state.jid || window._currentOverlayJid || (globalState && globalState.activeJid);
         if (!targetId) return;
         JunctionNotes.state.jid = targetId;
 
@@ -738,7 +746,8 @@
             if (baseTab.style.display !== 'none') {
                 const container = document.getElementById('junction-notes-container');
                 if (container && (!container.innerHTML || container.innerHTML.trim() === '')) {
-                    const currentJid = window._currentOverlayJid || (window.STATE && window.STATE.activeJid);
+                    const globalState = getGlobalState();
+                    const currentJid = window._currentOverlayJid || (globalState && globalState.activeJid);
                     if (currentJid) {
                         loadJunctionNotes(currentJid);
                     }

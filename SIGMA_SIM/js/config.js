@@ -154,6 +154,9 @@ const STATE = {
     isManualPlanView: false, // [New] 계획 번호를 수동으로 고정해서 볼 때 true
     loadedFiles: { inter:null, maps:null, plans:null, groups:null, stats:null, links:null }
 };
+if (typeof window !== 'undefined') {
+    window.STATE = STATE;
+}
 
 /* ── 메모리 캐시 (대규모 교차로 대비) ── */
 const MEM_CACHE = {

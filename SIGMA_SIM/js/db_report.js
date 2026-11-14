@@ -1,12 +1,13 @@
 // js/db_report.js
 function openDbReportOverlay(jid, mapIdx = 0) {
-    let j = (STATE && STATE.junctions) ? STATE.junctions[jid] : null;
-    if (!j && window.STATE && window.STATE.junctions) {
+    const globalState = (typeof window !== 'undefined' && window.STATE) ? window.STATE : (typeof STATE !== 'undefined' ? STATE : null);
+    let j = (globalState && globalState.junctions) ? globalState.junctions[jid] : null;
+    if (!j && globalState && globalState.junctions) {
         const cleanId = String(jid).replace(/^[A-Za-z0-9]+[-_]/, '');
-        for (const k of Object.keys(window.STATE.junctions)) {
+        for (const k of Object.keys(globalState.junctions)) {
             const cleanK = String(k).replace(/^[A-Za-z0-9]+[-_]/, '');
-            if (k === jid || cleanK === cleanId || String(window.STATE.junctions[k].id) === String(jid)) {
-                j = window.STATE.junctions[k];
+            if (k === jid || cleanK === cleanId || String(globalState.junctions[k].id) === String(jid)) {
+                j = globalState.junctions[k];
                 break;
             }
         }
