@@ -255,9 +255,9 @@
         const state = JunctionNotes.state;
 
         container.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- 1. 상단: 교차로 종합 메모 카드 -->
-                <div class="sigma-card-notes" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; display: flex; flex-direction: column;">
+                <div class="sigma-card-notes" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <span style="font-size: 13px;">📝</span>
@@ -271,7 +271,7 @@
                     
                     <div style="position: relative; display: flex; flex-direction: column;">
                         <textarea id="junction-memo-textarea" 
-                            style="width: 100%; min-height: 110px; height: 110px; background: rgba(0,0,0,0.3); color: #f1f5f9; border: 1px solid #334155; border-radius: 4px; padding: 8px; font-size: 11.5px; line-height: 1.5; resize: vertical; box-sizing: border-box; outline: none; font-family: inherit;"
+                            style="width: 100%; min-height: 52px; height: 52px; background: rgba(0,0,0,0.3); color: #f1f5f9; border: 1px solid #334155; border-radius: 4px; padding: 5px 8px; font-size: 11px; line-height: 1.35; resize: vertical; box-sizing: border-box; outline: none; font-family: inherit;"
                             placeholder="해당 교차로의 관제 특이사항, 장비 상태, 공사 및 도로 운영 유의점을 자유롭게 입력하세요. (DB 자동 동기화 지원)">${escapeHtml(memo)}</textarea>
                     </div>
 
@@ -284,7 +284,7 @@
                 </div>
 
                 <!-- 2. 하단: 캘린더 & 날짜별 운영 이력 카드 -->
-                <div class="sigma-card-calendar" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; display: flex; flex-direction: column;">
+                <div class="sigma-card-calendar" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <span style="font-size: 13px;">📅</span>
@@ -333,7 +333,7 @@
         // 1) 이전 달 빈칸 (이전 달 날짜 회색 표시)
         for (let i = firstDay - 1; i >= 0; i--) {
             const dayNum = prevMonthDays - i;
-            cellsHtml += `<div class="cal-cell cal-cell-prev" style="color: #475569; font-size: 10px; padding: 6px 2px; text-align: center; border-radius: 3px;">${dayNum}</div>`;
+            cellsHtml += `<div class="cal-cell cal-cell-prev" style="color: #475569; font-size: 9px; padding: 1px 0; text-align: center; border-radius: 2px; min-height: 18px; line-height: 14px;">${dayNum}</div>`;
         }
 
         // 2) 이번 달 날짜
@@ -367,7 +367,7 @@
                 for (let k = 0; k < showLimit; k++) {
                     const cat = dayEvents[k].category || '메모';
                     const catCfg = JunctionNotes.categories[cat] || JunctionNotes.categories['메모'];
-                    dotsHtml += `<span style="width:4px; height:4px; border-radius:50%; background:${catCfg.border}; display:inline-block;" title="${cat}: ${dayEvents[k].content}"></span>`;
+                    dotsHtml += `<span style="width:3px; height:3px; border-radius:50%; background:${catCfg.border}; display:inline-block;" title="${cat}: ${dayEvents[k].content}"></span>`;
                 }
                 if (dayEvents.length > 3) {
                     dotsHtml += `<span style="font-size:7px; line-height:5px; color:#38bdf8;">+</span>`;
@@ -377,7 +377,7 @@
 
             cellsHtml += `
                 <div class="cal-cell cal-cell-day" data-date="${dateStr}" 
-                     style="background: ${bgStyle}; border: ${borderStyle}; color: ${colorStyle}; font-size: 10.5px; padding: 4px 2px; text-align: center; border-radius: 4px; cursor: pointer; transition: all 0.15s; min-height: 28px;">
+                     style="background: ${bgStyle}; border: ${borderStyle}; color: ${colorStyle}; font-size: 9.5px; padding: 1px 0; text-align: center; border-radius: 3px; cursor: pointer; transition: all 0.15s; min-height: 18px; line-height: 14px;">
                     <div>${d}</div>
                     ${dotsHtml}
                 </div>
@@ -388,7 +388,7 @@
         const totalRendered = firstDay + daysInMonth;
         const nextMonthDays = (7 - (totalRendered % 7)) % 7;
         for (let n = 1; n <= nextMonthDays; n++) {
-            cellsHtml += `<div class="cal-cell cal-cell-next" style="color: #475569; font-size: 10px; padding: 6px 2px; text-align: center; border-radius: 3px;">${n}</div>`;
+            cellsHtml += `<div class="cal-cell cal-cell-next" style="color: #475569; font-size: 9px; padding: 1px 0; text-align: center; border-radius: 2px; min-height: 18px; line-height: 14px;">${n}</div>`;
         }
 
         // 선택된 일자의 이벤트 목록
@@ -397,7 +397,7 @@
 
         return `
             <!-- 캘린더 상단 월 네비게이션 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <div style="display: flex; gap: 4px; align-items: center;">
                     <button id="cal-prev-month" class="btn-xs" style="background: rgba(255,255,255,0.06); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; padding: 2px 7px; cursor: pointer;">◀</button>
                     <span style="font-size: 12px; font-weight: bold; color: #f8fafc; min-width: 100px; text-align: center;">${year}년 ${month + 1}월</span>
@@ -407,7 +407,7 @@
             </div>
 
             <!-- 요일 헤더 -->
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 10px; font-weight: bold; color: #94a3b8; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; font-size: 9px; font-weight: bold; color: #94a3b8; margin-bottom: 2px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.06);">
                 <div style="color: #f87171;">일</div>
                 <div>월</div>
                 <div>화</div>
@@ -423,7 +423,7 @@
             </div>
 
             <!-- 선택된 날짜 메모/이력 영역 -->
-            <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; flex: 1; display: flex; flex-direction: column;">
+            <div style="margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <div style="font-size: 11px; font-weight: bold; color: #38bdf8;">
                         📌 ${state.selectedDate} (${selectedDayOfWeek}) 일자 메모 (${selectedEvents.length}건)
@@ -431,21 +431,21 @@
                 </div>
 
                 <!-- 빠른 등록 폼 -->
-                <div style="display: flex; gap: 4px; margin-bottom: 8px;">
-                    <select id="cal-input-cat" style="background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; font-size: 10.5px; padding: 3px 6px; outline: none;">
+                <div style="display: flex; gap: 3px; margin-bottom: 4px;">
+                    <select id="cal-input-cat" style="background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 3px; font-size: 9px; padding: 1px 4px; outline: none; height: 22px;">
                         <option value="점검">점검</option>
                         <option value="신호">신호변경</option>
                         <option value="보수">시설보수</option>
                         <option value="민원">민원</option>
                         <option value="메모" selected>일반메모</option>
                     </select>
-                    <input type="text" id="cal-input-time" value="${formatTime(new Date())}" style="width: 48px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; font-size: 10.5px; padding: 3px 4px; text-align: center;" placeholder="HH:mm">
-                    <input type="text" id="cal-input-text" style="flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; font-size: 10.5px; padding: 3px 8px;" placeholder="해당 날짜의 운영/점검 메모 입력">
-                    <button id="cal-btn-add" class="btn-xs" style="background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 4px; padding: 3px 10px; font-size: 10.5px; font-weight: bold; cursor: pointer; white-space: nowrap;">➕ 등록</button>
+                    <input type="text" id="cal-input-time" value="${formatTime(new Date())}" style="width: 42px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 3px; font-size: 9px; padding: 1px 2px; text-align: center; height: 22px;" placeholder="HH:mm">
+                    <input type="text" id="cal-input-text" style="flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 3px; font-size: 9.5px; padding: 2px 6px; height: 22px;" placeholder="해당 날짜의 운영/점검 메모 입력">
+                    <button id="cal-btn-add" class="btn-xs" style="background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 3px; padding: 1px 8px; font-size: 9.5px; font-weight: bold; cursor: pointer; white-space: nowrap; height: 22px;">➕ 등록</button>
                 </div>
 
                 <!-- 이벤트 리스트 스크롤 영역 -->
-                <div class="custom-scroll" style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                <div class="custom-scroll" style="max-height: 60px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px;">
                     ${selectedEvents.length === 0 ? `
                         <div style="text-align: center; color: #64748b; font-size: 10.5px; padding: 15px 0;">
                             등록된 일자별 메모가 없습니다. 위 입력창에서 내용을 추가하세요.

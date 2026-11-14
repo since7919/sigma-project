@@ -188,13 +188,13 @@ function renderInfoFields() {
         {
             content: `
             <div class="info-row-v3">
-                <label>API 매칭번호</label>
+                <label style="min-width:75px; font-weight:600;">API 매칭번호</label>
                 <div style="display: flex; gap: 4px; flex: 1; min-width: 0;">
                     <input type="text" id="inp-api-int-no" class="sigma-input" 
                            style="font-size: 11px; padding: 4px; flex: 1; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.15);" 
                            oninput="syncActiveJunctionData()" placeholder="API 번호">
                     <button onclick="autoMatchNearestAPIIntersection()" class="btn-sm" 
-                            style="padding: 2px 8px; font-size: 9.5px; background: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; height: 22px;">
+                            style="padding: 2px 10px; font-size: 10px; background: var(--accent); color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; height: 24px; white-space: nowrap;">
                         자동매칭
                     </button>
                 </div>
@@ -203,13 +203,13 @@ function renderInfoFields() {
         {
             content: `
             <div class="info-row-v3">
-                <label>위경도</label>
+                <label style="min-width:75px; font-weight:600;">위경도</label>
                 <div style="display: flex; gap: 3px; flex: 1; min-width: 0;">
                     <input type="number" id="inp-lat" step="0.000000001" class="sigma-input" 
-                           style="font-size: 9.5px; padding: 4px; width: 48%; text-align: center; background: rgba(0,0,0,0.2);" 
+                           style="font-size: 11px; padding: 4px 6px; flex: 1; text-align: center; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;" 
                            oninput="syncActiveJunctionData()">
                     <input type="number" id="inp-lng" step="0.000000001" class="sigma-input" 
-                           style="font-size: 9.5px; padding: 4px; width: 48%; text-align: center; background: rgba(0,0,0,0.2);" 
+                           style="font-size: 11px; padding: 4px 6px; flex: 1; text-align: center; background: rgba(0,0,0,0.3); color: #fff; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;" 
                            oninput="syncActiveJunctionData()">
                 </div>
             </div>`

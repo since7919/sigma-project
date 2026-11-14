@@ -2474,8 +2474,8 @@
                             </div>
                             <button class="btn-neon magenta" style="height:28px; padding:0 14px; font-size: 11px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button>
                         </div>
-                        <!-- 교차로정보 데이터 바인딩 영역 -->
-                        <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 12px; border-radius: 4px; border: 1px solid #1e293b;">
+                        <!-- 교차로정보 데이터 바인딩 영역: 한 줄에 하나씩 정렬 -->
+                        <div id="info-fields-container" style="display: flex; flex-direction: column; gap: 5px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #1e293b;">
                             <!-- Dynamic: info-fields-container -->
                         </div>
                     </div>
@@ -2607,9 +2607,9 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1794622000000"></script>
+    <script src="js/overlay_ui.js?v=1794625000000"></script>
     <script src="js/db_report.js?v=1791726500000"></script>
-    <script src="js/junction_notes.js?v=1794622000000"></script>
+    <script src="js/junction_notes.js?v=1794625000000"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">
