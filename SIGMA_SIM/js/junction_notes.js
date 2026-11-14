@@ -255,27 +255,27 @@
         const state = JunctionNotes.state;
 
         container.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1.25fr; gap: 15px; margin-top: 15px;">
-                <!-- 1. 좌측: 교차로 종합 메모 카드 -->
-                <div class="sigma-card-notes" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px; display: flex; flex-direction: column;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- 1. 상단: 교차로 종합 메모 카드 -->
+                <div class="sigma-card-notes" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-size: 14px;">📝</span>
-                            <span style="font-size: 12px; font-weight: bold; color: #f8fafc;">교차로 운영 종합 메모</span>
+                            <span style="font-size: 13px;">📝</span>
+                            <span style="font-size: 12px; font-weight: bold; color: #f8fafc;">교차로 종합 메모</span>
                         </div>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                            <button id="btn-copy-memo" class="btn-xs" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 3px 8px; font-size: 10.5px; cursor: pointer;">📋 복사</button>
-                            <button id="btn-save-memo" class="btn-xs" style="background: #059669; color: #fff; border: 1px solid #10b981; border-radius: 4px; padding: 3px 10px; font-size: 10.5px; font-weight: bold; cursor: pointer;">💾 메모 저장</button>
+                            <button id="btn-copy-memo" class="btn-xs" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">📋 복사</button>
+                            <button id="btn-save-memo" class="btn-xs" style="background: #059669; color: #fff; border: 1px solid #10b981; border-radius: 4px; padding: 2px 9px; font-size: 10.5px; font-weight: bold; cursor: pointer;">💾 메모 저장</button>
                         </div>
                     </div>
                     
-                    <div style="position: relative; flex: 1; display: flex; flex-direction: column;">
+                    <div style="position: relative; display: flex; flex-direction: column;">
                         <textarea id="junction-memo-textarea" 
-                            style="width: 100%; min-height: 260px; flex: 1; background: rgba(0,0,0,0.3); color: #f1f5f9; border: 1px solid #334155; border-radius: 4px; padding: 10px; font-size: 11.5px; line-height: 1.6; resize: vertical; box-sizing: border-box; outline: none; font-family: inherit;"
-                            placeholder="해당 교차로의 관제 특이사항, 현장 장비(제어기/카메라/감지기) 상태, 인근 공사 및 도로 운영 유의점을 자유롭게 입력하세요. (DB 자동 동기화 지원)">${escapeHtml(memo)}</textarea>
+                            style="width: 100%; min-height: 110px; height: 110px; background: rgba(0,0,0,0.3); color: #f1f5f9; border: 1px solid #334155; border-radius: 4px; padding: 8px; font-size: 11.5px; line-height: 1.5; resize: vertical; box-sizing: border-box; outline: none; font-family: inherit;"
+                            placeholder="해당 교차로의 관제 특이사항, 장비 상태, 공사 및 도로 운영 유의점을 자유롭게 입력하세요. (DB 자동 동기화 지원)">${escapeHtml(memo)}</textarea>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 10px; color: #94a3b8;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 10px; color: #94a3b8;">
                         <div id="junction-notes-save-status">
                             ${state.lastSavedAt ? `<span style="color:#10b981;">✓ DB 동기화됨 (${state.lastSavedAt.slice(0, 16).replace('T', ' ')})</span>` : '<span>입력 시 자동 임시 보존</span>'}
                         </div>
@@ -283,15 +283,15 @@
                     </div>
                 </div>
 
-                <!-- 2. 우측: 캘린더 & 날짜별 운영 이력 카드 -->
-                <div class="sigma-card-calendar" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 14px; display: flex; flex-direction: column;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+                <!-- 2. 하단: 캘린더 & 날짜별 운영 이력 카드 -->
+                <div class="sigma-card-calendar" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 6px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
-                            <span style="font-size: 14px;">📅</span>
+                            <span style="font-size: 13px;">📅</span>
                             <span style="font-size: 12px; font-weight: bold; color: #f8fafc;">운영 캘린더 & 날짜별 메모</span>
                         </div>
                         <div style="display: flex; gap: 5px;">
-                            <button id="btn-toggle-view" class="btn-xs" style="background: rgba(255,255,255,0.08); color: #93c5fd; border: 1px solid rgba(147,197,253,0.3); border-radius: 4px; padding: 3px 8px; font-size: 10.5px; cursor: pointer;">
+                            <button id="btn-toggle-view" class="btn-xs" style="background: rgba(255,255,255,0.08); color: #93c5fd; border: 1px solid rgba(147,197,253,0.3); border-radius: 4px; padding: 2px 7px; font-size: 10px; cursor: pointer;">
                                 ${state.viewMode === 'calendar' ? '📋 전체목록 보기' : '📅 캘린더 보기'}
                             </button>
                         </div>

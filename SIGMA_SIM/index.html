@@ -2465,14 +2465,25 @@
                 <div id="overlay-tab-sigmap" class="detail-tab-content" style="display: none;">
                     <!-- 시그널맵 데이터 바인딩 영역 -->
                 </div>
-                <div id="overlay-tab-baseinfo" class="detail-tab-content custom-scroll" style="display: none; padding: 15px 20px 30px 20px; flex: 1; min-height: 0; overflow-y: auto;">
-                    <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
-                    <!-- 교차로정보 데이터 바인딩 영역 -->
-                    <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 15px; border-radius: 4px; border: 1px solid #1e293b;">
-                        <!-- Dynamic: info-fields-container -->
+                <div id="overlay-tab-baseinfo" class="detail-tab-content" style="display: none; height: 100%; overflow: hidden;">
+                    <!-- Left column: 교차로 기본 정보 -->
+                    <div id="overlay-baseinfo-left" style="width: 50%; height: 100%; overflow-y: auto; padding-right: 12px; border-right: 1px solid #1e293b;" class="custom-scroll">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 13px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+                                <span>🚦</span><span>교차로 정보</span>
+                            </div>
+                            <button class="btn-neon magenta" style="height:28px; padding:0 14px; font-size: 11px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button>
+                        </div>
+                        <!-- 교차로정보 데이터 바인딩 영역 -->
+                        <div id="info-fields-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #0f172a; padding: 12px; border-radius: 4px; border: 1px solid #1e293b;">
+                            <!-- Dynamic: info-fields-container -->
+                        </div>
                     </div>
-                    <!-- 교차로 운영 메모 & 캘린더 영역 -->
-                    <div id="junction-notes-container"></div>
+                    <!-- Right column: 메모 & 캘린더 -->
+                    <div id="overlay-baseinfo-right" style="width: 50%; height: 100%; overflow-y: auto; padding-left: 12px;" class="custom-scroll">
+                        <!-- 교차로 운영 메모 & 캘린더 영역 -->
+                        <div id="junction-notes-container"></div>
+                    </div>
                 </div>
                 <div id="overlay-tab-optstats" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;">
                     <div style="margin-bottom:15px; text-align:right;"><button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="updateActiveJunctionToDB();">☁️ 클라우드 저장</button></div>
@@ -2596,9 +2607,9 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1794619500000"></script>
+    <script src="js/overlay_ui.js?v=1794622000000"></script>
     <script src="js/db_report.js?v=1791726500000"></script>
-    <script src="js/junction_notes.js?v=1794619500000"></script>
+    <script src="js/junction_notes.js?v=1794622000000"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">

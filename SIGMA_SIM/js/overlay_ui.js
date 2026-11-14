@@ -151,7 +151,7 @@ function switchOverlayTab(tabName) {
     // 선택된 탭 보이기 및 활성화
     const targetContent = document.getElementById(`overlay-tab-${tabName}`);
     if (targetContent) {
-        if (tabName === 'phase') {
+        if (tabName === 'phase' || tabName === 'baseinfo') {
             targetContent.style.display = 'flex';
         } else {
             targetContent.style.display = 'block';
