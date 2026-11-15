@@ -425,7 +425,7 @@ function parseRing(str) {
  * ══════════════════════════════════════════ */
 
 function getVisualArrow(m) {
-    if (m <= 0) return { type: '•', ang: 0 };
+    if (m <= 0 || m === 17 || m === 18) return { type: '•', ang: 0 };
     if (m >= 100) return { type: 'WALK', ang: 0 };
     const movementMap = {
         1: { type: '↰', ang: 270 }, 2: { type: '↑', ang: 90 },
@@ -435,8 +435,7 @@ function getVisualArrow(m) {
         9: { type: '↰', ang: 225 }, 10: { type: '↑', ang: 45 },
         11: { type: '↰', ang: 315 }, 12: { type: '↑', ang: 135 },
         13: { type: '↰', ang: 45 }, 14: { type: '↑', ang: 225 },
-        15: { type: '↰', ang: 135 }, 16: { type: '↑', ang: 315 },
-        17: { type: '↺', ang: 0 }, 18: { type: '↺', ang: 0 }
+        15: { type: '↰', ang: 135 }, 16: { type: '↑', ang: 315 }
     };
     return movementMap[m] || { type: '•', ang: 0 };
 }
