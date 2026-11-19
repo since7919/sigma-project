@@ -19,9 +19,9 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({startOnLoad: false, theme: "dark"});</script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=1792104500000">
+    <link rel="stylesheet" href="css/style.css?v=1795100000000">
     <link rel="stylesheet" href="css/tables.css">
-    <link rel="stylesheet" href="css/panels.css?v=1792104500000">
+    <link rel="stylesheet" href="css/panels.css?v=1795100000000">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
@@ -2278,13 +2278,35 @@
 
         <div class="sim-btn-group">
             <button class="btn-play" id="btn-play-pause" onclick="toggleSim()">▶ PLAY</button>
-            <div style="width: 10px;"></div>
+            <div style="width: 6px;"></div>
             <button class="btn-speed" onclick="skipTime(-10)" title="10초 뒤로">⏪ -10s</button>
             <button class="btn-speed" onclick="skipTime(10)" title="10초 앞으로">+10s ⏩</button>
-            <div style="width: 20px;"></div>
+            <div style="width: 12px;"></div>
             <button class="btn-speed active" id="sp-1" onclick="setSpeed(1)">1.0x</button>
             <button class="btn-speed" id="sp-4" onclick="setSpeed(4)">4.0x</button>
             <button class="btn-speed" id="sp-8" onclick="setSpeed(8)">8.0x</button>
+
+            <!-- 신호화살표 크기 조절 컨트롤 -->
+            <div class="sim-divider" style="width: 1px; height: 20px; background: rgba(255, 255, 255, 0.2); margin: 0 6px;"></div>
+            <div class="sim-scale-group" id="sim-arrow-scale-box" style="display: flex; align-items: center; gap: 6px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 2px 10px; height: 32px; box-sizing: border-box;">
+                <span style="font-size: 11.5px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+                    <span style="font-size: 13px;">🏹</span> 화살표 크기
+                </span>
+                <button class="btn-speed" onclick="adjustSimArrowScale(-0.1)" title="화살표 축소 (0.1 감소)" style="padding: 1px 7px; font-size: 11px; height: 24px; min-width: 24px;">➖</button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="range" id="sim-arrow-scale-range" min="0.5" max="2.5" step="0.1" value="1.5" 
+                           oninput="onSimArrowScaleChange(this.value)" 
+                           style="width: 80px; height: 5px; cursor: pointer; accent-color: #38bdf8; background: #334155; border-radius: 3px; outline: none;">
+                    <span id="sim-arrow-scale-text" style="font-size: 12px; font-weight: 800; color: #38bdf8; min-width: 34px; text-align: center; font-family: monospace;">1.5x</span>
+                </div>
+                <button class="btn-speed" onclick="adjustSimArrowScale(0.1)" title="화살표 확대 (0.1 증가)" style="padding: 1px 7px; font-size: 11px; height: 24px; min-width: 24px;">➕</button>
+                <div style="display: flex; gap: 3px; margin-left: 2px;">
+                    <button class="btn-speed btn-arrow-scale-preset" data-scale="0.8" onclick="setSimArrowScale(0.8)" title="작게 (0.8x)" style="padding: 1px 6px; font-size: 10.5px; height: 24px;">작게</button>
+                    <button class="btn-speed btn-arrow-scale-preset active" data-scale="1.5" onclick="setSimArrowScale(1.5)" title="보통 (1.5x)" style="padding: 1px 6px; font-size: 10.5px; height: 24px;">보통</button>
+                    <button class="btn-speed btn-arrow-scale-preset" data-scale="2.2" onclick="setSimArrowScale(2.2)" title="크게 (2.2x)" style="padding: 1px 6px; font-size: 10.5px; height: 24px;">크게</button>
+                </div>
+            </div>
+
             <div id="stat" class="fs-13-5 text-dim ml-auto">READY</div>
         </div>
     </div>
@@ -2303,7 +2325,7 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1793536866201"></script>
+    <script src="js/ui.js?v=1795100000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
@@ -2330,7 +2352,7 @@
     <script src="js/network_print.js?v=1794610000000"></script>
     <script src="js/table_logic.js?v=1792716000000"></script>
     <script src="js/phase_diagram_interactive.js?v=1791726500000"></script>
-    <script src="js/init.js?v=1791726500000"></script>
+    <script src="js/init.js?v=1795100000000"></script>
     <script src="js/idb_manager.js?v=1794120000000"></script>
     <script src="js/auto_load.js?v=1793536866201"></script>
     <script src="js/minigame.js?v=1791726500000"></script>

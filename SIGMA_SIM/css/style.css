@@ -1174,7 +1174,7 @@ body.global-flash-on .signal-arrow.walk-mode.F {
 .signal-slot { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
 .signal-mount-frame {
-    position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 3px; left: 50%; transform: translateX(-50%) scale(var(--arrow-scale, 1.5)); transform-origin: center top;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 .component-block { display: flex; flex-direction: column; align-items: center; width: 100%; }
@@ -1274,7 +1274,7 @@ body.global-flash-on .signal-arrow.walk-mode.F {
     transform: rotate(-90deg);
 }
 .ped-mount-frame {
-    position: absolute; top: 42px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 42px; left: 50%; transform: translateX(-50%) scale(var(--arrow-scale, 1.5)); transform-origin: center top;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
 

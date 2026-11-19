@@ -416,6 +416,16 @@ function initSidebarResizer() {
  *  스케일(크기) 업데이트
  * ══════════════════════════════════════════ */
 function updateScales() {
+    try {
+        const saved = localStorage.getItem('sigma_arrow_scale');
+        if (saved) {
+            const num = parseFloat(saved);
+            if (!isNaN(num) && num >= 0.4 && num <= 3.0) {
+                STATE.arrowScale = num;
+            }
+        }
+    } catch(e) {}
+
     syncScaleNode(STATE.nodeScale);
     syncScaleArrow(STATE.arrowScale);
 }
@@ -434,8 +444,72 @@ function syncScaleNode(val) {
 }
 
 function syncScaleArrow(val) {
-    if (val !== undefined) STATE.arrowScale = val;
+    if (val !== undefined) {
+        const parsed = parseFloat(val);
+        if (!isNaN(parsed)) {
+            STATE.arrowScale = Math.max(0.4, Math.min(3.0, Math.round(parsed * 10) / 10));
+        }
+    }
     document.documentElement.style.setProperty('--arrow-scale', STATE.arrowScale);
+
+    // 1) 신호 시뮬레이터 플로팅 바 UI 동기화
+    const rangeEl = document.getElementById('sim-arrow-scale-range');
+    const textEl = document.getElementById('sim-arrow-scale-text');
+    if (rangeEl && Math.abs(parseFloat(rangeEl.value) - STATE.arrowScale) > 0.01) {
+        rangeEl.value = STATE.arrowScale;
+    }
+    if (textEl) {
+        textEl.textContent = STATE.arrowScale.toFixed(1) + 'x';
+    }
+
+    // 2) 프리셋 버튼 활성 상태 동기화
+    document.querySelectorAll('.btn-arrow-scale-preset').forEach(btn => {
+        const pScale = parseFloat(btn.getAttribute('data-scale'));
+        btn.classList.toggle('active', Math.abs(pScale - STATE.arrowScale) < 0.05);
+    });
+
+    // 3) 좌측 사이드바 시각화 설정(신호등 크기 슬라이더) 동기화
+    const valSpan = document.getElementById('val-arrow-size-bottom');
+    if (valSpan) {
+        let label = '보통';
+        if (STATE.arrowScale <= 1.0) label = '작게';
+        else if (STATE.arrowScale >= 2.0) label = '크게';
+        valSpan.innerText = label;
+    }
+    document.querySelectorAll('.step-slider').forEach(container => {
+        const onclickAttr = container.getAttribute('onclick') || '';
+        if (onclickAttr.includes("'arrow'") && typeof window.updateStepSliderUI === 'function') {
+            const step = STATE.arrowScale <= 1.0 ? 0 : (STATE.arrowScale >= 2.0 ? 2 : 1);
+            window.updateStepSliderUI(container, step);
+        }
+    });
+
+    // 4) 로컬스토리지 영구 보존
+    try {
+        localStorage.setItem('sigma_arrow_scale', String(STATE.arrowScale));
+    } catch(e) {}
+}
+
+/**
+ * 신호 시뮬레이터: 화살표 크기 절대값 설정
+ */
+function setSimArrowScale(val) {
+    syncScaleArrow(val);
+}
+
+/**
+ * 신호 시뮬레이터: 화살표 크기 증감 (+0.1 or -0.1)
+ */
+function adjustSimArrowScale(delta) {
+    const cur = (typeof STATE !== 'undefined' && STATE.arrowScale) ? STATE.arrowScale : 1.5;
+    syncScaleArrow(cur + delta);
+}
+
+/**
+ * 신호 시뮬레이터: 슬라이더 oninput 실시간 변경
+ */
+function onSimArrowScaleChange(val) {
+    syncScaleArrow(val);
 }
 
 /* ══════════════════════════════════════════

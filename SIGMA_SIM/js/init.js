@@ -1,8 +1,8 @@
 /**
  * init.js
- * ?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€?€
- * ? í”Œë¦¬ì??´ì…˜ ì´ˆê¸° ?¤ì • ë°??´ë²¤??ë¦¬ìŠ¤???µí•©
- * ?˜ì¡´: ëª¨ë“  js ëª¨ë“ˆ
+ * ?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½?ï¿½
+ * ?ï¿½í”Œë¦¬ï¿½??ï¿½ì…˜ ì´ˆê¸° ?ï¿½ì • ï¿½??ï¿½ë²¤??ë¦¬ìŠ¤???ï¿½í•©
+ * ?ï¿½ì¡´: ëª¨ë“  js ëª¨ë“ˆ
  */
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -15,12 +15,13 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof initGroupDayDragAndDrop === 'function') initGroupDayDragAndDrop();
     if (typeof initUIComponents === 'function') initUIComponents();
     if (typeof syncConfigEditUI === 'function') syncConfigEditUI();
+    if (typeof updateScales === 'function') updateScales();
 
-    // 2. ì§€???´ë²¤???¸ë“¤??ì´ˆê¸°??
+    // 2. ì§€???ï¿½ë²¤???ï¿½ë“¤??ì´ˆê¸°??
     if (typeof initMapClickHandlers === 'function') initMapClickHandlers();
     if (typeof initMapMoveHandlers === 'function') initMapMoveHandlers();
 
-    // 3. ?€?„ìŠ¬?¼ì´???´ë²¤???°ê²°
+    // 3. ?ï¿½?ï¿½ìŠ¬?ï¿½ì´???ï¿½ë²¤???ï¿½ê²°
     if (UI.timeSlider) {
         UI.timeSlider.oninput = () => {
             updateSim();
@@ -31,23 +32,23 @@ window.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // 4. ?¤ì‹œê°??œê³„ ?…ë°?´íŠ¸ ?¸í„°ë²?(ë§¤ì´ˆ)
+    // 4. ?ï¿½ì‹œï¿½??ï¿½ê³„ ?ï¿½ë°?ï¿½íŠ¸ ?ï¿½í„°ï¿½?(ë§¤ì´ˆ)
     setInterval(updateRealTime, 1000);
-    updateRealTime(); // ì¦‰ì‹œ ?¤í–‰
+    updateRealTime(); // ì¦‰ì‹œ ?ï¿½í–‰
     
-    // 4.1. ?œë??ˆì´??ì´ˆê¸° ?”ì¼ ?¤ì • (?¤ëŠ˜ ?”ì¼ ê¸°ì?)
+    // 4.1. ?ï¿½ï¿½??ï¿½ì´??ì´ˆê¸° ?ï¿½ì¼ ?ï¿½ì • (?ï¿½ëŠ˜ ?ï¿½ì¼ ê¸°ï¿½?)
     if (typeof setSimDay === 'function') setSimDay(new Date().getDay());
 
-    // 5. ì´ˆê¸° ?Œë§ˆ ë°?ê°€?œì„± ?¤ì •
+    // 5. ì´ˆê¸° ?ï¿½ë§ˆ ï¿½?ê°€?ï¿½ì„± ?ï¿½ì •
     if (STATE.currentTheme === 'dark') {
         const btn = document.getElementById('btn-map-theme');
         if (btn) btn.classList.add('on');
     }
 
-    // 6. ?œì‘ ???„ì¬ ?œê°„?¼ë¡œ ?í”„ (? íƒ ?¬í•­ - ?¬ê¸°?œëŠ” ?ë™ ?¤í–‰)
+    // 6. ?ï¿½ì‘ ???ï¿½ì¬ ?ï¿½ê°„?ï¿½ë¡œ ?ï¿½í”„ (?ï¿½íƒ ?ï¿½í•­ - ?ï¿½ê¸°?ï¿½ëŠ” ?ï¿½ë™ ?ï¿½í–‰)
     // goToCurrentTime();
 
-    // 7. Render ë°±ì—”???œë²„ ?¬ë¦½ ë°©ì???Keep-Alive ??(1ë¶?ê°„ê²©)
+    // 7. Render ë°±ì—”???ï¿½ë²„ ?ï¿½ë¦½ ë°©ï¿½???Keep-Alive ??(1ï¿½?ê°„ê²©)
     setInterval(() => {
         fetch('/api/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({}) })
             .catch(err => console.log('Keep-alive ping error:', err));
@@ -55,11 +56,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     console.log("SIGMA - Entry Point Logic Connected.");
 
-    // ê°•ì œë¡?ì´ˆê¸° UI ê³µë? ?Œì´ë¸??Œë”ë§?
+    // ê°•ì œï¿½?ì´ˆê¸° UI ê³µï¿½? ?ï¿½ì´ï¿½??ï¿½ë”ï¿½?
     if (typeof deselectJunction === 'function') deselectJunction();
     if (typeof AppStateMachine !== 'undefined') AppStateMachine.updateGlobalUI(STATE.appMode);
 
-    // [Intersection Search] auto_load.js?ì„œ ?°ì´??ë¡œë“œ ?„ë£Œ ??ì²˜ë¦¬?˜ë„ë¡?ë³€ê²½ë¨
+    // [Intersection Search] auto_load.js?ï¿½ì„œ ?ï¿½ì´??ë¡œë“œ ?ï¿½ë£Œ ??ì²˜ë¦¬?ï¿½ë„ï¿½?ë³€ê²½ë¨
     // if (typeof renderJunctionList === 'function') renderJunctionList();
 
     // [Auto Load Trigger]
