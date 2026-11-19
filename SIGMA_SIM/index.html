@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
     <link rel="stylesheet" href="css/style.css?v=1795100000000">
     <link rel="stylesheet" href="css/tables.css">
-    <link rel="stylesheet" href="css/panels.css?v=1795100000000">
+    <link rel="stylesheet" href="css/panels.css?v=1795101000000">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
@@ -2260,7 +2260,35 @@
             <div id="sim-speed-display" class="fs-14 text-accent fw-800">SPEED: 4x (Normal)</div>
         </div>
 
-        <div class="time-slider-container">
+        <div class="time-slider-container" id="timeSliderContainer">
+            <div class="time-ticks" id="timeTicks">
+                <!-- 0시 ~ 24시 1시간 단위 눈금선 (25개) -->
+                <div class="time-tick major" data-hour="0" style="left: 0%;" title="00:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="1" style="left: 4.1667%;" title="01:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="2" style="left: 8.3333%;" title="02:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="3" style="left: 12.5%;" title="03:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="4" style="left: 16.6667%;" title="04:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="5" style="left: 20.8333%;" title="05:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="6" style="left: 25%;" title="06:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="7" style="left: 29.1667%;" title="07:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="8" style="left: 33.3333%;" title="08:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="9" style="left: 37.5%;" title="09:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="10" style="left: 41.6667%;" title="10:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="11" style="left: 45.8333%;" title="11:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="12" style="left: 50%;" title="12:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="13" style="left: 54.1667%;" title="13:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="14" style="left: 58.3333%;" title="14:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="15" style="left: 62.5%;" title="15:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="16" style="left: 66.6667%;" title="16:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="17" style="left: 70.8333%;" title="17:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="18" style="left: 75%;" title="18:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="19" style="left: 79.1667%;" title="19:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="20" style="left: 83.3333%;" title="20:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="21" style="left: 87.5%;" title="21:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="22" style="left: 91.6667%;" title="22:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick minor" data-hour="23" style="left: 95.8333%;" title="23:00 (클릭 시 정각 이동)"></div>
+                <div class="time-tick major" data-hour="24" style="left: 100%;" title="24:00 (클릭 시 정각 이동)"></div>
+            </div>
             <div class="time-labels">
                 <span style="left: 0%;">00:00</span>
                 <span style="left: 12.5%;">03:00</span>
@@ -2325,7 +2353,7 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1795100000000"></script>
+    <script src="js/ui.js?v=1795101000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
@@ -2352,7 +2380,7 @@
     <script src="js/network_print.js?v=1794610000000"></script>
     <script src="js/table_logic.js?v=1792716000000"></script>
     <script src="js/phase_diagram_interactive.js?v=1791726500000"></script>
-    <script src="js/init.js?v=1795100000000"></script>
+    <script src="js/init.js?v=1795101000000"></script>
     <script src="js/idb_manager.js?v=1794120000000"></script>
     <script src="js/auto_load.js?v=1793536866201"></script>
     <script src="js/minigame.js?v=1791726500000"></script>
@@ -2629,7 +2657,7 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1794635000000"></script>
+    <script src="js/overlay_ui.js?v=1795101000000"></script>
     <script src="js/db_report.js?v=1794635000000"></script>
     <script src="js/junction_notes.js?v=1794635000000"></script>
 

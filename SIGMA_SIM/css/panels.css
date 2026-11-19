@@ -199,6 +199,79 @@ body.sidebar-collapsed .controls {
     z-index: 10;
 }
 
+/* ──────────────────────────────────────────────────────────
+ *  1시간 단위 시간 표시 막대 눈금선 (Time Slider Hour Ticks)
+ * ────────────────────────────────────────────────────────── */
+.time-ticks {
+    position: absolute;
+    left: 8px; /* Thumb radius compensation */
+    right: 8px; /* Thumb radius compensation */
+    top: 50%;
+    transform: translateY(-50%);
+    height: 16px;
+    pointer-events: none;
+    z-index: 6; /* 슬라이더 트랙 위, thumb(z-index: 10) 아래 */
+    box-sizing: border-box;
+}
+
+.time-tick {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto; /* 마우스 클릭 및 호버 활성화 */
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 터치 및 마우스 클릭 히트박스 영역 확장 */
+.time-tick::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 26px;
+    background: transparent;
+}
+
+/* 3시간 단위 주요 눈금선 (00:00, 03:00, 06:00, ... 24:00) */
+.time-tick.major {
+    width: 2px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.55);
+    border-radius: 1px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+/* 1시간 단위 보조 눈금선 (01:00, 02:00, 04:00, ... 23:00) */
+.time-tick.minor {
+    width: 1.2px;
+    height: 9px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 1px;
+}
+
+/* 눈금선 호버 시 네온 시안 하이라이트 */
+.time-tick:hover {
+    background: #38bdf8 !important;
+    height: 18px !important;
+    width: 2px !important;
+    box-shadow: 0 0 8px #38bdf8, 0 0 14px rgba(56, 189, 248, 0.7) !important;
+    z-index: 12 !important;
+}
+
+/* 정각 스냅 시계 펄스 애니메이션 */
+@keyframes snap-pulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    40% { transform: scale(1.08); filter: brightness(1.5) drop-shadow(0 0 14px #38bdf8); color: #38bdf8; }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+.snap-pulse {
+    animation: snap-pulse 0.35s ease-out;
+}
+
 
 
 /* Foldable Sections */

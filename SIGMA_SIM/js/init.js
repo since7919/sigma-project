@@ -16,6 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof initUIComponents === 'function') initUIComponents();
     if (typeof syncConfigEditUI === 'function') syncConfigEditUI();
     if (typeof updateScales === 'function') updateScales();
+    if (typeof initTimeSliderTicks === 'function') initTimeSliderTicks();
 
     // 2. 지???�벤???�들??초기??
     if (typeof initMapClickHandlers === 'function') initMapClickHandlers();

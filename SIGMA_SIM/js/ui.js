@@ -513,6 +513,143 @@ function onSimArrowScaleChange(val) {
 }
 
 /* ══════════════════════════════════════════
+ *  시간 표시 막대: 1시간 눈금선 및 정각 자석 스냅(Magnetic Snap)
+ * ══════════════════════════════════════════ */
+
+/**
+ * 1시간 단위 눈금선(0시~24시) 생성 및 이벤트 초기화
+ */
+function renderTimeTicks() {
+    const ticksContainer = document.getElementById('timeTicks');
+    if (!ticksContainer) return;
+
+    // 만약 HTML에 미리 렌더링되어 있지 않다면 동적 생성 (SSR/초기 미생성 대비)
+    if (ticksContainer.children.length === 0) {
+        let html = '';
+        for (let h = 0; h <= 24; h++) {
+            const isMajor = (h % 3 === 0);
+            const pct = (h / 24 * 100).toFixed(4);
+            const cls = isMajor ? 'time-tick major' : 'time-tick minor';
+            const title = `${String(h).padStart(2, '0')}:00 (클릭 시 정각 이동)`;
+            html += `<div class="${cls}" data-hour="${h}" style="left: ${pct}%;" title="${title}"></div>`;
+        }
+        ticksContainer.innerHTML = html;
+    }
+
+    // 각 눈금 클릭 시 해당 정각으로 이동 이벤트 연결
+    ticksContainer.querySelectorAll('.time-tick').forEach(tick => {
+        tick.onclick = (e) => {
+            e.stopPropagation();
+            const h = parseInt(tick.getAttribute('data-hour'), 10);
+            if (!isNaN(h)) {
+                snapTimeSliderToHour(h, true);
+            }
+        };
+    });
+}
+
+/**
+ * 슬라이더를 지정한 시간(0~24) 정각으로 정확히 맞추고 피드백 제공
+ * @param {number} hour - 0부터 24까지의 정각 시간
+ * @param {boolean} showFeedback - 피드백 표시 여부
+ */
+function snapTimeSliderToHour(hour, showFeedback = true) {
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    if (!slider) return;
+    const targetSec = (hour >= 24) ? 86399 : Math.max(0, Math.floor(hour * 3600));
+    slider.value = targetSec;
+    
+    if (typeof updateSim === 'function') {
+        updateSim();
+    }
+
+    if (showFeedback) {
+        // 1. 시계 펄스 애니메이션 피드백
+        const clock = (typeof UI !== 'undefined' && UI.clock) ? UI.clock : document.getElementById('clock');
+        if (clock) {
+            clock.classList.remove('snap-pulse');
+            void clock.offsetWidth; // Reflow 트리거
+            clock.classList.add('snap-pulse');
+        }
+
+        // 2. 상태 텍스트에 정각 스냅 안내 표출
+        const stat = (typeof UI !== 'undefined' && UI.stat) ? UI.stat : document.getElementById('stat');
+        if (stat) {
+            const hStr = String(hour >= 24 ? 24 : hour).padStart(2, '0');
+            stat.innerText = `⏱ ${hStr}:00 정각 스냅`;
+            stat.style.color = '#38bdf8';
+            
+            clearTimeout(window._snapFeedbackTimer);
+            window._snapFeedbackTimer = setTimeout(() => {
+                if (typeof STATE !== 'undefined' && !STATE.simTimer) {
+                    stat.innerText = "MANUAL";
+                    stat.style.color = "var(--accent)";
+                } else {
+                    stat.innerText = "RUNNING";
+                    stat.style.color = "var(--accent)";
+                }
+            }, 1200);
+        }
+    }
+}
+
+/**
+ * 현재 슬라이더 값이 정각 근처일 경우 가장 가까운 정각으로 자석 스냅
+ * @param {number} thresholdSec - 스냅 판정 반경(초 단위, 기본 ±900초 = 15분)
+ * @returns {boolean} 스냅 수행 여부
+ */
+function checkAndSnapTimeSlider(thresholdSec = 900) {
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    if (!slider) return false;
+    const curSec = parseInt(slider.value, 10);
+    if (isNaN(curSec)) return false;
+
+    // 가장 가까운 정각 시간(0~24) 계산
+    const nearestHour = Math.round(curSec / 3600);
+    const nearestSec = (nearestHour >= 24) ? 86399 : (nearestHour * 3600);
+    const diff = Math.abs(curSec - nearestSec);
+
+    // 정각 근처(15분 이내)이며 이미 딱 맞추어져 있지 않은 경우 스냅
+    if (diff > 0 && diff <= thresholdSec) {
+        snapTimeSliderToHour(nearestHour, true);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * 타임슬라이더 눈금선 및 스냅 인터랙션 초기화
+ */
+function initTimeSliderTicks() {
+    renderTimeTicks();
+
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    if (slider) {
+        // 드래그 종료 또는 클릭 확정 시 정각 근처면 자석 스냅 (change)
+        slider.addEventListener('change', () => {
+            checkAndSnapTimeSlider(900); // ±15분 이내 정각 스냅
+        });
+
+        // 포인터(마우스/터치)를 뗐을 때 즉시 스냅 판정
+        slider.addEventListener('pointerup', () => {
+            setTimeout(() => {
+                checkAndSnapTimeSlider(900);
+            }, 10);
+        });
+
+        // 타임슬라이더 컨테이너 클릭 시 스냅 대응
+        const container = document.getElementById('timeSliderContainer');
+        if (container) {
+            container.addEventListener('click', () => {
+                setTimeout(() => {
+                    checkAndSnapTimeSlider(900);
+                }, 50);
+            });
+        }
+    }
+}
+
+/* ══════════════════════════════════════════
  *  명칭 스타일 업데이트
  * ══════════════════════════════════════════ */
 function updateNameStyles() {
