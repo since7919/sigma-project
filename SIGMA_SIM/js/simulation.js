@@ -841,11 +841,13 @@ function updateRealTime() {
 function goToCurrentTime() {
     const now = new Date();
     const totalSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-    UI.timeSlider.value = totalSec;
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    if (slider) slider.value = totalSec;
+    if (typeof STATE !== 'undefined') STATE.isManualTimeMode = false;
     const currentDay = now.getDay();
     if (typeof setSimDay === 'function') {
         setSimDay(currentDay);
-    } else {
+    } else if (typeof STATE !== 'undefined') {
         STATE.simDayOfWeek = currentDay;
         document.querySelectorAll('.btn-day').forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.getAttribute('data-day')) === currentDay);
@@ -856,9 +858,12 @@ function goToCurrentTime() {
 
 /** 10초 앞/뒤 이동 기능 */
 function skipTime(seconds) {
-    let t = parseInt(UI.timeSlider.value);
+    if (typeof STATE !== 'undefined') STATE.isManualTimeMode = true;
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    if (!slider) return;
+    let t = parseInt(slider.value);
     t = (t + seconds + 86400) % 86400; // 24시간 범위 내 순환
-    UI.timeSlider.value = t;
+    slider.value = t;
     updateSim();
     console.log(`[Simulation] Time skipped by ${seconds}s (Current: ${t})`);
 }
@@ -868,6 +873,11 @@ function skipTime(seconds) {
 /** 시뮬레이션 시작 (배속 반영) */
 function startSim() {
     if (STATE.simTimer) return;
+
+    // [New] 신호시뮬레이터 실행 시 실행 시점의 현재 시간(now)에서 실행
+    if (typeof STATE !== 'undefined' && !STATE.isManualTimeMode) {
+        goToCurrentTime();
+    }
 
     const tick = () => {
         // 시간은 항상 1초씩 증가 (부드러운 연속성)

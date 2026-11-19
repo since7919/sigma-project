@@ -25,6 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // 3. ?�?�슬?�이???�벤???�결
     if (UI.timeSlider) {
         UI.timeSlider.oninput = () => {
+            if (typeof STATE !== 'undefined') STATE.isManualTimeMode = true;
             updateSim();
             if (!STATE.simTimer && UI.stat) {
                 UI.stat.innerText = "MANUAL";
@@ -47,7 +48,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // 6. ?�작 ???�재 ?�간?�로 ?�프 (?�택 ?�항 - ?�기?�는 ?�동 ?�행)
-    // goToCurrentTime();
+    if (typeof goToCurrentTime === 'function') goToCurrentTime();
 
     // 7. Render 백엔???�버 ?�립 방�???Keep-Alive ??(1�?간격)
     setInterval(() => {

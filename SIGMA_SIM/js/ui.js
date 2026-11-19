@@ -77,6 +77,9 @@ function toggleControls() {
     } else {
         btn.innerHTML = '<span class="handle-icon">🚦</span><span class="handle-text-bottom">신호 시뮬레이터</span>';
         btn.title = "신호 시뮬레이터 숨기기";
+        // [연계] 신호시뮬레이터를 열면 실행 시점의 현재 시간(now)으로 설정
+        if (typeof STATE !== 'undefined') STATE.isManualTimeMode = false;
+        if (typeof goToCurrentTime === 'function') goToCurrentTime();
         // [연계] 시뮬레이터를 열면 신호등 모드 자동 활성화 (아직 꺼져 있는 경우만)
         if (!STATE.showSignalArrows) {
             toggleSignalMode();
@@ -554,6 +557,7 @@ function renderTimeTicks() {
  * @param {boolean} showFeedback - 피드백 표시 여부
  */
 function snapTimeSliderToHour(hour, showFeedback = true) {
+    if (typeof STATE !== 'undefined') STATE.isManualTimeMode = true;
     const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
     if (!slider) return;
     const targetSec = (hour >= 24) ? 86399 : Math.max(0, Math.floor(hour * 3600));
@@ -887,6 +891,9 @@ function toggleSignalMode() {
 
     // 신호등 On 시 자동 재생 & 4배속 기본값 설정, Off 시 자동 멈춤
     if (STATE.showSignalArrows) {
+        // [연계] 신호시뮬레이터를 실행했을 때는 실행 시점의 현재 시간(now)에서 실행
+        if (typeof STATE !== 'undefined') STATE.isManualTimeMode = false;
+        if (typeof goToCurrentTime === 'function') goToCurrentTime();
         if (typeof setSpeed === 'function') setSpeed(4); // [New] 기본 4배속 강제
         if (typeof startSim === 'function') startSim();
     } else {
