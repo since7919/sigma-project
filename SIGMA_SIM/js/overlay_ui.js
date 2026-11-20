@@ -101,6 +101,8 @@ function openDetailOverlay(jid) {
     });
     const optStatsBtn = document.getElementById('tab-btn-optstats');
     if (optStatsBtn) optStatsBtn.style.display = 'none';
+    const khcmTabBtn = document.getElementById('tab-btn-khcm');
+    if (khcmTabBtn) khcmTabBtn.style.display = 'none';
 
     // 모달 열 때 기본 탭(신호계획정보) 활성화
     switchOverlayTab('phase');
@@ -307,9 +309,16 @@ function openStatsOverlay(jid) {
     
     const optStatsBtn = document.getElementById('tab-btn-optstats');
     if (optStatsBtn) optStatsBtn.style.display = '';
+    const khcmTabBtn = document.getElementById('tab-btn-khcm');
+    if (khcmTabBtn) khcmTabBtn.style.display = '';
 
     // switch overlay tab to optstats
     switchOverlayTab('optstats');
+
+    // 2026 KHCM 교차로 분석 모듈 마운트
+    if (typeof KHCM !== 'undefined' && typeof KHCM.mountToOverlay === 'function') {
+        KHCM.mountToOverlay(jid);
+    }
 
     // 신호등 모드 버튼 초기화
     if (typeof updateOverlaySignalModeButton === 'function') {
