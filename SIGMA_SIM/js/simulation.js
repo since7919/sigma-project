@@ -186,12 +186,13 @@ function updateSim() {
     const editing = (STATE.activeJid && STATE.isMapEditMode);
     const isOpActiveGlobal = false; // 전역 운영자 개입 (필요 시 확장)
 
-    // 시간 표시 갱신
-    if (UI.clock) {
+    // 시간 표시 갱신 (UI.clock 또는 DOM 직접 조회 방어)
+    const clockEl = (typeof UI !== 'undefined' && UI.clock) ? UI.clock : document.getElementById('clock');
+    if (clockEl) {
         const h = Math.floor(t / 3600);
         const m = Math.floor((t % 3600) / 60);
         const s = t % 60;
-        UI.clock.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        clockEl.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
 
     // [추가] 점멸 신호 블링킹을 위한 전역 상태 제어 (500ms 주기)

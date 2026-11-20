@@ -174,6 +174,14 @@
         window.UI.timeSlider = document.getElementById('timeSlider');
         window.UI.stat = document.getElementById('stat');
         window.UI.simSpeed = document.getElementById('sim-speed-display');
+        
+        // 전역 UI 객체(스코프 내 UI 변수 포함) 동기화 보장
+        if (typeof UI !== 'undefined') {
+            UI.clock = window.UI.clock;
+            UI.timeSlider = window.UI.timeSlider;
+            UI.stat = window.UI.stat;
+            UI.simSpeed = window.UI.simSpeed;
+        }
 
         // 슬라이더 조작 시 수동 시간 모드 설정
         if (window.UI.timeSlider) {

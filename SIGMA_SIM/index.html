@@ -2233,7 +2233,99 @@
     </div> <!-- end sidebar-container -->
 
     <!-- Signal Simulator Floating Bar (Dynamically injected and managed by js/sim_controller.js) -->
-    <div id="sim-controls-container"></div>
+    <div class="controls minimized" id="sim-controls">
+        <button id="btn-toggle-controls" class="btn-toggle-controls" onclick="toggleControls()" title="신호 시뮬레이터 표시/숨기기">
+            <span class="handle-icon">🚦</span>
+            <span class="handle-text-bottom">신호 시뮬레이터</span>
+        </button>
+        <div class="flex-row-between">
+            <div class="flex-row gap-15" style="align-items: baseline;">
+                <div id="clock" class="fs-72 text-accent"
+                    style="font-family: monospace; font-weight: 900; line-height: 1; text-shadow: 0 0 20px var(--accent-glow);">
+                    00:00:00</div>
+                <div id="real-time-display" class="real-time-badge" onclick="goToCurrentTime()" title="현재 시간으로 이동">
+                    <span class="recording-dot"></span>
+                    NOW: 00:00:00
+                </div>
+                <div class="sim-day-selector">
+                    <button class="btn-day active" data-day="1" onclick="setSimDay(1)">월</button>
+                    <button class="btn-day" data-day="2" onclick="setSimDay(2)">화</button>
+                    <button class="btn-day" data-day="3" onclick="setSimDay(3)">수</button>
+                    <button class="btn-day" data-day="4" onclick="setSimDay(4)">목</button>
+                    <button class="btn-day" data-day="5" onclick="setSimDay(5)">금</button>
+                    <button class="btn-day" data-day="6" onclick="setSimDay(6)">토</button>
+                    <button class="btn-day" data-day="0" onclick="setSimDay(0)">일</button>
+                </div>
+            </div>
+            <div id="sim-speed-display" class="fs-14 text-accent fw-800">SPEED: 4x (Normal)</div>
+        </div>
+
+        <div class="time-slider-container" id="timeSliderContainer">
+            <div class="time-ticks" id="timeTicks"></div>
+            <div class="time-labels">
+                <span style="left: 0%;">00:00</span>
+                <span style="left: 12.5%;">03:00</span>
+                <span style="left: 25%;">06:00</span>
+                <span style="left: 37.5%;">09:00</span>
+                <span style="left: 50%;">12:00</span>
+                <span style="left: 62.5%;">15:00</span>
+                <span style="left: 75%;">18:00</span>
+                <span style="left: 87.5%;">21:00</span>
+                <span style="left: 100%;">24:00</span>
+            </div>
+            <input type="range" id="timeSlider" min="0" max="86399" value="25200" class="sim-range">
+            <div id="real-time-marker" class="time-marker"></div>
+        </div>
+
+        <div class="sim-btn-group">
+            <!-- 1. 재생 및 타임스킵 컨트롤 그룹 -->
+            <div class="sim-control-cluster play-cluster">
+                <button class="btn-play" id="btn-play-pause" onclick="toggleSim()">▶ PLAY</button>
+                <div class="btn-split-group">
+                    <button class="btn-sim-tool" onclick="skipTime(-10)" title="10초 뒤로">⏪ -10s</button>
+                    <button class="btn-sim-tool" onclick="skipTime(10)" title="10초 앞으로">+10s ⏩</button>
+                </div>
+            </div>
+
+            <!-- 세로 구분선 -->
+            <div class="sim-v-divider"></div>
+
+            <!-- 2. 배속 선택 세그먼트 그룹 -->
+            <div class="sim-control-cluster speed-cluster" title="시뮬레이션 배속 설정">
+                <span class="cluster-label">배속</span>
+                <div class="sim-segmented-box">
+                    <button class="btn-speed" id="sp-1" onclick="setSpeed(1)">1.0x</button>
+                    <button class="btn-speed active" id="sp-4" onclick="setSpeed(4)">4.0x</button>
+                    <button class="btn-speed" id="sp-8" onclick="setSpeed(8)">8.0x</button>
+                </div>
+            </div>
+
+            <!-- 세로 구분선 -->
+            <div class="sim-v-divider"></div>
+
+            <!-- 3. 신호화살표 크기 조절 컨트롤 그룹 -->
+            <div class="sim-scale-group" id="sim-arrow-scale-box" title="신호 화살표 및 신호등 크기 조절">
+                <span class="cluster-label">
+                    <span style="font-size: 13px;">🏹</span> 화살표 크기
+                </span>
+                <button class="btn-scale-step" onclick="adjustSimArrowScale(-0.1)" title="화살표 축소 (0.1 감소)">➖</button>
+                <div class="scale-slider-wrap">
+                    <input type="range" id="sim-arrow-scale-range" min="0.5" max="2.5" step="0.1" value="1.5" 
+                           oninput="onSimArrowScaleChange(this.value)">
+                    <span id="sim-arrow-scale-text">1.5x</span>
+                </div>
+                <button class="btn-scale-step" onclick="adjustSimArrowScale(0.1)" title="화살표 확대 (0.1 증가)">➕</button>
+                <div class="scale-preset-group">
+                    <button class="btn-arrow-scale-preset" data-scale="0.8" onclick="setSimArrowScale(0.8)" title="작게 (0.8x)">작게</button>
+                    <button class="btn-arrow-scale-preset active" data-scale="1.5" onclick="setSimArrowScale(1.5)" title="보통 (1.5x)">보통</button>
+                    <button class="btn-arrow-scale-preset" data-scale="2.2" onclick="setSimArrowScale(2.2)" title="크게 (2.2x)">크게</button>
+                </div>
+            </div>
+
+            <!-- 4. 상태 표시 칩 (우측 정렬) -->
+            <div id="stat" class="sim-status-chip">READY</div>
+        </div>
+    </div>
 
     <!-- Chatbot UI is now dynamically injected by js/chatbot_advanced.js -->
 
@@ -2249,8 +2341,8 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1795104000000"></script>
-    <script src="js/sim_controller.js?v=1795104000000"></script>
+    <script src="js/ui.js?v=1795106000000"></script>
+    <script src="js/sim_controller.js?v=1795106000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
@@ -2264,7 +2356,7 @@
     <script src="js/group_map.js?v=1791726500000"></script>
     <script src="js/group.js?v=1792716000000"></script>
     <script src="js/tsd.js?v=1791726500000"></script>
-    <script src="js/simulation.js?v=1795105000000"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/simulation.js?v=1795106000000"></script> <!-- 이 부분이 핵심입니다 -->
     <script src="js/stats.js?v=1792716000000"></script>
     <script src="js/insight_modal.js"></script>
     <script src="js/ai_report.js?v=1794615000000"></script>
@@ -2554,7 +2646,7 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1795104000000"></script>
+    <script src="js/overlay_ui.js?v=1795106000000"></script>
     <script src="js/db_report.js?v=1794635000000"></script>
     <script src="js/junction_notes.js?v=1794635000000"></script>
 
