@@ -58,6 +58,7 @@ function renderOpStatsTable() {
     const tbody = document.getElementById('op-stats-tbody');
     const table = document.getElementById('op-stats-table');
     const container = document.getElementById('op-stats-container');
+    if (!table || !container) return;
     const topScrollCon = document.getElementById('op-stats-top-scroll-container');
     const topScrollContent = document.getElementById('op-stats-top-scroll-content');
 
