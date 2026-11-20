@@ -7,7 +7,7 @@
 
 ## 1. 아키텍처 인지 및 시스템 파악 원칙
 1. 작업 시작 시 반드시 루트의 [`SIGMA_ARCHITECTURE.md`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_ARCHITECTURE.md)를 참조하여 파일별 역할, 전역 `STATE` 구조, 3단계 로딩 라이프사이클을 확인한 후 작업하십시오.
-2. `SIGMA_SIM`의 핵심 상태는 `window.STATE` 단일 객체로 집중 관리되며, 42개 JS 모듈이 7개 기능 클러스터로 분리되어 있습니다.
+2. `SIGMA_SIM`의 핵심 상태는 `window.STATE` 단일 객체로 집중 관리되며, 43개 JS 모듈이 7개 기능 클러스터로 분리되어 있습니다.
 
 ---
 

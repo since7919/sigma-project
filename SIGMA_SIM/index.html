@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
     <link rel="stylesheet" href="css/style.css?v=1795100000000">
     <link rel="stylesheet" href="css/tables.css">
-    <link rel="stylesheet" href="css/panels.css?v=1795103000000">
+    <link rel="stylesheet" href="css/panels.css?v=1795104000000">
     <link rel="stylesheet" href="css/theme.css">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
@@ -2232,127 +2232,8 @@
         </div> <!-- end tab-civil -->
     </div> <!-- end sidebar-container -->
 
-    <!-- Signal Simulator Floating Bar -->
-    <div class="controls minimized" id="sim-controls">
-        <button id="btn-toggle-controls" class="btn-toggle-controls" onclick="toggleControls()" title="신호 시뮬레이터 표시/숨기기">
-            <span class="handle-icon">🚦</span>
-            <span class="handle-text-bottom">신호 시뮬레이터</span>
-        </button>
-        <div class="flex-row-between">
-            <div class="flex-row gap-15" style="align-items: baseline;">
-                <div id="clock" class="fs-72 text-accent"
-                    style="font-family: monospace; font-weight: 900; line-height: 1; text-shadow: 0 0 20px var(--accent-glow);">
-                    00:00:00</div>
-                <div id="real-time-display" class="real-time-badge" onclick="goToCurrentTime()" title="현재 시간으로 이동">
-                    <span class="recording-dot"></span>
-                    NOW: 00:00:00
-                </div>
-                <div class="sim-day-selector">
-                    <button class="btn-day active" data-day="1" onclick="setSimDay(1)">월</button>
-                    <button class="btn-day" data-day="2" onclick="setSimDay(2)">화</button>
-                    <button class="btn-day" data-day="3" onclick="setSimDay(3)">수</button>
-                    <button class="btn-day" data-day="4" onclick="setSimDay(4)">목</button>
-                    <button class="btn-day" data-day="5" onclick="setSimDay(5)">금</button>
-                    <button class="btn-day" data-day="6" onclick="setSimDay(6)">토</button>
-                    <button class="btn-day" data-day="0" onclick="setSimDay(0)">일</button>
-                </div>
-            </div>
-            <div id="sim-speed-display" class="fs-14 text-accent fw-800">SPEED: 4x (Normal)</div>
-        </div>
-
-        <div class="time-slider-container" id="timeSliderContainer">
-            <div class="time-ticks" id="timeTicks">
-                <!-- 0시 ~ 24시 1시간 단위 눈금선 (25개) -->
-                <div class="time-tick major" data-hour="0" style="left: 0%;" title="00:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="1" style="left: 4.1667%;" title="01:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="2" style="left: 8.3333%;" title="02:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="3" style="left: 12.5%;" title="03:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="4" style="left: 16.6667%;" title="04:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="5" style="left: 20.8333%;" title="05:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="6" style="left: 25%;" title="06:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="7" style="left: 29.1667%;" title="07:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="8" style="left: 33.3333%;" title="08:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="9" style="left: 37.5%;" title="09:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="10" style="left: 41.6667%;" title="10:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="11" style="left: 45.8333%;" title="11:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="12" style="left: 50%;" title="12:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="13" style="left: 54.1667%;" title="13:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="14" style="left: 58.3333%;" title="14:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="15" style="left: 62.5%;" title="15:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="16" style="left: 66.6667%;" title="16:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="17" style="left: 70.8333%;" title="17:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="18" style="left: 75%;" title="18:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="19" style="left: 79.1667%;" title="19:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="20" style="left: 83.3333%;" title="20:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="21" style="left: 87.5%;" title="21:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="22" style="left: 91.6667%;" title="22:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick minor" data-hour="23" style="left: 95.8333%;" title="23:00 (클릭 시 정각 이동)"></div>
-                <div class="time-tick major" data-hour="24" style="left: 100%;" title="24:00 (클릭 시 정각 이동)"></div>
-            </div>
-            <div class="time-labels">
-                <span style="left: 0%;">00:00</span>
-                <span style="left: 12.5%;">03:00</span>
-                <span style="left: 25%;">06:00</span>
-                <span style="left: 37.5%;">09:00</span>
-                <span style="left: 50%;">12:00</span>
-                <span style="left: 62.5%;">15:00</span>
-                <span style="left: 75%;">18:00</span>
-                <span style="left: 87.5%;">21:00</span>
-                <span style="left: 100%;">24:00</span>
-            </div>
-            <input type="range" id="timeSlider" min="0" max="86399" value="25200" class="sim-range">
-            <div id="real-time-marker" class="time-marker"></div>
-        </div>
-
-        <div class="sim-btn-group">
-            <!-- 1. 재생 및 타임스킵 컨트롤 그룹 -->
-            <div class="sim-control-cluster play-cluster">
-                <button class="btn-play" id="btn-play-pause" onclick="toggleSim()">▶ PLAY</button>
-                <div class="btn-split-group">
-                    <button class="btn-sim-tool" onclick="skipTime(-10)" title="10초 뒤로">⏪ -10s</button>
-                    <button class="btn-sim-tool" onclick="skipTime(10)" title="10초 앞으로">+10s ⏩</button>
-                </div>
-            </div>
-
-            <!-- 세로 구분선 -->
-            <div class="sim-v-divider"></div>
-
-            <!-- 2. 배속 선택 세그먼트 그룹 -->
-            <div class="sim-control-cluster speed-cluster" title="시뮬레이션 배속 설정">
-                <span class="cluster-label">배속</span>
-                <div class="sim-segmented-box">
-                    <button class="btn-speed" id="sp-1" onclick="setSpeed(1)">1.0x</button>
-                    <button class="btn-speed active" id="sp-4" onclick="setSpeed(4)">4.0x</button>
-                    <button class="btn-speed" id="sp-8" onclick="setSpeed(8)">8.0x</button>
-                </div>
-            </div>
-
-            <!-- 세로 구분선 -->
-            <div class="sim-v-divider"></div>
-
-            <!-- 3. 신호화살표 크기 조절 컨트롤 그룹 -->
-            <div class="sim-scale-group" id="sim-arrow-scale-box" title="신호 화살표 및 신호등 크기 조절">
-                <span class="cluster-label">
-                    <span style="font-size: 13px;">🏹</span> 화살표 크기
-                </span>
-                <button class="btn-scale-step" onclick="adjustSimArrowScale(-0.1)" title="화살표 축소 (0.1 감소)">➖</button>
-                <div class="scale-slider-wrap">
-                    <input type="range" id="sim-arrow-scale-range" min="0.5" max="2.5" step="0.1" value="1.5" 
-                           oninput="onSimArrowScaleChange(this.value)">
-                    <span id="sim-arrow-scale-text">1.5x</span>
-                </div>
-                <button class="btn-scale-step" onclick="adjustSimArrowScale(0.1)" title="화살표 확대 (0.1 증가)">➕</button>
-                <div class="scale-preset-group">
-                    <button class="btn-arrow-scale-preset" data-scale="0.8" onclick="setSimArrowScale(0.8)" title="작게 (0.8x)">작게</button>
-                    <button class="btn-arrow-scale-preset active" data-scale="1.5" onclick="setSimArrowScale(1.5)" title="보통 (1.5x)">보통</button>
-                    <button class="btn-arrow-scale-preset" data-scale="2.2" onclick="setSimArrowScale(2.2)" title="크게 (2.2x)">크게</button>
-                </div>
-            </div>
-
-            <!-- 4. 상태 표시 칩 (우측 정렬) -->
-            <div id="stat" class="sim-status-chip">READY</div>
-        </div>
-    </div>
+    <!-- Signal Simulator Floating Bar (Dynamically injected and managed by js/sim_controller.js) -->
+    <div id="sim-controls-container"></div>
 
     <!-- Chatbot UI is now dynamically injected by js/chatbot_advanced.js -->
 
@@ -2368,7 +2249,8 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1795103000000"></script>
+    <script src="js/ui.js?v=1795104000000"></script>
+    <script src="js/sim_controller.js?v=1795104000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1791726500000"></script>
@@ -2382,7 +2264,7 @@
     <script src="js/group_map.js?v=1791726500000"></script>
     <script src="js/group.js?v=1792716000000"></script>
     <script src="js/tsd.js?v=1791726500000"></script>
-    <script src="js/simulation.js?v=1795103000000"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/simulation.js?v=1795104000000"></script> <!-- 이 부분이 핵심입니다 -->
     <script src="js/stats.js?v=1792716000000"></script>
     <script src="js/insight_modal.js"></script>
     <script src="js/ai_report.js?v=1794615000000"></script>
@@ -2395,7 +2277,7 @@
     <script src="js/network_print.js?v=1794610000000"></script>
     <script src="js/table_logic.js?v=1792716000000"></script>
     <script src="js/phase_diagram_interactive.js?v=1791726500000"></script>
-    <script src="js/init.js?v=1795103000000"></script>
+    <script src="js/init.js?v=1795104000000"></script>
     <script src="js/idb_manager.js?v=1794120000000"></script>
     <script src="js/auto_load.js?v=1793536866201"></script>
     <script src="js/minigame.js?v=1791726500000"></script>
@@ -2672,7 +2554,7 @@
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1795103000000"></script>
+    <script src="js/overlay_ui.js?v=1795104000000"></script>
     <script src="js/db_report.js?v=1794635000000"></script>
     <script src="js/junction_notes.js?v=1794635000000"></script>
 

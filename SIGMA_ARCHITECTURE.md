@@ -1,9 +1,9 @@
 # SIGMA 시스템 마스터 아키텍처 및 상세 엔지니어링 명세서 (Master Blueprint)
 
 > **문서 버전:** 2.0.0 (3단계 심층 고도화 반영판)  
-> **최종 갱신일:** 2026-11-08  
+> **최종 갱신일:** 2026-11-20  
 > **대상 시스템:** SIGMA 웹 교통신호 시뮬레이터 & 관제 플랫폼  
-> **용도:** 새로운 AI 대화 세션 및 유지보수 엔지니어가 시스템 전체 상태, 42개 프론트엔드 모듈, 데이터 스키마, 백엔드 API, 캐시 트랜잭션을 완전하게 파악하고 즉각 코드를 유지보수할 수 있도록 제작된 표준 기술 명세서입니다.
+> **용도:** 새로운 AI 대화 세션 및 유지보수 엔지니어가 시스템 전체 상태, 43개 프론트엔드 모듈, 데이터 스키마, 백엔드 API, 캐시 트랜잭션을 완전하게 파악하고 즉각 코드를 유지보수할 수 있도록 제작된 표준 기술 명세서입니다.
 
 ---
 
@@ -184,9 +184,9 @@ erDiagram
 
 ---
 
-# [2차 고도화] 42개 전 모듈 상세 명세 & 백엔드 엔드포인트 연동 맵
+# [2차 고도화] 43개 전 모듈 상세 명세 & 백엔드 엔드포인트 연동 맵
 
-## 2.1 42개 프론트엔드 모듈 상세 명세 (`SIGMA_SIM/js/`)
+## 2.1 43개 프론트엔드 모듈 상세 명세 (`SIGMA_SIM/js/`)
 
 ### 클러스터 A: 코어 & 시스템 인프라 (8개)
 
@@ -369,6 +369,17 @@ erDiagram
 
 42. [`api_layers.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/api_layers.js) (118줄)
     - **역할**: 외부 오픈 API(UTIC, TOPIS) 레이어 인터페이스.
+
+43. [`sim_controller.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/sim_controller.js) (285줄)
+    - **역할**: 하단 신호 시뮬레이터 플로팅 제어 바(`div#sim-controls`)의 동적 주입(DOM Injection), 24시간 타임라인 슬라이더, 1시간 단위 눈금선(Tick Marks), 정각 자석 스냅(Magnetic Snap), 배속/스킵/재생 컨트롤, 신호화살표 크기 조절 컨트롤 전담 관리.
+    - **주요 함수**:
+      - `injectSimulatorUI()`: 하단 시뮬레이터 바 HTML을 동적 렌더링 및 `#sim-controls-container`에 주입.
+      - `bindUIPointers()`: 전역 `UI` 객체(`UI.clock`, `UI.timeSlider`, `UI.stat` 등) 포인터 바인딩.
+      - `renderTimeTicks()`: 0시~24시 25개 눈금선 렌더링 및 클릭 이벤트 연결.
+      - `snapTimeSliderToHour(hour, showFeedback)`: 지정 정각 시간으로 스냅 및 시계 펄스 애니메이션 표출.
+      - `checkAndSnapTimeSlider(thresholdSec)`: 정각 15분 이내 접근 시 자동 자석 스냅.
+      - `syncScaleArrow(val)` / `setSimArrowScale(val)` / `adjustSimArrowScale(delta)`: `--arrow-scale` CSS 변수 및 로컬 스토리지 실시간 동기화.
+      - `toggleControls()`: 시뮬레이터 바 펼침/숨김 및 실행 시점의 현재 시각(NOW) 자동 동기화.
 
 ---
 
