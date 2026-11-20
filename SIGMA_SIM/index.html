@@ -2492,6 +2492,9 @@
                     <button class="tab-btn" id="tab-btn-sigmap" onclick="switchOverlayTab('sigmap')">시그널맵</button>
                     <button class="tab-btn" id="tab-btn-baseinfo" onclick="switchOverlayTab('baseinfo')">교차로정보</button>
                     <button class="tab-btn" id="tab-btn-optstats" onclick="switchOverlayTab('optstats')" style="display: none;">운영통계</button>
+                    <button class="tab-btn" id="tab-btn-khcm-road" onclick="switchOverlayTab('khcm-road')" style="display: none;">도로조건</button>
+                    <button class="tab-btn" id="tab-btn-khcm-traffic" onclick="switchOverlayTab('khcm-traffic')" style="display: none;">교통조건</button>
+                    <button class="tab-btn" id="tab-btn-khcm-signal" onclick="switchOverlayTab('khcm-signal')" style="display: none;">신호조건</button>
                 </div>
                 <div id="overlay-tab-phase" class="detail-tab-content active" style="display: flex;">
                     <!-- Left column -->
@@ -2577,14 +2580,17 @@
 
                     <!-- 2. 접근로별 운영 지표 삭제됨 -->
                 </div>
+                <div id="overlay-tab-khcm-road" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;"></div>
+                <div id="overlay-tab-khcm-traffic" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;"></div>
+                <div id="overlay-tab-khcm-signal" class="detail-tab-content custom-scroll" style="display: none; padding: 20px; height: 100%; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
 
-    <script src="js/overlay_ui.js?v=1795216000000"></script>
+    <script src="js/overlay_ui.js?v=1795217500000"></script>
     <script src="js/db_report.js?v=1794635000000"></script>
     <script src="js/junction_notes.js?v=1794635000000"></script>
-    <script src="js/khcm_analysis.js?v=1795216000000"></script>
+    <script src="js/khcm_analysis.js?v=1795217500000"></script>
 
     <!-- Global File Inputs placed at body root for reliable triggering -->
     <div style="position: absolute; width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none;">

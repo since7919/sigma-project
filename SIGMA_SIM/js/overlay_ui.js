@@ -99,10 +99,10 @@ function openDetailOverlay(jid) {
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.style.display = '';
     });
-    const optStatsBtn = document.getElementById('tab-btn-optstats');
-    if (optStatsBtn) optStatsBtn.style.display = 'none';
-    const khcmTabBtn = document.getElementById('tab-btn-khcm');
-    if (khcmTabBtn) khcmTabBtn.style.display = 'none';
+    ['optstats', 'khcm-road', 'khcm-traffic', 'khcm-signal', 'khcm'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.style.display = 'none';
+    });
 
     // 모달 열 때 기본 탭(신호계획정보) 활성화
     switchOverlayTab('phase');
@@ -163,11 +163,18 @@ function switchOverlayTab(tabName) {
     const targetBtn = document.getElementById(`tab-btn-${tabName}`);
     if (targetBtn) targetBtn.classList.add('active');
 
-    // 운영통계 탭일 때만 SVG 및 통계요약 보이기
+    // 운영통계 및 KHCM(도로조건, 교통조건, 신호조건) 탭일 때 SVG 및 통계요약 보이기
+    const isOptFamily = ['optstats', 'khcm-road', 'khcm-traffic', 'khcm-signal'].includes(tabName);
     const svgArea = document.getElementById('overlay-svg-area');
     const summaryArea = document.getElementById('overlay-summary-area');
-    if (svgArea) svgArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
-    if (summaryArea) summaryArea.style.display = (tabName === 'optstats') ? 'flex' : 'none';
+    if (svgArea) svgArea.style.display = isOptFamily ? 'flex' : 'none';
+    if (summaryArea) summaryArea.style.display = isOptFamily ? 'flex' : 'none';
+    
+    // KHCM 관련 탭 활성화 시 렌더러 호출
+    if (tabName.startsWith('khcm-') && typeof KHCM !== 'undefined' && typeof KHCM.renderTab === 'function') {
+        const activeJid = window._currentOverlayJid || ((typeof STATE !== 'undefined' && STATE.activeJid) ? STATE.activeJid : null);
+        KHCM.renderTab(tabName, activeJid);
+    }
     
     // 교차로정보 탭 활성화 시 메모 및 캘린더 UI 렌더링
     if (tabName === 'baseinfo') {
@@ -301,16 +308,18 @@ function openStatsOverlay(jid) {
         }
     }
 
-    // 상세보기 탭 버튼들 숨기고 optstats 탭 버튼만 보여주기
+    // 상세보기 탭 버튼들 숨기고 optstats 및 KHCM 3개 탭 버튼 보여주기
     ['phase', 'sigmap', 'baseinfo'].forEach(t => {
         const btn = document.getElementById(`tab-btn-${t}`);
         if (btn) btn.style.display = 'none';
     });
     
-    const optStatsBtn = document.getElementById('tab-btn-optstats');
-    if (optStatsBtn) optStatsBtn.style.display = '';
+    ['optstats', 'khcm-road', 'khcm-traffic', 'khcm-signal'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (btn) btn.style.display = '';
+    });
     const khcmTabBtn = document.getElementById('tab-btn-khcm');
-    if (khcmTabBtn) khcmTabBtn.style.display = '';
+    if (khcmTabBtn) khcmTabBtn.style.display = 'none';
 
     // switch overlay tab to optstats
     switchOverlayTab('optstats');

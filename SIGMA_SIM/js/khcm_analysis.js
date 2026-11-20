@@ -607,151 +607,134 @@
     };
 
     /**
-     * 메인 렌더링 함수
+     * KPI 요약 바 렌더러 (종합 LOS 및 4개 접근로 요약 미니 카드)
      */
-    KHCM.render = function (containerId, jid) {
-        KHCM.injectStyles();
-
-        const container = (typeof containerId === 'string') ? document.getElementById(containerId) : containerId;
-        if (!container) return;
-
-        if (jid) KHCM.currentJid = jid;
-        if (!KHCM.currentJid && typeof STATE !== 'undefined') {
-            KHCM.currentJid = STATE.activeJid;
-        }
-        if (!KHCM.currentJid) {
-            container.innerHTML = `<div style="padding:40px; text-align:center; color:#94a3b8;">교차로를 먼저 선택해 주십시오.</div>`;
-            return;
-        }
-
-        const data = KHCM.getJunctionData(KHCM.currentJid);
-        const analysis = KHCM.calculate(KHCM.currentJid);
+    KHCM.renderKpiSummaryHtml = function (analysis) {
+        if (!analysis) return '';
+        const intLos = analysis.intersection.los;
+        const intDelay = analysis.intersection.weightedDelay;
+        const intVC = analysis.intersection.maxVC;
+        const intVol = analysis.intersection.totalVolume;
 
         let html = `
-            <div class="khcm-container">
-                <!-- 상단 액션 툴바 -->
-                <div class="khcm-header-bar">
-                    <div style="font-size:13px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px;">
-                        🚦 2026 KHCM 신호교차로 분석표 (북·동·남·서 4접근로 일괄)
-                    </div>
-                    <div class="khcm-actions">
-                        <button class="khcm-btn" onclick="KHCM.syncFromJunction('${KHCM.currentJid}')" title="현재 신호/현시 주기 자동 동기화">
-                            🔄 신호정보 동기화
-                        </button>
-                        <button class="khcm-btn khcm-btn-primary" onclick="KHCM.runCalculation()">
-                            ⚡ 2026 KHCM 분석
-                        </button>
-                        <button class="khcm-btn khcm-btn-success" onclick="KHCM.saveData()">
-                            💾 설정 저장
-                        </button>
+            <div class="khcm-dashboard mb-10">
+                <div class="khcm-kpi-card" style="border-left: 4px solid ${KHCM.getLOSColor(intLos)};">
+                    <span class="khcm-kpi-title">교차로 종합 서비스수준</span>
+                    <div class="khcm-kpi-val">
+                        <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(intLos)}; font-size:17px;">LOS ${intLos}</span>
                     </div>
                 </div>
+                <div class="khcm-kpi-card">
+                    <span class="khcm-kpi-title">평균 제어지체 (d)</span>
+                    <div class="khcm-kpi-val">
+                        ${intDelay} <span class="khcm-kpi-unit">초/대</span>
+                    </div>
+                </div>
+                <div class="khcm-kpi-card">
+                    <span class="khcm-kpi-title">최대 임계 V/C (v/c max)</span>
+                    <div class="khcm-kpi-val" style="color:${intVC > 1.0 ? '#ef4444' : (intVC > 0.85 ? '#f59e0b' : '#38bdf8')};">
+                        ${intVC} <span class="khcm-kpi-unit">${intVC > 1.0 ? '(과포화)' : (intVC > 0.85 ? '(혼잡)' : '(여유)')}</span>
+                    </div>
+                </div>
+                <div class="khcm-kpi-card">
+                    <span class="khcm-kpi-title">분석 첨두 총교통량</span>
+                    <div class="khcm-kpi-val">
+                        ${intVol.toLocaleString()} <span class="khcm-kpi-unit">대/시</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 북동남서 4개 접근로별 요약 바 -->
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:12px;">
         `;
 
-        // KPI 대시보드 및 북동남서 미니 카드
-        if (analysis) {
-            const intLos = analysis.intersection.los;
-            const intDelay = analysis.intersection.weightedDelay;
-            const intVC = analysis.intersection.maxVC;
-            const intVol = analysis.intersection.totalVolume;
-
+        KHCM.APPROACHES.forEach(app => {
+            const appRes = analysis.approaches[app.id];
+            const los = appRes ? appRes.los : '-';
+            const d = appRes ? appRes.averageDelay : '-';
+            const vc = appRes ? appRes.maxVC : '-';
             html += `
-                <div class="khcm-dashboard">
-                    <div class="khcm-kpi-card" style="border-left: 4px solid ${KHCM.getLOSColor(intLos)};">
-                        <span class="khcm-kpi-title">교차로 종합 서비스수준</span>
-                        <div class="khcm-kpi-val">
-                            <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(intLos)}; font-size:18px;">LOS ${intLos}</span>
-                        </div>
+                <div class="khcm-app-mini-card" style="border-top:3px solid ${KHCM.getLOSColor(los)};">
+                    <div style="font-size:12px; font-weight:700; color:#f1f5f9;">
+                        ${app.icon} ${app.shortName}
                     </div>
-                    <div class="khcm-kpi-card">
-                        <span class="khcm-kpi-title">평균 제어지체 (d)</span>
-                        <div class="khcm-kpi-val">
-                            ${intDelay} <span class="khcm-kpi-unit">초/대</span>
-                        </div>
-                    </div>
-                    <div class="khcm-kpi-card">
-                        <span class="khcm-kpi-title">최대 임계 V/C (v/c max)</span>
-                        <div class="khcm-kpi-val" style="color:${intVC > 1.0 ? '#ef4444' : (intVC > 0.85 ? '#f59e0b' : '#38bdf8')};">
-                            ${intVC} <span class="khcm-kpi-unit">${intVC > 1.0 ? '(과포화)' : (intVC > 0.85 ? '(혼잡)' : '(여유)')}</span>
-                        </div>
-                    </div>
-                    <div class="khcm-kpi-card">
-                        <span class="khcm-kpi-title">분석 첨두 총교통량</span>
-                        <div class="khcm-kpi-val">
-                            ${intVol.toLocaleString()} <span class="khcm-kpi-unit">대/시</span>
-                        </div>
+                    <div style="text-align:right;">
+                        <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(los)}; font-size:11px; padding:1px 6px;">${los}</span>
+                        <span style="font-size:11px; color:#94a3b8; margin-left:4px;">${d}s (v/c ${vc})</span>
                     </div>
                 </div>
-
-                <!-- 북동남서 4개 접근로별 요약 바 -->
-                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
             `;
-
-            KHCM.APPROACHES.forEach(app => {
-                const appRes = analysis.approaches[app.id];
-                const los = appRes ? appRes.los : '-';
-                const d = appRes ? appRes.averageDelay : '-';
-                const vc = appRes ? appRes.maxVC : '-';
-                html += `
-                    <div class="khcm-app-mini-card" style="border-top:3px solid ${KHCM.getLOSColor(los)};">
-                        <div style="font-size:12px; font-weight:700; color:#f1f5f9;">
-                            ${app.icon} ${app.shortName}
-                        </div>
-                        <div style="text-align:right;">
-                            <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(los)}; font-size:11px; padding:1px 6px;">${los}</span>
-                            <span style="font-size:11px; color:#94a3b8; margin-left:4px;">${d}s (v/c ${vc})</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `</div>`;
-        }
-
-        // 북 -> 동 -> 남 -> 서 순서 4열 통합 입력 테이블
-        const dirIds = ['NB', 'EB', 'SB', 'WB'];
-        html += KHCM.renderTableGenericHtml(data, dirIds);
-
-        // 하단 차로군별 상세 계산 보고서 표
-        if (analysis) {
-            html += KHCM.renderAnalysisReportHtml(analysis);
-        }
+        });
 
         html += `</div>`;
-        container.innerHTML = html;
+        return html;
     };
 
     /**
-     * 범용 테이블 렌더러 (북동남서 4개 접근로 컬럼 동시 렌더링)
+     * 상단 툴바 렌더러
      */
-    KHCM.renderTableGenericHtml = function (data, dirIds) {
+    KHCM.renderTabHeader = function (title, icon, jid) {
+        return `
+            <div class="khcm-header-bar mb-10">
+                <div style="font-size:13px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px;">
+                    ${title}
+                </div>
+                <div class="khcm-actions">
+                    <button class="khcm-btn" onclick="KHCM.syncFromJunction('${jid}')" title="현재 신호/현시 주기 자동 동기화">
+                        🔄 신호정보 동기화
+                    </button>
+                    <button class="khcm-btn khcm-btn-primary" onclick="KHCM.runCalculation()">
+                        ⚡ 실시간 분석
+                    </button>
+                    <button class="khcm-btn khcm-btn-success" onclick="KHCM.saveData()">
+                        💾 설정 저장
+                    </button>
+                    <button class="btn-neon magenta" style="height:28px; padding:0 14px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="if(typeof updateActiveJunctionToDB==='function') updateActiveJunctionToDB();">
+                        ☁️ 클라우드 저장
+                    </button>
+                </div>
+            </div>
+        `;
+    };
+
+    /**
+     * 공통 4개 접근로 thead 생성
+     */
+    function getAppTableHeaderHtml(dirIds) {
         const appInfoMap = {};
         KHCM.APPROACHES.forEach(a => { appInfoMap[a.id] = a; });
-
         let html = `
-            <div class="khcm-table-wrap">
-                <table class="khcm-table">
-                    <thead>
-                        <tr>
-                            <th colspan="2" style="width:150px;">접근로</th>
+            <thead>
+                <tr>
+                    <th colspan="2" style="width:140px; background:#0f172a; color:#94a3b8; font-size:12px;">구분</th>
         `;
-
         dirIds.forEach(dirId => {
             const info = appInfoMap[dirId];
             html += `
-                <th class="khcm-col-app" style="background:#0f2b48; color:#38bdf8; font-size:13px; font-weight:800;">
+                <th class="khcm-col-app" style="background:#0f2b48; color:#38bdf8; font-size:12.5px; font-weight:800; padding:6px 4px;">
                     ${info.icon} ${info.name}
                 </th>
             `;
         });
-
         html += `
-                        </tr>
-                    </thead>
+                </tr>
+            </thead>
+        `;
+        return html;
+    }
+
+    /**
+     * [1. 도로조건] 전용 테이블 렌더러
+     */
+    KHCM.renderRoadTableHtml = function (data, dirIds) {
+        let html = `
+            <div class="khcm-table-wrap">
+                <table class="khcm-table">
+                    ${getAppTableHeaderHtml(dirIds)}
                     <tbody>
-                        <!-- [1. 도로조건] -->
+                        <!-- 접근경사 -->
                         <tr>
-                            <td rowspan="10" class="sec-title">도로조건</td>
+                            <td rowspan="10" class="sec-title" style="color:#38bdf8;">도로조건</td>
                             <td class="th-sub">접근경사</td>
         `;
         dirIds.forEach(dirId => {
@@ -952,13 +935,27 @@
                 </td>
             `;
         });
-        html += `</tr>`;
+        html += `</tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+        return html;
+    };
 
-        // <!-- [2. 교통조건] -->
-        html += `
-            <tr style="border-top:2px solid #475569;">
-                <td rowspan="4" class="sec-title" style="color:#10b981;">교통조건</td>
-                <td class="th-sub">첨두시간계수</td>
+    /**
+     * [2. 교통조건] 전용 테이블 렌더러
+     */
+    KHCM.renderTrafficTableHtml = function (data, dirIds) {
+        let html = `
+            <div class="khcm-table-wrap">
+                <table class="khcm-table">
+                    ${getAppTableHeaderHtml(dirIds)}
+                    <tbody>
+                        <!-- 첨두시간계수 -->
+                        <tr>
+                            <td rowspan="4" class="sec-title" style="color:#10b981;">교통조건</td>
+                            <td class="th-sub">첨두시간계수</td>
         `;
         dirIds.forEach(dirId => {
             const tr = data[dirId].traffic;
@@ -1050,13 +1047,27 @@
                 </td>
             `;
         });
-        html += `</tr>`;
+        html += `</tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+        return html;
+    };
 
-        // <!-- [3. 신호조건] -->
-        html += `
-            <tr style="border-top:2px solid #475569;">
-                <td rowspan="5" class="sec-title" style="color:#f59e0b;">신호조건</td>
-                <td class="th-sub">차량신호등</td>
+    /**
+     * [3. 신호조건] 전용 테이블 렌더러
+     */
+    KHCM.renderSignalTableHtml = function (data, dirIds) {
+        let html = `
+            <div class="khcm-table-wrap">
+                <table class="khcm-table">
+                    ${getAppTableHeaderHtml(dirIds)}
+                    <tbody>
+                        <!-- 차량신호등 -->
+                        <tr>
+                            <td rowspan="5" class="sec-title" style="color:#f59e0b;">신호조건</td>
+                            <td class="th-sub">차량신호등</td>
         `;
         dirIds.forEach(dirId => {
             const sig = data[dirId].signal;
@@ -1101,11 +1112,11 @@
             html += `
                 <td>
                     <label class="khcm-label">
-                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${sig.pedSignal ? 'checked' : ''}
+                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${sig.pedSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.pedSignal', true)"> 있음
                     </label>
                     <label class="khcm-label" style="margin-left:8px;">
-                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${!sig.pedSignal ? 'checked' : ''}
+                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${!sig.pedSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.pedSignal', false)"> 없음
                     </label>
                 </td>
@@ -1123,11 +1134,11 @@
             html += `
                 <td>
                     <label class="khcm-label">
-                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${sig.rightSignal ? 'checked' : ''}
+                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${sig.rightSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.rightSignal', true)"> 있음
                     </label>
                     <label class="khcm-label" style="margin-left:8px;">
-                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${!sig.rightSignal ? 'checked' : ''}
+                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${!sig.rightSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.rightSignal', false)"> 없음
                     </label>
                 </td>
@@ -1146,16 +1157,16 @@
                 <td style="text-align:left; padding-left:8px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${sig.uTurnAllowed ? 'checked' : ''}
+                            <input type="checkbox" class="khcm-checkbox" ${sig.uTurnAllowed ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.uTurnAllowed', this.checked)"> 허용
                         </label>
                         <div style="display:flex; flex-direction:column; gap:2px;">
                             <label class="khcm-label" style="font-size:10px;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onLeftTurn ? 'checked' : ''}
+                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onLeftTurn ? 'checked' : ''} 
                                     onchange="KHCM.updateField('${dirId}', 'signal.uTurnCondition.onLeftTurn', this.checked)"> 좌회전시
                             </label>
                             <label class="khcm-label" style="font-size:10px;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onPedSignal ? 'checked' : ''}
+                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onPedSignal ? 'checked' : ''} 
                                     onchange="KHCM.updateField('${dirId}', 'signal.uTurnCondition.onPedSignal', this.checked)"> 보행신호시
                             </label>
                         </div>
@@ -1176,34 +1187,118 @@
                 <td style="text-align:left; padding-left:8px;">
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
                         <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noLeftTurn ? 'checked' : ''}
+                            <input type="checkbox" class="khcm-checkbox" ${signs.noLeftTurn ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noLeftTurn', this.checked)"> 좌회전 금지
                         </label>
                         <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.unprotectedLeft ? 'checked' : ''}
+                            <input type="checkbox" class="khcm-checkbox" ${signs.unprotectedLeft ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.unprotectedLeft', this.checked)"> 비보호좌회전
                         </label>
                         <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightTurn ? 'checked' : ''}
+                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightTurn ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noRightTurn', this.checked)"> 우회전 금지
                         </label>
                         <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightOnRed ? 'checked' : ''}
+                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightOnRed ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noRightOnRed', this.checked)"> 적신호우회전금지
                         </label>
                     </div>
                 </td>
             `;
         });
-        html += `</tr>`;
-
-        html += `
+        html += `</tr>
                     </tbody>
                 </table>
             </div>
         `;
-
         return html;
+    };
+
+    /**
+     * 각 탭별 전체 페이지 생성기
+     */
+    KHCM.renderRoadPageHtml = function (data, analysis, dirIds) {
+        return `
+            <div class="khcm-container">
+                ${KHCM.renderTabHeader('🛣️ 2026 KHCM 도로조건 (접근로 기하구조 / 차로폭 / 진행방향 / 도류화시설)', '🛣️', KHCM.currentJid)}
+                ${KHCM.renderKpiSummaryHtml(analysis)}
+                ${KHCM.renderRoadTableHtml(data, dirIds)}
+            </div>
+        `;
+    };
+
+    KHCM.renderTrafficPageHtml = function (data, analysis, dirIds) {
+        return `
+            <div class="khcm-container">
+                ${KHCM.renderTabHeader('🚗 2026 KHCM 교통조건 (첨두시간계수 / 차종별 교통량 / 도착률 / 대기행렬)', '🚗', KHCM.currentJid)}
+                ${KHCM.renderKpiSummaryHtml(analysis)}
+                ${KHCM.renderTrafficTableHtml(data, dirIds)}
+            </div>
+        `;
+    };
+
+    KHCM.renderSignalPageHtml = function (data, analysis, dirIds) {
+        return `
+            <div class="khcm-container">
+                ${KHCM.renderTabHeader('🚦 2026 KHCM 신호조건 및 종합 분석 보고서', '🚦', KHCM.currentJid)}
+                ${KHCM.renderKpiSummaryHtml(analysis)}
+                ${KHCM.renderSignalTableHtml(data, dirIds)}
+                <div id="khcm-signal-report-container">
+                    ${analysis ? KHCM.renderAnalysisReportHtml(analysis) : ''}
+                </div>
+            </div>
+        `;
+    };
+
+    /**
+     * 특정 탭 렌더링 함수
+     */
+    KHCM.renderTab = function (tabName, jid) {
+        KHCM.injectStyles();
+        if (jid) KHCM.currentJid = jid;
+        if (!KHCM.currentJid && typeof STATE !== 'undefined') {
+            KHCM.currentJid = STATE.activeJid;
+        }
+        if (!KHCM.currentJid) return;
+
+        const data = KHCM.getJunctionData(KHCM.currentJid);
+        const analysis = KHCM.calculate(KHCM.currentJid);
+        const dirIds = ['NB', 'EB', 'SB', 'WB'];
+
+        if (tabName === 'khcm-road') {
+            const container = document.getElementById('overlay-tab-khcm-road');
+            if (container) container.innerHTML = KHCM.renderRoadPageHtml(data, analysis, dirIds);
+        } else if (tabName === 'khcm-traffic') {
+            const container = document.getElementById('overlay-tab-khcm-traffic');
+            if (container) container.innerHTML = KHCM.renderTrafficPageHtml(data, analysis, dirIds);
+        } else if (tabName === 'khcm-signal') {
+            const container = document.getElementById('overlay-tab-khcm-signal');
+            if (container) container.innerHTML = KHCM.renderSignalPageHtml(data, analysis, dirIds);
+        }
+    };
+
+    /**
+     * 메인/단일 컨테이너 렌더링 함수 (호환용)
+     */
+    KHCM.render = function (containerId, jid) {
+        KHCM.injectStyles();
+        const container = (typeof containerId === 'string') ? document.getElementById(containerId) : containerId;
+        if (!container) return;
+
+        if (jid) KHCM.currentJid = jid;
+        if (!KHCM.currentJid && typeof STATE !== 'undefined') {
+            KHCM.currentJid = STATE.activeJid;
+        }
+        if (!KHCM.currentJid) {
+            container.innerHTML = `<div style="padding:40px; text-align:center; color:#94a3b8;">교차로를 먼저 선택해 주십시오.</div>`;
+            return;
+        }
+
+        const data = KHCM.getJunctionData(KHCM.currentJid);
+        const analysis = KHCM.calculate(KHCM.currentJid);
+        const dirIds = ['NB', 'EB', 'SB', 'WB'];
+
+        container.innerHTML = KHCM.renderSignalPageHtml(data, analysis, dirIds);
     };
 
     /**
@@ -1279,6 +1374,28 @@
     };
 
     /**
+     * 현재 활성 탭 갱신 헬퍼
+     */
+    KHCM.refreshActiveTab = function () {
+        const jid = KHCM.currentJid;
+        if (!jid) return;
+        const analysis = KHCM.calculate(jid);
+
+        if (document.getElementById('tab-btn-khcm-road')?.classList.contains('active')) {
+            KHCM.renderTab('khcm-road', jid);
+        } else if (document.getElementById('tab-btn-khcm-traffic')?.classList.contains('active')) {
+            KHCM.renderTab('khcm-traffic', jid);
+        } else if (document.getElementById('tab-btn-khcm-signal')?.classList.contains('active')) {
+            KHCM.renderTab('khcm-signal', jid);
+        }
+
+        const reportEl = document.getElementById('khcm-signal-report-container');
+        if (reportEl && analysis) {
+            reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
+        }
+    };
+
+    /**
      * 필드 업데이트 핸들러
      */
     KHCM.updateField = function (dirId, path, value) {
@@ -1293,7 +1410,17 @@
         }
         obj[keys[keys.length - 1]] = value;
 
-        KHCM.render('khcm-analysis-container');
+        KHCM.calculate(KHCM.currentJid);
+        // 차로수 변경 등 구조적 변화가 발생할 수 있는 필드는 활성 탭 재렌더링
+        if (path === 'geom.lanes') {
+            KHCM.renderTab('khcm-road', KHCM.currentJid);
+        } else {
+            const reportEl = document.getElementById('khcm-signal-report-container');
+            if (reportEl) {
+                const analysis = KHCM.calculate(KHCM.currentJid);
+                if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
+            }
+        }
     };
 
     /**
@@ -1312,7 +1439,12 @@
             obj[index] = value;
         }
 
-        KHCM.render('khcm-analysis-container');
+        KHCM.calculate(KHCM.currentJid);
+        const reportEl = document.getElementById('khcm-signal-report-container');
+        if (reportEl) {
+            const analysis = KHCM.calculate(KHCM.currentJid);
+            if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
+        }
     };
 
     /**
@@ -1327,7 +1459,12 @@
         }
         data[dirId].geom.movements[laneIndex][movKey] = checked;
 
-        KHCM.render('khcm-analysis-container');
+        KHCM.calculate(KHCM.currentJid);
+        const reportEl = document.getElementById('khcm-signal-report-container');
+        if (reportEl) {
+            const analysis = KHCM.calculate(KHCM.currentJid);
+            if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
+        }
     };
 
     /**
@@ -1337,7 +1474,9 @@
         if (!jid) jid = KHCM.currentJid;
         KHCM.autoFillFromJunctionState(jid);
         KHCM.saveJunctionData(jid);
-        KHCM.render('khcm-analysis-container');
+        KHCM.renderTab('khcm-road', jid);
+        KHCM.renderTab('khcm-traffic', jid);
+        KHCM.renderTab('khcm-signal', jid);
         alert('현재 교차로의 신호주기 및 현시 시간이 성공적으로 동기화되었습니다.');
     };
 
@@ -1345,7 +1484,7 @@
      * 즉시 분석 실행
      */
     KHCM.runCalculation = function () {
-        KHCM.render('khcm-analysis-container');
+        KHCM.refreshActiveTab();
     };
 
     /**
@@ -1364,70 +1503,28 @@
     KHCM.mountToOverlay = function (jid) {
         KHCM.currentJid = jid;
 
+        // 1. 기존 임시 서브탭 네비게이션이 남아있다면 완전히 제거 (운영통계 탭 원상 복원)
+        const oldNav = document.getElementById('optstats-subnav');
+        if (oldNav) oldNav.remove();
+        const oldKhcm = document.getElementById('khcm-analysis-container');
+        if (oldKhcm) oldKhcm.remove();
+
+        // 2. 운영통계 탭 내부의 기본 컨트롤들 표시 복원
         const optTab = document.getElementById('overlay-tab-optstats');
-        if (!optTab) return;
-
-        let khcmContainer = document.getElementById('khcm-analysis-container');
-        if (!khcmContainer) {
-            let subNav = document.getElementById('optstats-subnav');
-            if (!subNav) {
-                subNav = document.createElement('div');
-                subNav.id = 'optstats-subnav';
-                subNav.style.cssText = 'display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #334155; padding-bottom:8px;';
-                subNav.innerHTML = `
-                    <button id="opt-subtab-basic" class="khcm-btn" style="background:#0284c7; color:#fff;" onclick="KHCM.switchSubTab('basic')">
-                        🛠️ 기본 차로 및 기하구조
-                    </button>
-                    <button id="opt-subtab-khcm" class="khcm-btn" style="background:#1e293b; color:#94a3b8;" onclick="KHCM.switchSubTab('khcm')">
-                        🚦 2026 KHCM 신호교차로 분석
-                    </button>
-                `;
-                optTab.insertBefore(subNav, optTab.firstChild);
-            }
-
-            khcmContainer = document.createElement('div');
-            khcmContainer.id = 'khcm-analysis-container';
-            khcmContainer.style.display = 'none';
-            optTab.appendChild(khcmContainer);
-        }
-
-        const tabsHeader = document.querySelector('#detail-overlay-modal .tabs-header');
-        if (tabsHeader && !document.getElementById('tab-btn-khcm')) {
-            const khcmTabBtn = document.createElement('button');
-            khcmTabBtn.className = 'tab-btn';
-            khcmTabBtn.id = 'tab-btn-khcm';
-            khcmTabBtn.textContent = '🚦 2026 KHCM 분석';
-            khcmTabBtn.style.display = 'none';
-            khcmTabBtn.onclick = function () {
-                if (typeof window.switchOverlayTab === 'function') {
-                    window.switchOverlayTab('optstats');
-                    KHCM.switchSubTab('khcm');
+        if (optTab) {
+            optTab.querySelectorAll('.sigma-panel, div').forEach(el => {
+                if (el.id !== 'opt-controls' && el.id !== 'lane-fields-unified') {
+                    if (el.style.display === 'none' && !el.classList.contains('foldable-content')) {
+                        el.style.display = '';
+                    }
                 }
-            };
-            tabsHeader.appendChild(khcmTabBtn);
+            });
         }
 
-        KHCM.render(khcmContainer, jid);
-    };
-
-    KHCM.switchSubTab = function (tab) {
-        const basicControls = document.querySelectorAll('#overlay-tab-optstats > .sigma-panel, #overlay-tab-optstats > div:not(#optstats-subnav):not(#khcm-analysis-container)');
-        const khcmContainer = document.getElementById('khcm-analysis-container');
-        const btnBasic = document.getElementById('opt-subtab-basic');
-        const btnKhcm = document.getElementById('opt-subtab-khcm');
-
-        if (tab === 'khcm') {
-            basicControls.forEach(el => el.style.display = 'none');
-            if (khcmContainer) khcmContainer.style.display = 'block';
-            if (btnBasic) { btnBasic.style.background = '#1e293b'; btnBasic.style.color = '#94a3b8'; }
-            if (btnKhcm) { btnKhcm.style.background = '#0284c7'; btnKhcm.style.color = '#ffffff'; }
-            KHCM.render('khcm-analysis-container');
-        } else {
-            basicControls.forEach(el => el.style.display = '');
-            if (khcmContainer) khcmContainer.style.display = 'none';
-            if (btnBasic) { btnBasic.style.background = '#0284c7'; btnBasic.style.color = '#ffffff'; }
-            if (btnKhcm) { btnKhcm.style.background = '#1e293b'; btnKhcm.style.color = '#94a3b8'; }
-        }
+        // 3. 도로조건, 교통조건, 신호조건 3개 컨테이너에 각각 선제적 렌더링
+        KHCM.renderTab('khcm-road', jid);
+        KHCM.renderTab('khcm-traffic', jid);
+        KHCM.renderTab('khcm-signal', jid);
     };
 
     // 글로벌 노출
@@ -1440,6 +1537,17 @@
             window.openStatsOverlay = function (jid) {
                 origStats.apply(this, arguments);
                 const activeJid = jid || (typeof STATE !== 'undefined' ? STATE.activeJid : null) || window._currentOverlayJid;
+                
+                // 4개 탭 버튼('운영통계', '도로조건', '교통조건', '신호조건') 활성화
+                ['optstats', 'khcm-road', 'khcm-traffic', 'khcm-signal'].forEach(t => {
+                    const btn = document.getElementById('tab-btn-' + t);
+                    if (btn) btn.style.display = '';
+                });
+                ['phase', 'sigmap', 'baseinfo', 'khcm'].forEach(t => {
+                    const btn = document.getElementById('tab-btn-' + t);
+                    if (btn) btn.style.display = 'none';
+                });
+
                 setTimeout(() => {
                     if (KHCM && typeof KHCM.mountToOverlay === 'function') {
                         KHCM.mountToOverlay(activeJid);
@@ -1453,13 +1561,13 @@
             const origSwitch = window.switchOverlayTab;
             window.switchOverlayTab = function (tabName) {
                 origSwitch.apply(this, arguments);
-                if (tabName === 'optstats') {
+                if (tabName.startsWith('khcm-')) {
                     const activeJid = (typeof STATE !== 'undefined' ? STATE.activeJid : null) || window._currentOverlayJid;
                     setTimeout(() => {
-                        if (KHCM && typeof KHCM.mountToOverlay === 'function') {
-                            KHCM.mountToOverlay(activeJid);
+                        if (KHCM && typeof KHCM.renderTab === 'function') {
+                            KHCM.renderTab(tabName, activeJid);
                         }
-                    }, 50);
+                    }, 20);
                 }
             };
             window.switchOverlayTab.__khcmHooked = true;
