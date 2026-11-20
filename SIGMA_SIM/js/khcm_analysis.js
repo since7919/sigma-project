@@ -1512,4 +1512,44 @@
     // 글로벌 노출
     window.KHCM = KHCM;
 
+    // 자동 후킹 및 마운트 감지기 (openStatsOverlay 및 switchOverlayTab)
+    function installHooks() {
+        if (typeof window.openStatsOverlay === 'function' && !window.openStatsOverlay.__khcmHooked) {
+            const origStats = window.openStatsOverlay;
+            window.openStatsOverlay = function (jid) {
+                origStats.apply(this, arguments);
+                const activeJid = jid || (typeof STATE !== 'undefined' ? STATE.activeJid : null) || window._currentOverlayJid;
+                setTimeout(() => {
+                    if (KHCM && typeof KHCM.mountToOverlay === 'function') {
+                        KHCM.mountToOverlay(activeJid);
+                    }
+                }, 50);
+            };
+            window.openStatsOverlay.__khcmHooked = true;
+        }
+
+        if (typeof window.switchOverlayTab === 'function' && !window.switchOverlayTab.__khcmHooked) {
+            const origSwitch = window.switchOverlayTab;
+            window.switchOverlayTab = function (tabName) {
+                origSwitch.apply(this, arguments);
+                if (tabName === 'optstats') {
+                    const activeJid = (typeof STATE !== 'undefined' ? STATE.activeJid : null) || window._currentOverlayJid;
+                    setTimeout(() => {
+                        if (KHCM && typeof KHCM.mountToOverlay === 'function') {
+                            KHCM.mountToOverlay(activeJid);
+                        }
+                    }, 50);
+                }
+            };
+            window.switchOverlayTab.__khcmHooked = true;
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', installHooks);
+    } else {
+        installHooks();
+    }
+    setInterval(installHooks, 1000);
+
 })();
