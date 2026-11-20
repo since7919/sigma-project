@@ -181,7 +181,8 @@ function setSimDay(day) {
 window.setSimDay = setSimDay; // 전역 명시적 할당
 
 function updateSim() {
-    const t = parseInt(UI.timeSlider.value);
+    const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+    const t = slider ? (parseInt(slider.value) || 0) : 0;
     const editing = (STATE.activeJid && STATE.isMapEditMode);
     const isOpActiveGlobal = false; // 전역 운영자 개입 (필요 시 확장)
 
@@ -881,8 +882,10 @@ function startSim() {
 
     const tick = () => {
         // 시간은 항상 1초씩 증가 (부드러운 연속성)
-        let currentT = (parseInt(UI.timeSlider.value) + 1) % 86400;
-        UI.timeSlider.value = currentT;
+        const slider = (typeof UI !== 'undefined' && UI.timeSlider) ? UI.timeSlider : document.getElementById('timeSlider');
+        if (!slider) return;
+        let currentT = ((parseInt(slider.value) || 0) + 1) % 86400;
+        slider.value = currentT;
         updateSim();
 
         // 현재 속도 배율에 따라 다음 실행 딜레이 결정
