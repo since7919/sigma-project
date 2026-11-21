@@ -393,6 +393,9 @@ erDiagram
       - `KHCM.mountToOverlay(jid)`: 운영통계 모달 내 DOM 컨테이너 마운트 및 렌더링.
       - `KHCM.syncFromJunction(jid)`: 현재 교차로의 신호주기($C$) 및 현시 배분시간 자동 동기화.
 
+45. [`data_viewer.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/js/data_viewer.js) (200줄)
+    - **역할**: 독립 데이터 뷰어([`data_viewer.html`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_SIM/data_viewer.html))의 Tabulator 기반 교차로/신호맵/TOD/그룹 데이터 비동기 조회, 엑셀 클립보드 호환 인라인 편집, 일괄 DB 저장(Bulk Upsert) 및 CSV 다운로드 제어기.
+
 ---
 
 ## 2.2 백엔드 핵심 REST API 엔드포인트 연동 맵 ([`app.js`](file:///c:/Users/since/OneDrive/바탕%20화면/SIGMA/SIGMA_API/sigma-backend/app.js))
@@ -406,6 +409,8 @@ erDiagram
 | `/api/sim/update-junction` | `POST` | 단일 교차로 신호/TOD RDB 트랜잭션 업데이트 | `{ jid, interCsvLine, mapCsvLines, todCsvLines, password }` | `{ success: true, message: "..." }` |
 | `/api/sim/delete-junction` | `POST` | **교차로 영구 삭제** (외래키 종속 테이블 선별 삭제 + 로컬 CSV 캐시 갱신) | `{ jid, password }` | `{ success: true, dbVersion: "...", message: "..." }` |
 | `/api/sim/batch-update-junctions`| `POST` | 대량 교차로 벌크 업데이트 큐잉 | `{ chunks: [{ jid, interCsvLine, ... }] }` | `{ success: true, count: N }` |
+| `/api/sim/tables/:tableName` | `GET` | 데이터 뷰어용 전체/지역별 테이블 JSON 조회 (junctions, signal_maps, tod_plans, groups) | `?regionCode=L01` | `[ { id, ... }, ... ]` |
+| `/api/sim/tables/:tableName/bulk` | `POST` | 데이터 뷰어용 일괄 수정/추가(Bulk Upsert) 트랜잭션 | `{ password, records: [...] }` | `{ success: true, count: N }` |
 | `/api/ai/report` | `POST` | Groq / Gemini 모델 연동 AI 진단 리포트 생성 | `{ statsData, regionName }` | `{ success: true, report: "Markdown text..." }` |
 | `/api/ai/chat` | `POST` | AI 전문가 실시간 대화형 챗봇 스트리밍 | `{ message, history }` | `{ success: true, reply: "..." }` |
 
