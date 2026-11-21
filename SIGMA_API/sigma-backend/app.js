@@ -1405,6 +1405,21 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
       from += step;
     }
 
+    // junctions 테이블인 경우 arrow_configs에서 reservations를 완벽하게 분리하여 반환
+    if (tableName === 'junctions') {
+      allData = allData.map(r => {
+        if (!r.reservations && r.arrow_configs && r.arrow_configs._reservations) {
+          r.reservations = r.arrow_configs._reservations;
+        }
+        if (r.arrow_configs && r.arrow_configs._reservations) {
+          const cleanArrows = { ...r.arrow_configs };
+          delete cleanArrows._reservations;
+          r.arrow_configs = cleanArrows;
+        }
+        return r;
+      });
+    }
+
     res.json(allData);
   } catch (err) {
     sendErrorResponse(res, err, `${tableName} 테이블 조회에 실패했습니다.`);
@@ -1518,7 +1533,8 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         else if (key === 'Region') snakeKey = 'region_cd';
         else if (key === 'Lat') snakeKey = 'lat';
         else if (key === 'Lng') snakeKey = 'lng';
-        else if (key === 'ArrowConfigs') snakeKey = 'arrow_configs';
+        else if (key === 'ArrowConfigs' || key === 'arrow_configs') snakeKey = 'arrow_configs';
+        else if (key === 'Reservations' || key === 'reservations') snakeKey = 'reservations';
         else if (key === 'DiagramOrder') snakeKey = 'diagram_order';
         else if (key.toLowerCase() === 'api_int_no' || key === 'API_Int_No') snakeKey = 'api_int_no';
         else if (key.startsWith('Time_plan') || key.startsWith('time_plan')) {
@@ -1550,27 +1566,37 @@ app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
         newRow[snakeKey] = val;
       }
 
-      // 1. junctions: ArrowConfigs 문자열 파싱
-      if (tableName === 'junctions' && typeof newRow.arrow_configs === 'string' && newRow.arrow_configs.trim()) {
-        const arrowConfigs = {};
-        newRow.arrow_configs.split(';').forEach(conf => {
-          const parts = conf.split(':');
-          if (parts.length >= 3 && parts[0] === '_custom_angles') {
-            if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
-            arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
-          } else if (parts[0] === '_reservations') {
-            try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
-          } else if (parts.length >= 4) {
-            const mov = parts[0];
-            if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
-            arrowConfigs[mov].push({
-              dLat: parseFloat(parts[1]) || 0,
-              dLng: parseFloat(parts[2]) || 0,
-              rot: parseInt(parts[3]) || 0
-            });
-          }
-        });
-        newRow.arrow_configs = arrowConfigs;
+      // 1. junctions: ArrowConfigs 문자열 파싱 및 reservations 물리적 분리
+      if (tableName === 'junctions') {
+        if (typeof newRow.arrow_configs === 'string' && newRow.arrow_configs.trim()) {
+          const arrowConfigs = {};
+          newRow.arrow_configs.split(';').forEach(conf => {
+            const parts = conf.split(':');
+            if (parts.length >= 3 && parts[0] === '_custom_angles') {
+              if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
+              arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
+            } else if (parts[0] === '_reservations') {
+              // _reservations가 arrow_configs 문자열에 섞여 있는 경우 신규 reservations 컬럼으로 분리 적재
+              if (!newRow.reservations) {
+                try { newRow.reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
+              }
+            } else if (parts.length >= 4) {
+              const mov = parts[0];
+              if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
+              arrowConfigs[mov].push({
+                dLat: parseFloat(parts[1]) || 0,
+                dLng: parseFloat(parts[2]) || 0,
+                rot: parseInt(parts[3]) || 0
+              });
+            }
+          });
+          newRow.arrow_configs = arrowConfigs;
+        }
+
+        // reservations 컬럼이 문자열 형태라면 객체로 파싱
+        if (typeof newRow.reservations === 'string' && newRow.reservations.trim()) {
+          try { newRow.reservations = JSON.parse(newRow.reservations); } catch(e){}
+        }
       }
 
       // 2. tod_plans: Time_plan1 ~ 16 열을 time_plans JSONB로 복원

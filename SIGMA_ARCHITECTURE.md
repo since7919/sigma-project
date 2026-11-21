@@ -147,6 +147,7 @@ erDiagram
         varchar ring_type
         varchar group_id
         text arrow_configs
+        jsonb reservations
         text flash_config
         text op_intervention
         timestamptz updated_at

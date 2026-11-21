@@ -978,5 +978,13 @@ function parseExtraConfigs(j, row) {
             }
         });
     }
+
+    // 신규 물리 분리 컬럼 reservations 우선 파싱 (문자열 또는 JSON 객체)
+    const resRaw = row["Reservations"] || row["reservations"];
+    if (resRaw) {
+        try {
+            j.reservations = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
+        } catch(e) {}
+    }
 }
 
