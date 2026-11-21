@@ -411,294 +411,134 @@
         const style = document.createElement('style');
         style.id = 'khcm-styles';
         style.textContent = `
-            .khcm-container {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                color: #e2e8f0;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", sans-serif;
-            }
-            .khcm-header-bar {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                flex-wrap: wrap;
-                gap: 10px;
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                padding: 10px 16px;
-                border-radius: 8px;
-                border: 1px solid rgba(56, 189, 248, 0.2);
-            }
-            .khcm-actions {
-                display: flex;
-                gap: 8px;
-                margin-left: auto;
-            }
-            .khcm-btn {
-                background: #1e293b;
-                border: 1px solid #475569;
-                color: #f1f5f9;
-                padding: 6px 14px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 600;
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                transition: all 0.2s;
-            }
-            .khcm-btn:hover {
-                background: #334155;
-                border-color: #94a3b8;
-            }
-            .khcm-btn-primary {
-                background: linear-gradient(135deg, #0284c7, #2563eb);
-                border-color: #38bdf8;
-                color: #ffffff;
-            }
-            .khcm-btn-primary:hover {
-                background: linear-gradient(135deg, #0369a1, #1d4ed8);
-            }
-            .khcm-btn-success {
-                background: linear-gradient(135deg, #059669, #10b981);
-                border-color: #34d399;
-                color: #ffffff;
-            }
-
-            /* 북동남서 4열 통합 테이블 */
-            .khcm-table-wrap {
+            /* 운영통계 일체화 테마 스타일 */
+            .khcm-table-scroll {
                 width: 100%;
                 overflow-x: auto;
-                background: #0f172a;
-                border: 1px solid #334155;
-                border-radius: 8px;
-                padding: 2px;
+                padding-bottom: 5px;
             }
-            .khcm-table {
+            .khcm-unified-table {
                 width: 100%;
-                min-width: 1000px;
+                min-width: 900px;
                 border-collapse: collapse;
-                font-size: 11.5px;
-                text-align: center;
+                background: rgba(0, 0, 0, 0.2);
+                border: 1px solid #333;
+                font-size: 11px;
                 color: #f1f5f9;
+                margin-bottom: 5px;
             }
-            .khcm-table th, .khcm-table td {
-                border: 1px solid #334155;
-                padding: 5px 4px;
-            }
-            .khcm-table th {
-                background: #1e293b;
-                color: #94a3b8;
-                font-weight: 700;
-            }
-            .khcm-table .sec-title {
-                writing-mode: vertical-rl;
-                text-orientation: upright;
-                letter-spacing: 4px;
-                background: #1e293b;
-                font-weight: 800;
-                width: 32px;
-                color: #38bdf8;
-                border-right: 2px solid #475569;
-            }
-            .khcm-table .th-sub {
-                background: rgba(30, 41, 59, 0.7);
-                text-align: left;
-                padding-left: 8px;
-                font-weight: 600;
-                color: #cbd5e1;
-                width: 120px;
-                font-size: 11px;
-            }
-            .khcm-col-app {
-                width: 220px;
-                min-width: 210px;
-            }
-            .khcm-input {
-                background: rgba(15, 23, 42, 0.9);
-                border: 1px solid #475569;
-                color: #38bdf8;
-                border-radius: 4px;
-                padding: 2px 4px;
-                font-size: 11px;
-                font-family: inherit;
+            .khcm-unified-table th {
+                border: 1px solid #444;
+                padding: 6px 4px;
+                background: rgba(255, 255, 255, 0.05);
+                color: #888;
+                font-size: 10.5px;
+                font-weight: normal;
                 text-align: center;
+            }
+            .khcm-unified-table th.col-app-header {
+                background: rgba(0, 0, 0, 0.3);
+                color: #38bdf8;
+                font-size: 12px;
+                font-weight: bold;
+                padding: 6px 4px;
+            }
+            .khcm-unified-table td {
+                border: 1px solid #444;
+                padding: 4px;
+                text-align: center;
+                background: rgba(0, 0, 0, 0.1);
+            }
+            .khcm-unified-table td.sec-label {
+                background: rgba(0, 0, 0, 0.3);
+                color: #38bdf8;
+                font-weight: bold;
+                font-size: 11px;
+                padding: 4px 8px;
+                text-align: center;
+            }
+            .khcm-unified-table td.th-sub-label {
+                background: rgba(0, 0, 0, 0.2);
+                color: #cbd5e1;
+                font-weight: 600;
+                font-size: 11px;
+                padding: 4px 8px;
+                text-align: left;
+                width: 125px;
+            }
+            .khcm-unified-input {
+                height: 22px;
+                font-size: 11px;
+                background: #333;
+                color: #fff;
+                border: 1px solid #555;
+                border-radius: 3px;
+                outline: none;
+                text-align: center;
+                padding: 2px 4px;
                 box-sizing: border-box;
                 width: 100%;
                 max-width: 75px;
             }
-            .khcm-input:focus {
+            .khcm-unified-input:focus {
                 border-color: #38bdf8;
-                outline: none;
-                box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+                box-shadow: 0 0 5px rgba(56, 189, 248, 0.4);
             }
-            .khcm-checkbox {
-                accent-color: #0284c7;
+            .khcm-btn-compact {
+                height: 28px;
+                padding: 0 12px;
+                font-size: 11px;
+                font-weight: bold;
+                border-radius: 4px;
                 cursor: pointer;
-                width: 14px;
-                height: 14px;
-                vertical-align: middle;
-            }
-            .khcm-label {
                 display: inline-flex;
                 align-items: center;
-                gap: 4px;
-                font-size: 11px;
-                cursor: pointer;
-                color: #cbd5e1;
-            }
-
-            /* 결과 카드 및 대시보드 */
-            .khcm-dashboard {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 10px;
-            }
-            .khcm-kpi-card {
+                gap: 5px;
+                transition: all 0.2s;
                 background: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 8px;
-                padding: 10px 14px;
+                border: 1px solid #475569;
+                color: #f1f5f9;
+            }
+            .khcm-btn-compact:hover {
+                background: #334155;
+                border-color: #94a3b8;
+            }
+            .khcm-mini-kpi {
+                background: rgba(15, 23, 42, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 6px;
+                padding: 8px 12px;
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
-                position: relative;
-                overflow: hidden;
-            }
-            .khcm-kpi-title {
-                font-size: 10.5px;
-                font-weight: 600;
-                color: #94a3b8;
-                text-transform: uppercase;
-            }
-            .khcm-kpi-val {
-                font-size: 22px;
-                font-weight: 800;
-                color: #f8fafc;
-                display: flex;
-                align-items: baseline;
-                gap: 4px;
-            }
-            .khcm-kpi-unit {
-                font-size: 11px;
-                font-weight: normal;
-                color: #64748b;
-            }
-            .khcm-los-badge {
-                display: inline-block;
-                padding: 1px 8px;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: 800;
-                color: #ffffff;
-            }
-            .khcm-app-mini-card {
-                background: rgba(15, 23, 42, 0.7);
-                border: 1px solid #334155;
-                border-radius: 6px;
-                padding: 6px 10px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                gap: 2px;
             }
         `;
         document.head.appendChild(style);
     };
 
     /**
-     * KPI 요약 바 렌더러 (종합 LOS 및 4개 접근로 요약 미니 카드)
+     * 운영통계 공통 상단 액션 바 렌더러
      */
-    KHCM.renderKpiSummaryHtml = function (analysis) {
-        if (!analysis) return '';
-        const intLos = analysis.intersection.los;
-        const intDelay = analysis.intersection.weightedDelay;
-        const intVC = analysis.intersection.maxVC;
-        const intVol = analysis.intersection.totalVolume;
-
-        let html = `
-            <div class="khcm-dashboard mb-10">
-                <div class="khcm-kpi-card" style="border-left: 4px solid ${KHCM.getLOSColor(intLos)};">
-                    <span class="khcm-kpi-title">교차로 종합 서비스수준</span>
-                    <div class="khcm-kpi-val">
-                        <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(intLos)}; font-size:17px;">LOS ${intLos}</span>
-                    </div>
-                </div>
-                <div class="khcm-kpi-card">
-                    <span class="khcm-kpi-title">평균 제어지체 (d)</span>
-                    <div class="khcm-kpi-val">
-                        ${intDelay} <span class="khcm-kpi-unit">초/대</span>
-                    </div>
-                </div>
-                <div class="khcm-kpi-card">
-                    <span class="khcm-kpi-title">최대 임계 V/C (v/c max)</span>
-                    <div class="khcm-kpi-val" style="color:${intVC > 1.0 ? '#ef4444' : (intVC > 0.85 ? '#f59e0b' : '#38bdf8')};">
-                        ${intVC} <span class="khcm-kpi-unit">${intVC > 1.0 ? '(과포화)' : (intVC > 0.85 ? '(혼잡)' : '(여유)')}</span>
-                    </div>
-                </div>
-                <div class="khcm-kpi-card">
-                    <span class="khcm-kpi-title">분석 첨두 총교통량</span>
-                    <div class="khcm-kpi-val">
-                        ${intVol.toLocaleString()} <span class="khcm-kpi-unit">대/시</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 북동남서 4개 접근로별 요약 바 -->
-            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:12px;">
-        `;
-
-        KHCM.APPROACHES.forEach(app => {
-            const appRes = analysis.approaches[app.id];
-            const los = appRes ? appRes.los : '-';
-            const d = appRes ? appRes.averageDelay : '-';
-            const vc = appRes ? appRes.maxVC : '-';
-            html += `
-                <div class="khcm-app-mini-card" style="border-top:3px solid ${KHCM.getLOSColor(los)};">
-                    <div style="font-size:12px; font-weight:700; color:#f1f5f9;">
-                        ${app.icon} ${app.shortName}
-                    </div>
-                    <div style="text-align:right;">
-                        <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(los)}; font-size:11px; padding:1px 6px;">${los}</span>
-                        <span style="font-size:11px; color:#94a3b8; margin-left:4px;">${d}s (v/c ${vc})</span>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `</div>`;
-        return html;
-    };
-
-    /**
-     * 상단 툴바 렌더러
-     */
-    KHCM.renderTabHeader = function (title, icon, jid) {
+    KHCM.renderCommonActionBar = function (jid) {
         return `
-            <div class="khcm-header-bar mb-10">
-                <div style="font-size:13px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px;">
-                    ${title}
-                </div>
-                <div class="khcm-actions">
-                    <button class="khcm-btn" onclick="KHCM.syncFromJunction('${jid}')" title="현재 신호/현시 주기 자동 동기화">
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; gap:8px;">
+                    <button class="khcm-btn-compact" style="color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="KHCM.syncFromJunction('${jid}')">
                         🔄 신호정보 동기화
                     </button>
-                    <button class="khcm-btn khcm-btn-primary" onclick="KHCM.runCalculation()">
+                    <button class="khcm-btn-compact" style="color:#34d399; border-color:rgba(52,211,153,0.4);" onclick="KHCM.runCalculation()">
                         ⚡ 실시간 분석
                     </button>
-                    <button class="khcm-btn khcm-btn-success" onclick="KHCM.saveData()">
-                        💾 설정 저장
-                    </button>
-                    <button class="btn-neon magenta" style="height:28px; padding:0 14px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="if(typeof updateActiveJunctionToDB==='function') updateActiveJunctionToDB();">
-                        ☁️ 클라우드 저장
-                    </button>
                 </div>
+                <button class="btn-neon magenta" style="height:32px; padding:0 20px; font-weight:bold; cursor:pointer;" onclick="if(typeof updateActiveJunctionToDB==='function') updateActiveJunctionToDB();">
+                    ☁️ 클라우드 저장
+                </button>
             </div>
         `;
     };
 
     /**
-     * 공통 4개 접근로 thead 생성
+     * 운영통계 스타일 4개 접근로 thead 생성
      */
     function getAppTableHeaderHtml(dirIds) {
         const appInfoMap = {};
@@ -706,12 +546,12 @@
         let html = `
             <thead>
                 <tr>
-                    <th colspan="2" style="width:140px; background:#0f172a; color:#94a3b8; font-size:12px;">구분</th>
+                    <th colspan="2" style="width:145px; background:rgba(0,0,0,0.3); color:#888; font-size:11px; font-weight:bold; border:1px solid #444;">구분</th>
         `;
         dirIds.forEach(dirId => {
             const info = appInfoMap[dirId];
             html += `
-                <th class="khcm-col-app" style="background:#0f2b48; color:#38bdf8; font-size:12.5px; font-weight:800; padding:6px 4px;">
+                <th class="col-app-header" style="border:1px solid #444;">
                     ${info.icon} ${info.name}
                 </th>
             `;
@@ -724,25 +564,27 @@
     }
 
     /**
-     * [1. 도로조건] 전용 테이블 렌더러
+     * [1. 도로조건] 전용 테이블 렌더러 (운영통계 스타일)
      */
     KHCM.renderRoadTableHtml = function (data, dirIds) {
         let html = `
-            <div class="khcm-table-wrap">
-                <table class="khcm-table">
-                    ${getAppTableHeaderHtml(dirIds)}
-                    <tbody>
-                        <!-- 접근경사 -->
-                        <tr>
-                            <td rowspan="10" class="sec-title" style="color:#38bdf8;">도로조건</td>
-                            <td class="th-sub">접근경사</td>
+            <table class="khcm-unified-table">
+                ${getAppTableHeaderHtml(dirIds)}
+                <tbody>
+                    <!-- 접근경사 -->
+                    <tr>
+                        <td rowspan="8" class="sec-label">도로조건</td>
+                        <td class="th-sub-label">접근경사</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
             html += `
                 <td>
-                    <input type="number" step="0.1" class="khcm-input" value="${geom.grade}" 
-                        onchange="KHCM.updateField('${dirId}', 'geom.grade', parseFloat(this.value))"> %
+                    <div style="display:inline-flex; align-items:center; gap:3px;">
+                        <input type="number" step="0.1" class="khcm-unified-input" style="width:50px;" value="${geom.grade}" 
+                            onchange="KHCM.updateField('${dirId}', 'geom.grade', parseFloat(this.value))">
+                        <span style="font-size:10px; color:#aaa;">%</span>
+                    </div>
                 </td>
             `;
         });
@@ -751,18 +593,18 @@
         // 횡단보도
         html += `
             <tr>
-                <td class="th-sub">횡단보도</td>
+                <td class="th-sub-label">횡단보도</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
             html += `
                 <td>
-                    <label class="khcm-label">
-                        <input type="radio" name="crosswalk_${dirId}" class="khcm-checkbox" ${geom.crosswalk ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; color:#cbd5e1; cursor:pointer;">
+                        <input type="radio" name="crosswalk_${dirId}" style="accent-color:#38bdf8;" ${geom.crosswalk ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'geom.crosswalk', true)"> 있음
                     </label>
-                    <label class="khcm-label" style="margin-left:8px;">
-                        <input type="radio" name="crosswalk_${dirId}" class="khcm-checkbox" ${!geom.crosswalk ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; color:#cbd5e1; cursor:pointer; margin-left:8px;">
+                        <input type="radio" name="crosswalk_${dirId}" style="accent-color:#38bdf8;" ${!geom.crosswalk ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'geom.crosswalk', false)"> 없음
                     </label>
                 </td>
@@ -773,13 +615,13 @@
         // 차로수
         html += `
             <tr>
-                <td class="th-sub">차로수</td>
+                <td class="th-sub-label">차로수</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
             html += `
                 <td>
-                    <input type="number" min="1" max="7" class="khcm-input" value="${geom.lanes}" 
+                    <input type="number" min="1" max="7" class="khcm-unified-input" style="width:45px;" value="${geom.lanes}" 
                         onchange="KHCM.updateField('${dirId}', 'geom.lanes', parseInt(this.value, 10))">
                 </td>
             `;
@@ -789,19 +631,19 @@
         // 차로폭 (1~7차로)
         html += `
             <tr>
-                <td class="th-sub">차로폭 (m)</td>
+                <td class="th-sub-label">차로폭 (m)</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
             html += `
                 <td>
-                    <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; font-size:10px;">
-                        ${[1, 2, 3, 4, 5, 6, 7].map(lane => `<div style="color:#94a3b8; font-weight:600;">${lane}</div>`).join('')}
+                    <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; font-size:9.5px;">
+                        ${[1, 2, 3, 4, 5, 6, 7].map(lane => `<div style="color:#888; font-weight:600;">${lane}</div>`).join('')}
                         ${[0, 1, 2, 3, 4, 5, 6].map(idx => `
                             <div>
-                                <input type="number" step="0.1" class="khcm-input" style="padding:1px 0; font-size:10px; width:100%; max-width:28px;" 
+                                <input type="number" step="0.1" class="khcm-unified-input" style="padding:1px 0; font-size:10px; width:100%; max-width:28px;" 
                                     value="${geom.laneWidths[idx] !== undefined ? geom.laneWidths[idx] : 3.0}" 
-                                    ${idx >= geom.lanes ? 'disabled style="opacity:0.25;"' : ''}
+                                    ${idx >= geom.lanes ? 'disabled style="opacity:0.2;"' : ''}
                                     onchange="KHCM.updateArrayField('${dirId}', 'geom.laneWidths', ${idx}, parseFloat(this.value))">
                             </div>
                         `).join('')}
@@ -814,7 +656,7 @@
         // 차로 진행방향 7x4 매트릭스
         html += `
             <tr>
-                <td class="th-sub">차로 진행방향</td>
+                <td class="th-sub-label">차로 진행방향</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
@@ -827,20 +669,20 @@
 
             html += `
                 <td>
-                    <table style="width:100%; border-collapse:collapse; font-size:10.5px;">
-                        <tr style="background:#1e293b;">
-                            <th style="padding:1px; width:18px; color:#cbd5e1;"></th>
-                            ${[1, 2, 3, 4, 5, 6, 7].map(l => `<th style="padding:1px; color:#94a3b8;">${l}</th>`).join('')}
+                    <table style="width:100%; border-collapse:collapse; font-size:10px;">
+                        <tr style="background:rgba(255,255,255,0.03);">
+                            <th style="padding:1px; width:16px; color:#888; border:1px solid #444;"></th>
+                            ${[1, 2, 3, 4, 5, 6, 7].map(l => `<th style="padding:1px; color:#888; border:1px solid #444;">${l}</th>`).join('')}
                         </tr>
                         ${movLabels.map(m => `
                             <tr>
-                                <td style="padding:1px; font-weight:700; color:#38bdf8;">${m.label}</td>
+                                <td style="padding:1px; font-weight:700; color:#38bdf8; border:1px solid #444;">${m.label}</td>
                                 ${[0, 1, 2, 3, 4, 5, 6].map(lIdx => {
                                     const isChecked = geom.movements[lIdx] && geom.movements[lIdx][m.key];
                                     const isDisabled = (lIdx >= geom.lanes);
                                     return `
-                                        <td style="padding:1px; text-align:center;">
-                                            <input type="checkbox" class="khcm-checkbox" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled style="opacity:0.2;"' : ''}
+                                        <td style="padding:1px; text-align:center; border:1px solid #444;">
+                                            <input type="checkbox" style="accent-color:#38bdf8; cursor:pointer;" ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled style="opacity:0.2;"' : ''}
                                                 onchange="KHCM.updateMovementMatrix('${dirId}', ${lIdx}, '${m.key}', this.checked)">
                                         </td>
                                     `;
@@ -856,16 +698,18 @@
         // 유턴구간길이
         html += `
             <tr>
-                <td class="th-sub">유턴구간길이</td>
+                <td class="th-sub-label">유턴구간길이</td>
         `;
         dirIds.forEach(dirId => {
             const geom = data[dirId].geom;
             html += `
-                <td style="text-align:left; padding-left:8px;">
-                    <div style="font-size:10px; color:#94a3b8;">(유·좌 공용차로)</div>
-                    길이: 
-                    <input type="number" class="khcm-input" style="width:55px;" value="${geom.uTurnPocketLength || ''}" placeholder="0"
-                        onchange="KHCM.updateField('${dirId}', 'geom.uTurnPocketLength', parseFloat(this.value) || 0)"> m
+                <td style="text-align:center;">
+                    <div style="font-size:9.5px; color:#888;">(유·좌 공용차로)</div>
+                    <div style="display:inline-flex; align-items:center; gap:3px;">
+                        <input type="number" class="khcm-unified-input" style="width:50px;" value="${geom.uTurnPocketLength || ''}" placeholder="0"
+                            onchange="KHCM.updateField('${dirId}', 'geom.uTurnPocketLength', parseFloat(this.value) || 0)">
+                        <span style="font-size:10px; color:#aaa;">m</span>
+                    </div>
                 </td>
             `;
         });
@@ -874,44 +718,32 @@
         // 도류화시설 (유턴부가차로, 우회전부가차로, 교통섬)
         html += `
             <tr>
-                <td class="th-sub" rowspan="3">도류화시설</td>
+                <td class="th-sub-label">도류화시설</td>
         `;
         dirIds.forEach(dirId => {
             const ch = data[dirId].geom.channelization;
             html += `
-                <td style="text-align:left; padding-left:8px;">
-                    유턴부가차로 길이: 
-                    <input type="number" class="khcm-input" style="width:55px;" value="${ch.uTurnAuxLength || ''}" placeholder="0"
-                        onchange="KHCM.updateField('${dirId}', 'geom.channelization.uTurnAuxLength', parseFloat(this.value) || 0)"> m
-                </td>
-            `;
-        });
-        html += `</tr><tr>`;
-        dirIds.forEach(dirId => {
-            const ch = data[dirId].geom.channelization;
-            html += `
-                <td style="text-align:left; padding-left:8px;">
-                    우회전부가 차로: 
-                    <input type="number" class="khcm-input" style="width:38px;" value="${ch.rightTurnAuxLanes || ''}" placeholder="0"
-                        onchange="KHCM.updateField('${dirId}', 'geom.channelization.rightTurnAuxLanes', parseInt(this.value, 10) || 0)">
-                    길이: 
-                    <input type="number" class="khcm-input" style="width:55px;" value="${ch.rightTurnAuxLength || ''}" placeholder="0"
-                        onchange="KHCM.updateField('${dirId}', 'geom.channelization.rightTurnAuxLength', parseFloat(this.value) || 0)"> m
-                </td>
-            `;
-        });
-        html += `</tr><tr>`;
-        dirIds.forEach(dirId => {
-            const ch = data[dirId].geom.channelization;
-            html += `
-                <td style="text-align:left; padding-left:8px;">
-                    <label class="khcm-label">
-                        <input type="checkbox" class="khcm-checkbox" ${ch.hasIsland ? 'checked' : ''}
-                            onchange="KHCM.updateField('${dirId}', 'geom.channelization.hasIsland', this.checked)"> 교통섬
-                    </label>
-                    대기공간: 
-                    <input type="number" class="khcm-input" style="width:55px;" value="${ch.islandPocketLength || ''}" placeholder="0"
-                        onchange="KHCM.updateField('${dirId}', 'geom.channelization.islandPocketLength', parseFloat(this.value) || 0)"> m
+                <td style="text-align:left; padding:4px 8px; font-size:10.5px;">
+                    <div style="margin-bottom:2px;">
+                        유턴부가: 
+                        <input type="number" class="khcm-unified-input" style="width:45px;" value="${ch.uTurnAuxLength || ''}" placeholder="0"
+                            onchange="KHCM.updateField('${dirId}', 'geom.channelization.uTurnAuxLength', parseFloat(this.value) || 0)"> m
+                    </div>
+                    <div style="margin-bottom:2px;">
+                        우회전부가: 
+                        <input type="number" class="khcm-unified-input" style="width:34px;" value="${ch.rightTurnAuxLanes || ''}" placeholder="0"
+                            onchange="KHCM.updateField('${dirId}', 'geom.channelization.rightTurnAuxLanes', parseInt(this.value, 10) || 0)"> 차로 / 
+                        <input type="number" class="khcm-unified-input" style="width:45px;" value="${ch.rightTurnAuxLength || ''}" placeholder="0"
+                            onchange="KHCM.updateField('${dirId}', 'geom.channelization.rightTurnAuxLength', parseFloat(this.value) || 0)"> m
+                    </div>
+                    <div>
+                        <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${ch.hasIsland ? 'checked' : ''}
+                                onchange="KHCM.updateField('${dirId}', 'geom.channelization.hasIsland', this.checked)"> 교통섬
+                        </label>
+                        (대기: <input type="number" class="khcm-unified-input" style="width:45px;" value="${ch.islandPocketLength || ''}" placeholder="0"
+                            onchange="KHCM.updateField('${dirId}', 'geom.channelization.islandPocketLength', parseFloat(this.value) || 0)"> m)
+                    </div>
                 </td>
             `;
         });
@@ -920,48 +752,46 @@
         // 대향진출로 (곡선반경, 대향차로수)
         html += `
             <tr>
-                <td class="th-sub">대향진출로<br><span style="font-size:9.5px; color:#64748b;">(접근로)</span></td>
+                <td class="th-sub-label">대향진출로<br><span style="font-size:9.5px; color:#888;">(접근로)</span></td>
         `;
         dirIds.forEach(dirId => {
             const op = data[dirId].geom.opposing;
             html += `
-                <td style="text-align:left; padding-left:8px;">
+                <td style="text-align:center; font-size:10.5px;">
                     곡선반경: 
-                    <input type="number" class="khcm-input" style="width:55px;" value="${op.curveRadius || ''}" placeholder="0"
+                    <input type="number" class="khcm-unified-input" style="width:45px;" value="${op.curveRadius || ''}" placeholder="0"
                         onchange="KHCM.updateField('${dirId}', 'geom.opposing.curveRadius', parseFloat(this.value) || 0)"> m
                     &nbsp;차로수: 
-                    <input type="number" class="khcm-input" style="width:38px;" value="${op.opposingLanes || 2}"
+                    <input type="number" class="khcm-unified-input" style="width:34px;" value="${op.opposingLanes || 2}"
                         onchange="KHCM.updateField('${dirId}', 'geom.opposing.opposingLanes', parseInt(this.value, 10) || 2)">
                 </td>
             `;
         });
         html += `</tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         `;
         return html;
     };
 
     /**
-     * [2. 교통조건] 전용 테이블 렌더러
+     * [2. 교통조건] 전용 테이블 렌더러 (운영통계 스타일)
      */
     KHCM.renderTrafficTableHtml = function (data, dirIds) {
         let html = `
-            <div class="khcm-table-wrap">
-                <table class="khcm-table">
-                    ${getAppTableHeaderHtml(dirIds)}
-                    <tbody>
-                        <!-- 첨두시간계수 -->
-                        <tr>
-                            <td rowspan="4" class="sec-title" style="color:#10b981;">교통조건</td>
-                            <td class="th-sub">첨두시간계수</td>
+            <table class="khcm-unified-table">
+                ${getAppTableHeaderHtml(dirIds)}
+                <tbody>
+                    <!-- 첨두시간계수 -->
+                    <tr>
+                        <td rowspan="4" class="sec-label" style="color:#10b981;">교통조건</td>
+                        <td class="th-sub-label">첨두시간계수 (PHF)</td>
         `;
         dirIds.forEach(dirId => {
             const tr = data[dirId].traffic;
             html += `
                 <td>
-                    PHF = <input type="number" step="0.01" min="0.5" max="1.0" class="khcm-input" value="${tr.phf}" style="width:55px;"
+                    PHF = <input type="number" step="0.01" min="0.5" max="1.0" class="khcm-unified-input" value="${tr.phf}" style="width:52px;"
                         onchange="KHCM.updateField('${dirId}', 'traffic.phf', parseFloat(this.value))">
                 </td>
             `;
@@ -971,33 +801,33 @@
         // 교통량 (승용차 / 중차량 x 유, 좌, 직, 우)
         html += `
             <tr>
-                <td class="th-sub">교통량 (대/시)</td>
+                <td class="th-sub-label">교통량 (대/시)</td>
         `;
         dirIds.forEach(dirId => {
             const vols = data[dirId].traffic.volumes;
             html += `
                 <td>
                     <table style="width:100%; border-collapse:collapse; font-size:10px;">
-                        <tr style="background:#1e293b;">
-                            <th style="padding:1px; color:#cbd5e1;"></th>
-                            <th style="padding:1px; color:#94a3b8;">유</th>
-                            <th style="padding:1px; color:#94a3b8;">좌</th>
-                            <th style="padding:1px; color:#94a3b8;">직</th>
-                            <th style="padding:1px; color:#94a3b8;">우</th>
+                        <tr style="background:rgba(255,255,255,0.03);">
+                            <th style="padding:1px; color:#888; border:1px solid #444;"></th>
+                            <th style="padding:1px; color:#888; border:1px solid #444;">유</th>
+                            <th style="padding:1px; color:#888; border:1px solid #444;">좌</th>
+                            <th style="padding:1px; color:#888; border:1px solid #444;">직</th>
+                            <th style="padding:1px; color:#888; border:1px solid #444;">우</th>
                         </tr>
                         <tr>
-                            <td style="padding:1px; font-weight:600; color:#cbd5e1;">승용차</td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.car.u || ''}" placeholder="-" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.u', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.car.l || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.l', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.car.t || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.t', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.car.r || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.r', parseInt(this.value, 10) || 0)"></td>
+                            <td style="padding:1px; font-weight:600; color:#cbd5e1; border:1px solid #444;">승용</td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.car.u || ''}" placeholder="-" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.u', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.car.l || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.l', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.car.t || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.t', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.car.r || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.car.r', parseInt(this.value, 10) || 0)"></td>
                         </tr>
                         <tr>
-                            <td style="padding:1px; font-weight:600; color:#cbd5e1;">중차량</td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.heavy.u || ''}" placeholder="-" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.u', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.heavy.l || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.l', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.heavy.t || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.t', parseInt(this.value, 10) || 0)"></td>
-                            <td><input type="number" class="khcm-input" style="width:40px; padding:1px;" value="${vols.heavy.r || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.r', parseInt(this.value, 10) || 0)"></td>
+                            <td style="padding:1px; font-weight:600; color:#cbd5e1; border:1px solid #444;">중차</td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.heavy.u || ''}" placeholder="-" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.u', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.heavy.l || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.l', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.heavy.t || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.t', parseInt(this.value, 10) || 0)"></td>
+                            <td style="border:1px solid #444;"><input type="number" class="khcm-unified-input" style="width:36px; padding:1px;" value="${vols.heavy.r || ''}" onchange="KHCM.updateField('${dirId}', 'traffic.volumes.heavy.r', parseInt(this.value, 10) || 0)"></td>
                         </tr>
                     </table>
                 </td>
@@ -1008,16 +838,18 @@
         // 녹색신호 도착률 (P_G)
         html += `
             <tr>
-                <td class="th-sub">녹색신호 도착률</td>
+                <td class="th-sub-label">녹색신호 도착률 (P<sub>G</sub>)</td>
         `;
         dirIds.forEach(dirId => {
             const tr = data[dirId].traffic;
             html += `
                 <td>
-                    <i>P<sub>G</sub></i> = 
-                    <input type="number" step="0.01" min="0" max="1.0" class="khcm-input" style="width:55px;" value="${tr.pGreen}" 
-                        onchange="KHCM.updateField('${dirId}', 'traffic.pGreen', parseFloat(this.value))">
-                    <span style="font-size:10px; color:#94a3b8;">(G/C)</span>
+                    <div style="display:inline-flex; align-items:center; gap:3px;">
+                        <i>P<sub>G</sub></i> = 
+                        <input type="number" step="0.01" min="0" max="1.0" class="khcm-unified-input" style="width:52px;" value="${tr.pGreen}" 
+                            onchange="KHCM.updateField('${dirId}', 'traffic.pGreen', parseFloat(this.value))">
+                        <span style="font-size:10px; color:#888;">(G/C)</span>
+                    </div>
                 </td>
             `;
         });
@@ -1026,20 +858,20 @@
         // 초기대기행렬 (승용차)
         html += `
             <tr>
-                <td class="th-sub">초기대기행렬<br><span style="font-size:9.5px; color:#64748b;">(승용차)</span></td>
+                <td class="th-sub-label">초기대기행렬<br><span style="font-size:9.5px; color:#888;">(승용차)</span></td>
         `;
         dirIds.forEach(dirId => {
             const q = data[dirId].traffic.initialQueue || [0, 0, 0, 0, 0, 0, 0];
             const lanes = data[dirId].geom.lanes;
             html += `
                 <td>
-                    <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; font-size:10px;">
-                        ${[1, 2, 3, 4, 5, 6, 7].map(lane => `<div style="color:#94a3b8; font-weight:600;">${lane}</div>`).join('')}
+                    <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; font-size:9.5px;">
+                        ${[1, 2, 3, 4, 5, 6, 7].map(lane => `<div style="color:#888; font-weight:600;">${lane}</div>`).join('')}
                         ${[0, 1, 2, 3, 4, 5, 6].map(idx => `
                             <div>
-                                <input type="number" min="0" class="khcm-input" style="padding:1px 0; font-size:10px; width:100%; max-width:28px;" 
+                                <input type="number" min="0" class="khcm-unified-input" style="padding:1px 0; font-size:10px; width:100%; max-width:28px;" 
                                     value="${q[idx] !== undefined ? q[idx] : 0}" 
-                                    ${idx >= lanes ? 'disabled style="opacity:0.25;"' : ''}
+                                    ${idx >= lanes ? 'disabled style="opacity:0.2;"' : ''}
                                     onchange="KHCM.updateArrayField('${dirId}', 'traffic.initialQueue', ${idx}, parseInt(this.value, 10) || 0)">
                             </div>
                         `).join('')}
@@ -1048,52 +880,50 @@
             `;
         });
         html += `</tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         `;
         return html;
     };
 
     /**
-     * [3. 신호조건] 전용 테이블 렌더러
+     * [3. 신호조건] 전용 테이블 렌더러 (운영통계 스타일)
      */
     KHCM.renderSignalTableHtml = function (data, dirIds) {
         let html = `
-            <div class="khcm-table-wrap">
-                <table class="khcm-table">
-                    ${getAppTableHeaderHtml(dirIds)}
-                    <tbody>
-                        <!-- 차량신호등 -->
-                        <tr>
-                            <td rowspan="5" class="sec-title" style="color:#f59e0b;">신호조건</td>
-                            <td class="th-sub">차량신호등</td>
+            <table class="khcm-unified-table">
+                ${getAppTableHeaderHtml(dirIds)}
+                <tbody>
+                    <!-- 차량신호등 -->
+                    <tr>
+                        <td rowspan="5" class="sec-label" style="color:#f59e0b;">신호조건</td>
+                        <td class="th-sub-label">차량신호등</td>
         `;
         dirIds.forEach(dirId => {
             const sig = data[dirId].signal;
             html += `
-                <td style="text-align:left; padding-left:8px;">
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <label class="khcm-label">
-                            <input type="radio" name="sighead_${dirId}" class="khcm-checkbox" ${sig.signalHeadType === '4color' ? 'checked' : ''}
+                <td style="text-align:left; padding-left:10px;">
+                    <div style="display:flex; flex-direction:column; gap:4px; font-size:11px;">
+                        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="sighead_${dirId}" style="accent-color:#38bdf8;" ${sig.signalHeadType === '4color' ? 'checked' : ''}
                                 onchange="KHCM.updateField('${dirId}', 'signal.signalHeadType', '4color')"> 4색 차량신호등
                         </label>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <label class="khcm-label">
-                                <input type="radio" name="sighead_${dirId}" class="khcm-checkbox" ${sig.signalHeadType === '3color' ? 'checked' : ''}
+                            <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                                <input type="radio" name="sighead_${dirId}" style="accent-color:#38bdf8;" ${sig.signalHeadType === '3color' ? 'checked' : ''}
                                     onchange="KHCM.updateField('${dirId}', 'signal.signalHeadType', '3color')"> 3색
                             </label>
-                            <label class="khcm-label" style="font-size:10px; color:#94a3b8;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.threeColorDetail.circleGreen ? 'checked' : ''}
+                            <label style="font-size:10px; color:#94a3b8; display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                                <input type="checkbox" style="accent-color:#38bdf8;" ${sig.threeColorDetail.circleGreen ? 'checked' : ''}
                                     onchange="KHCM.updateField('${dirId}', 'signal.threeColorDetail.circleGreen', this.checked)"> 원형
                             </label>
-                            <label class="khcm-label" style="font-size:10px; color:#94a3b8;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.threeColorDetail.arrowGreen ? 'checked' : ''}
+                            <label style="font-size:10px; color:#94a3b8; display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                                <input type="checkbox" style="accent-color:#38bdf8;" ${sig.threeColorDetail.arrowGreen ? 'checked' : ''}
                                     onchange="KHCM.updateField('${dirId}', 'signal.threeColorDetail.arrowGreen', this.checked)"> 화살표
                             </label>
                         </div>
-                        <label class="khcm-label">
-                            <input type="radio" name="sighead_${dirId}" class="khcm-checkbox" ${sig.signalHeadType === 'other' ? 'checked' : ''}
+                        <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="sighead_${dirId}" style="accent-color:#38bdf8;" ${sig.signalHeadType === 'other' ? 'checked' : ''}
                                 onchange="KHCM.updateField('${dirId}', 'signal.signalHeadType', 'other')"> 기타
                         </label>
                     </div>
@@ -1105,18 +935,18 @@
         // 보행자신호등
         html += `
             <tr>
-                <td class="th-sub">보행자신호등</td>
+                <td class="th-sub-label">보행자신호등</td>
         `;
         dirIds.forEach(dirId => {
             const sig = data[dirId].signal;
             html += `
                 <td>
-                    <label class="khcm-label">
-                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${sig.pedSignal ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; cursor:pointer;">
+                        <input type="radio" name="pedsig_${dirId}" style="accent-color:#38bdf8;" ${sig.pedSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.pedSignal', true)"> 있음
                     </label>
-                    <label class="khcm-label" style="margin-left:8px;">
-                        <input type="radio" name="pedsig_${dirId}" class="khcm-checkbox" ${!sig.pedSignal ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; cursor:pointer; margin-left:8px;">
+                        <input type="radio" name="pedsig_${dirId}" style="accent-color:#38bdf8;" ${!sig.pedSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.pedSignal', false)"> 없음
                     </label>
                 </td>
@@ -1127,18 +957,18 @@
         // 우회전신호등
         html += `
             <tr>
-                <td class="th-sub">우회전신호등</td>
+                <td class="th-sub-label">우회전신호등</td>
         `;
         dirIds.forEach(dirId => {
             const sig = data[dirId].signal;
             html += `
                 <td>
-                    <label class="khcm-label">
-                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${sig.rightSignal ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; cursor:pointer;">
+                        <input type="radio" name="rightsig_${dirId}" style="accent-color:#38bdf8;" ${sig.rightSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.rightSignal', true)"> 있음
                     </label>
-                    <label class="khcm-label" style="margin-left:8px;">
-                        <input type="radio" name="rightsig_${dirId}" class="khcm-checkbox" ${!sig.rightSignal ? 'checked' : ''} 
+                    <label style="display:inline-flex; align-items:center; gap:3px; font-size:11px; cursor:pointer; margin-left:8px;">
+                        <input type="radio" name="rightsig_${dirId}" style="accent-color:#38bdf8;" ${!sig.rightSignal ? 'checked' : ''} 
                             onchange="KHCM.updateField('${dirId}', 'signal.rightSignal', false)"> 없음
                     </label>
                 </td>
@@ -1149,24 +979,24 @@
         // 유턴허용
         html += `
             <tr>
-                <td class="th-sub">유턴허용</td>
+                <td class="th-sub-label">유턴허용</td>
         `;
         dirIds.forEach(dirId => {
             const sig = data[dirId].signal;
             html += `
-                <td style="text-align:left; padding-left:8px;">
+                <td style="text-align:left; padding-left:10px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${sig.uTurnAllowed ? 'checked' : ''} 
+                        <label style="display:inline-flex; align-items:center; gap:3px; cursor:pointer; font-size:11px;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${sig.uTurnAllowed ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.uTurnAllowed', this.checked)"> 허용
                         </label>
-                        <div style="display:flex; flex-direction:column; gap:2px;">
-                            <label class="khcm-label" style="font-size:10px;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onLeftTurn ? 'checked' : ''} 
+                        <div style="display:flex; flex-direction:column; gap:2px; font-size:10px;">
+                            <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                                <input type="checkbox" style="accent-color:#38bdf8;" ${sig.uTurnCondition.onLeftTurn ? 'checked' : ''} 
                                     onchange="KHCM.updateField('${dirId}', 'signal.uTurnCondition.onLeftTurn', this.checked)"> 좌회전시
                             </label>
-                            <label class="khcm-label" style="font-size:10px;">
-                                <input type="checkbox" class="khcm-checkbox" ${sig.uTurnCondition.onPedSignal ? 'checked' : ''} 
+                            <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                                <input type="checkbox" style="accent-color:#38bdf8;" ${sig.uTurnCondition.onPedSignal ? 'checked' : ''} 
                                     onchange="KHCM.updateField('${dirId}', 'signal.uTurnCondition.onPedSignal', this.checked)"> 보행신호시
                             </label>
                         </div>
@@ -1179,27 +1009,27 @@
         // 교통안전표지
         html += `
             <tr>
-                <td class="th-sub">교통안전표지</td>
+                <td class="th-sub-label">교통안전표지</td>
         `;
         dirIds.forEach(dirId => {
             const signs = data[dirId].signal.safetySigns;
             html += `
-                <td style="text-align:left; padding-left:8px;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-                        <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noLeftTurn ? 'checked' : ''} 
+                <td style="text-align:left; padding:4px 8px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px; font-size:10px;">
+                        <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${signs.noLeftTurn ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noLeftTurn', this.checked)"> 좌회전 금지
                         </label>
-                        <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.unprotectedLeft ? 'checked' : ''} 
+                        <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${signs.unprotectedLeft ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.unprotectedLeft', this.checked)"> 비보호좌회전
                         </label>
-                        <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightTurn ? 'checked' : ''} 
+                        <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${signs.noRightTurn ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noRightTurn', this.checked)"> 우회전 금지
                         </label>
-                        <label class="khcm-label">
-                            <input type="checkbox" class="khcm-checkbox" ${signs.noRightOnRed ? 'checked' : ''} 
+                        <label style="display:inline-flex; align-items:center; gap:2px; cursor:pointer;">
+                            <input type="checkbox" style="accent-color:#38bdf8;" ${signs.noRightOnRed ? 'checked' : ''} 
                                 onchange="KHCM.updateField('${dirId}', 'signal.safetySigns.noRightOnRed', this.checked)"> 적신호우회전금지
                         </label>
                     </div>
@@ -1207,43 +1037,67 @@
             `;
         });
         html += `</tr>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         `;
         return html;
     };
 
     /**
-     * 각 탭별 전체 페이지 생성기
+     * 운영통계 스타일 각 탭별 전체 페이지 생성기 (sigma-panel 일체화)
      */
     KHCM.renderRoadPageHtml = function (data, analysis, dirIds) {
         return `
-            <div class="khcm-container">
-                ${KHCM.renderTabHeader('🛣️ 2026 KHCM 도로조건 (접근로 기하구조 / 차로폭 / 진행방향 / 도류화시설)', '🛣️', KHCM.currentJid)}
-                ${KHCM.renderKpiSummaryHtml(analysis)}
-                ${KHCM.renderRoadTableHtml(data, dirIds)}
+            ${KHCM.renderCommonActionBar(KHCM.currentJid)}
+            <div class="sigma-panel">
+                <div class="card-title">
+                    <span>🛣️ 접근로 도로조건 (기하구조 / 차로폭 / 진행방향 / 도류화시설)</span>
+                </div>
+                <div class="foldable-content">
+                    <div class="khcm-table-scroll custom-scroll">
+                        ${KHCM.renderRoadTableHtml(data, dirIds)}
+                    </div>
+                </div>
             </div>
         `;
     };
 
     KHCM.renderTrafficPageHtml = function (data, analysis, dirIds) {
         return `
-            <div class="khcm-container">
-                ${KHCM.renderTabHeader('🚗 2026 KHCM 교통조건 (첨두시간계수 / 차종별 교통량 / 도착률 / 대기행렬)', '🚗', KHCM.currentJid)}
-                ${KHCM.renderKpiSummaryHtml(analysis)}
-                ${KHCM.renderTrafficTableHtml(data, dirIds)}
+            ${KHCM.renderCommonActionBar(KHCM.currentJid)}
+            <div class="sigma-panel">
+                <div class="card-title">
+                    <span>🚗 접근로 교통조건 (첨두시간계수 / 차종별 교통량 / 도착률 / 초기대기행렬)</span>
+                </div>
+                <div class="foldable-content">
+                    <div class="khcm-table-scroll custom-scroll">
+                        ${KHCM.renderTrafficTableHtml(data, dirIds)}
+                    </div>
+                </div>
             </div>
         `;
     };
 
     KHCM.renderSignalPageHtml = function (data, analysis, dirIds) {
         return `
-            <div class="khcm-container">
-                ${KHCM.renderTabHeader('🚦 2026 KHCM 신호조건 및 종합 분석 보고서', '🚦', KHCM.currentJid)}
-                ${KHCM.renderKpiSummaryHtml(analysis)}
-                ${KHCM.renderSignalTableHtml(data, dirIds)}
-                <div id="khcm-signal-report-container">
+            ${KHCM.renderCommonActionBar(KHCM.currentJid)}
+            <div class="sigma-panel mb-15">
+                <div class="card-title">
+                    <span>🚦 접근로 신호조건 (신호등 유형 / 보행신호 / 우회전신호 / 교통안전표지)</span>
+                </div>
+                <div class="foldable-content">
+                    <div class="khcm-table-scroll custom-scroll">
+                        ${KHCM.renderSignalTableHtml(data, dirIds)}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 종합 분석 결과 패널 (운영통계 sigma-panel 일체형) -->
+            <div class="sigma-panel" id="khcm-signal-report-container">
+                <div class="card-title">
+                    <span>📊 2026 KHCM 차로군별 용량 및 지체도 분석 결과</span>
+                </div>
+                <div class="foldable-content">
                     ${analysis ? KHCM.renderAnalysisReportHtml(analysis) : ''}
                 </div>
             </div>
@@ -1302,35 +1156,58 @@
     };
 
     /**
-     * 차로군별 2026 KHCM 상세 분석 결과 보고서 테이블 (북동남서 순서)
+     * 차로군별 2026 KHCM 상세 분석 결과 보고서 테이블 (운영통계 스타일 일체화)
      */
     KHCM.renderAnalysisReportHtml = function (analysis) {
+        if (!analysis) return '';
+        const intLos = analysis.intersection.los;
+        const intDelay = analysis.intersection.weightedDelay;
+        const intVC = analysis.intersection.maxVC;
+        const intVol = analysis.intersection.totalVolume;
+
         let html = `
-            <div style="margin-top:16px;">
-                <div style="font-size:13px; font-weight:800; color:#38bdf8; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                    📋 2026 KHCM 신호교차로 차로군별 용량 및 지체도 분석표 (북·동·남·서 순)
+            <!-- KPI 미니 요약 바 -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:12px;">
+                <div class="khcm-mini-kpi" style="border-left: 3px solid ${KHCM.getLOSColor(intLos)};">
+                    <span style="font-size:10px; color:#888; font-weight:600;">종합 서비스수준</span>
+                    <span style="font-size:16px; font-weight:bold; color:${KHCM.getLOSColor(intLos)};">LOS ${intLos}</span>
                 </div>
-                <div class="khcm-table-wrap">
-                    <table class="khcm-table">
-                        <thead>
-                            <tr style="background:#1e293b;">
-                                <th>접근로</th>
-                                <th>차로군</th>
-                                <th>교통량 (V)</th>
-                                <th>분석교통량 (v)</th>
-                                <th>차로수 (N)</th>
-                                <th>포화교통류율 (s)</th>
-                                <th>녹색시간 (g)</th>
-                                <th>신호비 (g/C)</th>
-                                <th>용량 (c)</th>
-                                <th>포화도 (v/c)</th>
-                                <th>균일지체 (d1)</th>
-                                <th>증분지체 (d2)</th>
-                                <th>제어지체 (d)</th>
-                                <th>LOS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <div class="khcm-mini-kpi">
+                    <span style="font-size:10px; color:#888; font-weight:600;">평균 제어지체 (d)</span>
+                    <span style="font-size:16px; font-weight:bold; color:#fff;">${intDelay} <span style="font-size:10.5px; font-weight:normal; color:#888;">초/대</span></span>
+                </div>
+                <div class="khcm-mini-kpi">
+                    <span style="font-size:10px; color:#888; font-weight:600;">최대 임계 V/C</span>
+                    <span style="font-size:16px; font-weight:bold; color:${intVC > 1.0 ? '#ef4444' : (intVC > 0.85 ? '#f59e0b' : '#38bdf8')};">${intVC}</span>
+                </div>
+                <div class="khcm-mini-kpi">
+                    <span style="font-size:10px; color:#888; font-weight:600;">분석 총교통량</span>
+                    <span style="font-size:16px; font-weight:bold; color:#fff;">${intVol.toLocaleString()} <span style="font-size:10.5px; font-weight:normal; color:#888;">대/시</span></span>
+                </div>
+            </div>
+
+            <!-- 차로군별 용량 및 지체도 분석표 -->
+            <div class="khcm-table-scroll custom-scroll">
+                <table class="khcm-unified-table">
+                    <thead>
+                        <tr>
+                            <th style="width:100px;">접근로</th>
+                            <th>차로군</th>
+                            <th>교통량 (V)</th>
+                            <th>분석교통량 (v)</th>
+                            <th>차로수 (N)</th>
+                            <th>포화교통류율 (s)</th>
+                            <th>녹색시간 (g)</th>
+                            <th>신호비 (g/C)</th>
+                            <th>용량 (c)</th>
+                            <th>포화도 (v/c)</th>
+                            <th>균일지체 (d1)</th>
+                            <th>증분지체 (d2)</th>
+                            <th>제어지체 (d)</th>
+                            <th>LOS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
 
         KHCM.APPROACHES.forEach(app => {
@@ -1341,21 +1218,21 @@
             res.laneGroups.forEach((lg, idx) => {
                 html += `
                     <tr>
-                        ${idx === 0 ? `<td rowspan="${groupCount}" style="background:rgba(30,41,59,0.8); font-weight:700; color:#cbd5e1;">${app.icon} ${app.shortName}<br><span style="font-size:11px; color:#38bdf8;">(${res.averageDelay}s / ${res.los})</span></td>` : ''}
-                        <td style="font-weight:600; color:#f8fafc;">${lg.name}</td>
-                        <td>${lg.volumeTotal}</td>
-                        <td style="color:#38bdf8; font-weight:600;">${lg.v}</td>
-                        <td>${lg.N}</td>
-                        <td>${lg.s.toLocaleString()}</td>
-                        <td>${lg.g}s</td>
-                        <td>${lg.gC}</td>
-                        <td>${lg.c.toLocaleString()}</td>
-                        <td style="font-weight:700; color:${lg.vc > 1.0 ? '#ef4444' : (lg.vc > 0.85 ? '#f59e0b' : '#10b981')};">${lg.vc}</td>
-                        <td>${lg.d1}</td>
-                        <td>${lg.d2}</td>
-                        <td style="font-weight:700; color:#f8fafc;">${lg.d}</td>
-                        <td>
-                            <span class="khcm-los-badge" style="background:${KHCM.getLOSColor(lg.los)}; padding:1px 6px; font-size:11px;">
+                        ${idx === 0 ? `<td rowspan="${groupCount}" style="background:rgba(0,0,0,0.3); font-weight:700; color:#cbd5e1; border:1px solid #444;">${app.icon} ${app.shortName}<br><span style="font-size:10px; color:#38bdf8;">(${res.averageDelay}s / ${res.los})</span></td>` : ''}
+                        <td style="font-weight:600; color:#f8fafc; border:1px solid #444;">${lg.name}</td>
+                        <td style="border:1px solid #444;">${lg.volumeTotal}</td>
+                        <td style="color:#38bdf8; font-weight:600; border:1px solid #444;">${lg.v}</td>
+                        <td style="border:1px solid #444;">${lg.N}</td>
+                        <td style="border:1px solid #444;">${lg.s.toLocaleString()}</td>
+                        <td style="border:1px solid #444;">${lg.g}s</td>
+                        <td style="border:1px solid #444;">${lg.gC}</td>
+                        <td style="border:1px solid #444;">${lg.c.toLocaleString()}</td>
+                        <td style="font-weight:700; border:1px solid #444; color:${lg.vc > 1.0 ? '#ef4444' : (lg.vc > 0.85 ? '#f59e0b' : '#10b981')};">${lg.vc}</td>
+                        <td style="border:1px solid #444;">${lg.d1}</td>
+                        <td style="border:1px solid #444;">${lg.d2}</td>
+                        <td style="font-weight:700; color:#f8fafc; border:1px solid #444;">${lg.d}</td>
+                        <td style="border:1px solid #444;">
+                            <span style="display:inline-block; padding:1px 6px; border-radius:4px; font-weight:bold; font-size:10.5px; background:${KHCM.getLOSColor(lg.los)}; color:#fff;">
                                 ${lg.los}
                             </span>
                         </td>
@@ -1365,141 +1242,13 @@
         });
 
         html += `
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         `;
         return html;
     };
 
-    /**
-     * 현재 활성 탭 갱신 헬퍼
-     */
-    KHCM.refreshActiveTab = function () {
-        const jid = KHCM.currentJid;
-        if (!jid) return;
-        const analysis = KHCM.calculate(jid);
-
-        if (document.getElementById('tab-btn-khcm-road')?.classList.contains('active')) {
-            KHCM.renderTab('khcm-road', jid);
-        } else if (document.getElementById('tab-btn-khcm-traffic')?.classList.contains('active')) {
-            KHCM.renderTab('khcm-traffic', jid);
-        } else if (document.getElementById('tab-btn-khcm-signal')?.classList.contains('active')) {
-            KHCM.renderTab('khcm-signal', jid);
-        }
-
-        const reportEl = document.getElementById('khcm-signal-report-container');
-        if (reportEl && analysis) {
-            reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
-        }
-    };
-
-    /**
-     * 필드 업데이트 핸들러
-     */
-    KHCM.updateField = function (dirId, path, value) {
-        const data = KHCM.getJunctionData(KHCM.currentJid);
-        if (!data || !data[dirId]) return;
-
-        const keys = path.split('.');
-        let obj = data[dirId];
-        for (let i = 0; i < keys.length - 1; i++) {
-            if (!obj[keys[i]]) obj[keys[i]] = {};
-            obj = obj[keys[i]];
-        }
-        obj[keys[keys.length - 1]] = value;
-
-        KHCM.calculate(KHCM.currentJid);
-        // 차로수 변경 등 구조적 변화가 발생할 수 있는 필드는 활성 탭 재렌더링
-        if (path === 'geom.lanes') {
-            KHCM.renderTab('khcm-road', KHCM.currentJid);
-        } else {
-            const reportEl = document.getElementById('khcm-signal-report-container');
-            if (reportEl) {
-                const analysis = KHCM.calculate(KHCM.currentJid);
-                if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
-            }
-        }
-    };
-
-    /**
-     * 배열 필드 업데이트 핸들러
-     */
-    KHCM.updateArrayField = function (dirId, path, index, value) {
-        const data = KHCM.getJunctionData(KHCM.currentJid);
-        if (!data || !data[dirId]) return;
-
-        const keys = path.split('.');
-        let obj = data[dirId];
-        for (let i = 0; i < keys.length; i++) {
-            obj = obj[keys[i]];
-        }
-        if (Array.isArray(obj)) {
-            obj[index] = value;
-        }
-
-        KHCM.calculate(KHCM.currentJid);
-        const reportEl = document.getElementById('khcm-signal-report-container');
-        if (reportEl) {
-            const analysis = KHCM.calculate(KHCM.currentJid);
-            if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
-        }
-    };
-
-    /**
-     * 차로 진행방향 7x4 매트릭스 업데이트
-     */
-    KHCM.updateMovementMatrix = function (dirId, laneIndex, movKey, checked) {
-        const data = KHCM.getJunctionData(KHCM.currentJid);
-        if (!data || !data[dirId]) return;
-
-        if (!data[dirId].geom.movements[laneIndex]) {
-            data[dirId].geom.movements[laneIndex] = { u: false, l: false, t: false, r: false };
-        }
-        data[dirId].geom.movements[laneIndex][movKey] = checked;
-
-        KHCM.calculate(KHCM.currentJid);
-        const reportEl = document.getElementById('khcm-signal-report-container');
-        if (reportEl) {
-            const analysis = KHCM.calculate(KHCM.currentJid);
-            if (analysis) reportEl.innerHTML = KHCM.renderAnalysisReportHtml(analysis);
-        }
-    };
-
-    /**
-     * 신호정보 동기화 실행
-     */
-    KHCM.syncFromJunction = function (jid) {
-        if (!jid) jid = KHCM.currentJid;
-        KHCM.autoFillFromJunctionState(jid);
-        KHCM.saveJunctionData(jid);
-        KHCM.renderTab('khcm-road', jid);
-        KHCM.renderTab('khcm-traffic', jid);
-        KHCM.renderTab('khcm-signal', jid);
-        alert('현재 교차로의 신호주기 및 현시 시간이 성공적으로 동기화되었습니다.');
-    };
-
-    /**
-     * 즉시 분석 실행
-     */
-    KHCM.runCalculation = function () {
-        KHCM.refreshActiveTab();
-    };
-
-    /**
-     * 설정 저장
-     */
-    KHCM.saveData = function () {
-        KHCM.saveJunctionData(KHCM.currentJid);
-        alert('2026 KHCM 교차로 분석 설정이 저장되었습니다.');
-    };
-
-    /**
-     * =========================================================================
-     * 운영통계 모달 통합 연동 함수 (Overlay UI 연계)
-     * =========================================================================
-     */
     KHCM.mountToOverlay = function (jid) {
         KHCM.currentJid = jid;
 
