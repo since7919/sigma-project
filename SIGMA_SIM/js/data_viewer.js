@@ -58,8 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!tabulatorInstance) return;
             
             const allData = tabulatorInstance.getData();
-            // 유효 ID가 있는 행만 필터링
-            const validData = allData.filter(row => row.id !== undefined && row.id !== null && String(row.id).trim() !== '');
+            // 유효 ID가 있는 행만 필터링 (junctions/signal_maps/tod_plans: id, groups: group_id)
+            const validData = allData.filter(row => {
+                const idVal = row.id ?? row.group_id ?? row.ID ?? row.GroupID;
+                return idVal !== undefined && idVal !== null && String(idVal).trim() !== '';
+            });
             
             if (validData.length === 0) {
                 alert("저장할 유효한 데이터(ID가 존재하는 행)가 없습니다.");

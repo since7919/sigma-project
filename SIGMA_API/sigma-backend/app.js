@@ -1377,44 +1377,34 @@ app.get('/api/sim/tables/:tableName', async (req, res) => {
   }
 
   try {
-    let countQuery = supabase.from(tableName).select('id', { count: 'exact', head: true });
-    
-    if (regionCode) {
-      if (tableName === 'junctions' || tableName === 'groups') {
-        countQuery = countQuery.eq('region_cd', regionCode);
-      } else {
-        countQuery = countQuery.gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
-      }
-    }
-    
-    const { count, error: countErr } = await countQuery;
-    if (countErr) throw countErr;
-    
-    if (!count || count === 0) {
-      return res.json([]);
-    }
-    
-    const step = 1000;
-    const promises = [];
-    for (let i = 0; i < count; i += step) {
-      let q = supabase.from(tableName).select('*').range(i, i + step - 1);
+    const idCol = (tableName === 'groups') ? 'group_id' : 'id';
+    const applyFilters = (query) => {
       if (regionCode) {
         if (tableName === 'junctions' || tableName === 'groups') {
-          q = q.eq('region_cd', regionCode);
+          return query.eq('region_cd', regionCode);
         } else {
-          q = q.gte('id', `${regionCode}-`).lt('id', `${regionCode}.`);
+          return query.like('id', `${regionCode}-%`);
         }
       }
-      promises.push(q);
-    }
-    
-    const results = await Promise.all(promises);
+      return query;
+    };
+
     let allData = [];
-    for (const r of results) {
-      if (r.error) throw r.error;
-      if (r.data) allData = allData.concat(r.data);
+    const step = 1000;
+    const maxRows = 5000; // 데이터 뷰어 브라우저 성능 및 DB 타임아웃 방지를 위한 안전 상한
+    let from = 0;
+
+    while (from < maxRows) {
+      let q = supabase.from(tableName).select('*').order(idCol).range(from, from + step - 1);
+      q = applyFilters(q);
+      const { data, error } = await q;
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allData = allData.concat(data);
+      if (data.length < step) break;
+      from += step;
     }
-    
+
     res.json(allData);
   } catch (err) {
     sendErrorResponse(res, err, `${tableName} 테이블 조회에 실패했습니다.`);
