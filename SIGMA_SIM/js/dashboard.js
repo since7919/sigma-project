@@ -8,9 +8,11 @@ window.closeDashboard = closeDashboard;
 window.sendToDashboard = sendToDashboard;
 window.openSecurityDashboard = openSecurityDashboard;
 window.closeSecurityModal = closeSecurityModal;
+window.openDataViewerWindow = openDataViewerWindow;
 
 var dashPopup = null;
 var secPopup = null;
+var dataViewerPopup = null;
 
 /**
  * 보안 대시보드 열기 (인앱 오버레이 모달 우선 구동 -> 시뮬레이터 세션 100% 보존)
@@ -74,6 +76,24 @@ function openDashboard() {
 
     const btn = document.getElementById('btn-dashboard');
     if (btn) btn.classList.add('active');
+}
+
+/**
+ * 데이터 뷰어 열기 (현재 화면 전환 없이 독립된 새 창/팝업 윈도우로 구동)
+ */
+function openDataViewerWindow() {
+    const windowName = "SIGMA_Data_Viewer";
+    const w = Math.min(window.screen.availWidth * 0.95, 1600);
+    const h = Math.min(window.screen.availHeight * 0.92, 980);
+    const left = Math.max(0, Math.round((window.screen.availWidth - w) / 2));
+    const top = Math.max(0, Math.round((window.screen.availHeight - h) / 2));
+    const windowFeatures = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes,popup=yes`;
+
+    if (dataViewerPopup && !dataViewerPopup.closed) {
+        dataViewerPopup.focus();
+    } else {
+        dataViewerPopup = window.open('data_viewer.html', windowName, windowFeatures);
+    }
 }
 
 /**
