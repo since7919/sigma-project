@@ -69,9 +69,235 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // DB에 일괄 저장 기능
+    // ─── 관리자 비밀번호 확인 모달 제어 ───
+    const passwordModal = document.getElementById('password-modal');
+    const modalTableBadge = document.getElementById('modal-table-badge');
+    const modalRegionBadge = document.getElementById('modal-region-badge');
+    const modalCountBadge = document.getElementById('modal-count-badge');
+    const modalPasswordInput = document.getElementById('modal-password-input');
+    const btnTogglePw = document.getElementById('btn-toggle-pw');
+    const modalMsg = document.getElementById('modal-msg');
+    const modalProgressBox = document.getElementById('modal-progress-box');
+    const modalProgressFill = document.getElementById('modal-progress-fill');
+    const modalProgressText = document.getElementById('modal-progress-text');
+    const btnModalCancel = document.getElementById('btn-modal-cancel');
+    const btnModalConfirm = document.getElementById('btn-modal-confirm');
+
+    let pendingSaveData = null;
+
+    function openPasswordModal(validData) {
+        pendingSaveData = validData;
+        if (modalTableBadge) modalTableBadge.textContent = `테이블: ${currentTable}`;
+        if (modalRegionBadge) {
+            const regText = regionSelect && regionSelect.selectedIndex >= 0 
+                ? regionSelect.options[regionSelect.selectedIndex].text 
+                : '전체 (All)';
+            modalRegionBadge.textContent = `지역: ${regText}`;
+        }
+        if (modalCountBadge) {
+            modalCountBadge.textContent = `반영 건수: ${validData.length.toLocaleString()}건`;
+        }
+        if (modalPasswordInput) {
+            modalPasswordInput.value = '';
+            modalPasswordInput.type = 'password';
+            modalPasswordInput.classList.remove('error');
+            modalPasswordInput.disabled = false;
+        }
+        if (modalMsg) {
+            modalMsg.style.color = '#ef4444';
+            modalMsg.textContent = '';
+        }
+        if (modalProgressBox) modalProgressBox.classList.remove('active');
+        if (modalProgressFill) modalProgressFill.style.width = '0%';
+        if (modalProgressText) modalProgressText.textContent = '저장 진행 중... 0%';
+        if (btnModalConfirm) {
+            btnModalConfirm.disabled = false;
+            btnModalConfirm.textContent = '인증 및 DB 저장';
+        }
+        if (btnModalCancel) btnModalCancel.disabled = false;
+
+        if (passwordModal) {
+            passwordModal.classList.add('active');
+            setTimeout(() => {
+                if (modalPasswordInput) modalPasswordInput.focus();
+            }, 80);
+        }
+    }
+
+    function closePasswordModal() {
+        if (passwordModal) passwordModal.classList.remove('active');
+        pendingSaveData = null;
+    }
+
+    if (btnModalCancel) {
+        btnModalCancel.addEventListener('click', closePasswordModal);
+    }
+
+    // 모달 배경 클릭 시 닫기 (저장 진행 중이 아닐 때만)
+    if (passwordModal) {
+        passwordModal.addEventListener('click', (e) => {
+            if (e.target === passwordModal && (!btnModalConfirm || !btnModalConfirm.disabled)) {
+                closePasswordModal();
+            }
+        });
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && passwordModal && passwordModal.classList.contains('active')) {
+            if (!btnModalConfirm || !btnModalConfirm.disabled) {
+                closePasswordModal();
+            }
+        }
+    });
+
+    // 비밀번호 보이기/숨기기 토글
+    if (btnTogglePw && modalPasswordInput) {
+        btnTogglePw.addEventListener('click', () => {
+            if (modalPasswordInput.type === 'password') {
+                modalPasswordInput.type = 'text';
+                btnTogglePw.textContent = '🔒';
+            } else {
+                modalPasswordInput.type = 'password';
+                btnTogglePw.textContent = '👁️';
+            }
+        });
+    }
+
+    // 비밀번호 입력창 엔터 키 이벤트
+    if (modalPasswordInput) {
+        modalPasswordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (btnModalConfirm && !btnModalConfirm.disabled) {
+                    btnModalConfirm.click();
+                }
+            }
+        });
+        modalPasswordInput.addEventListener('input', () => {
+            modalPasswordInput.classList.remove('error');
+            if (modalMsg) modalMsg.textContent = '';
+        });
+    }
+
+    // 모달 내 확인(인증 및 DB 일괄 저장) 실행
+    if (btnModalConfirm) {
+        btnModalConfirm.addEventListener('click', async () => {
+            if (!pendingSaveData || pendingSaveData.length === 0) {
+                alert('저장할 데이터가 유효하지 않습니다.');
+                closePasswordModal();
+                return;
+            }
+
+            const password = modalPasswordInput ? modalPasswordInput.value.trim() : '';
+            if (!password) {
+                if (modalPasswordInput) modalPasswordInput.classList.add('error');
+                if (modalMsg) {
+                    modalMsg.style.color = '#ef4444';
+                    modalMsg.textContent = '관리자 비밀번호를 입력해주세요.';
+                }
+                if (modalPasswordInput) modalPasswordInput.focus();
+                return;
+            }
+
+            // 1단계: 백엔드 비밀번호 사전 검증
+            const verifyUrl = API_BASE.replace(/\/tables$/, '') + '/verify-password';
+            try {
+                btnModalConfirm.disabled = true;
+                btnModalCancel.disabled = true;
+                if (modalPasswordInput) modalPasswordInput.disabled = true;
+                if (modalMsg) {
+                    modalMsg.style.color = '#00d4ff';
+                    modalMsg.textContent = '비밀번호 검증 중...';
+                }
+
+                const vResp = await fetch(verifyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const vData = await vResp.json();
+                if (!vResp.ok || !vData.valid) {
+                    // 인증 실패 처리
+                    if (modalPasswordInput) {
+                        modalPasswordInput.disabled = false;
+                        modalPasswordInput.classList.add('error');
+                        modalPasswordInput.focus();
+                        modalPasswordInput.select();
+                    }
+                    if (modalMsg) {
+                        modalMsg.style.color = '#ef4444';
+                        modalMsg.textContent = vData.error || '비밀번호가 일치하지 않습니다.';
+                    }
+                    btnModalConfirm.disabled = false;
+                    btnModalCancel.disabled = false;
+                    return;
+                }
+
+                // 2단계: 인증 성공 -> 일괄 업서트 진행
+                if (modalMsg) {
+                    modalMsg.style.color = '#00ffaa';
+                    modalMsg.textContent = '✓ 인증 완료. Supabase DB에 반영 중...';
+                }
+                if (modalProgressBox) modalProgressBox.classList.add('active');
+
+                const validData = pendingSaveData;
+                const chunkSize = currentTable === 'junctions' ? validData.length : 500;
+                let totalCount = 0;
+
+                for (let i = 0; i < validData.length; i += chunkSize) {
+                    const chunk = validData.slice(i, i + chunkSize);
+                    const pct = Math.round((i / validData.length) * 100);
+                    if (modalProgressFill) modalProgressFill.style.width = `${pct}%`;
+                    if (modalProgressText) {
+                        modalProgressText.textContent = `저장 진행 중... (${i.toLocaleString()} / ${validData.length.toLocaleString()}건, ${pct}%)`;
+                    }
+
+                    const response = await fetch(`${API_BASE}/${currentTable}/bulk`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password, records: chunk })
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.error || '저장 처리 중 서버 오류가 발생했습니다.');
+                    }
+                    totalCount += (result.count || chunk.length);
+                }
+
+                if (modalProgressFill) modalProgressFill.style.width = '100%';
+                if (modalProgressText) {
+                    modalProgressText.textContent = `✓ 저장 완료! 총 ${totalCount.toLocaleString()}건 반영됨`;
+                }
+                if (modalMsg) {
+                    modalMsg.style.color = '#00ffaa';
+                    modalMsg.textContent = `✓ 성공: ${totalCount.toLocaleString()}건이 데이터베이스에 안전하게 반영되었습니다.`;
+                }
+
+                setTimeout(() => {
+                    closePasswordModal();
+                    alert(`총 ${totalCount.toLocaleString()}건이 데이터베이스에 성공적으로 저장되었습니다.`);
+                    loadData();
+                }, 600);
+
+            } catch (error) {
+                console.error("DB 일괄 저장 오류:", error);
+                if (modalMsg) {
+                    modalMsg.style.color = '#ef4444';
+                    modalMsg.textContent = `오류 발생: ${error.message}`;
+                }
+                if (modalPasswordInput) modalPasswordInput.disabled = false;
+                btnModalConfirm.disabled = false;
+                btnModalCancel.disabled = false;
+            }
+        });
+    }
+
+    // DB에 일괄 저장 버튼 클릭 이벤트 -> 전용 모달 호출
     if (btnSaveDb) {
-        btnSaveDb.addEventListener('click', async () => {
+        btnSaveDb.addEventListener('click', () => {
             if (!tabulatorInstance) return;
             
             const allData = tabulatorInstance.getData();
@@ -86,51 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (!confirm(`총 ${validData.length}개의 레코드를 데이터베이스에 일괄 저장하시겠습니까?\n(기존 데이터는 덮어쓰기 되며 복구할 수 없습니다)`)) {
-                return;
-            }
-
-            const password = prompt("백엔드 데이터베이스를 직접 수정합니다.\n승인된 관리자만 접근 가능합니다. 비밀번호를 입력하세요:");
-            if (!password) return;
-            if (password !== '1234') {
-                alert("비밀번호가 일치하지 않습니다.");
-                return;
-            }
-
-            btnSaveDb.textContent = "저장 중...";
-            btnSaveDb.disabled = true;
-
-            try {
-                const chunkSize = currentTable === 'junctions' ? validData.length : 500;
-                let totalCount = 0;
-
-                for (let i = 0; i < validData.length; i += chunkSize) {
-                    const chunk = validData.slice(i, i + chunkSize);
-                    const pct = Math.round((i / validData.length) * 100);
-                    btnSaveDb.textContent = `저장 중... (${i}/${validData.length}건, ${pct}%)`;
-
-                    const response = await fetch(`${API_BASE}/${currentTable}/bulk`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password, records: chunk })
-                    });
-
-                    const result = await response.json();
-                    if (!response.ok) {
-                        throw new Error(result.error || '저장 실패');
-                    }
-                    totalCount += (result.count || chunk.length);
-                }
-
-                alert(`총 ${totalCount}건이 성공적으로 저장되었습니다.`);
-                loadData();
-            } catch (error) {
-                console.error("DB 일괄 저장 오류:", error);
-                alert(`오류 발생: ${error.message}`);
-            } finally {
-                btnSaveDb.textContent = "💾 DB에 일괄 저장";
-                btnSaveDb.disabled = false;
-            }
+            // 모달 열기
+            openPasswordModal(validData);
         });
     }
 
@@ -151,11 +334,31 @@ document.addEventListener('DOMContentLoaded', () => {
             layout: "fitDataFill",
             autoColumns: true,
             autoColumnsDefinitions: function (definitions) {
+                // junctions 테이블인 경우 arrow_configs 바로 옆에 reservations가 나란히 오도록 배치
+                if (currentTable === 'junctions') {
+                    const preferredOrder = [
+                        'id', 'region_cd', 'name', 'arrow_configs', 'reservations',
+                        'group_id', 'controller', 'diagram_order', 'weekly_plan',
+                        'police', 'office', 'lat', 'lng', 'seq', 'api_int_no', 'created_at', 'updated_at'
+                    ];
+                    definitions.sort((a, b) => {
+                        const idxA = preferredOrder.indexOf(a.field);
+                        const idxB = preferredOrder.indexOf(b.field);
+                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                        if (idxA !== -1) return -1;
+                        if (idxB !== -1) return 1;
+                        return 0;
+                    });
+                }
+
                 // 모든 자동 컬럼에 대해 인라인 텍스트 편집기 허용
                 definitions.forEach(column => {
                     column.editor = "input";
                     column.headerFilter = "input"; // 헤더 필터 추가로 빠른 검색 지원
                     column.headerFilterPlaceholder = "검색...";
+                    if (column.field === 'arrow_configs' || column.field === 'reservations') {
+                        column.width = 240;
+                    }
                 });
                 return definitions;
             },

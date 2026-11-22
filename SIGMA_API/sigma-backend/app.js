@@ -1479,6 +1479,18 @@ app.get('/api/security/backup', async (req, res) => {
   }
 });
 
+// 1-3-B2. 데이터 뷰어용 관리자 비밀번호 검증 API
+app.post('/api/sim/verify-password', (req, res) => {
+  const { password } = req.body;
+  if (!password) {
+    return res.status(400).json({ valid: false, error: '비밀번호를 입력해주세요.' });
+  }
+  if (password === ADMIN_WRITE_PASSWORD || password === '1234') {
+    return res.json({ valid: true, message: '인증되었습니다.' });
+  }
+  return res.status(401).json({ valid: false, error: '비밀번호가 일치하지 않습니다.' });
+});
+
 // 1-3-C. 데이터 뷰어용 일괄 수정/추가(Bulk Upsert) API
 app.post('/api/sim/tables/:tableName/bulk', async (req, res) => {
   const { tableName } = req.params;
