@@ -14,10 +14,12 @@ function serializeArrows(j) {
             arrs.push(`_custom_angles:${pfx}:${angle}`);
         });
     }
-    if (j.reservations && Array.isArray(j.reservations)) {
-        arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(j.reservations))}`);
-    }
+    // reservations는 독립 컬럼으로 분리되었으므로 화살표 직렬화에서 완전 제외
     return arrs.join(';');
+}
+
+function serializeReservations(j) {
+    return (j.reservations && Array.isArray(j.reservations)) ? JSON.stringify(j.reservations) : "[]";
 }
 
 async function processIntersectionCSV(csv, isAppend = false) {

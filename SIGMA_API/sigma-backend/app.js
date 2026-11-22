@@ -1811,12 +1811,14 @@ app.get('/api/sim/revert-junction', async (req, res) => {
         Object.entries(jRow.arrow_configs).forEach(([mov, configs]) => {
           if (mov === '_custom_angles' && typeof configs === 'object') {
             Object.entries(configs).forEach(([pfx, angle]) => arrs.push(`_custom_angles:${pfx}:${angle}`));
-          } else if (mov === '_reservations') {
-            arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(configs))}`);
           } else if (Array.isArray(configs)) {
             configs.forEach(c => arrs.push(`${mov}:${c.dLat}:${c.dLng}:${c.rot}`));
           }
         });
+        // DB reservations 컬럼 데이터를 CSV 12번째 컬럼에 하위 호환 직렬화
+        if (jRow.reservations && Array.isArray(jRow.reservations) && jRow.reservations.length > 0) {
+          arrs.push(`_reservations:${encodeURIComponent(JSON.stringify(jRow.reservations))}`);
+        }
         arrowStr = arrs.join(';');
       }
 
@@ -1919,7 +1921,7 @@ app.get('/api/sim/revert-junction', async (req, res) => {
 
 // 1-5. 교차로별 DB 업데이트 API (동시성 제어 적용)
 app.post('/api/sim/update-junction', async (req, res) => {
-  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password, memo, calendarEvents } = req.body;
+  const { jid, interCsvLine, mapCsvLines, todCsvLines, statsCsvLines, password, memo, calendarEvents, reservations } = req.body;
   if (!jid) return res.status(400).json({ error: 'jid가 필요합니다.' });
   if (password !== ADMIN_WRITE_PASSWORD && password !== '1234') {
     return res.status(401).json({ error: '비밀번호가 일치하지 않습니다.' });
@@ -1934,8 +1936,9 @@ app.post('/api/sim/update-junction', async (req, res) => {
       if (interCsvLine !== undefined && interCsvLine.trim()) {
         const cols = parseCsvRow(interCsvLine);
         if (cols.length >= 8) {
-          // arrowConfigs & _custom_angles 복원
+          // arrowConfigs (순수 화살표) & reservations (독립 예약제어) 분리 파싱
           let arrowConfigs = {};
+          let reservationsData = (reservations && Array.isArray(reservations)) ? reservations : null;
           const arrowStr = cols[11];
           if (arrowStr) {
             arrowStr.split(';').forEach(conf => {
@@ -1944,7 +1947,9 @@ app.post('/api/sim/update-junction', async (req, res) => {
                 if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
                 arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
               } else if (parts[0] === '_reservations') {
-                try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
+                if (!reservationsData) {
+                  try { reservationsData = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
+                }
               } else if (parts.length >= 4) {
                 const mov = parts[0];
                 if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
@@ -1970,6 +1975,7 @@ app.post('/api/sim/update-junction', async (req, res) => {
               office: cols[7] || "",
               group_id: parseInt(cols[8]) || 0,
               arrow_configs: arrowConfigs,
+              reservations: reservationsData,
               controller: cols[12] || "",
               diagram_order: parseInt(cols[13]) || -1,
               weekly_plan: cols[14] || '1;1;1;1;1;2;3',
@@ -2359,7 +2365,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
       const now = new Date().toISOString();
 
       for (const chunk of chunks) {
-        const { jid, interCsvLine, mapCsvLines, todCsvLines } = chunk;
+        const { jid, interCsvLine, mapCsvLines, todCsvLines, reservations } = chunk;
         if (!jid) continue;
 
         const region = String(jid).split('-')[0];
@@ -2370,6 +2376,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
           const cols = parseCsvRow(interCsvLine);
           if (cols.length >= 8) {
             let arrowConfigs = {};
+            let reservationsData = (reservations && Array.isArray(reservations)) ? reservations : null;
             const arrowStr = cols[11];
             if (arrowStr) {
               arrowStr.split(';').forEach(conf => {
@@ -2378,7 +2385,9 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
                   if (!arrowConfigs._custom_angles) arrowConfigs._custom_angles = {};
                   arrowConfigs._custom_angles[parts[1]] = parseInt(parts[2]) || 0;
                 } else if (parts[0] === '_reservations') {
-                  try { arrowConfigs._reservations = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
+                  if (!reservationsData) {
+                    try { reservationsData = JSON.parse(decodeURIComponent(parts.slice(1).join(':'))); } catch(e){}
+                  }
                 } else if (parts.length >= 4) {
                   const mov = parts[0];
                   if (!arrowConfigs[mov]) arrowConfigs[mov] = [];
@@ -2402,6 +2411,7 @@ app.post('/api/sim/batch-update-junctions', async (req, res) => {
               office: cols[7] || "",
               group_id: parseInt(cols[8]) || 0,
               arrow_configs: arrowConfigs,
+              reservations: reservationsData,
               controller: cols[12] || "",
               diagram_order: parseInt(cols[13]) || -1,
               weekly_plan: cols[14] || '1;1;1;1;1;2;3',

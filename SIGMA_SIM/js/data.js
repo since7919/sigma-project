@@ -676,7 +676,8 @@ function exportSingleJunctionCSV(jid) {
         jid,
         interCsvLine,
         mapCsvLines: mapCsvLines.trim(),
-        todCsvLines: todCsvLines.trim()
+        todCsvLines: todCsvLines.trim(),
+        reservations: j.reservations || []
     };
 }
 
