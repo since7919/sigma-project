@@ -79,7 +79,7 @@ function openDashboard() {
 }
 
 /**
- * 데이터 뷰어 열기 (현재 화면 전환 없이 독립된 새 창/팝업 윈도우로 구동)
+ * 데이터 뷰어 열기 (현재 화면 전환 없이 독립된 새 창/팝업 윈도우로 구동, 현재 선택된 지역 연동)
  */
 function openDataViewerWindow() {
     const windowName = "SIGMA_Data_Viewer";
@@ -89,10 +89,28 @@ function openDataViewerWindow() {
     const top = Math.max(0, Math.round((window.screen.availHeight - h) / 2));
     const windowFeatures = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes,popup=yes`;
 
+    // 현재 시뮬레이터에서 선택된 지역 코드 추출 (활성 교차로 기준 우선 -> 전역 선택 지역 -> localStorage -> 기본값 L01)
+    let curRegion = 'L01';
+    if (typeof STATE !== 'undefined' && STATE.activeJid) {
+        curRegion = String(STATE.activeJid).startsWith('L02-') ? 'L02' : 'L01';
+    } else if (window.CURRENT_REGION_CODE) {
+        curRegion = window.CURRENT_REGION_CODE;
+    } else {
+        curRegion = localStorage.getItem('sigma_selected_region') || 'L01';
+    }
+
+    const targetUrl = `data_viewer.html?regionCode=${encodeURIComponent(curRegion)}`;
+
     if (dataViewerPopup && !dataViewerPopup.closed) {
+        // 이미 열려있을 때 다른 지역을 보려 한다면 URL 이동 및 포커스
+        try {
+            if (dataViewerPopup.location && !dataViewerPopup.location.href.includes(`regionCode=${curRegion}`)) {
+                dataViewerPopup.location.href = targetUrl;
+            }
+        } catch(e) {}
         dataViewerPopup.focus();
     } else {
-        dataViewerPopup = window.open('data_viewer.html', windowName, windowFeatures);
+        dataViewerPopup = window.open(targetUrl, windowName, windowFeatures);
     }
 }
 

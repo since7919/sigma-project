@@ -18,6 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAddRows = document.getElementById('btn-add-rows');
     const btnSaveDb = document.getElementById('btn-save-db');
 
+    // 0. 시뮬레이터에서 전달받은 지역 코드(URL 파라미터 또는 localStorage) 초기 연동
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialRegion = urlParams.get('regionCode') || localStorage.getItem('sigma_selected_region');
+    if (initialRegion !== null && initialRegion !== undefined && regionSelect) {
+        const exists = Array.from(regionSelect.options).some(opt => opt.value === initialRegion);
+        if (exists) {
+            regionSelect.value = initialRegion;
+        }
+    }
+
     // 탭 전환 이벤트
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -29,7 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 컨트롤 버튼 이벤트
-    if (regionSelect) regionSelect.addEventListener('change', loadData);
+    if (regionSelect) {
+        regionSelect.addEventListener('change', () => {
+            if (regionSelect.value) {
+                localStorage.setItem('sigma_selected_region', regionSelect.value);
+            }
+            loadData();
+        });
+    }
     if (btnRefresh) btnRefresh.addEventListener('click', loadData);
     
     // CSV 다운로드
