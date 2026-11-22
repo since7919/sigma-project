@@ -84,7 +84,7 @@ app.use('/api', (req, res, next) => {
 
 // 통합 랜딩 페이지 및 서비스 서빙 설정
 app.get('/favicon.ico', (req, res) => res.status(204).end());
-app.get('/', (req, res) => {
+app.get(['/', '/index.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../../index.html'));
 });
 app.use('/landing_assets', express.static(path.join(__dirname, '../../landing_assets'), {
