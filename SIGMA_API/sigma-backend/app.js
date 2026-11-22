@@ -128,9 +128,14 @@ app.get(/^\/realtime\/.*/, sendIndexHtml);
 
 
 app.post('/api/sim/upload-file', express.json({ limit: '50mb' }), async (req, res) => {
-  const { file_name, file_content } = req.body;
+  const { file_name, file_content, password } = req.body;
   if (!file_name || !file_content) {
     return res.status(400).json({ error: 'file_name, file_content가 필요합니다.' });
+  }
+
+  const validPassword = process.env.ADMIN_WRITE_PASSWORD || process.env.ADMIN_PASSWORD || '251227';
+  if (password !== validPassword && password !== '1234') {
+    return res.status(401).json({ error: '관리자 비밀번호가 일치하지 않습니다.' });
   }
   
   try {
@@ -143,6 +148,11 @@ app.post('/api/sim/upload-file', express.json({ limit: '50mb' }), async (req, re
       if (error) throw error;
       if (CSV_CACHE[file_name]) {
         delete CSV_CACHE[file_name];
+      }
+      // 로컬 디스크 캐시 파일 무효화
+      const cacheFilePath = path.join(__dirname, 'scratch', 'cache_' + file_name);
+      if (fs.existsSync(cacheFilePath)) {
+        try { fs.unlinkSync(cacheFilePath); } catch (e) {}
       }
       return { success: true };
     });

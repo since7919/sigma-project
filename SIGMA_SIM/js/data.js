@@ -87,8 +87,8 @@ function refreshDBStats() {
         const fileName = S.loadedFiles ? S.loadedFiles[key] : null;
         let isLoaded = (count > 0);
         
-        // 지오데이터(links, poly)는 count가 0으로 들어와도 fileName이 있으면 로드된 것으로 간주 (레이어 존재 여부)
-        if (key === 'links' || key === 'poly') isLoaded = !!fileName;
+        // 지오데이터(links, poly)는 count가 있거나 fileName이 있으면 로드된 것으로 판정
+        if (key === 'links' || key === 'poly') isLoaded = (count > 0) || !!fileName;
 
         el.innerHTML = isLoaded 
             ? `<b style="color:#2ecc71;">✅ 로드완료 ${count > 0 ? `(${label}:${count})` : ''}</b>` 
@@ -100,7 +100,8 @@ function refreshDBStats() {
     setStatus('expl-status-plans', activePlanCount, '계획', 'plans');
     setStatus('expl-status-groups', S.groups ? Object.keys(S.groups).length : 0, '그룹', 'groups');
     setStatus('expl-status-stats', statsCount, '통계', 'stats');
-    setStatus('expl-status-links', 0, '링크', 'links');
+    const linkCount = (window.RoadManager && window.RoadManager.edges) ? window.RoadManager.edges.length : 0;
+    setStatus('expl-status-links', linkCount, '링크', 'links');
     setStatus('expl-status-poly', 0, '경계', 'poly');
     setStatus('expl-status-yearbook', (S.civilData && Array.isArray(S.civilData)) ? S.civilData.length : 0, '연보', 'yearbook');
 
@@ -318,6 +319,18 @@ function saveDBFile(type) {
     else if (type === 'plans') download(todCsv, `db_${regionCode}_tod_plans_${now}.csv`);
     else if (type === 'groups') download(groupCsv, `db_${regionCode}_groups_${now}.csv`);
     else if (type === 'stats') download(statsCsv, `db_${regionCode}_stats_${now}.csv`);
+    else if (type === 'links') {
+        if (window.RoadManager && window.RoadManager.edges && window.RoadManager.edges.length > 0) {
+            window.RoadManager.exportJSON();
+        } else if (STATE.geoJsonLayer && typeof STATE.geoJsonLayer.toGeoJSON === 'function') {
+            const data = STATE.geoJsonLayer.toGeoJSON();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `db_${regionCode}_coordlink_${now}.geojson`; a.click();
+        } else {
+            alert("다운로드할 연동구간 데이터가 없습니다.");
+        }
+    }
 }
 
 /** ❌ 개별 파일 초기화 기능 (파일별 ❌ 버튼) */
@@ -794,11 +807,12 @@ async function syncSigmaDB(type) {
         'inter': 'junctions',
         'maps': 'signal_maps',
         'plans': 'tod_plans',
-        'groups': 'groups'
+        'groups': 'groups',
+        'links': 'sim_csv_storage'
     };
 
     if (!typeToTable[type]) {
-        alert("해당 데이터(통계, 링크, 연감, 폴리곤 등)는 아직 백엔드 DB 일괄 동기화가 지원되지 않습니다.");
+        alert("해당 데이터(통계, 연감, 폴리곤 등)는 아직 백엔드 DB 일괄 동기화가 지원되지 않습니다.");
         return;
     }
 
@@ -806,8 +820,68 @@ async function syncSigmaDB(type) {
     if (!password) {
         return;
     }
-    // 1234 obfuscated to prevent plain text exposure
-    // 프론트엔드 비밀번호 검증 제거 (백엔드에서 안전하게 검증됨)
+
+    // 사전 비밀번호 검증
+    try {
+        const vResp = await fetch('/api/sim/verify-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const vData = await vResp.json();
+        if (!vResp.ok || !vData.valid) {
+            alert("비밀번호가 일치하지 않습니다: " + (vData.error || '인증 실패'));
+            return;
+        }
+    } catch (verr) {
+        alert("비밀번호 검증 중 오류가 발생했습니다: " + verr.message);
+        return;
+    }
+
+    // links 타입인 경우 특수 처리 (GeoJSON 업로드)
+    if (type === 'links') {
+        if (!window.RoadManager || !window.RoadManager.edges || window.RoadManager.edges.length === 0) {
+            alert("동기화할 연동구간(링크) 데이터가 메모리에 없습니다.");
+            return;
+        }
+
+        const regionCode = window.CURRENT_REGION_CODE || 'L01';
+        const fileName = `db_${regionCode}_coordlink.geojson`;
+
+        if (!confirm(`현재 메모리의 연동구간(${window.RoadManager.edges.length}개 링크)을 클라우드 DB(${fileName})에 덮어쓰기 하시겠습니까?`)) return;
+
+        const features = window.RoadManager.edges.map(pair => {
+            const u = window.RoadManager.nodes[pair[0]];
+            const v = window.RoadManager.nodes[pair[1]];
+            return {
+                type: "Feature",
+                geometry: { type: "LineString", coordinates: [[u.lng, u.lat], [v.lng, v.lat]] },
+                properties: { u_id: u.id, v_id: v.id, group: u.group }
+            };
+        });
+        const geojson = { type: "FeatureCollection", features: features };
+
+        try {
+            const res = await fetch('/api/sim/upload-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_name: fileName, file_content: JSON.stringify(geojson), password })
+            });
+            const rData = await res.json();
+            if (rData.success) {
+                if (typeof invalidateSigmaCache === 'function') await invalidateSigmaCache('coordlink');
+                if (!STATE.loadedFiles) STATE.loadedFiles = {};
+                STATE.loadedFiles['links'] = fileName;
+                refreshDBStats();
+                alert(`✅ 총 ${features.length}개 링크의 연동구간 데이터가 백엔드에 성공적으로 동기화되었습니다.`);
+            } else {
+                throw new Error(rData.error || '업로드 실패');
+            }
+        } catch (e) {
+            alert("백엔드 동기화 실패: " + e.message);
+        }
+        return;
+    }
 
     if (!confirm(`현재 로드된 [${type}] 데이터를 백엔드 데이터베이스(${typeToTable[type]})에 일괄 덮어쓰기 하시겠습니까?`)) return;
 

@@ -102,6 +102,16 @@ async function autoLoadFiles() {
                 } else {
                     await processFunc(content);
                 }
+
+                if (typeof STATE !== 'undefined') {
+                    if (!STATE.loadedFiles) STATE.loadedFiles = {};
+                    try {
+                        const fileParam = new URL(baseUrl, window.location.origin).searchParams.get('file') || baseUrl;
+                        STATE.loadedFiles[type] = fileParam;
+                    } catch(e) {
+                        STATE.loadedFiles[type] = baseUrl;
+                    }
+                }
                 
                 // ONLY CACHE AFTER SUCCESSFUL PARSE!
                 if ('caches' in window && !fromCache) {

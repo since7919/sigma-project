@@ -925,7 +925,8 @@ class RoadNetworkManager {
         const a = document.createElement('a');
         a.href = url;
 
-        const filename = `db_coordlink.geojson`;
+        const regionCode = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) ? window.CURRENT_REGION_CODE : 'L01';
+        const filename = `db_${regionCode}_coordlink.geojson`;
 
         a.download = filename;
         a.click();
@@ -1188,11 +1189,39 @@ function toggleNetworkEditMode() {
  * 내보내기: GeoJSON 저장
  */
 
+window.exportRoadNetwork = function() {
+    if (window.RoadManager) {
+        window.RoadManager.exportJSON();
+    } else {
+        alert("연동망 관리자가 준비되지 않았습니다.");
+    }
+};
+
 window.saveNetworkToDB = async function() {
     if (!window.RoadManager || !window.RoadManager.isActive || window.RoadManager.edges.length === 0) {
         alert("저장할 네트워크 데이터가 없습니다.");
         return;
     }
+
+    const password = prompt("위상 연동망(GeoJSON) 데이터를 백엔드 데이터베이스에 영구 반영합니다.\n승인된 관리자만 저장할 수 있습니다. 비밀번호를 입력하세요:");
+    if (!password) return;
+
+    try {
+        const vResp = await fetch('/api/sim/verify-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const vData = await vResp.json();
+        if (!vResp.ok || !vData.valid) {
+            alert("비밀번호가 일치하지 않습니다: " + (vData.error || '인증 실패'));
+            return;
+        }
+    } catch (verr) {
+        alert("비밀번호 검증 중 오류가 발생했습니다: " + verr.message);
+        return;
+    }
+
     const features = window.RoadManager.edges.map(pair => {
         const u = window.RoadManager.nodes[pair[0]];
         const v = window.RoadManager.nodes[pair[1]];
@@ -1205,7 +1234,6 @@ window.saveNetworkToDB = async function() {
     const geojson = { type: "FeatureCollection", features: features };
     
     // Determine the active region
-    const regionSelect = document.getElementById('api-region-select');
     const regionCode = window.CURRENT_REGION_CODE || 'L01'; 
     const fileName = `db_${regionCode}_coordlink.geojson`;
     
@@ -1213,14 +1241,21 @@ window.saveNetworkToDB = async function() {
         const response = await fetch('/api/sim/upload-file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_name: fileName, file_content: JSON.stringify(geojson) })
+            body: JSON.stringify({ file_name: fileName, file_content: JSON.stringify(geojson), password })
         });
         const result = await response.json();
         if (result.success) {
             if (typeof invalidateSigmaCache === 'function') {
                 await invalidateSigmaCache('coordlink');
             }
-            alert(`위상 네트워크 데이터가 성공적으로 DB에 저장되었습니다. (파일: ${fileName})`);
+            if (typeof STATE !== 'undefined') {
+                if (!STATE.loadedFiles) STATE.loadedFiles = {};
+                STATE.loadedFiles['links'] = fileName;
+            }
+            if (typeof refreshDBStats === 'function') {
+                refreshDBStats();
+            }
+            alert(`✅ 위상 연동망(${features.length}개 링크) 데이터가 성공적으로 DB에 저장되었습니다. (파일: ${fileName})`);
         } else {
             alert('DB 저장 실패: ' + (result.error || '알 수 없는 오류'));
         }
