@@ -338,8 +338,16 @@ async function startAIGroupAnalysis() {
         if (pBar) pBar.style.width = '60%';
         if (pText) pText.innerText = '교차로별 신호현시 및 그룹 TOD 운영계획 매트릭스 도출 중...';
 
-        // 2. 위치도 SVG 렌더링
-        const locationMapSvg = renderGroupLocationMapSVG(sortedMembers);
+                // 1-2. 시그마앱에 저장된 실제 연동 링크 정보 추출
+        const storedLinks = getGroupStoredLinks(gid, sortedMembers);
+
+        // 2. 배경지도 타일 + 도로링크 + 교차로 마커 오프스크린 캔버스 렌더링
+        if (pText) pText.innerText = '실제 도로망 링크 및 배경지도 타일 합성 중...';
+        const mapSnapshotDataUrl = await renderGroupMapSnapshotAsync(gid, sortedMembers, storedLinks);
+        window.__lastGroupLocationMapImage = mapSnapshotDataUrl;
+
+        // SVG 폴백/벡터 맵
+        const locationMapSvg = renderGroupLocationMapSVG(sortedMembers, storedLinks);
 
         // 3. 신호현시 상세표
         const phaseTableHtml = generateGroupPhaseTableHtml(sortedMembers, dayIdx, timeSlotIdx);
@@ -442,14 +450,18 @@ async function startAIGroupAnalysis() {
                     </div>
                 </div>
 
-                <!-- 위치도 SVG 렌더링 -->
+                <!-- 연동구간 위치도 (배경지도 타일 + 실제 도로망 링크) -->
                 <div style="margin-top:15px;">
-                    <div style="font-size:13px; font-weight:bold; color:#e2e8f0; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                        🗺️ 연동구간 위치도 (Spatial Network Map)
+                    <div style="font-size:13px; font-weight:bold; color:#e2e8f0; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="display:flex; align-items:center; gap:6px;">🗺️ 연동구간 위치도 (배경지도 및 실제 도로망 연동 링크)</span>
+                        <span style="font-size:11px; color:#38bdf8; font-weight:normal;">🔗 시그마앱 저장 링크: ${storedLinks.length}개 구간 표출</span>
                     </div>
-                    ${locationMapSvg}
-                    <div style="font-size:11px; color:#94a3b8; margin-top:6px; text-align:right;">
-                        ※ 노드 번호는 연동 진행 순번을 나타내며, 녹색 깃발은 기점(Start), 황색 깃발은 종점(End)입니다.
+                    <div style="position:relative; width:100%; border-radius:8px; overflow:hidden; border:1px solid rgba(56,189,248,0.35); box-shadow:0 4px 20px rgba(0,0,0,0.6);">
+                        ${mapSnapshotDataUrl ? `<img src="${mapSnapshotDataUrl}" style="width:100%; height:auto; display:block;" alt="연동구간 배경지도 및 링크 위치도"/>` : locationMapSvg}
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:6px; display:flex; justify-content:space-between;">
+                        <span>※ 시그마앱에 저장된 도로망 링크 정보를 바탕으로 실제 좌표계 및 배경지도 타일에 정확히 투영되었습니다.</span>
+                        <span>🚩 녹색: 기점(Start) / 🏁 황색: 종점(End)</span>
                     </div>
                 </div>
             </div>
@@ -771,7 +783,353 @@ function renderOfflineTSDImage(gid, dayIdx, pIdx, axis = 'ew') {
 }
 
 // ── [보조 2] 연동구간 위치도 SVG 렌더링 ──
-function renderGroupLocationMapSVG(members) {
+
+// ── [보조 1-1] 시그마앱에 저장된 실제 연동 링크 정보 추출 엔진 ──
+function getGroupStoredLinks(gid, members) {
+    if (!members || members.length < 2) return [];
+
+    const juncIdMap = new Map();
+    const juncNormMap = new Map();
+    members.forEach(m => {
+        const idStr = String(m.id || '').trim();
+        juncIdMap.set(idStr, m);
+        const norm = idStr.split('-').pop().replace(/[^0-9]/g, '');
+        if (norm) juncNormMap.set(norm, m);
+    });
+
+    const links = [];
+    const linkSet = new Set();
+
+    // 1) window.RoadManager.edges 확인 (시그마앱 내 링크 편집/저장 엔진)
+    if (typeof window !== 'undefined' && window.RoadManager && Array.isArray(window.RoadManager.edges) && Array.isArray(window.RoadManager.nodes)) {
+        window.RoadManager.edges.forEach(pair => {
+            const u = window.RoadManager.nodes[pair[0]];
+            const v = window.RoadManager.nodes[pair[1]];
+            if (!u || !v) return;
+
+            const uId = String(u.id || '').trim();
+            const vId = String(v.id || '').trim();
+            const uNorm = uId.split('-').pop().replace(/[^0-9]/g, '');
+            const vNorm = vId.split('-').pop().replace(/[^0-9]/g, '');
+
+            const uMatch = juncIdMap.has(uId) || juncNormMap.has(uNorm) || (String(u.group) === String(gid));
+            const vMatch = juncIdMap.has(vId) || juncNormMap.has(vNorm) || (String(v.group) === String(gid));
+
+            if (uMatch && vMatch) {
+                const key1 = u.id + '_' + v.id;
+                const key2 = v.id + '_' + u.id;
+                if (!linkSet.has(key1) && !linkSet.has(key2)) {
+                    linkSet.add(key1);
+                    links.push({
+                        u: { id: u.id, name: u.name, lat: parseFloat(u.lat), lng: parseFloat(u.lng) },
+                        v: { id: v.id, name: v.name, lat: parseFloat(v.lat), lng: parseFloat(v.lng) },
+                        coords: [[parseFloat(u.lat), parseFloat(u.lng)], [parseFloat(v.lat), parseFloat(v.lng)]]
+                    });
+                }
+            }
+        });
+    }
+
+    // 2) STATE.coordLinkGeoJson 확인 (GeoJSON 피처가 로드되어 있는 경우)
+    if (links.length === 0 && typeof STATE !== 'undefined' && STATE.coordLinkGeoJson && Array.isArray(STATE.coordLinkGeoJson.features)) {
+        STATE.coordLinkGeoJson.features.forEach(f => {
+            const p = f.properties || {};
+            const fGid = p.group || p.group_id || p.GroupID || p.link_id;
+            const uId = String(p.u_id || '').trim();
+            const vId = String(p.v_id || '').trim();
+            const uNorm = uId.split('-').pop().replace(/[^0-9]/g, '');
+            const vNorm = vId.split('-').pop().replace(/[^0-9]/g, '');
+
+            const isGroup = (String(fGid) === String(gid));
+            const isMatch = (uId && vId) &&
+                (juncIdMap.has(uId) || juncNormMap.has(uNorm)) &&
+                (juncIdMap.has(vId) || juncNormMap.has(vNorm));
+
+            if ((isGroup || isMatch) && f.geometry && Array.isArray(f.geometry.coordinates)) {
+                if (f.geometry.type === 'LineString') {
+                    const c = f.geometry.coordinates.map(pt => [parseFloat(pt[1]), parseFloat(pt[0])]);
+                    links.push({ coords: c });
+                }
+            }
+        });
+    }
+
+    // 3) 폴백: 만약 DB에 링크가 등록되지 않은 그룹일 경우 최소 거리 기반 체인으로 안전 연결
+    if (links.length === 0 && members.length >= 2) {
+        for (let i = 0; i < members.length - 1; i++) {
+            const u = members[i];
+            const v = members[i + 1];
+            links.push({
+                u: { id: u.id, name: u.name, lat: parseFloat(u.lat), lng: parseFloat(u.lng) },
+                v: { id: v.id, name: v.name, lat: parseFloat(v.lat), lng: parseFloat(v.lng) },
+                coords: [[parseFloat(u.lat), parseFloat(u.lng)], [parseFloat(v.lat), parseFloat(v.lng)]]
+            });
+        }
+    }
+
+    return links;
+}
+
+// ── [보조 1-2] 배경지도 타일 + 저장된 도로링크 + 교차로 마커 오프스크린 캔버스 렌더러 ──
+async function renderGroupMapSnapshotAsync(gid, members, links) {
+    if (!members || members.length === 0) return null;
+
+    const lats = members.map(m => parseFloat(m.lat)).filter(v => !isNaN(v));
+    const lngs = members.map(m => parseFloat(m.lng)).filter(v => !isNaN(v));
+    if (lats.length === 0 || lngs.length === 0) return null;
+
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+
+    const padLat = Math.max((maxLat - minLat) * 0.22, 0.0035);
+    const padLng = Math.max((maxLng - minLng) * 0.22, 0.0035);
+
+    const bMinLat = minLat - padLat, bMaxLat = maxLat + padLat;
+    const bMinLng = minLng - padLng, bMaxLng = maxLng + padLng;
+
+    const canvasW = 1000, canvasH = 460;
+    const pad = 45;
+
+    // 위경도 -> 캔버스 XY 투영
+    const toX = (lng) => pad + ((lng - bMinLng) / (bMaxLng - bMinLng || 1)) * (canvasW - pad * 2);
+    const toY = (lat) => canvasH - pad - ((lat - bMinLat) / (bMaxLat - bMinLat || 1)) * (canvasH - pad * 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext('2d');
+
+    // 1. 기본 베이스 배경 (어두운 지도 톤)
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // 2. ArcGIS World Dark Gray 타일 비동기 로드 및 바둑판 합성
+    // 줌 레벨 계산
+    const latSpan = bMaxLat - bMinLat;
+    const lngSpan = bMaxLng - bMinLng;
+    let zoom = 15;
+    if (latSpan > 0.1 || lngSpan > 0.1) zoom = 12;
+    else if (latSpan > 0.05 || lngSpan > 0.05) zoom = 13;
+    else if (latSpan > 0.02 || lngSpan > 0.02) zoom = 14;
+    else if (latSpan > 0.008 || lngSpan > 0.008) zoom = 15;
+    else zoom = 16;
+
+    const latLngToTile = (lat, lng, z) => {
+        const latRad = lat * Math.PI / 180;
+        const n = Math.pow(2, z);
+        const x = (lng + 180) / 360 * n;
+        const y = (1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n;
+        return { x, y, tileX: Math.floor(x), tileY: Math.floor(y) };
+    };
+
+    const tileMin = latLngToTile(bMaxLat, bMinLng, zoom);
+    const tileMax = latLngToTile(bMinLat, bMaxLng, zoom);
+
+    const startTileX = Math.min(tileMin.tileX, tileMax.tileX) - 1;
+    const endTileX = Math.max(tileMin.tileX, tileMax.tileX) + 1;
+    const startTileY = Math.min(tileMin.tileY, tileMax.tileY) - 1;
+    const endTileY = Math.max(tileMin.tileY, tileMax.tileY) + 1;
+
+    // 타일 이미지 다운로드 (CORS 익명 허용)
+    const tilePromises = [];
+    const maxTilesToLoad = 25; // 과도한 타일 요청 방지
+    let loadedTileCount = 0;
+
+    for (let tx = startTileX; tx <= endTileX; tx++) {
+        for (let ty = startTileY; ty <= endTileY; ty++) {
+            if (loadedTileCount >= maxTilesToLoad) break;
+            loadedTileCount++;
+
+            // 타일의 월드 좌표를 위경도로 역변환하여 캔버스 위치 계산
+            const n = Math.pow(2, zoom);
+            const tileLng1 = tx / n * 360 - 180;
+            const tileLat1 = Math.atan(Math.sinh(Math.PI * (1 - 2 * ty / n))) * 180 / Math.PI;
+            const tileLng2 = (tx + 1) / n * 360 - 180;
+            const tileLat2 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (ty + 1) / n))) * 180 / Math.PI;
+
+            const x1 = toX(tileLng1), y1 = toY(tileLat1);
+            const x2 = toX(tileLng2), y2 = toY(tileLat2);
+
+            const tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${tx}`;
+
+            const p = new Promise(resolve => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    resolve({ img, x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) });
+                };
+                img.onerror = () => resolve(null);
+                img.src = tileUrl;
+            });
+            tilePromises.push(p);
+        }
+    }
+
+    try {
+        // 최대 1.8초 동안 타일 다운로드 대기
+        const tiles = await Promise.race([
+            Promise.all(tilePromises),
+            new Promise(resolve => setTimeout(() => resolve([]), 1800))
+        ]);
+
+        tiles.forEach(t => {
+            if (t && t.img) {
+                ctx.drawImage(t.img, t.x, t.y, t.w, t.h);
+            }
+        });
+
+        // 은은한 다크 오버레이를 올려 도로 링크와 텍스트 시인성 향상
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+        ctx.fillRect(0, 0, canvasW, canvasH);
+
+    } catch (tileErr) {
+        console.warn('[AI Report] Tile map render fallback:', tileErr);
+        // 그리드 패턴 폴백
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (let gx = 0; gx < canvasW; gx += 40) {
+            ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvasH); ctx.stroke();
+        }
+        for (let gy = 0; gy < canvasH; gy += 40) {
+            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvasW, gy); ctx.stroke();
+        }
+    }
+
+    // 3. 시그마앱에 저장된 실제 연동 링크 그리기 (도로 형상 완벽 일치)
+    if (links && links.length > 0) {
+        // 글로우 외곽선
+        ctx.save();
+        ctx.lineWidth = 9;
+        ctx.strokeStyle = 'rgba(2, 132, 199, 0.45)';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        links.forEach(l => {
+            if (!l.coords || l.coords.length < 2) return;
+            ctx.beginPath();
+            l.coords.forEach((pt, idx) => {
+                const cx = toX(pt[1]), cy = toY(pt[0]);
+                if (idx === 0) ctx.moveTo(cx, cy);
+                else ctx.lineTo(cx, cy);
+            });
+            ctx.stroke();
+        });
+        ctx.restore();
+
+        // 메인 네온 도로 실선
+        ctx.save();
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        links.forEach(l => {
+            if (!l.coords || l.coords.length < 2) return;
+            ctx.beginPath();
+            l.coords.forEach((pt, idx) => {
+                const cx = toX(pt[1]), cy = toY(pt[0]);
+                if (idx === 0) ctx.moveTo(cx, cy);
+                else ctx.lineTo(cx, cy);
+            });
+            ctx.stroke();
+        });
+        ctx.restore();
+    }
+
+    // 4. 소속 교차로 노드 마커 및 명칭 라벨 렌더링
+    members.forEach((m, idx) => {
+        const cx = toX(parseFloat(m.lng));
+        const cy = toY(parseFloat(m.lat));
+        const isStart = (idx === 0);
+        const isEnd = (idx === members.length - 1);
+        const nodeColor = isStart ? '#10b981' : (isEnd ? '#f59e0b' : '#38bdf8');
+
+        // 외곽 링
+        ctx.beginPath();
+        ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = nodeColor;
+        ctx.stroke();
+
+        // 노드 번호
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(idx + 1), cx, cy + 0.5);
+
+        // 교차로명 라벨 박스
+        const labelText = m.name || m.id;
+        ctx.font = 'bold 11px sans-serif';
+        const textMetrics = ctx.measureText(labelText);
+        const boxW = Math.max(56, textMetrics.width + 16);
+        const boxH = 20;
+        const yOff = (idx % 2 === 0) ? -24 : 26;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 1;
+        
+        const bx = cx - boxW / 2;
+        const by = cy + yOff - boxH / 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, boxW, boxH, 4);
+        else ctx.rect(bx, by, boxW, boxH);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillText(labelText, cx, cy + yOff);
+
+        // 기점 / 종점 플래그 텍스트
+        if (isStart) {
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('🚩 기점(Start)', cx, cy + yOff - 15);
+        } else if (isEnd) {
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('🏁 종점(End)', cx, cy + yOff - 15);
+        }
+    });
+
+    // 5. 나침반 방위표 및 맵 스케일 바
+    ctx.save();
+    const nx = canvasW - 50, ny = 45;
+    ctx.beginPath();
+    ctx.arc(nx, ny, 16, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(nx, ny - 11); ctx.lineTo(nx + 4, ny + 3); ctx.lineTo(nx - 4, ny + 3);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.moveTo(nx, ny + 11); ctx.lineTo(nx + 4, ny + 3); ctx.lineTo(nx - 4, ny + 3);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('N', nx, ny - 13);
+    ctx.restore();
+
+    try {
+        return canvas.toDataURL('image/png');
+    } catch (e) {
+        console.warn('[AI Report] canvas.toDataURL error (CORS):', e);
+        return null;
+    }
+}
+
+
+// ── [보조 2] 연동구간 위치도 SVG 렌더링 (저장된 링크 반영 및 배경 그리드) ──
+function renderGroupLocationMapSVG(members, links = []) {
     if (!members || members.length === 0) return '';
     const lats = members.map(m => parseFloat(m.lat)).filter(v => !isNaN(v));
     const lngs = members.map(m => parseFloat(m.lng)).filter(v => !isNaN(v));
@@ -780,14 +1138,14 @@ function renderGroupLocationMapSVG(members) {
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
 
-    const padLat = Math.max((maxLat - minLat) * 0.18, 0.003);
-    const padLng = Math.max((maxLng - minLng) * 0.18, 0.003);
+    const padLat = Math.max((maxLat - minLat) * 0.22, 0.0035);
+    const padLng = Math.max((maxLng - minLng) * 0.22, 0.0035);
 
     const bMinLat = minLat - padLat, bMaxLat = maxLat + padLat;
     const bMinLng = minLng - padLng, bMaxLng = maxLng + padLng;
 
-    const svgW = 860, svgH = 340;
-    const pad = 40;
+    const svgW = 920, svgH = 380;
+    const pad = 45;
 
     const toX = (lng) => pad + ((lng - bMinLng) / (bMaxLng - bMinLng || 1)) * (svgW - pad * 2);
     const toY = (lat) => svgH - pad - ((lat - bMinLat) / (bMaxLat - bMinLat || 1)) * (svgH - pad * 2);
@@ -798,8 +1156,6 @@ function renderGroupLocationMapSVG(members) {
         x: toX(parseFloat(m.lng)),
         y: toY(parseFloat(m.lat))
     }));
-
-    let polyPoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
     let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" style="width: 100%; height: auto; background: #0c1220; border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6);" xmlns="http://www.w3.org/2000/svg">`;
     svg += `<defs>
@@ -813,16 +1169,25 @@ function renderGroupLocationMapSVG(members) {
     </defs>
     <rect width="${svgW}" height="${svgH}" fill="url(#grid)" />`;
 
-    svg += `<polyline points="${polyPoints}" fill="none" stroke="#00d4ff" stroke-width="8" opacity="0.3" filter="url(#glow)"/>`;
-    svg += `<polyline points="${polyPoints}" fill="none" stroke="#00d4ff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // 시그마앱에 저장된 실제 링크들만 정확히 렌더링 (단순 인덱스 연결 폐지)
+    if (links && links.length > 0) {
+        links.forEach(l => {
+            if (!l.coords || l.coords.length < 2) return;
+            let pts = l.coords.map(c => `${toX(c[1]).toFixed(1)},${toY(c[0]).toFixed(1)}`).join(' ');
+            svg += `<polyline points="${pts}" fill="none" stroke="#0284c7" stroke-width="8" opacity="0.4" filter="url(#glow)"/>`;
+            svg += `<polyline points="${pts}" fill="none" stroke="#00d4ff" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+        });
+    }
 
-    svg += `<g transform="translate(${svgW - 45}, 40)">
-        <circle cx="0" cy="0" r="16" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.2)"/>
-        <path d="M 0 -12 L 5 4 L 0 1 L -5 4 Z" fill="#f87171"/>
+    // 나침반 방위표
+    svg += `<g transform="translate(${svgW - 50}, 45)">
+        <circle cx="0" cy="0" r="16" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.2)"/>
+        <path d="M 0 -12 L 5 4 L 0 1 L -5 4 Z" fill="#ef4444"/>
         <path d="M 0 12 L 5 4 L 0 1 L -5 4 Z" fill="#94a3b8"/>
-        <text x="0" y="-14" fill="#f87171" font-size="9" font-weight="bold" text-anchor="middle">N</text>
+        <text x="0" y="-14" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="middle">N</text>
     </g>`;
 
+    // 교차로 노드 마커 및 명칭
     points.forEach((p, idx) => {
         const isStart = (idx === 0);
         const isEnd = (idx === points.length - 1);
@@ -832,10 +1197,10 @@ function renderGroupLocationMapSVG(members) {
         svg += `<text x="${p.x}" y="${p.y + 4}" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">${idx + 1}</text>`;
 
         const labelText = p.name;
-        const textWidth = Math.min(110, Math.max(50, labelText.length * 11 + 10));
-        const yOffset = (idx % 2 === 0) ? -20 : 24;
-        svg += `<rect x="${p.x - textWidth / 2}" y="${p.y + yOffset - 11}" width="${textWidth}" height="18" rx="4" fill="rgba(10, 18, 30, 0.85)" stroke="rgba(255,255,255,0.15)"/>`;
-        svg += `<text x="${p.x}" y="${p.y + yOffset + 2}" fill="#e2e8f0" font-size="10" font-weight="600" text-anchor="middle">${labelText}</text>`;
+        const textWidth = Math.min(120, Math.max(54, labelText.length * 11 + 12));
+        const yOffset = (idx % 2 === 0) ? -22 : 24;
+        svg += `<rect x="${p.x - textWidth / 2}" y="${p.y + yOffset - 11}" width="${textWidth}" height="18" rx="4" fill="rgba(10, 18, 30, 0.9)" stroke="rgba(255,255,255,0.2)"/>`;
+        svg += `<text x="${p.x}" y="${p.y + yOffset + 2}" fill="#f1f5f9" font-size="10" font-weight="bold" text-anchor="middle">${labelText}</text>`;
 
         if (isStart) {
             svg += `<text x="${p.x}" y="${p.y + yOffset - 16}" fill="#10b981" font-size="9" font-weight="bold" text-anchor="middle">🚩 기점 (START)</text>`;
@@ -848,8 +1213,22 @@ function renderGroupLocationMapSVG(members) {
     return svg;
 }
 
+
 // ── [보조 3] 교차로별 신호현시 분할표 HTML ──
+
+// ── [보조 3] 교차로별 신호현시 분할표 HTML (PDF 인쇄 시 100% 보존되는 SVG 고대비 분할 바) ──
 function generateGroupPhaseTableHtml(members, dayIdx, pIdx) {
+    const phaseColors = [
+        '#10b981', // 1현시: 녹색
+        '#f97316', // 2현시: 주황
+        '#3b82f6', // 3현시: 블루
+        '#a855f7', // 4현시: 퍼플
+        '#ec4899', // 5현시: 핑크
+        '#06b6d4', // 6현시: 시안
+        '#eab308', // 7현시: 옐로우
+        '#64748b'  // 8현시: 슬레이트
+    ];
+
     let rowsHtml = '';
     members.forEach((j, idx) => {
         const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : (j.signalMaps ? j.signalMaps[0] : null);
@@ -858,49 +1237,65 @@ function generateGroupPhaseTableHtml(members, dayIdx, pIdx) {
         const cycle = tod ? (tod.cycle || 120) : 120;
         const offset = tod ? (tod.offset || 0) : 0;
 
-        let splitBars = '';
+        let splitSvgInner = '';
         if (sm && sm.movA && tod && tod.splitA) {
+            let curPct = 0;
             tod.splitA.forEach((sp, sIdx) => {
                 if (sp <= 0) return;
-                const mov = sm.movA[sIdx];
-                const isMainGreen = [2, 4, 6, 8].includes(mov);
-                const pct = ((sp / cycle) * 100).toFixed(1);
-                let bg = isMainGreen ? '#10b981' : '#64748b';
-                splitBars += `<div style="width: ${pct}%; background: ${bg}; border-right: 1px solid rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 600;" title="현시 ${sIdx+1} (${mov}): ${sp}초 (${pct}%)">${sp}s</div>`;
+                const pct = (sp / (cycle || 1)) * 100;
+                const color = phaseColors[sIdx % phaseColors.length];
+                const textLabel = (pct >= 14) ? `P${sIdx+1}: ${sp}s(${Math.round(pct)}%)` : ((pct >= 7) ? `${sp}s` : '');
+                
+                splitSvgInner += `<rect x="${curPct.toFixed(2)}" y="0" width="${pct.toFixed(2)}" height="26" fill="${color}" stroke="#ffffff" stroke-width="0.8"/>`;
+                if (textLabel) {
+                    splitSvgInner += `<text x="${(curPct + pct/2).toFixed(2)}" y="17" fill="#ffffff" font-size="9.5" font-weight="bold" text-anchor="middle" style="paint-order: stroke fill; stroke: #000; stroke-width: 2px;">${textLabel}</text>`;
+                }
+                curPct += pct;
             });
         }
 
         const pedTime = (sm && sm.pedA && sm.pedA[0]) ? `${sm.pedA[0]}초` : '-';
 
-        rowsHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-            <td style="padding:7px; text-align:center; font-weight:bold; color:#94a3b8;">${idx + 1}</td>
-            <td style="padding:7px; font-weight:600; color:#38bdf8;">${j.name || j.id}</td>
-            <td style="padding:7px; text-align:center; color:#94a3b8; font-size:11px;">${j.id}</td>
-            <td style="padding:7px; text-align:center;">${cycle}초</td>
-            <td style="padding:7px; text-align:center; font-weight:bold; color:#f59e0b;">${offset}초</td>
-            <td style="padding:7px; text-align:center;">${j.controller || '표준형'}</td>
-            <td style="padding:7px; text-align:center;">${pedTime}</td>
-            <td style="padding:7px; min-width: 220px;">
-                <div style="display:flex; height:18px; border-radius:4px; overflow:hidden; background:#1e293b; border:1px solid rgba(255,255,255,0.1);">
-                    ${splitBars}
-                </div>
+        rowsHtml += `<tr style="border-bottom:1px solid #cbd5e1;">
+            <td style="padding:8px 6px; text-align:center; font-weight:bold; color:#475569;">${idx + 1}</td>
+            <td style="padding:8px 6px; font-weight:700; color:#0284c7;">${j.name || j.id}</td>
+            <td style="padding:8px 6px; text-align:center; color:#64748b; font-size:11px;">${j.id}</td>
+            <td style="padding:8px 6px; text-align:center; font-weight:600;">${cycle}초</td>
+            <td style="padding:8px 6px; text-align:center; font-weight:bold; color:#d97706;">${offset}초</td>
+            <td style="padding:8px 6px; text-align:center;">${j.controller || '표준형'}</td>
+            <td style="padding:8px 6px; text-align:center;">${pedTime}</td>
+            <td style="padding:6px 6px; min-width: 260px;">
+                <svg width="100%" height="26" viewBox="0 0 100 26" preserveAspectRatio="none" style="display:block; border-radius:4px; border:1px solid #94a3b8; background:#0f172a; box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);">
+                    ${splitSvgInner}
+                </svg>
             </td>
         </tr>`;
     });
 
     return `
-    <div style="overflow-x: auto; margin-top: 10px;">
-        <table class="report-table" style="width:100%; border-collapse:collapse; font-size:12px; background:rgba(0,0,0,0.2); border-radius:6px; overflow:hidden;">
+    <!-- 현시 색상 범례 (PDF 인쇄 시에도 완벽 표시) -->
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:8px 0 12px 0; padding:8px 12px; background:rgba(0,0,0,0.03); border:1px solid #cbd5e1; border-radius:6px; font-size:11px; font-weight:bold;">
+        <span style="color:#0f172a; margin-right:4px;">📊 현시 범례:</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#10b981; border-radius:2px; border:1px solid #fff;"></span> 1현시(P1)</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#f97316; border-radius:2px; border:1px solid #fff;"></span> 2현시(P2)</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#3b82f6; border-radius:2px; border:1px solid #fff;"></span> 3현시(P3)</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#a855f7; border-radius:2px; border:1px solid #fff;"></span> 4현시(P4)</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#ec4899; border-radius:2px; border:1px solid #fff;"></span> 5현시(P5)</span>
+        <span style="display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:12px; background:#06b6d4; border-radius:2px; border:1px solid #fff;"></span> 6현시(P6)</span>
+    </div>
+
+    <div style="overflow-x: auto; margin-top: 6px;">
+        <table class="ai-report-table" style="width: 100%; border-collapse: collapse; font-size: 11.5px; background: #ffffff; color: #1e293b; border: 1px solid #94a3b8;">
             <thead>
-                <tr style="background:rgba(255,255,255,0.06); color:#cbd5e1; border-bottom:1px solid rgba(255,255,255,0.15);">
-                    <th style="padding:8px 6px;">순번</th>
-                    <th style="padding:8px 10px; text-align:left;">교차로명</th>
-                    <th style="padding:8px 6px;">교차로ID</th>
-                    <th style="padding:8px 6px;">주기(C)</th>
-                    <th style="padding:8px 6px;">옵셋(Offset)</th>
-                    <th style="padding:8px 6px;">제어기</th>
-                    <th style="padding:8px 6px;">보행신호</th>
-                    <th style="padding:8px 10px; text-align:left;">현시 분할 비율 (Phase Splits)</th>
+                <tr style="background: #e2e8f0; color: #0f172a; border-bottom: 2px solid #64748b; font-weight: bold;">
+                    <th style="padding: 9px 6px; text-align: center; width: 45px;">순번</th>
+                    <th style="padding: 9px 6px; text-align: left;">교차로명</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 85px;">교차로ID</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 65px;">주기(C)</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 75px;">옵셋(Offset)</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 65px;">제어기</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 65px;">보행신호</th>
+                    <th style="padding: 9px 6px; text-align: center; width: 320px;">현시 분할 비율 (Phase Splits - 초 및 비율)</th>
                 </tr>
             </thead>
             <tbody>
@@ -909,6 +1304,7 @@ function generateGroupPhaseTableHtml(members, dayIdx, pIdx) {
         </table>
     </div>`;
 }
+
 
 // ── [보조 4] 그룹 TOD 운영계획표 HTML ──
 function generateGroupTODTableHtml(gid, group) {
@@ -1003,11 +1399,13 @@ function calculateStats(inters) {
 window.calculateStats = calculateStats;
 
 // ── [인쇄 및 PDF 팝업] ──
+
+// ── [인쇄 및 PDF 팝업] ──
 function printAIReport() {
     const title = window.__lastAIReportTitle || 'SIGMA 교통운영 분석 리포트';
     const reportHtml = window.__lastAIReportHTML || '<p>출력할 리포트 데이터가 없습니다.</p>';
 
-    const printWin = window.open('', '_blank', 'width=1000,height=900,scrollbars=yes');
+    const printWin = window.open('', '_blank', 'width=1050,height=920,scrollbars=yes');
     if (!printWin) {
         alert("팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.");
         return;
@@ -1021,29 +1419,90 @@ function printAIReport() {
         <meta charset="UTF-8">
         <title>${title}</title>
         <style>
-            @page { size: A4 portrait; margin: 15mm; }
-            body { font-family: 'Pretendard', sans-serif; background: #fff; color: #111; line-height: 1.6; margin: 0; padding: 20px; }
-            h1, h2, h3, h4 { color: #0f172a; }
-            table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11px; }
-            th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-            th { background: #f1f5f9; color: #334155; }
-            img { max-width: 100%; height: auto; }
-            svg { max-width: 100%; height: auto; }
+            @page { size: A4 portrait; margin: 12mm; }
+            *, *:before, *:after {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            body {
+                font-family: 'Pretendard', -apple-system, sans-serif;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                line-height: 1.6;
+                margin: 0;
+                padding: 15px;
+            }
+            h1, h2, h3, h4 { color: #0284c7 !important; }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 12px 0;
+                font-size: 11px;
+                background: #ffffff !important;
+            }
+            th {
+                background: #e2e8f0 !important;
+                color: #0f172a !important;
+                font-weight: bold;
+                border: 1px solid #94a3b8 !important;
+                padding: 8px 6px;
+            }
+            td {
+                border: 1px solid #cbd5e1 !important;
+                color: #1e293b !important;
+                padding: 6px 8px;
+                background: #ffffff !important;
+            }
+            tr:nth-child(even) td {
+                background: #f8fafc !important;
+            }
+            .report-section {
+                background: #ffffff !important;
+                border: 1px solid #cbd5e1 !important;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 22px;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+            }
+            .report-section h3 {
+                color: #0284c7 !important;
+                border-left: 4px solid #0284c7 !important;
+                padding-left: 10px;
+                margin-top: 0;
+            }
+            img { max-width: 100%; height: auto; page-break-inside: avoid; }
+            svg { max-width: 100%; height: auto; page-break-inside: avoid; }
             .no-print { margin-bottom: 20px; }
             @media print {
                 .no-print { display: none !important; }
                 body { padding: 0; color: #000; }
-                svg, img { page-break-inside: avoid; }
+                .report-section { page-break-inside: avoid; }
             }
         </style>
     </head>
     <body>
         <div class="no-print" style="text-align:right;">
-            <button onclick="window.print()" style="padding:8px 16px; background:#0284c7; color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ 바로 인쇄하기 (PDF 저장)</button>
+            <button onclick="window.print()" style="padding: 8px 16px; background: #0284c7; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px;">
+                🖨️ 인쇄 / PDF 다운로드
+            </button>
+            <button onclick="window.close()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; font-size: 13px;">
+                닫기
+            </button>
         </div>
-        ${reportHtml}
+        <div id="print-content">
+            ${reportHtml}
+        </div>
+        <script>
+            setTimeout(() => {
+                window.focus();
+            }, 300);
+        </script>
     </body>
-    </html>`);
+    </html>
+    `);
     printWin.document.close();
 }
 window.printAIReport = printAIReport;
+

@@ -873,6 +873,9 @@ async function handleExcelSignalLoad(input, isSingle = false) {
 function processGeoJSON(json) {
     try {
         const data = typeof json === 'string' ? JSON.parse(json) : json;
+        if (typeof STATE !== 'undefined') {
+            STATE.coordLinkGeoJson = data;
+        }
         if (STATE.geoJsonLayer && window.map) window.map.removeLayer(STATE.geoJsonLayer);
 
         // 💎 은은하고 반투명한 유리(Glass-Sleek) 스타일
