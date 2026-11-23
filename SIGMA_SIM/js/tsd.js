@@ -153,6 +153,27 @@ class TSDAnalyzer {
 
         return { width: bestW, start: bestS, validCount: validNodes.length };
     }
+
+    /**
+     * Max Band 단일 인터페이스 래퍼 (ai_report 및 외부 호환용)
+     */
+    static findMaxBand(members, distances, travelTimes, dir, axis, dayIdx, pIdx, cycle, offsets) {
+        if (!members || members.length < 2 || cycle <= 0) {
+            return { bandwidth: 0, width: 0, t0: 0, start: 0, ratio: 0, validCount: 0 };
+        }
+        const totalDist = (distances && distances.length > 0) ? distances[distances.length - 1] : 0;
+        const res = this.calculateBandwidth(dir, axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, offsets);
+        const w = (res && res.width) ? res.width : 0;
+        const s = (res && res.start) ? res.start : 0;
+        return {
+            bandwidth: w,
+            width: w,
+            t0: s,
+            start: s,
+            ratio: cycle > 0 ? Math.round((w / cycle) * 1000) / 10 : 0,
+            validCount: (res && res.validCount) ? res.validCount : 0
+        };
+    }
 }
 
 // ── TSDEngine: 렌더링 & 인터랙션 ──

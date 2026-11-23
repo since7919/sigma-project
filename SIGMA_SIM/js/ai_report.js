@@ -617,27 +617,48 @@ function renderOfflineTSDImage(gid, dayIdx, pIdx, axis = 'ew') {
     let bandUp = { bandwidth: 0, ratio: 0, t0: 0 };
     let bandDown = { bandwidth: 0, ratio: 0, t0: 0 };
     if (typeof TSDAnalyzer !== 'undefined') {
-        const tt = [0];
-        let acc = 0;
-        for (let i = 1; i < dists.length; i++) {
-            acc += (dists[i] - dists[i - 1]) / (cfg.speed / 3.6);
-            tt.push(acc);
+        try {
+            const tt = [0];
+            let acc = 0;
+            for (let i = 1; i < dists.length; i++) {
+                acc += (dists[i] - dists[i - 1]) / (cfg.speed / 3.6);
+                tt.push(acc);
+            }
+            if (typeof TSDAnalyzer.findMaxBand === 'function') {
+                bandUp = TSDAnalyzer.findMaxBand(members, dists, tt, 'up', axis, dayIdx, pIdx, cycle);
+                bandDown = TSDAnalyzer.findMaxBand(members, dists, tt, 'down', axis, dayIdx, pIdx, cycle);
+            } else if (typeof TSDAnalyzer.calculateBandwidth === 'function') {
+                const totalDist = dists[dists.length - 1] || 0;
+                const resUp = TSDAnalyzer.calculateBandwidth('up', axis, members, dists, totalDist, cycle, tt, dayIdx, pIdx);
+                const resDown = TSDAnalyzer.calculateBandwidth('down', axis, members, dists, totalDist, cycle, tt, dayIdx, pIdx);
+                bandUp = {
+                    bandwidth: (resUp && resUp.width) || 0,
+                    t0: (resUp && resUp.start) || 0,
+                    ratio: cycle > 0 ? Math.round((((resUp && resUp.width) || 0) / cycle) * 1000) / 10 : 0
+                };
+                bandDown = {
+                    bandwidth: (resDown && resDown.width) || 0,
+                    t0: (resDown && resDown.start) || 0,
+                    ratio: cycle > 0 ? Math.round((((resDown && resDown.width) || 0) / cycle) * 1000) / 10 : 0
+                };
+            }
+        } catch (e) {
+            console.warn('[AI Report] TSD Bandwidth calculation warning:', e);
         }
-        bandUp = TSDAnalyzer.findMaxBand(members, dists, tt, 'up', axis, dayIdx, pIdx, cycle);
-        bandDown = TSDAnalyzer.findMaxBand(members, dists, tt, 'down', axis, dayIdx, pIdx, cycle);
     }
 
     const drawBand = (dir, band, color, strokeColor) => {
-        if (!band || band.bandwidth <= 0) return;
+        const b = (band && (band.bandwidth || band.width)) || 0;
+        if (b <= 0) return;
         const tt = [0];
         let acc = 0;
         for (let i = 1; i < dists.length; i++) {
             acc += (dists[i] - dists[i - 1]) / (cfg.speed / 3.6);
             tt.push(acc);
         }
-        const b = band.bandwidth;
+        const startBase = (band && band.t0 !== undefined) ? band.t0 : ((band && band.start) || 0);
         for (let cOffset = -cycle; cOffset <= timeHorizon + cycle; cOffset += cycle) {
-            const startT = band.t0 + cOffset;
+            const startT = startBase + cOffset;
             ctx.save();
             ctx.fillStyle = color;
             ctx.strokeStyle = strokeColor;
