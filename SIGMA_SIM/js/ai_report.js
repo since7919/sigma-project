@@ -20,12 +20,32 @@ function generateAIReport() {
     
     const offices = new Set();
     const polices = new Set();
+    const groups = new Map(); // gid -> { gid, name, count }
+
     Object.values(STATE.junctions || {}).forEach(j => {
         if (j.office && j.office.trim() !== '') offices.add(j.office.trim());
         if (j.police && j.police.trim() !== '') polices.add(j.police.trim());
+        
+        // 연동 그룹 정보 수집
+        const gid = (j.group !== undefined && j.group !== null) ? String(j.group).trim() : '';
+        if (gid !== '' && gid !== '0' && gid !== '-1') {
+            if (!groups.has(gid)) {
+                let gName = (STATE.groups && STATE.groups[gid] && STATE.groups[gid].name) 
+                    ? STATE.groups[gid].name 
+                    : `그룹 ${gid}`;
+                groups.set(gid, { gid, name: gName, count: 0 });
+            }
+            groups.get(gid).count++;
+        }
     });
     const sortedOffices = Array.from(offices).sort();
     const sortedPolices = Array.from(polices).sort();
+    const sortedGroups = Array.from(groups.values()).sort((a, b) => {
+        const numA = parseInt(a.gid, 10);
+        const numB = parseInt(b.gid, 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.gid.localeCompare(b.gid);
+    });
     
     const baseSel = document.getElementById('ai-base-select');
     const targetSel = document.getElementById('ai-target-select');
@@ -34,11 +54,23 @@ function generateAIReport() {
     const curReg = (typeof window !== 'undefined' && window.CURRENT_REGION_CODE) || 'L01';
     const curRegName = (window.REGION_MAP && window.REGION_MAP[curReg]) || (curReg === 'L02' ? '인천시' : '서울시');
     let optionsHtml = `<option value="ALL">${curRegName} 전체</option>`;
+
+    // 1. 연동 그룹 옵션군 (신규 추가)
+    if (sortedGroups.length > 0) {
+        optionsHtml += '<optgroup label="연동 그룹(Coordination Group)">';
+        sortedGroups.forEach(g => { 
+            const title = (g.name && g.name !== `그룹 ${g.gid}`) ? `그룹 ${g.gid} (${g.name})` : `그룹 ${g.gid}`;
+            optionsHtml += `<option value="group|${g.gid}">[그룹] ${title} - ${g.count}개소</option>`; 
+        });
+        optionsHtml += '</optgroup>';
+    }
     
+    // 2. 구청 옵션군
     optionsHtml += '<optgroup label="구청(District)">';
     sortedOffices.forEach(o => { optionsHtml += `<option value="office|${o}">[구청] ${o}</option>`; });
     optionsHtml += '</optgroup>';
     
+    // 3. 경찰서 옵션군
     optionsHtml += '<optgroup label="경찰서(Police)">';
     sortedPolices.forEach(p => { optionsHtml += `<option value="police|${p}">[경찰서] ${p}</option>`; });
     optionsHtml += '</optgroup>';
@@ -60,7 +92,16 @@ async function startAIAnalysis() {
     const getLabel = (val) => {
         if (val === 'ALL') return `${curRegName} 전체`;
         const parts = val.split('|');
-        return parts.length === 2 ? parts[1] : val;
+        if (parts.length === 2) {
+            const [type, key] = parts;
+            if (type === 'group') {
+                const gObj = STATE.groups && STATE.groups[key];
+                const gName = (gObj && gObj.name && gObj.name !== `그룹 ${key}`) ? `그룹 ${key}(${gObj.name})` : `그룹 ${key}`;
+                return gName;
+            }
+            return parts[1];
+        }
+        return val;
     };
     
     const baseName = getLabel(baseVal);
@@ -105,6 +146,7 @@ async function startAIAnalysis() {
         const [type, name] = val.split('|');
         if (type === 'office') return allIntersections.filter(j => (j.office || "").trim() === name);
         if (type === 'police') return allIntersections.filter(j => (j.police || "").trim() === name);
+        if (type === 'group') return allIntersections.filter(j => String(j.group || "").trim() === String(name).trim());
         return allIntersections;
     };
     
@@ -409,7 +451,26 @@ window.generateAIReportProgrammatic = async function(baseTarget = 'ALL', targetT
             return { name: `${regionName} 전체`, list: allJunctions };
         }
 
-        let clean = val.replace(/^(office\||police\|)/, '').replace(/(구청|경찰서)$/, '').trim();
+        // 그룹 파라미터 매칭 (예: group|107 또는 "그룹 107")
+        if (val.startsWith('group|')) {
+            const gid = val.split('|')[1].trim();
+            const matched = allJunctions.filter(j => String(j.group || '').trim() === gid);
+            const gObj = STATE.groups && STATE.groups[gid];
+            const gName = (gObj && gObj.name && gObj.name !== `그룹 ${gid}`) ? `그룹 ${gid}(${gObj.name})` : `그룹 ${gid}`;
+            return { name: gName, list: matched };
+        }
+        const grpMatch = val.match(/그룹\s*([0-9A-Za-z_-]+)|([0-9A-Za-z_-]+)\s*그룹/);
+        if (grpMatch) {
+            const gid = (grpMatch[1] || grpMatch[2]).trim();
+            const matched = allJunctions.filter(j => String(j.group || '').trim() === gid);
+            if (matched.length > 0) {
+                const gObj = STATE.groups && STATE.groups[gid];
+                const gName = (gObj && gObj.name && gObj.name !== `그룹 ${gid}`) ? `그룹 ${gid}(${gObj.name})` : `그룹 ${gid}`;
+                return { name: gName, list: matched };
+            }
+        }
+
+        let clean = val.replace(/^(office\||police\||group\|)/, '').replace(/(구청|경찰서)$/, '').trim();
         let matched = allJunctions.filter(j => 
             (j.office && j.office.includes(clean)) || 
             (j.police && j.police.includes(clean)) ||

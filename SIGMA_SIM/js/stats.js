@@ -273,6 +273,7 @@ function renderJunctionStatsTable() {
 function updateStatFilters() {
     const officeSel = document.getElementById('stat-office-filter');
     const policeSel = document.getElementById('stat-police-filter');
+    const groupSel = document.getElementById('stat-group-filter');
     if (!officeSel || !policeSel) return;
 
     const junctions = Object.values(STATE.junctions || {});
@@ -303,6 +304,28 @@ function updateStatFilters() {
         });
         policeSel.value = polices.includes(currentPolice) ? currentPolice : 'ALL';
     }
+
+    if (groupSel && groupSel.options.length <= 1) {
+        const currentGroup = groupSel.value;
+        const groups = [...new Set(junctions.map(j => (j.group !== undefined && j.group !== null && String(j.group).trim() !== '0' && String(j.group).trim() !== '-1') ? String(j.group).trim() : '').filter(Boolean))].sort((a, b) => {
+            const numA = parseInt(a, 10);
+            const numB = parseInt(b, 10);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return a.localeCompare(b);
+        });
+        if (groups.length > 0) {
+            groupSel.innerHTML = '<option value="ALL">전체 그룹</option>';
+            groups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g;
+                const gObj = STATE.groups && STATE.groups[g];
+                const gName = (gObj && gObj.name && gObj.name !== `그룹 ${g}`) ? `그룹 ${g} (${gObj.name})` : `그룹 ${g}`;
+                opt.innerText = gName;
+                groupSel.appendChild(opt);
+            });
+            groupSel.value = groups.includes(currentGroup) ? currentGroup : 'ALL';
+        }
+    }
 }
 
 /* ══════════════════════════════════════════
@@ -330,6 +353,10 @@ function renderStats() {
     const policeFilter = document.getElementById('stat-police-filter')?.value || 'ALL';
     if (policeFilter !== 'ALL') {
         junctions = junctions.filter(j => (j.police || "").trim() === policeFilter);
+    }
+    const groupFilter = document.getElementById('stat-group-filter')?.value || 'ALL';
+    if (groupFilter !== 'ALL') {
+        junctions = junctions.filter(j => String(j.group || "").trim() === groupFilter);
     }
 
     const timeFilter = document.getElementById('stat-time-filter')?.value || 'ALL';
