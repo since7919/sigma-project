@@ -2049,23 +2049,75 @@
                             <div id="ai-report-wrapper">
                             <!-- 설정 영역 -->
                             <div id="ai-report-setup" style="padding: 10px 0;">
-                                <div style="margin-bottom: 15px; color: #b0bec5; font-size: 12px;">분석할 두 대상(구청, 경찰서, 또는 연동 그룹)을 선택하세요.</div>
-                                <div class="flex-row gap-20" style="align-items: center;">
-                                    <div style="flex: 1;">
-                                        <div class="text-dim fs-11 mb-8">🅰️ 기준 대상 (Base)</div>
-                                        <select id="ai-base-select" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid #64b5f6;">
-                                            <option value="ALL">서울시 전체</option>
-                                        </select>
+                                <!-- 모드 전환 탭 (비교분석 vs 그룹연동분석) -->
+                                <div style="display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                                    <button type="button" id="btn-report-mode-compare" onclick="switchAIReportMode('compare')" style="background: rgba(100, 181, 246, 0.2); border: 1px solid #64b5f6; color: #64b5f6; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                                        🌐 지역/대상 비교분석 (A vs B)
+                                    </button>
+                                    <button type="button" id="btn-report-mode-group" onclick="switchAIReportMode('group')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); color: #aaa; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                                        🔗 단일 그룹 심층 연동분석 (위치도+시공도)
+                                    </button>
+                                </div>
+
+                                <!-- 모드 1: 비교 분석 패널 -->
+                                <div id="ai-mode-compare-panel">
+                                    <div style="margin-bottom: 12px; color: #b0bec5; font-size: 12px;">분석할 두 대상(구청, 경찰서, 또는 연동 그룹)을 선택하세요.</div>
+                                    <div class="flex-row gap-20" style="align-items: center;">
+                                        <div style="flex: 1;">
+                                            <div class="text-dim fs-11 mb-8">🅰️ 기준 대상 (Base)</div>
+                                            <select id="ai-base-select" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid #64b5f6;">
+                                                <option value="ALL">서울시 전체</option>
+                                            </select>
+                                        </div>
+                                        <div style="font-size: 16px; color: #fff; padding-top: 20px;">VS</div>
+                                        <div style="flex: 1;">
+                                            <div class="text-dim fs-11 mb-8">🅱️ 비교 대상 (Target)</div>
+                                            <select id="ai-target-select" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid #ffb74d;">
+                                                <option value="ALL">서울시 전체</option>
+                                            </select>
+                                        </div>
+                                        <div style="padding-top: 20px;">
+                                            <button onclick="startAIAnalysis()" style="background: #2b5c8f; border: 1px solid #4a90e2; padding: 6px 16px; height: 32px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white;">🚀 비교 분석 시작</button>
+                                        </div>
                                     </div>
-                                    <div style="font-size: 16px; color: #fff; padding-top: 20px;">VS</div>
-                                    <div style="flex: 1;">
-                                        <div class="text-dim fs-11 mb-8">🅱️ 비교 대상 (Target)</div>
-                                        <select id="ai-target-select" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid #ffb74d;">
-                                            <option value="ALL">서울시 전체</option>
-                                        </select>
+                                </div>
+
+                                <!-- 모드 2: 단일 그룹 심층 연동분석 패널 (위치도 + 시공도) -->
+                                <div id="ai-mode-group-panel" style="display: none;">
+                                    <div style="margin-bottom: 12px; color: #b0bec5; font-size: 12px;">
+                                        심층 분석할 연동 그룹을 선택하세요. (연동구간 위치도, 신호현시, 그룹TOD, 시공도가 자동 수록됩니다)
                                     </div>
-                                    <div style="padding-top: 20px;">
-                                        <button onclick="startAIAnalysis()" style="background: #2b5c8f; border: 1px solid #4a90e2; padding: 6px 16px; height: 32px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white;">🚀 분석 시작</button>
+                                    <div class="flex-row gap-15" style="align-items: center; flex-wrap: wrap;">
+                                        <div style="flex: 2; min-width: 240px;">
+                                            <div class="text-dim fs-11 mb-8">🔗 분석 대상 그룹</div>
+                                            <select id="ai-group-single-select" onchange="if(typeof onAIGroupSelectChange==='function') onAIGroupSelectChange()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid #00d4ff;">
+                                                <option value="">그룹 선택...</option>
+                                            </select>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div class="text-dim fs-11 mb-8">📅 분석 일계획</div>
+                                            <select id="ai-group-day-select" onchange="if(typeof onAIGroupSelectChange==='function') onAIGroupSelectChange()" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                                                <option value="0">일계획 1 (평일)</option>
+                                                <option value="1">일계획 2 (금요일)</option>
+                                                <option value="2">일계획 3 (토요일)</option>
+                                                <option value="3">일계획 4 (일요일)</option>
+                                                <option value="4">일계획 5 (특수일)</option>
+                                            </select>
+                                        </div>
+                                        <div style="flex: 1; min-width: 140px;">
+                                            <div class="text-dim fs-11 mb-8">⏱️ 분석 시간대</div>
+                                            <select id="ai-group-time-select" class="tsd-select" style="width: 100%; height: 32px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid rgba(255,255,255,0.2);">
+                                                <option value="0">오전 첨두 (08시)</option>
+                                                <option value="1">비첨두 (14시)</option>
+                                                <option value="2">오후 첨두 (18시)</option>
+                                                <option value="3">심야 (23시)</option>
+                                            </select>
+                                        </div>
+                                        <div style="padding-top: 20px;">
+                                            <button onclick="startAIGroupAnalysis()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; box-shadow: 0 0 10px rgba(56,189,248,0.3); padding: 6px 18px; height: 32px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; color: white;">
+                                                🚀 그룹 연동분석 시작
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2365,7 +2417,7 @@
     <script src="js/simulation.js?v=1795106000000"></script> <!-- 이 부분이 핵심입니다 -->
     <script src="js/stats.js?v=1795440000000"></script>
     <script src="js/insight_modal.js"></script>
-    <script src="js/ai_report.js?v=1795440000000"></script>
+    <script src="js/ai_report.js?v=1795480000000"></script>
     <script src="js/api_layers.js?v=1791726500000"></script>
     <script src="js/intersection_search.js?v=1794610000000"></script>
     <script src="js/junction_optimizer.js?v=1792716000000"></script>

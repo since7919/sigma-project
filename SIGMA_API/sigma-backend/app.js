@@ -4020,6 +4020,102 @@ app.post('/api/ai/report', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// ── AI 단일 그룹 연동분석 리포트 API (Groq Cloud 연동) ──
+app.post('/api/ai/group-report', async (req, res) => {
+    try {
+        const { groupId, groupName, regionName, totalDistanceM, junctionCount, cycle, bandUp, bandDown, bandEfficiency, membersSummary, todSummary } = req.body;
+        
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
+            return res.status(500).json({ error: 'GROQ_API_KEY가 설정되지 않았습니다.' });
+        }
+
+        const systemPrompt = `당신은 대한민국 경찰청 및 지자체 교통정보센터 소속의 '수석 신호운영 분석관'입니다.
+이 리포트는 관할 지방경찰청장 및 최고 수준의 교통공학 전문가들에게 실제 결재 및 보고용으로 올라가는 공문서입니다.
+
+[공문서 작성 지침 - 매우 중요]
+1. 문체는 반드시 '~함', '~임', '~개소', '~초', '~m' 등의 건조하고 명확한 개조식(공문서체)을 사용할 것.
+2. 주관적이거나 감정적인 수사("우려됩니다", "눈에 띕니다", "좋습니다", "안타깝게도")는 절대 금지.
+3. 절대로 수치를 지어내지(Hallucination) 말고, 전달받은 데이터의 팩트(거리, 대역폭, 옵셋 등)를 엄격히 준수할 것.
+4. 아래 목차에 따라 간결하고 전문적인 '4. 종합 연동 분석 및 운영 개선 권고'를 작성할 것:
+   - 가. 연동 대역폭(Bandwidth) 및 양방향 진행파 품질 평가
+   - 나. 구간별 이격 거리 및 대기행렬(Queue) 관리 분석
+   - 다. 시간대별 TOD 신호주기 전이(Transition) 적합성 검토
+   - 라. 수석 신호운영 분석관의 종합 개선 권고사항 (옵셋 미세조정, 보행신호 여유시간, 감응신호 도입 타당성 등)`;
+
+        const userPrompt = `[연동 그룹 정보]
+- 그룹 식별: 그룹 ${groupId} (${groupName || '미지정'})
+- 관할 지자체: ${regionName || '서울특별시'}
+- 소속 교차로 수: ${junctionCount}개소
+- 총 연장 거리: ${totalDistanceM} m (${(totalDistanceM / 1000).toFixed(2)} km)
+- 운영 주기: ${cycle}초
+- 정방향(상향) 연동 대역폭: ${bandUp?.bandwidth?.toFixed(1) || 0}초 (${bandUp?.ratio?.toFixed(1) || 0}%)
+- 역방향(하향) 연동 대역폭: ${bandDown?.bandwidth?.toFixed(1) || 0}초 (${bandDown?.ratio?.toFixed(1) || 0}%)
+- 연동 대역 효율: ${bandEfficiency || 0}%
+- 소속 교차로 요약: ${JSON.stringify(membersSummary || [])}
+- TOD 운영계획 요약: ${JSON.stringify(todSummary || [])}
+
+위 그룹 데이터를 바탕으로 전문 교통공학적 시각에서 '4. 종합 연동 분석 및 운영 개선 권고' 공문서 섹션을 개조식으로 작성하십시오.`;
+
+        let response;
+        let retries = 3;
+        let delay = 3000;
+        let reportText = "";
+
+        while (retries > 0) {
+            try {
+                response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${groqApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'openai/gpt-oss-120b',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.6
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok && data.choices && data.choices.length > 0) {
+                    reportText = data.choices[0].message.content;
+                    break;
+                } else {
+                    let errMsg = 'AI 응답 실패';
+                    if (data.error) errMsg = typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error));
+                    if (errMsg.toLowerCase().includes('rate limit')) {
+                        throw { status: 429, message: errMsg };
+                    }
+                    throw new Error(errMsg);
+                }
+            } catch (err) {
+                if (err.status === 429 || String(err.message).toLowerCase().includes('rate')) {
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay += 2000;
+                } else {
+                    throw err;
+                }
+            }
+        }
+
+        res.json({ report: reportText });
+
+    } catch (error) {
+        console.error('AI Group Report Error:', error.message);
+        if (error.status === 429 || String(error.message).toLowerCase().includes('rate')) {
+            return res.status(503).json({ error: '⏳ Groq API 분당 한도를 초과했습니다.\n잠시 후 다시 시도해 주세요.' });
+        }
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ==========================================
 // 🤖 2. AI 챗봇 (RAG 기반 경량 질의응답) 라우터
 // ==========================================

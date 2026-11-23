@@ -1055,3 +1055,10 @@ window.addEventListener('storage', (e) => {
     }
 });
 
+// 전역 엔진 및 분석기 클래스 외부 노출 (AI 그룹 리포트 연동용)
+if (typeof window !== 'undefined') {
+    window.TSDAnalyzer = TSDAnalyzer;
+    window.TSDEngine = TSDEngine;
+}
+
+
