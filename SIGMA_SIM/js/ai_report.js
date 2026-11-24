@@ -400,18 +400,38 @@ async function startAIGroupAnalysis() {
         const finalHtml = `
         <div class="ai-group-report-container" style="font-family:'Pretendard', sans-serif; line-height:1.7; color:#e2e8f0;">
             
-            <!-- 상단 컨트롤 버튼 바 -->
-            <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
-                <div style="font-size: 18px; font-weight: 800; color: #00d4ff; display: flex; align-items: center; gap: 8px;">
-                    🚦 [그룹 ${gid}] ${gName} 연동구간 신호운영 심층 분석 리포트
+            <!-- 상단 컨트롤 버튼 바 (화면 전용, PDF 인쇄 시 no-print로 자동 숨김) -->
+            <div class="no-print" style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 20px; padding: 12px 16px; background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px;">
+                <div style="font-size: 14px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+                    🚦 [그룹 ${gid}] 연동구간 신호운영 심층 분석 리포트
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="printAIReport()" style="background: rgba(255,183,77,0.15); border: 1px solid #ffb74d; color: #ffb74d; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <button onclick="printAIReport()" style="background: #0284c7; border: none; color: #ffffff; padding: 7px 16px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                         🖨️ PDF 리포트 출력
                     </button>
-                    <button onclick="generateAIReport()" style="background: none; border: 1px solid #4a90e2; color: #4a90e2; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <button onclick="generateAIReport()" style="background: rgba(255,255,255,0.08); border: 1px solid #94a3b8; color: #e2e8f0; padding: 7px 14px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                         🔄 다시 분석하기
                     </button>
+                </div>
+            </div>
+
+            <!-- [공식 규격 엔지니어링 리포트 표지 헤더 밴드 (인쇄 및 보고서 서식 전용)] -->
+            <div class="report-official-header" style="border-bottom: 2.5px solid #0284c7; padding-bottom: 14px; margin-bottom: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <span style="background: #0284c7; color: #ffffff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px;">KOROAD SIGMA</span>
+                            <span style="font-size: 11px; font-weight: 700; color: #0284c7; letter-spacing: 1px;">교통신호 최적화 종합진단 보고서</span>
+                        </div>
+                        <h1 style="margin: 0; font-size: 21px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; line-height: 1.3;">
+                            [그룹 ${gid}] ${gName} 연동구간 신호운영 심층 분석 리포트
+                        </h1>
+                    </div>
+                    <div style="text-align: right; font-size: 11px; color: #475569; line-height: 1.5; min-width: 220px;">
+                        <div><strong>문서번호 :</strong> SIGMA-REP-${gid}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}</div>
+                        <div><strong>발행일시 :</strong> ${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                        <div><strong>분석기관 :</strong> 도로교통공단 교통신호운영분석센터</div>
+                    </div>
                 </div>
             </div>
 
@@ -486,7 +506,7 @@ async function startAIGroupAnalysis() {
                         <span>📈 Time-Space Diagram (Miovision Dual-Ring & Max Bandwidth)</span>
                         <span style="font-size:11px; color:#38bdf8;">주기: ${cycle}초 | 설계속도: 50 km/h</span>
                     </div>
-                    <div style="text-align:center; background:#101216; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+                    <div style="text-align:center; background:#ffffff; padding:10px; border-radius:8px; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                         <img src="${tsdResult.dataUrl}" style="max-width:100%; height:auto; border-radius:4px; display:block; margin:0 auto;" alt="Time Space Diagram"/>
                     </div>
                     
@@ -950,8 +970,9 @@ async function renderGroupMapSnapshotAsync(gid, members, links) {
             const x1 = toX(tileLng1), y1 = toY(tileLat1);
             const x2 = toX(tileLng2), y2 = toY(tileLat2);
 
-            // [사용자 요구 반영] 다크모드 타일 대신 Clean Light Gray 타일 사용
-            const tileUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${zoom}/${ty}/${tx}`;
+            // [사용자 요구 반영] 연동네트워크 현황도와 동일한 국토교통부 표준 VWorld 2D 도로망 타일 적용
+            const tileUrl = `https://xdworld.vworld.kr/2d/Base/service/${zoom}/${tx}/${ty}.png`;
+            const fallbackTileUrl = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
 
             const p = new Promise(resolve => {
                 const img = new Image();
@@ -959,7 +980,16 @@ async function renderGroupMapSnapshotAsync(gid, members, links) {
                 img.onload = () => {
                     resolve({ img, x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) });
                 };
-                img.onerror = () => resolve(null);
+                img.onerror = () => {
+                    // 국토부 타일 실패 시 OSM 타일 2차 폴백
+                    const fImg = new Image();
+                    fImg.crossOrigin = 'anonymous';
+                    fImg.onload = () => {
+                        resolve({ img: fImg, x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) });
+                    };
+                    fImg.onerror = () => resolve(null);
+                    fImg.src = fallbackTileUrl;
+                };
                 img.src = tileUrl;
             });
             tilePromises.push(p);
@@ -974,7 +1004,11 @@ async function renderGroupMapSnapshotAsync(gid, members, links) {
 
         tiles.forEach(t => {
             if (t && t.img) {
+                // 연동네트워크 현황도의 clean 그레이톤 도로망 필터와 동일한 고대비 필터 적용
+                ctx.save();
+                ctx.filter = 'grayscale(100%) brightness(105%) contrast(85%) opacity(0.85)';
                 ctx.drawImage(t.img, t.x, t.y, t.w, t.h);
+                ctx.restore();
             }
         });
     } catch (tileErr) {
@@ -1298,24 +1332,24 @@ function generateGroupPhaseTableHtml(members, dayIdx, pIdx) {
         }
 
         ipdCardsHtml += `
-        <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); page-break-inside:avoid;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">
-                <span style="font-size:12px; font-weight:bold; color:#0f172a;">
-                    <span style="display:inline-block; width:18px; height:18px; line-height:18px; background:#0284c7; color:#fff; border-radius:50%; text-align:center; font-size:10px; margin-right:6px;">${idx + 1}</span>
-                    ${j.name || j.id} <span style="font-size:11px; font-weight:normal; color:#64748b;">(${j.id})</span>
+        <div class="ipd-card" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:7px 9px; box-shadow:0 1px 2px rgba(0,0,0,0.03); page-break-inside:avoid;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:1px solid #e2e8f0; padding-bottom:3px;">
+                <span style="font-size:11.5px; font-weight:bold; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px;">
+                    <span style="display:inline-block; width:17px; height:17px; line-height:17px; background:#0284c7; color:#fff; border-radius:50%; text-align:center; font-size:9.5px; margin-right:4px;">${idx + 1}</span>
+                    ${j.name || j.id} <span style="font-size:10px; font-weight:normal; color:#64748b;">(${j.id})</span>
                 </span>
-                <span style="font-size:11px; color:#0284c7; font-weight:bold;">
-                    주기: ${cycle}초 | 옵셋: ${offset}초 | 제어기: ${j.controller || '표준형'}
+                <span style="font-size:10px; color:#0284c7; font-weight:bold; white-space:nowrap;">
+                    주기 ${cycle}s | 옵셋 ${offset}s
                 </span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:4px;">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="width:38px; font-size:10px; font-weight:bold; color:#475569; background:#f1f5f9; padding:2px 4px; border-radius:3px; text-align:center;">A링</span>
-                    <div style="flex:1; display:flex; gap:4px;">${ringACells}</div>
+            <div style="display:flex; flex-direction:column; gap:3px;">
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <span style="width:32px; font-size:9px; font-weight:bold; color:#475569; background:#f1f5f9; padding:2px 0; border-radius:2px; text-align:center;">A링</span>
+                    <div style="flex:1; display:flex; gap:3px;">${ringACells}</div>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="width:38px; font-size:10px; font-weight:bold; color:#475569; background:#f1f5f9; padding:2px 4px; border-radius:3px; text-align:center;">B링</span>
-                    <div style="flex:1; display:flex; gap:4px;">${ringBCells}</div>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <span style="width:32px; font-size:9px; font-weight:bold; color:#475569; background:#f1f5f9; padding:2px 0; border-radius:2px; text-align:center;">B링</span>
+                    <div style="flex:1; display:flex; gap:3px;">${ringBCells}</div>
                 </div>
             </div>
         </div>`;
@@ -1350,7 +1384,7 @@ function generateGroupPhaseTableHtml(members, dayIdx, pIdx) {
         <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
             ※ 각 교차로의 A링 및 B링 이동류 방향(직진/좌회전) 화살표와 현시별 배분 시간(초)을 표기합니다.
         </div>
-        <div style="display:flex; flex-direction:column; gap:2px;">
+        <div class="ipd-grid-container" style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
             ${ipdCardsHtml}
         </div>
     </div>`;
@@ -1560,10 +1594,16 @@ function printAIReport() {
             svg { max-width: 100%; height: auto; page-break-inside: avoid; }
             .no-print { margin-bottom: 18px; }
 
+            #print-content .no-print { display: none !important; }
+            .report-official-header { display: block !important; }
+            .ipd-grid-container { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 7px !important; }
+            .ipd-card { page-break-inside: avoid !important; }
+
             @media print {
                 .no-print { display: none !important; }
-                body { padding: 0; color: #000 !important; }
-                .report-section { page-break-inside: avoid; }
+                body { padding: 0 !important; color: #000 !important; }
+                .report-section { page-break-inside: auto !important; margin-bottom: 14px !important; padding: 12px !important; }
+                .report-official-header { margin-bottom: 16px !important; }
             }
         </style>
     </head>
