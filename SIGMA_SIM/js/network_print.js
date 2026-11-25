@@ -127,7 +127,7 @@ function getNetworkPrintTileConfig(theme) {
 
 let _currentPrintOpts = {
     targetDistrict: 'ALL',
-    pageSize: 'A4',
+    pageSize: 'A3',
     orientation: 'landscape',
     labelMode: 'smart',      // 'smart' (스마트 겹침방지 - 기본값) | 'leader' (지시선 빈공간 분산)
     fontSize: 7.2,           // px (기본 7.2px)
@@ -431,10 +431,8 @@ window.openNetworkPrintModal = async function() {
                     </div>
                     <div>
                         <label style="display:block; font-size:12px; font-weight:600; color:#cbd5e1; margin-bottom:6px;">용지 규격 및 출력 방향</label>
-                        <select id="sel-print-page-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:6px; padding:0 8px; font-size:12px; font-weight:600;">
-                            <option value="A4_landscape" selected>📄 A4 가로 (기본 도면)</option>
-                            <option value="A4_portrait">📑 A4 세로 (수직 도면)</option>
-                            <option value="A3_landscape">📄 A3 가로 (대형 고해상도)</option>
+                        <select id="sel-print-page-size" class="phase-select" style="width:100%; height:36px; background:rgba(0,0,0,0.5); border:1px solid #38bdf8; color:#fff; border-radius:6px; padding:0 8px; font-size:12.5px; font-weight:bold;">
+                            <option value="A3_landscape" selected>📄 A3 가로 (대형 도면 - 기본 / 권장)</option>
                             <option value="A3_portrait">📑 A3 세로 (대형 수직 도면)</option>
                         </select>
                     </div>
@@ -493,13 +491,13 @@ window.closeNetworkPrintModal = function() {
  */
 window.executeNetworkPrint = async function() {
     const selDistrict = document.getElementById('sel-print-target-district');
-    const pageVal = document.getElementById('sel-print-page-size').value || 'A4_landscape';
+    const pageVal = document.getElementById('sel-print-page-size').value || 'A3_landscape';
     const [pSize, pOrient] = pageVal.includes('_') ? pageVal.split('_') : [pageVal, 'landscape'];
     const fontVal = document.getElementById('sel-print-font-size');
 
     _currentPrintOpts = {
         targetDistrict: selDistrict ? selDistrict.value : 'ALL',
-        pageSize: pSize || 'A4',
+        pageSize: pSize || 'A3',
         orientation: pOrient || 'landscape',
         labelMode: document.getElementById('sel-print-label-mode').value || 'smart',
         theme: document.getElementById('sel-print-theme').value || 'clean',
@@ -1319,34 +1317,20 @@ async function renderNetworkPrintOverlay(opts) {
 
     let paperWidth, screenMapHeight, aspectRatio, pageSizeRule;
 
+    // A3 전용 규격 정밀 매핑 (A3 가로: 420 × 297mm / A3 세로: 297 × 420mm)
     if (isPortrait) {
-        if (isA3) {
-            // A3 세로 (297 × 420mm -> 가용 너비 281mm, 가용 높이 384mm, 비율 0.732)
-            pageSizeRule = '297mm 420mm';
-            paperWidth = '860px';
-            screenMapHeight = 1131;
-            aspectRatio = '281 / 384';
-        } else {
-            // A4 세로 (210 × 297mm -> 가용 너비 194mm, 가용 높이 260mm, 비율 0.746)
-            pageSizeRule = '210mm 297mm';
-            paperWidth = '800px';
-            screenMapHeight = 1029;
-            aspectRatio = '194 / 260';
-        }
+        // [A3 세로 대형 도면] 가용 너비 281mm, 가용 높이 384mm (비율 0.73177)
+        // 화면 프리뷰에서도 A3 가로에 버금가는 대형 폭(1060px)을 유지하여 작게 축소되는 현상 원천 차단
+        pageSizeRule = '297mm 420mm';
+        paperWidth = '1060px';
+        screenMapHeight = 1448;
+        aspectRatio = '281 / 384';
     } else {
-        if (isA3) {
-            // A3 가로 (420 × 297mm -> 가용 너비 404mm, 가용 높이 261mm, 비율 1.548)
-            pageSizeRule = '420mm 297mm';
-            paperWidth = '1200px';
-            screenMapHeight = 749;
-            aspectRatio = '404 / 261';
-        } else {
-            // A4 가로 (297 × 210mm -> 가용 너비 281mm, 가용 높이 173mm, 비율 1.624)
-            pageSizeRule = '297mm 210mm';
-            paperWidth = '1140px';
-            screenMapHeight = 677;
-            aspectRatio = '281 / 173';
-        }
+        // [A3 가로 대형 도면] 가용 너비 404mm, 가용 높이 261mm (비율 1.54789)
+        pageSizeRule = '420mm 297mm';
+        paperWidth = '1240px';
+        screenMapHeight = 801;
+        aspectRatio = '404 / 261';
     }
 
     container.innerHTML = `
@@ -1400,7 +1384,7 @@ async function renderNetworkPrintOverlay(opts) {
             }
             @media print {
                 @page {
-                    size: ${opts.pageSize || 'A4'} ${opts.orientation || 'landscape'};
+                    size: A3 ${opts.orientation || 'landscape'};
                     margin: 4mm;
                 }
                 html, body {
@@ -1471,7 +1455,7 @@ async function renderNetworkPrintOverlay(opts) {
                     width: 100% !important;
                     min-width: 100% !important;
                     max-width: 100% !important;
-                    height: 100% !important;
+                    height: auto !important;
                     min-height: 0 !important;
                     aspect-ratio: ${aspectRatio} !important;
                     overflow: hidden !important;
@@ -1481,6 +1465,7 @@ async function renderNetworkPrintOverlay(opts) {
                     position: relative !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
+                    margin: 0 auto !important;
                 }
                 #net-print-leaflet-map, #net-print-svg-overlay {
                     width: 100% !important;
@@ -1546,11 +1531,10 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
 
                 <div style="display:flex; align-items:center; gap:5px;">
-                    <span style="font-size:12px; font-weight:bold; color:#cbd5e1;">용지:</span>
-                    <select onchange="updatePrintOption('pageSize', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px; height:30px; font-size:12px; padding:0 6px;">
-                        <option value="A4"${opts.pageSize === 'A4' || !opts.pageSize ? ' selected' : ''}>A4</option>
-                        <option value="A3"${opts.pageSize === 'A3' ? ' selected' : ''}>A3</option>
-                    </select>
+                    <span style="font-size:12px; font-weight:bold; color:#38bdf8;">규격:</span>
+                    <span style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; border-radius:4px; height:30px; font-size:12px; font-weight:bold; padding:0 8px; display:inline-flex; align-items:center;">
+                        A3 표준 (대형)
+                    </span>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:5px;">
@@ -1671,7 +1655,8 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 완벽 일치) -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; aspect-ratio:${aspectRatio}; max-height:calc(92vh - 110px); border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- [중앙 대형 맵 영역] 세로 모드 시 max-height 제한을 해제하여 A3 세로 도면이 본래 1060px 대형 규격으로 시원하게 표출됨 -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; aspect-ratio:${aspectRatio}; ${isPortrait ? 'min-height:900px;' : 'max-height:calc(92vh - 110px);'} border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
