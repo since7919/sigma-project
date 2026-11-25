@@ -50,17 +50,7 @@ function drawJunction(jid, onlyStyle) {
         });
         j.marker = L.marker([j.lat, j.lng], { icon: jIcon, draggable: STATE.isMapEditMode, zIndexOffset: 2000 }).addTo(map);
 
-        // SIGMA_API style popup
-        j.marker.bindPopup(`
-          <div class="popup-content">
-            <h3>${j.name}</h3>
-            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
-              <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
-              <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
-            </div>
-          </div>
-        `, { className: 'custom-popup', closeButton: true });
+// [팝업 최적화] 마커 생성 시 불필요한 사전 bindPopup을 제거하여 클릭 시 떴다가 꺼지는 깜빡임 현상 원천 제거
 
         j.marker.on('drag', (e) => {
             const pos = e.target.getLatLng();
@@ -84,17 +74,7 @@ function drawJunction(jid, onlyStyle) {
             pane: 'markerPane'
         }).addTo(map);
         
-        // SIGMA_API style popup
-        j.marker.bindPopup(`
-          <div class="popup-content">
-            <h3>${j.name}</h3>
-            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
-              <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
-              <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
-            </div>
-          </div>
-        `, { className: 'custom-popup', closeButton: true });
+// [팝업 최적화] 마커 생성 시 불필요한 사전 bindPopup을 제거하여 클릭 시 떴다가 꺼지는 깜빡임 현상 원천 제거
     }
 
     // 툴팁(이름 등) 표시
@@ -102,20 +82,11 @@ function drawJunction(jid, onlyStyle) {
 
     j.marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
-        // [사용자 요구] 연동 네트워크 편집화면인 경우 마커 자체 팝업 자동 오픈 차단
-        if (typeof window.isNetworkEditScreen === 'function' && window.isNetworkEditScreen()) {
-            if (typeof map !== 'undefined' && map && typeof map.closePopup === 'function') {
-                map.closePopup();
-            }
-            if (j.marker && typeof j.marker.closePopup === 'function') {
-                j.marker.closePopup();
-            }
-        }
-        // [복구] 편집 모드일 경우 RoadManager의 로직으로 즉시 전달 (안전장치)
+        // 편집 모드일 경우 RoadManager 로직으로 전달
         if (STATE.appMode === CONFIG.APP_MODE.NETWORK_EDIT && window.RoadManager) {
             window.RoadManager.handleNodeClick(j);
         } else {
-            // [수정] 이미 선택된 경우라도 selectJunction을 다시 호출하여 UI와 민원 탭 상태가 항상 동기화되도록 함
+            // 교차로 선택 및 단일 팝업 트리거
             selectJunction(jid);
         }
     });

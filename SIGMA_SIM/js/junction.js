@@ -283,8 +283,9 @@ function selectJunction(jid, isMulti = false) {
                 j.marker.closePopup();
             }
         } else {
-            console.log(`[Popup] Opening popup for ${jid}`);
-            j.marker.bindPopup(`
+            // [코딩 찌꺼기/깜빡임 완전 해결] 마커 재생성 후 즉시 단 1회만 깔끔하게 팝업 오픈 (setTimeout 50ms 딜레이 및 이중 팝업 제거)
+            console.log(`[Popup] Opening single clean popup for ${jid}`);
+            const popupHtml = `
               <div class="popup-content">
                 <h3>${j.name}</h3>
                 <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
@@ -293,17 +294,9 @@ function selectJunction(jid, isMulti = false) {
                   <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
                 </div>
               </div>
-            `, { className: 'custom-popup', closeButton: true });
-            
-            setTimeout(() => {
-                if (typeof window.isNetworkEditScreen === 'function' && window.isNetworkEditScreen()) {
-                    if (typeof map !== 'undefined' && map && typeof map.closePopup === 'function') {
-                        map.closePopup();
-                    }
-                    return;
-                }
-                j.marker.openPopup();
-            }, 50);
+            `;
+            j.marker.bindPopup(popupHtml, { className: 'custom-popup', closeButton: true });
+            j.marker.openPopup();
         }
     }
     
