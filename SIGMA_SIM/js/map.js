@@ -79,6 +79,13 @@ function toggleMapEdit() {
  *  지도 클릭 이벤트 (교차로 추가)
  * ══════════════════════════════════════════ */
 function initMapClickHandlers() {
+    // [사용자 요구] 연동 네트워크 편집화면 중에는 어떤 방식으로든 상세보기 팝업이 열리지 않도록 전역 차단
+    map.on('popupopen', () => {
+        if (typeof window.isNetworkEditScreen === 'function' && window.isNetworkEditScreen()) {
+            map.closePopup();
+        }
+    });
+
     map.on('click', (e) => {
         if (STATE.appMode === CONFIG.APP_MODE.ADD_NODE) {
             const jid = 'J-' + Date.now().toString().slice(-4);

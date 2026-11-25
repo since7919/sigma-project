@@ -102,6 +102,15 @@ function drawJunction(jid, onlyStyle) {
 
     j.marker.on('click', (e) => {
         L.DomEvent.stopPropagation(e);
+        // [사용자 요구] 연동 네트워크 편집화면인 경우 마커 자체 팝업 자동 오픈 차단
+        if (typeof window.isNetworkEditScreen === 'function' && window.isNetworkEditScreen()) {
+            if (typeof map !== 'undefined' && map && typeof map.closePopup === 'function') {
+                map.closePopup();
+            }
+            if (j.marker && typeof j.marker.closePopup === 'function') {
+                j.marker.closePopup();
+            }
+        }
         // [복구] 편집 모드일 경우 RoadManager의 로직으로 즉시 전달 (안전장치)
         if (STATE.appMode === CONFIG.APP_MODE.NETWORK_EDIT && window.RoadManager) {
             window.RoadManager.handleNodeClick(j);

@@ -37,6 +37,33 @@ let _arrowRefreshTask = null; // [성능 최적화] 화살표 렌더링 테스�
 
 
 
+/**
+ * [사용자 요구 반영] 연동 네트워크 편집 화면 감지 헬퍼
+ * - Node/Link 탭 (연동 네트워크 제어 및 수동 편집 화면)
+ * - Group TOD 탭 (연동 그룹 및 소속 교차로/시공도 편집 화면)
+ * - NETWORK_EDIT 모드 (노드간 링크 연결/삭제 수동 편집)
+ * - RoadManager 편집 모드
+ */
+window.isNetworkEditScreen = function() {
+    try {
+        if (typeof STATE !== 'undefined' && STATE.appMode === (window.CONFIG?.APP_MODE?.NETWORK_EDIT || 'NETWORK_EDIT')) {
+            return true;
+        }
+        if (typeof window !== 'undefined' && window.RoadManager && window.RoadManager.isEditing) {
+            return true;
+        }
+        if (typeof document !== 'undefined') {
+            const tabInfo = document.getElementById('tab-info');
+            if (tabInfo && tabInfo.classList.contains('active')) return true;
+            const tabGroup = document.getElementById('tab-group');
+            if (tabGroup && tabGroup.classList.contains('active')) return true;
+        }
+    } catch (e) {
+        console.warn('isNetworkEditScreen check error:', e);
+    }
+    return false;
+};
+
 /* ══════════════════════════════════════════
  *  교차로 선택
  * ══════════════════════════════════════════ */
@@ -246,21 +273,38 @@ function selectJunction(jid, isMulti = false) {
     }
     
     if (j.marker) {
-        console.log(`[Popup] Opening popup for ${jid}`);
-        j.marker.bindPopup(`
-          <div class="popup-content">
-            <h3>${j.name}</h3>
-            <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
-              <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
-              <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
-              <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
-            </div>
-          </div>
-        `, { className: 'custom-popup', closeButton: true });
-        
-        setTimeout(() => {
-            j.marker.openPopup();
-        }, 50);
+        const suppressPopup = (typeof window.isNetworkEditScreen === 'function') ? window.isNetworkEditScreen() : false;
+        if (suppressPopup) {
+            // [사용자 요구] 연동 네트워크 편집화면에서는 교차로를 선택해도 상세보기 팝업이 나타나지 않도록 억제
+            if (typeof map !== 'undefined' && map && typeof map.closePopup === 'function') {
+                map.closePopup();
+            }
+            if (typeof j.marker.closePopup === 'function') {
+                j.marker.closePopup();
+            }
+        } else {
+            console.log(`[Popup] Opening popup for ${jid}`);
+            j.marker.bindPopup(`
+              <div class="popup-content">
+                <h3>${j.name}</h3>
+                <div style="display:flex; flex-direction:column; gap:5px; margin-top:10px;">
+                  <button class="btn-detail" onclick="STATE.activeJid='${jid}'; openDetailOverlay('${jid}'); map.closePopup();">상세보기</button>
+                  <button class="btn-detail" style="background:#e67e22; margin-top:3px;" onclick="STATE.activeJid='${jid}'; openStatsOverlay('${jid}'); map.closePopup();">운영통계</button>
+                  <button class="btn-detail" style="background:#27ae60; margin-top:3px;" onclick="STATE.activeJid='${jid}'; if(typeof openDbReportOverlay === 'function') openDbReportOverlay('${jid}'); else alert('준비중입니다.'); map.closePopup();">DB보기</button>
+                </div>
+              </div>
+            `, { className: 'custom-popup', closeButton: true });
+            
+            setTimeout(() => {
+                if (typeof window.isNetworkEditScreen === 'function' && window.isNetworkEditScreen()) {
+                    if (typeof map !== 'undefined' && map && typeof map.closePopup === 'function') {
+                        map.closePopup();
+                    }
+                    return;
+                }
+                j.marker.openPopup();
+            }, 50);
+        }
     }
     
     // [Fix] UI 갱신을 100ms 지연 실행하여 데이터 로드 및 DOM 안정성 확보
