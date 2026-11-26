@@ -1321,24 +1321,44 @@ async function renderNetworkPrintOverlay(opts) {
     // 출력화면 프리뷰와 실제 PDF 출력물의 가로/세로 비율 및 여백을 100% 일치시켜 여백 발생 방지
     if (isPortrait) {
         // [A3 세로] 용지 전체 297 × 420mm (비율 0.7071)
-        pageSizeRule = 'A3 portrait';
-        paperWidth = '880px';
-        screenMapHeight = 1215;
+        pageSizeRule = 'portrait';
+        paperWidth = '850px';
+        screenMapHeight = 1180;
         aspectRatio = '281 / 388';
     } else {
         // [A3 가로] 용지 전체 420 × 297mm (비율 1.4142)
-        pageSizeRule = 'A3 landscape';
-        paperWidth = '1220px';
+        pageSizeRule = 'landscape';
+        paperWidth = '1200px';
         screenMapHeight = 800;
         aspectRatio = '404 / 265';
     }
 
-    container.innerHTML = `
-        <style id="network-print-dynamic-style">
-            /* [최상위 @page 선언] W3C 표준에 따라 @media 바깥 최상위에 선언하여 브라우저 인쇄창이 방향(가로/세로) 및 A3 규격을 100% 자동 강제 인식 */
+    // document.head에 @page 스타일을 동적 주입하여 브라우저 인쇄창이 생성 즉시 가로(landscape) 방향 100% 인식
+    let headPageStyle = document.getElementById('network-print-head-page-style');
+    if (!headPageStyle) {
+        headPageStyle = document.createElement('style');
+        headPageStyle.id = 'network-print-head-page-style';
+        document.head.appendChild(headPageStyle);
+    }
+    headPageStyle.textContent = `
+        @page {
+            size: ${pageSizeRule};
+            margin: 3mm;
+        }
+        @media print {
             @page {
                 size: ${pageSizeRule};
-                margin: 4mm;
+                margin: 3mm;
+            }
+        }
+    `;
+
+    container.innerHTML = `
+        <style id="network-print-dynamic-style">
+            /* [최상위 @page 선언] W3C 표준에 따라 @media 바깥 최상위에 선언하여 브라우저 인쇄창이 방향(가로/세로) 및 규격을 100% 자동 강제 인식 */
+            @page {
+                size: ${pageSizeRule};
+                margin: 3mm;
             }
             #network-print-overlay {
                 position: fixed;
@@ -1388,9 +1408,14 @@ async function renderNetworkPrintOverlay(opts) {
                 background-color: rgba(56, 189, 248, 0.45);
             }
             @media print {
+                @page {
+                    size: ${pageSizeRule};
+                    margin: 3mm;
+                }
                 html, body {
                     width: 100% !important;
                     min-width: 100% !important;
+                    max-width: 100% !important;
                     height: 100% !important;
                     margin: 0 !important;
                     padding: 0 !important;
@@ -1432,7 +1457,7 @@ async function renderNetworkPrintOverlay(opts) {
                     height: 100% !important;
                     min-height: 100% !important;
                     max-height: 100% !important;
-                    padding: 2mm 3mm !important;
+                    padding: 1.5mm 2.5mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
@@ -1450,8 +1475,8 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     box-sizing: border-box !important;
                     flex-shrink: 0 !important;
-                    padding-bottom: 3px !important;
-                    margin-bottom: 4px !important;
+                    padding-bottom: 2px !important;
+                    margin-bottom: 3px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
@@ -1494,7 +1519,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     box-sizing: border-box !important;
                     flex-shrink: 0 !important;
-                    margin-top: 4px !important;
+                    margin-top: 3px !important;
                     font-size: 8.5px !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
@@ -1664,9 +1689,8 @@ async function renderNetworkPrintOverlay(opts) {
                 </div>
             </div>
 
-            <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 완벽 일치) -->
-            <!-- [중앙 대형 맵 영역] 세로 모드 시 max-height 제한을 해제하여 A3 세로 도면이 본래 1060px 대형 규격으로 시원하게 표출됨 -->
-            <div id="net-print-map-wrapper" style="position:relative; width:100%; aspect-ratio:${aspectRatio}; ${isPortrait ? 'min-height:900px;' : 'max-height:calc(92vh - 110px);'} border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
+            <!-- 중앙 대형 맵 영역 (화면비율과 인쇄비율 1:1 완벽 일치: max-height 제한을 완전 해제하여 A3 표준 비율 그대로 표출) -->
+            <div id="net-print-map-wrapper" style="position:relative; width:100%; aspect-ratio:${aspectRatio}; border:1.5px solid ${borderColor}; border-radius:6px; overflow:hidden; background:${isDark ? '#050811' : '#f8fafc'};">
                 <!-- 1. Leaflet 배경지도 타일 레이어 -->
                 <div id="net-print-leaflet-map" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; cursor:grab;"></div>
 
@@ -1694,10 +1718,10 @@ async function renderNetworkPrintOverlay(opts) {
                             defaultBottomPct = 1.2;
                             defaultLeftPct = 1.2 + idx * 33.0;
                         } else {
-                            defaultWidthPct = 29.5;
+                            defaultWidthPct = 31.5;
                             defaultHeightPct = 31.0;
                             defaultBottomPct = 1.5;
-                            defaultLeftPct = 1.2 + idx * 30.5;
+                            defaultLeftPct = 1.2 + idx * 33.0;
                         }
                         _insetBaseSizes[h.id] = { w: defaultWidthPct, h: defaultHeightPct, bottom: defaultBottomPct, left: defaultLeftPct };
                         const curScale = _insetCurrentScale[h.id] || 1.0;
@@ -2278,6 +2302,8 @@ function make8WayResizable(containerEl, hotspotId) {
 }
 
 window.closeNetworkPrintOverlay = function() {
+    const headStyle = document.getElementById('network-print-head-page-style');
+    if (headStyle) headStyle.remove();
     const container = document.getElementById('network-print-overlay');
     if (container) container.style.display = 'none';
     if (_activePrintMap) {
