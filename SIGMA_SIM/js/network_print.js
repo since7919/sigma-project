@@ -661,7 +661,7 @@ function updateInsetToolbarBadges() {
     container.innerHTML = _cachedHotspots.map(h => {
         const isOpen = !!_insetVisibility[h.id];
         return `
-            <button onclick="toggleInsetMap(${h.id})" style="background:${isOpen ? h.color : '#0f172a'}; border:1px solid ${isOpen ? '#ffffff' : '#475569'}; color:${isOpen ? '#ffffff' : '#94a3b8'}; border-radius:4px; padding:2px 8px; font-size:11.5px; font-weight:900; cursor:pointer; box-shadow:${isOpen ? '0 1px 4px rgba(0,0,0,0.5)' : 'none'};" title="${isOpen ? '확대창 닫기' : '확대창 열기'}">
+            <button onclick="toggleInsetMap(${h.id})" style="background:${isOpen ? h.color : '#0f172a'}; border:1px solid ${isOpen ? '#ffffff' : '#475569'}; color:${isOpen ? '#ffffff' : '#94a3b8'}; border-radius:3px; padding:1px 5px; font-size:10px; font-weight:900; cursor:pointer; box-shadow:${isOpen ? '0 1px 3px rgba(0,0,0,0.5)' : 'none'}; white-space:nowrap;" title="${isOpen ? '확대창 닫기' : '확대창 열기'}">
                 #${h.id} ${isOpen ? 'ON' : 'OFF'}
             </button>
         `;
@@ -1544,132 +1544,141 @@ async function renderNetworkPrintOverlay(opts) {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
+                .net-no-print, .net-no-print * {
+                    scrollbar-width: none !important;
+                    -ms-overflow-style: none !important;
+                }
+                .net-no-print::-webkit-scrollbar, .net-no-print *::-webkit-scrollbar {
+                    display: none !important;
+                    width: 0 !important;
+                    height: 0 !important;
+                }
             }
         </style>
 
-        <!-- 상단 실시간 도면 최적화 툴바 (2줄 정렬 & 글자/버튼 크기 최적화) -->
-        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:8px 12px; margin-bottom:10px; display:flex; flex-direction:column; gap:7px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box;">
-            <!-- [1행] 도면 기본 설정 (구역, 방향, 규격, 지도, 연동선) + 메인 액션 버튼 (PDF 인쇄, 닫기) -->
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap; overflow-x:auto;">
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">구역:</span>
-                        <select onchange="updatePrintOption('targetDistrict', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:27px; font-size:11.5px; padding:0 6px;">
+        <!-- 상단 실시간 도면 최적화 툴바 (2줄 정렬 & 횡스크롤바 원천 차단) -->
+        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:6px 12px; margin-bottom:8px; display:flex; flex-direction:column; gap:6px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box; overflow-x:hidden !important;">
+            <!-- [1행] 도면 기본 규격 (구역, 방향, 규격, 지도, 연동선, 배율) + 메인 액션 버튼 (PDF 인쇄, 닫기) -->
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:6px; overflow-x:hidden;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">구역:</span>
+                        <select onchange="updatePrintOption('targetDistrict', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
                             ${districtSelectHtml}
                         </select>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">방향:</span>
-                        <select onchange="updatePrintOption('orientation', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:27px; font-size:11.5px; padding:0 6px; font-weight:bold;">
-                            <option value="landscape"${!isPortrait ? ' selected' : ''}>📄 가로 (Landscape)</option>
-                            <option value="portrait"${isPortrait ? ' selected' : ''}>📑 세로 (Portrait)</option>
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">방향:</span>
+                        <select onchange="updatePrintOption('orientation', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:26px; font-size:11px; padding:0 5px; font-weight:bold;">
+                            <option value="landscape"${!isPortrait ? ' selected' : ''}>📄 가로</option>
+                            <option value="portrait"${isPortrait ? ' selected' : ''}>📑 세로</option>
                         </select>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">규격:</span>
-                        <span style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; border-radius:4px; height:27px; font-size:11px; font-weight:bold; padding:0 7px; display:inline-flex; align-items:center; white-space:nowrap;">
-                            A3 표준 (대형)
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">규격:</span>
+                        <span style="background:#1e293b; color:#38bdf8; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:10.5px; font-weight:bold; padding:0 6px; display:inline-flex; align-items:center; white-space:nowrap;">
+                            A3
                         </span>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">지도:</span>
-                        <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:27px; font-size:11.5px; padding:0 6px;">
-                            <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 그레이톤 도로망 (기본)</option>
-                            <option value="color"${opts.theme === 'color' ? ' selected' : ''}>🗺️ 컬러 도로 지도</option>
-                            <option value="osm"${opts.theme === 'osm' ? ' selected' : ''}>🌐 오픈스트리트맵</option>
-                            <option value="dark"${opts.theme === 'dark' ? ' selected' : ''}>🌌 다크 지도</option>
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">지도:</span>
+                        <select onchange="updatePrintOption('theme', this.value)" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
+                            <option value="clean"${opts.theme === 'clean' || !opts.theme ? ' selected' : ''}>📄 그레이톤 (기본)</option>
+                            <option value="color"${opts.theme === 'color' ? ' selected' : ''}>🗺️ 컬러 도로망</option>
+                            <option value="osm"${opts.theme === 'osm' ? ' selected' : ''}>🌐 OSM 지도</option>
+                            <option value="dark"${opts.theme === 'dark' ? ' selected' : ''}>🌌 다크 모드</option>
                         </select>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">연동선:</span>
-                        <select onchange="updatePrintOption('lineWidth', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:27px; font-size:11.5px; padding:0 6px;">
-                            <option value="4.0"${opts.lineWidth === 4.0 ? ' selected' : ''}>보통 4.0px</option>
-                            <option value="5.5"${opts.lineWidth === 5.5 ? ' selected' : ''}>굵게 5.5px (권장)</option>
-                            <option value="7.0"${opts.lineWidth === 7.0 ? ' selected' : ''}>매우 굵게 7.0px</option>
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#cbd5e1; white-space:nowrap;">연동선:</span>
+                        <select onchange="updatePrintOption('lineWidth', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.25); border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
+                            <option value="4.0"${opts.lineWidth === 4.0 ? ' selected' : ''}>4.0px</option>
+                            <option value="5.5"${opts.lineWidth === 5.5 ? ' selected' : ''}>5.5px (권장)</option>
+                            <option value="7.0"${opts.lineWidth === 7.0 ? ' selected' : ''}>7.0px</option>
                         </select>
+                    </div>
+
+                    <!-- [배율 미세조절 슬라이더를 1행으로 배치하여 공간 분산] -->
+                    <div style="display:flex; align-items:center; gap:4px; background:#1e293b; border:1px solid #38bdf8; border-radius:4px; padding:1px 6px; height:26px; box-sizing:border-box;">
+                        <span style="font-size:10.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">🔍 배율:</span>
+                        <button onclick="stepZoomGauge(-0.15)" style="background:#0f172a; border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:3px; width:18px; height:18px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="미세 축소 (−0.15)">−</button>
+                        <input type="range" id="net-print-zoom-gauge" min="10" max="18" step="0.05" value="13"
+                               oninput="onZoomGaugeInput(parseFloat(this.value))"
+                               style="width:65px; accent-color:#38bdf8; cursor:ew-resize;" title="배율 미세 조절">
+                        <button onclick="stepZoomGauge(+0.15)" style="background:#0f172a; border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:3px; width:18px; height:18px; font-size:11px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="미세 확대 (+0.15)">+</button>
+                        <span id="net-print-zoom-badge" style="font-size:10px; font-weight:bold; color:#38bdf8; min-width:32px; text-align:right; font-variant-numeric:tabular-nums;">100%</span>
                     </div>
                 </div>
 
                 <!-- [1행 우측] 메인 액션 버튼 -->
-                <div style="display:flex; align-items:center; gap:7px; flex-shrink:0;">
-                    <button onclick="triggerNetworkPrint()" class="phase-action-btn phase-btn-blue" style="height:29px; padding:0 15px; font-size:12px; font-weight:bold; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
-                        🖨️ PDF로 저장 / 인쇄
+                <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                    <button onclick="triggerNetworkPrint()" class="phase-action-btn phase-btn-blue" style="height:27px; padding:0 14px; font-size:11.5px; font-weight:bold; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-radius:4px; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                        🖨️ PDF 인쇄
                     </button>
-                    <button onclick="closeNetworkPrintOverlay()" class="phase-action-btn phase-btn-gray" style="height:29px; padding:0 12px; font-size:11.5px; border-radius:4px; white-space:nowrap;">
+                    <button onclick="closeNetworkPrintOverlay()" class="phase-action-btn phase-btn-gray" style="height:27px; padding:0 10px; font-size:11px; border-radius:4px; white-space:nowrap;">
                         닫기
                     </button>
                 </div>
             </div>
 
-            <!-- [2행] 라벨/글자 표출 옵션 + 뷰포트 배율 및 확대영역(3개) 일체형 제어 -->
-            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px; flex-wrap:nowrap; overflow-x:auto;">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">라벨:</span>
-                        <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:27px; font-size:11.5px; padding:0 6px;">
-                            <option value="smart"${opts.labelMode === 'smart' || !opts.labelMode ? ' selected' : ''}>🛡️ 스마트 겹침방지 (기본)</option>
-                            <option value="leader"${opts.labelMode === 'leader' || opts.labelMode === 'badge' ? ' selected' : ''}>🎯 나선형 빈공간 분산 (100% 전수)</option>
+            <!-- [2행] 라벨/글자 표출 옵션 + 맞춤 + 확대영역(3개) 일체형 제어 -->
+            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:6px; overflow-x:hidden;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">라벨:</span>
+                        <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
+                            <option value="smart"${opts.labelMode === 'smart' || !opts.labelMode ? ' selected' : ''}>🛡️ 스마트 방지 (기본)</option>
+                            <option value="leader"${opts.labelMode === 'leader' || opts.labelMode === 'badge' ? ' selected' : ''}>🎯 나선형 전수표출</option>
                         </select>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        <span style="font-size:11.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">글자:</span>
-                        <select onchange="updatePrintOption('fontSize', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:27px; font-size:11.5px; padding:0 6px;">
-                            <option value="6.0"${opts.fontSize === 6.0 ? ' selected' : ''}>초소형 6.0px</option>
+                    <div style="display:flex; align-items:center; gap:3px;">
+                        <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">글자:</span>
+                        <select onchange="updatePrintOption('fontSize', parseFloat(this.value))" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
+                            <option value="6.0"${opts.fontSize === 6.0 ? ' selected' : ''}>초소형 6px</option>
                             <option value="7.2"${(!opts.fontSize || opts.fontSize === 7.2 || opts.fontSize === 7.5) ? ' selected' : ''}>작게 7.2px (기본)</option>
                             <option value="8.5"${opts.fontSize === 8.5 ? ' selected' : ''}>보통 8.5px</option>
-                            <option value="10.0"${opts.fontSize === 10.0 ? ' selected' : ''}>크게 10.0px (A3용)</option>
-                            <option value="12.0"${opts.fontSize === 12.0 ? ' selected' : ''}>특대 12.0px</option>
+                            <option value="10.0"${opts.fontSize === 10.0 ? ' selected' : ''}>크게 10px</option>
+                            <option value="12.0"${opts.fontSize === 12.0 ? ' selected' : ''}>특대 12px</option>
                         </select>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:4px; background:#1e293b; border:1px solid rgba(56,189,248,0.4); border-radius:4px; height:27px; padding:0 7px; cursor:pointer;" onclick="const chk=document.getElementById('net-print-show-jid'); if(event.target!==chk){chk.checked=!chk.checked; updatePrintOption('showJid', chk.checked);}" title="교차로 식별번호([ID]) 표출 여부 토글">
-                        <input type="checkbox" id="net-print-show-jid" ${opts.showJid ? 'checked' : ''} onchange="updatePrintOption('showJid', this.checked)" style="accent-color:#38bdf8; cursor:pointer; width:13px; height:13px;">
-                        <span style="font-size:11px; font-weight:bold; color:${opts.showJid ? '#38bdf8' : '#cbd5e1'}; user-select:none; cursor:pointer; white-space:nowrap;">ID 번호</span>
+                    <div style="display:flex; align-items:center; gap:3px; background:#1e293b; border:1px solid rgba(56,189,248,0.4); border-radius:4px; height:26px; padding:0 6px; cursor:pointer;" onclick="const chk=document.getElementById('net-print-show-jid'); if(event.target!==chk){chk.checked=!chk.checked; updatePrintOption('showJid', chk.checked);}" title="교차로 식별번호([ID]) 표출 여부 토글">
+                        <input type="checkbox" id="net-print-show-jid" ${opts.showJid ? 'checked' : ''} onchange="updatePrintOption('showJid', this.checked)" style="accent-color:#38bdf8; cursor:pointer; width:12px; height:12px;">
+                        <span style="font-size:10.5px; font-weight:bold; color:${opts.showJid ? '#38bdf8' : '#cbd5e1'}; user-select:none; cursor:pointer; white-space:nowrap;">ID 번호</span>
                     </div>
 
-                    <button onclick="resetPrintMapView()" class="phase-action-btn phase-btn-cyan" style="height:27px; padding:0 8px; font-size:11px; font-weight:bold; border-radius:4px; white-space:nowrap;" title="해당 구역을 화면에 꽉 차게 재설정합니다 (100% 기본 배율)">
-                        구역 전체 맞춤
+                    <button onclick="resetPrintMapView()" class="phase-action-btn phase-btn-cyan" style="height:26px; padding:0 8px; font-size:10.5px; font-weight:bold; border-radius:4px; white-space:nowrap;" title="해당 구역을 화면에 꽉 차게 재설정합니다 (100% 기본 배율)">
+                        🎯 구역맞춤
                     </button>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;">
-                    <!-- [배율 미세조절 게이지 슬라이더] -->
-                    <div style="display:flex; align-items:center; gap:5px; background:#1e293b; border:1px solid #38bdf8; border-radius:4px; padding:2px 7px; height:27px; box-sizing:border-box;">
-                        <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">🔍 배율:</span>
-                        <button onclick="stepZoomGauge(-0.15)" style="background:#0f172a; border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:3px; width:19px; height:19px; font-size:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="미세 축소 (−0.15)">−</button>
-                        <input type="range" id="net-print-zoom-gauge" min="10" max="18" step="0.05" value="13"
-                               oninput="onZoomGaugeInput(parseFloat(this.value))"
-                               style="width:85px; accent-color:#38bdf8; cursor:ew-resize;" title="슬라이더를 좌우로 드래그하여 배율을 미세하게 조절합니다">
-                        <button onclick="stepZoomGauge(+0.15)" style="background:#0f172a; border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:3px; width:19px; height:19px; font-size:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="미세 확대 (+0.15)">+</button>
-                        <span id="net-print-zoom-badge" style="font-size:10.5px; font-weight:bold; color:#38bdf8; min-width:36px; text-align:right; font-variant-numeric:tabular-nums;">100%</span>
-                    </div>
-
-                    <!-- [확대영역 3개 토글 & 복원 컨트롤] -->
-                    <div style="display:flex; align-items:center; gap:5px; background:#1e293b; border:1px solid rgba(245,158,11,0.5); border-radius:4px; padding:2px 7px; height:27px; box-sizing:border-box;">
-                        <span style="font-size:11px; font-weight:bold; color:#f59e0b; white-space:nowrap;">🔍 확대:</span>
+                <!-- [2행 우측] 확대영역 3개 토글 & 복원 컨트롤 -->
+                <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                    <div style="display:flex; align-items:center; gap:4px; background:#1e293b; border:1px solid rgba(245,158,11,0.5); border-radius:4px; padding:1px 6px; height:26px; box-sizing:border-box;">
+                        <span style="font-size:10.5px; font-weight:bold; color:#f59e0b; white-space:nowrap;">🔍 확대:</span>
                         <div id="net-print-inset-toolbar-buttons" style="display:flex; gap:3px;">
                             ${hotspots.map(h => `
-                                <button onclick="toggleInsetMap(${h.id})" style="background:${h.color}; border:1px solid #ffffff; color:#ffffff; border-radius:3px; padding:1px 6px; font-size:10.5px; font-weight:900; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.5); white-space:nowrap;" title="${h.title} 토글">
+                                <button onclick="toggleInsetMap(${h.id})" style="background:${h.color}; border:1px solid #ffffff; color:#ffffff; border-radius:3px; padding:1px 5px; font-size:10px; font-weight:900; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.5); white-space:nowrap;" title="${h.title} 토글">
                                     #${h.id} ON
                                 </button>
                             `).join('')}
                         </div>
-                        <button onclick="restoreAllInsets()" style="background:#0f172a; border:1px solid #f59e0b; color:#f59e0b; border-radius:3px; font-size:10px; font-weight:bold; padding:1px 5px; cursor:pointer; white-space:nowrap;" title="닫았던 모든 확대영역을 다시 복원합니다">
-                            전체 복원
+                        <button onclick="restoreAllInsets()" style="background:#0f172a; border:1px solid #f59e0b; color:#f59e0b; border-radius:3px; font-size:9.5px; font-weight:bold; padding:1px 5px; cursor:pointer; white-space:nowrap;" title="닫았던 모든 확대영역을 다시 복원합니다">
+                            복원
                         </button>
                         <!-- 미니창 크기 배율 선택기 -->
-                        <div style="display:flex; align-items:center; gap:3px; margin-left:4px; border-left:1px solid rgba(255,255,255,0.2); padding-left:4px;">
-                            <span style="font-size:10.5px; font-weight:bold; color:#38bdf8; white-space:nowrap;">크기:</span>
-                            <select id="net-print-inset-size-select" onchange="changeAllInsetScale(this.value)" style="background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; border-radius:3px; font-size:10.5px; font-weight:bold; padding:1px 3px; cursor:pointer;" title="미니창 전체 크기를 일괄 조절합니다">
-                                <option value="1.0" ${(_insetCurrentScale[1] || 1.0) === 1.0 ? 'selected' : ''}>기본 (100%)</option>
-                                <option value="1.35" ${_insetCurrentScale[1] === 1.35 ? 'selected' : ''}>중형 (135%)</option>
-                                <option value="1.7" ${_insetCurrentScale[1] === 1.7 ? 'selected' : ''}>대형 (170%)</option>
-                                <option value="2.1" ${_insetCurrentScale[1] === 2.1 ? 'selected' : ''}>특대 (210%)</option>
+                        <div style="display:flex; align-items:center; gap:3px; margin-left:3px; border-left:1px solid rgba(255,255,255,0.2); padding-left:4px;">
+                            <span style="font-size:10px; font-weight:bold; color:#38bdf8; white-space:nowrap;">크기:</span>
+                            <select id="net-print-inset-size-select" onchange="changeAllInsetScale(this.value)" style="background:#0f172a; color:#38bdf8; border:1px solid #38bdf8; border-radius:3px; font-size:10px; font-weight:bold; padding:1px 2px; cursor:pointer; height:20px;" title="미니창 전체 크기를 일괄 조절합니다">
+                                <option value="1.0" ${(_insetCurrentScale[1] || 1.0) === 1.0 ? 'selected' : ''}>100%</option>
+                                <option value="1.35" ${_insetCurrentScale[1] === 1.35 ? 'selected' : ''}>135%</option>
+                                <option value="1.7" ${_insetCurrentScale[1] === 1.7 ? 'selected' : ''}>170%</option>
+                                <option value="2.1" ${_insetCurrentScale[1] === 2.1 ? 'selected' : ''}>210%</option>
                             </select>
                         </div>
                     </div>
