@@ -1317,24 +1317,31 @@ async function renderNetworkPrintOverlay(opts) {
 
     let paperWidth, screenMapHeight, aspectRatio, pageSizeRule;
 
-    // A3 전용 규격 정밀 매핑 (A3 가로: 420 × 297mm / A3 세로: 297 × 420mm)
+    // [A3 국제 표준 규격 ISO 216: 420 × 297mm 정밀 1:1 매핑]
+    // 출력화면 프리뷰와 실제 PDF 출력물의 가로/세로 비율 및 여백을 100% 일치시켜 여백 발생 방지
     if (isPortrait) {
-        // [A3 세로 대형 도면] 가용 너비 281mm, 가용 높이 384mm (비율 0.73177)
-        // 화면 프리뷰에서도 A3 가로에 버금가는 대형 폭(1060px)을 유지하여 작게 축소되는 현상 원천 차단
+        // [A3 세로] 용지 전체 297 × 420mm (비율 0.7071)
+        // 마진 4mm 제외 후 가용 영역 289 × 412mm, 헤더/푸터 제외 순수 지도 영역 281 × 388mm (비율 0.7242)
         pageSizeRule = '297mm 420mm';
-        paperWidth = '1060px';
-        screenMapHeight = 1448;
-        aspectRatio = '281 / 384';
+        paperWidth = '880px';
+        screenMapHeight = 1215;
+        aspectRatio = '281 / 388';
     } else {
-        // [A3 가로 대형 도면] 가용 너비 404mm, 가용 높이 261mm (비율 1.54789)
+        // [A3 가로] 용지 전체 420 × 297mm (비율 1.4142)
+        // 마진 4mm 제외 후 가용 영역 412 × 289mm, 헤더/푸터 제외 순수 지도 영역 404 × 265mm (비율 1.5245)
         pageSizeRule = '420mm 297mm';
-        paperWidth = '1240px';
-        screenMapHeight = 801;
-        aspectRatio = '404 / 261';
+        paperWidth = '1220px';
+        screenMapHeight = 800;
+        aspectRatio = '404 / 265';
     }
 
     container.innerHTML = `
         <style id="network-print-dynamic-style">
+            /* [최상위 @page 선언] W3C 표준에 따라 @media 바깥 최상위에 선언하여 브라우저 인쇄창이 방향(가로/세로) 및 A3 규격을 100% 자동 강제 인식 */
+            @page {
+                size: ${pageSizeRule};
+                margin: 4mm;
+            }
             #network-print-overlay {
                 position: fixed;
                 top: 0; left: 0; width: 100vw; height: 100vh;
@@ -1383,10 +1390,6 @@ async function renderNetworkPrintOverlay(opts) {
                 background-color: rgba(56, 189, 248, 0.45);
             }
             @media print {
-                @page {
-                    size: A3 ${opts.orientation || 'landscape'};
-                    margin: 4mm;
-                }
                 html, body {
                     width: 100% !important;
                     min-width: 100% !important;
@@ -1431,7 +1434,7 @@ async function renderNetworkPrintOverlay(opts) {
                     height: 100% !important;
                     min-height: 100% !important;
                     max-height: 100% !important;
-                    padding: 1.5mm 3mm !important;
+                    padding: 2mm 3.5mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
