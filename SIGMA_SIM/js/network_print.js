@@ -1407,6 +1407,20 @@ async function renderNetworkPrintOverlay(opts) {
             .net-print-resizer:hover {
                 background-color: rgba(56, 189, 248, 0.45);
             }
+            /* 툴바 축소 붕괴 방지 및 스크롤바 제거 */
+            .net-no-print {
+                flex-shrink: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .net-no-print, .net-no-print * {
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+            .net-no-print::-webkit-scrollbar, .net-no-print *::-webkit-scrollbar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+            }
             @media print {
                 @page {
                     size: ${pageSizeRule};
@@ -1544,23 +1558,14 @@ async function renderNetworkPrintOverlay(opts) {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
-                .net-no-print, .net-no-print * {
-                    scrollbar-width: none !important;
-                    -ms-overflow-style: none !important;
-                }
-                .net-no-print::-webkit-scrollbar, .net-no-print *::-webkit-scrollbar {
-                    display: none !important;
-                    width: 0 !important;
-                    height: 0 !important;
-                }
             }
         </style>
 
-        <!-- 상단 실시간 도면 최적화 툴바 (2줄 정렬 & 횡스크롤바 원천 차단) -->
-        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:6px 12px; margin-bottom:8px; display:flex; flex-direction:column; gap:6px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box; overflow-x:hidden !important;">
+        <!-- 상단 실시간 도면 최적화 툴바 (2줄 정렬 & 붕괴 방지 & 횡스크롤바 차단) -->
+        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:6px 12px; margin-bottom:8px; display:flex; flex-direction:column; gap:6px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box; flex-shrink:0 !important; min-height:72px;">
             <!-- [1행] 도면 기본 규격 (구역, 방향, 규격, 지도, 연동선, 배율) + 메인 액션 버튼 (PDF 인쇄, 닫기) -->
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:6px; overflow-x:hidden;">
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
                     <div style="display:flex; align-items:center; gap:3px;">
                         <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">구역:</span>
                         <select onchange="updatePrintOption('targetDistrict', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
@@ -1626,8 +1631,8 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <!-- [2행] 라벨/글자 표출 옵션 + 맞춤 + 확대영역(3개) 일체형 제어 -->
-            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:6px; overflow-x:hidden;">
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
                     <div style="display:flex; align-items:center; gap:3px;">
                         <span style="font-size:11px; font-weight:bold; color:#38bdf8; white-space:nowrap;">라벨:</span>
                         <select onchange="updatePrintOption('labelMode', this.value)" style="background:#1e293b; color:#fff; border:1px solid #38bdf8; border-radius:4px; height:26px; font-size:11px; padding:0 5px;">
