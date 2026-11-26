@@ -1321,15 +1321,13 @@ async function renderNetworkPrintOverlay(opts) {
     // 출력화면 프리뷰와 실제 PDF 출력물의 가로/세로 비율 및 여백을 100% 일치시켜 여백 발생 방지
     if (isPortrait) {
         // [A3 세로] 용지 전체 297 × 420mm (비율 0.7071)
-        // 마진 4mm 제외 후 가용 영역 289 × 412mm, 헤더/푸터 제외 순수 지도 영역 281 × 388mm (비율 0.7242)
-        pageSizeRule = '297mm 420mm';
+        pageSizeRule = 'A3 portrait';
         paperWidth = '880px';
         screenMapHeight = 1215;
         aspectRatio = '281 / 388';
     } else {
         // [A3 가로] 용지 전체 420 × 297mm (비율 1.4142)
-        // 마진 4mm 제외 후 가용 영역 412 × 289mm, 헤더/푸터 제외 순수 지도 영역 404 × 265mm (비율 1.5245)
-        pageSizeRule = '420mm 297mm';
+        pageSizeRule = 'A3 landscape';
         paperWidth = '1220px';
         screenMapHeight = 800;
         aspectRatio = '404 / 265';
@@ -1434,7 +1432,7 @@ async function renderNetworkPrintOverlay(opts) {
                     height: 100% !important;
                     min-height: 100% !important;
                     max-height: 100% !important;
-                    padding: 2mm 3.5mm !important;
+                    padding: 2mm 3mm !important;
                     margin: 0 !important;
                     background: ${bgColor} !important;
                     display: flex !important;
@@ -1447,6 +1445,10 @@ async function renderNetworkPrintOverlay(opts) {
                     box-sizing: border-box !important;
                 }
                 .net-print-header {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box !important;
                     flex-shrink: 0 !important;
                     padding-bottom: 3px !important;
                     margin-bottom: 4px !important;
@@ -1460,7 +1462,7 @@ async function renderNetworkPrintOverlay(opts) {
                     max-width: 100% !important;
                     height: auto !important;
                     min-height: 0 !important;
-                    aspect-ratio: ${aspectRatio} !important;
+                    aspect-ratio: auto !important; /* aspect-ratio로 인한 가로 너비 축소 방지 (100% 전폭 채움) */
                     overflow: hidden !important;
                     border: 1px solid ${borderColor} !important;
                     border-radius: 4px !important;
@@ -1468,7 +1470,7 @@ async function renderNetworkPrintOverlay(opts) {
                     position: relative !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
-                    margin: 0 auto !important;
+                    margin: 0 !important;
                 }
                 #net-print-leaflet-map, #net-print-svg-overlay {
                     width: 100% !important;
@@ -1487,6 +1489,11 @@ async function renderNetworkPrintOverlay(opts) {
                     display: none !important;
                 }
                 .net-print-footer {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box !important;
+                    flex-shrink: 0 !important;
                     margin-top: 4px !important;
                     font-size: 8.5px !important;
                     page-break-inside: avoid !important;
@@ -1637,7 +1644,7 @@ async function renderNetworkPrintOverlay(opts) {
         <!-- 인쇄 도면 용지 본문 -->
         <div class="net-print-paper">
             <!-- 헤더 -->
-            <div class="net-print-header" style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:6px; margin-bottom:8px;">
+            <div class="net-print-header" style="width:100%; box-sizing:border-box; display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2.5px solid ${isDark ? '#38bdf8' : '#0284c7'}; padding-bottom:6px; margin-bottom:8px;">
                 <div>
                     <div style="font-size:11px; font-weight:700; color:${isDark ? '#38bdf8' : '#0284c7'}; letter-spacing:1px; margin-bottom:2px;">
                         KOROAD SIGMA TRAFFIC SIGNAL MANAGEMENT SYSTEM
@@ -1760,7 +1767,7 @@ async function renderNetworkPrintOverlay(opts) {
             </div>
 
             <!-- 하단 푸터 -->
-            <div class="net-print-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:9.5px; color:${subColor};">
+            <div class="net-print-footer" style="width:100%; box-sizing:border-box; display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:9.5px; color:${subColor};">
                 <div>* 본 도면은 실제 도로 배경 지도와 SIGMA 연동 그룹별 고유 알고리즘에 의해 자동 생성된 공식 도면입니다.</div>
                 <div><b>SIGMA SIM</b> | Powered by Koroad & Advanced Agentic Signal Engine</div>
             </div>
