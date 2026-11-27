@@ -130,6 +130,177 @@ class TSDAnalyzer {
     }
 
     /**
+     * [신규] 특정 교차로에 도착 시각(arrT) 기준 신호 상태 및 대기 시간 계산
+     * @returns { isGreen: boolean, waitTime: number, nextGreenT: number }
+     */
+    static checkSignalAtArrival(member, axis, dir, dayIdx, pIdx, cycle, arrT, offsetOverride) {
+        const greens = this.getGreenWindow(member, axis, dir, dayIdx, pIdx, cycle, offsetOverride);
+        if (!greens || greens.length === 0) {
+            return { isGreen: true, waitTime: 0, nextGreenT: arrT };
+        }
+
+        const tMod = ((arrT % cycle) + cycle) % cycle;
+        let isGreen = false;
+        let minWait = cycle;
+
+        for (const g of greens) {
+            const gS = g.gStart;
+            const gE = (gS + g.gLen) % cycle;
+
+            const inWindow = (gS < gE)
+                ? (tMod >= gS && tMod < gE)
+                : (tMod >= gS || tMod < gE);
+
+            if (inWindow) {
+                isGreen = true;
+                minWait = 0;
+                break;
+            }
+
+            // 적색일 경우 이 녹색 창의 시작까지 대기해야 하는 시간
+            let wait = (gS - tMod);
+            if (wait <= 0) wait += cycle;
+            if (wait < minWait) {
+                minWait = wait;
+            }
+        }
+
+        if (isGreen) {
+            return { isGreen: true, waitTime: 0, nextGreenT: arrT };
+        } else {
+            return { isGreen: false, waitTime: minWait, nextGreenT: arrT + minWait };
+        }
+    }
+
+    /**
+     * [신규] 차량 1대의 전 구간 물리 주행 및 신호 대기 궤적 세그먼트 생성
+     */
+    static buildVehicleTrajectory(members, distances, segSpeeds, axis, dir, dayIdx, pIdx, cycle, depT0) {
+        const N = members.length;
+        const isUp = (dir === 'up');
+        const sortedIndices = isUp
+            ? members.map((_, i) => i)
+            : members.map((_, i) => i).reverse();
+
+        const segments = [];
+        let curT = depT0;
+
+        // 1. 기점 교차로 출발 신호 대기 체크
+        const firstIdx = sortedIndices[0];
+        const firstSig = this.checkSignalAtArrival(members[firstIdx], axis, dir, dayIdx, pIdx, cycle, curT);
+        if (!firstSig.isGreen && firstSig.waitTime > 0) {
+            segments.push({
+                type: 'stop',
+                t0: curT,
+                t1: curT + firstSig.waitTime,
+                nodeIdx: firstIdx,
+                dist: distances[firstIdx]
+            });
+            curT += firstSig.waitTime;
+        }
+
+        // 2. 중간 교차로 순차 주행 및 적신호 정차 대기
+        for (let step = 0; step < sortedIndices.length - 1; step++) {
+            const fromIdx = sortedIndices[step];
+            const toIdx = sortedIndices[step + 1];
+
+            const segDist = Math.abs(distances[toIdx] - distances[fromIdx]);
+            const segSpeedIdx = isUp ? fromIdx : toIdx;
+            const spd = (segSpeeds && segSpeeds[segSpeedIdx]) ? segSpeeds[segSpeedIdx] : 50;
+            const v = (spd / 3.6); // m/s
+            const travelTime = (v > 0) ? (segDist / v) : 1;
+
+            const tMoveStart = curT;
+            const tMoveEnd = curT + travelTime;
+
+            segments.push({
+                type: 'move',
+                t0: tMoveStart,
+                t1: tMoveEnd,
+                fromNode: fromIdx,
+                toNode: toIdx,
+                fromDist: distances[fromIdx],
+                toDist: distances[toIdx],
+                travelTime: travelTime
+            });
+
+            curT = tMoveEnd;
+
+            // 목적지 교차로(toIdx) 도착 시 신호 체크 (마지막 교차로 직전까지 적용)
+            if (step < sortedIndices.length - 1) {
+                const sig = this.checkSignalAtArrival(members[toIdx], axis, dir, dayIdx, pIdx, cycle, curT);
+                if (!sig.isGreen && sig.waitTime > 0) {
+                    segments.push({
+                        type: 'stop',
+                        t0: curT,
+                        t1: curT + sig.waitTime,
+                        nodeIdx: toIdx,
+                        dist: distances[toIdx]
+                    });
+                    curT += sig.waitTime;
+                }
+            }
+        }
+
+        return {
+            depT: depT0,
+            arrT: curT,
+            segments: segments
+        };
+    }
+
+    /**
+     * [신규] 특정 시점(T_cur)에서의 차량 물리 상태(위치, Y좌표, 정차/주행 여부, 대기행렬) 산출
+     */
+    static getVehicleStateAtTime(traj, T_cur, getY, isUp, m = 0) {
+        if (!traj || T_cur < traj.depT || T_cur > traj.arrT) return null;
+
+        for (const seg of traj.segments) {
+            if (T_cur >= seg.t0 && T_cur <= seg.t1) {
+                if (seg.type === 'stop') {
+                    // 적신호 정차 대기 중: 교차로 정지선 뒤에 차례로 대기행렬(Queue) 형성
+                    const baseY = getY(seg.nodeIdx, seg.dist);
+                    // 상행: 아래에서 올라오므로 정지선보다 아래(+Y), 하행: 위에서 내려오므로 정지선보다 위(-Y)
+                    const queueY = baseY + (isUp ? (m * 8 + 3) : (-m * 8 - 3));
+                    return {
+                        isStopped: true,
+                        nodeIdx: seg.nodeIdx,
+                        dist: seg.dist,
+                        y: queueY,
+                        baseY: baseY,
+                        waitTimeRem: Math.max(0, seg.t1 - T_cur),
+                        totalWait: seg.t1 - seg.t0
+                    };
+                } else if (seg.type === 'move') {
+                    // 정상 주행 중
+                    const dur = seg.t1 - seg.t0;
+                    const ratio = dur > 0 ? Math.min(1, Math.max(0, (T_cur - seg.t0) / dur)) : 0;
+                    const curDist = seg.fromDist + ratio * (seg.toDist - seg.fromDist);
+                    const interpNode = seg.fromNode + ratio * (seg.toNode - seg.fromNode);
+                    const y = getY(interpNode, curDist);
+
+                    // 꼬리 잔상용 이전 위치 (약 0.25초 또는 이동비율 기준)
+                    const prevRatio = Math.max(0, ratio - 0.2);
+                    const prevDist = seg.fromDist + prevRatio * (seg.toDist - seg.fromDist);
+                    const prevInterpNode = seg.fromNode + prevRatio * (seg.toNode - seg.fromNode);
+                    const prevY = getY(prevInterpNode, prevDist);
+
+                    return {
+                        isStopped: false,
+                        fromNode: seg.fromNode,
+                        toNode: seg.toNode,
+                        dist: curDist,
+                        y: y,
+                        prevY: prevY,
+                        ratio: ratio
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Max Band Brute-Force Sweep (유효 교차로만 대상)
      * null 교차로를 완전히 제외한 별도 배열로 계산
      */
@@ -761,17 +932,17 @@ class TSDEngine {
         this.updateInfoText(bandUp, bandDown);
     }
 
-    // ── [신규] 차량군(Platoon) 주행 및 대기행렬 실시간 시뮬레이션 렌더링 ──
+    // ── [신규] 차량군(Platoon) 주행 및 대기행렬 실시간 시뮬레이션 렌더링 (신호 연동/적신호 정차 물리 모델) ──
     drawPlatoonVehicles(bandUp, bandDown, chartW, chartH, cfg, tToX, getY, timeHorizon, cycle, dayIdx, axis) {
         const ctx = this.ctx;
         const T_cur = this.state.simClock;
         const curX = tToX(T_cur);
         const members = this.state.members;
         const distances = this.state.distances;
-        const travelTimes = this.state.travelTimes;
+        const speeds = this.state.segSpeeds;
+        const pIdx = this.state.todIdx || 0;
         const N = members.length;
-        if (N < 2 || !travelTimes || travelTimes.length < N) return;
-        const totalTT = travelTimes[N - 1] || 1;
+        if (N < 2 || !distances || distances.length < N) return;
 
         ctx.save();
         ctx.beginPath();
@@ -811,37 +982,15 @@ class TSDEngine {
             ctx.restore();
         }
 
-        // 보간 헬퍼: 경과시간 tau로부터 (y좌표, 교차로인덱스) 산출
-        const getInterpPos = (tau, isUp) => {
-            if (tau < 0 || tau > totalTT) return null;
-            let i = 0;
-            while (i < N - 2 && travelTimes[i + 1] < tau) i++;
-            const t0 = travelTimes[i], t1 = travelTimes[i + 1];
-            const ratio = (t1 > t0) ? Math.min(1, Math.max(0, (tau - t0) / (t1 - t0))) : 0;
-            const d = distances[i] + ratio * (distances[i + 1] - distances[i]);
-            
-            if (isUp) {
-                const y = getY(i + ratio, d);
-                return { y, currNode: i, nextNode: i + 1, ratio };
-            } else {
-                // 하행: 역방향 (N-1 -> 0)
-                const downNodeIdx = (N - 1) - (i + ratio);
-                const y = getY(downNodeIdx, distances[N - 1] - d);
-                return { y, currNode: (N - 1) - i, nextNode: (N - 1) - (i + 1), ratio };
-            }
-        };
+        // 개별 차량 렌더링 헬퍼 (차체 캡슐 + 헤드라이트 + 모션 블러 트레일 + 적신호 정차 대기행렬)
+        const drawCar = (curX, curY, prevX, prevY, isUp, isStopped, waitRem, m) => {
+            if (curX < cfg.padding.left - 25 || curX > cfg.padding.left + chartW + 25) return;
 
-        // 개별 차량 렌더링 헬퍼 (차체 캡슐 + 헤드라이트 + 모션 블러 트레일)
-        const drawCar = (curX, curY, prevX, prevY, isUp, isBlocked) => {
-            if (curX < cfg.padding.left - 20 || curX > cfg.padding.left + chartW + 20) return;
-            
-            // 1) 모션 블러 네온 궤적 꼬리 (Light Tail)
-            if (prevX !== undefined && prevY !== undefined) {
+            // 1) 주행 중일 때만 모션 블러 네온 궤적 꼬리 (Light Tail)
+            if (!isStopped && prevX !== undefined && prevY !== undefined) {
                 ctx.save();
                 const tailGrad = ctx.createLinearGradient(prevX, prevY, curX, curY);
-                const tailColor = isBlocked 
-                    ? 'rgba(239, 68, 68, ' 
-                    : (isUp ? 'rgba(56, 189, 248, ' : 'rgba(74, 222, 128, ');
+                const tailColor = isUp ? 'rgba(56, 189, 248, ' : 'rgba(74, 222, 128, ';
                 tailGrad.addColorStop(0, tailColor + '0)');
                 tailGrad.addColorStop(1, tailColor + '0.75)');
                 ctx.strokeStyle = tailGrad;
@@ -858,21 +1007,23 @@ class TSDEngine {
             ctx.save();
             ctx.translate(curX, curY);
 
-            // 전방 헤드라이트 빔
-            const beamGrad = ctx.createRadialGradient(isUp ? 8 : -8, 0, 1, isUp ? 24 : -24, 0, 18);
-            beamGrad.addColorStop(0, isUp ? 'rgba(56, 189, 248, 0.5)' : 'rgba(74, 222, 128, 0.5)');
-            beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = beamGrad;
-            ctx.beginPath();
-            ctx.arc(isUp ? 8 : -8, 0, 18, -Math.PI / 3, Math.PI / 3, !isUp);
-            ctx.fill();
+            if (!isStopped) {
+                // 주행 중: 전방 헤드라이트 빔
+                const beamGrad = ctx.createRadialGradient(isUp ? 8 : -8, 0, 1, isUp ? 22 : -22, 0, 16);
+                beamGrad.addColorStop(0, isUp ? 'rgba(56, 189, 248, 0.45)' : 'rgba(74, 222, 128, 0.45)');
+                beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = beamGrad;
+                ctx.beginPath();
+                ctx.arc(isUp ? 8 : -8, 0, 16, -Math.PI / 3, Math.PI / 3, !isUp);
+                ctx.fill();
+            }
 
             // 차체 (네온 발광 캡슐)
-            ctx.shadowColor = isBlocked ? '#ef4444' : (isUp ? '#38bdf8' : '#4ade80');
-            ctx.shadowBlur = 10;
-            ctx.fillStyle = isBlocked ? '#dc2626' : (isUp ? '#0284c7' : '#16a34a');
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 1.2;
+            ctx.shadowColor = isStopped ? '#ef4444' : (isUp ? '#38bdf8' : '#4ade80');
+            ctx.shadowBlur = isStopped ? 14 : 10;
+            ctx.fillStyle = isStopped ? '#b91c1c' : (isUp ? '#0284c7' : '#16a34a');
+            ctx.strokeStyle = isStopped ? '#fca5a5' : '#ffffff';
+            ctx.lineWidth = isStopped ? 1.5 : 1.2;
 
             ctx.beginPath();
             if (typeof ctx.roundRect === 'function') {
@@ -888,33 +1039,68 @@ class TSDEngine {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(-3, -2.5, 6, 5);
 
-            // 후방 브레이크등 (적색/정차 시)
-            if (isBlocked) {
-                ctx.fillStyle = '#ffb74d';
-                ctx.fillRect(isUp ? -8 : 6, -3.5, 2, 7);
+            // 후방 브레이크등 (적신호 정차 시 강렬하게 점등)
+            if (isStopped) {
+                ctx.fillStyle = '#ff1744';
+                ctx.fillRect(isUp ? -8 : 6, -4, 2.5, 8);
+                // 브레이크등 발광 광원
+                ctx.shadowColor = '#ff1744';
+                ctx.shadowBlur = 8;
+                ctx.fillRect(isUp ? -9 : 7, -3, 2, 6);
+            }
+
+            // 3) 적신호 정차 대기 시: 교차로 정지선 대기 뱃지 표시
+            if (isStopped && waitRem !== undefined && m === 0) {
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+                ctx.beginPath();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(10, -7, 44, 14, 3);
+                } else {
+                    ctx.rect(10, -7, 44, 14);
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#fca5a5';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`대기 ${Math.ceil(waitRem)}s`, 32, 3);
             }
 
             ctx.restore();
         };
 
         // 2. 상행(Up) 소대 시뮬레이션
+        // 1) 연동 녹색 밴드 소대 (Coordinated Platoons)
         const upBaseStart = (bandUp && bandUp.width > 0) ? bandUp.start : 15;
         for (let rep = -2; rep <= 5; rep++) {
             const platoonDepT = rep * cycle + upBaseStart;
-            // 소대당 4대 (2.2초 간격)
+            // 소대당 4대 (차량 간격 2.2초)
             for (let m = 0; m < 4; m++) {
                 const depT = platoonDepT + m * 2.2;
-                const tau = T_cur - depT;
-                if (tau >= 0 && tau <= totalTT) {
-                    const pos = getInterpPos(tau, true);
-                    if (pos) {
-                        const curCarX = tToX(T_cur);
-                        const trailTau = Math.max(0, tau - 4.5);
-                        const prevPos = getInterpPos(trailTau, true);
-                        const prevCarX = tToX(T_cur - (tau - trailTau));
-                        
-                        let isBlocked = (bandUp.width <= 0);
-                        drawCar(curCarX, pos.y, prevCarX, prevPos ? prevPos.y : pos.y, true, isBlocked);
+                const traj = TSDAnalyzer.buildVehicleTrajectory(members, distances, speeds, axis, 'up', dayIdx, pIdx, cycle, depT);
+                const st = TSDAnalyzer.getVehicleStateAtTime(traj, T_cur, getY, true, m);
+                if (st) {
+                    const carX = tToX(T_cur);
+                    const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                    drawCar(carX, st.y, prevX, st.prevY, true, st.isStopped, st.waitTimeRem, m);
+                }
+            }
+
+            // 2) 비연동 / 적신호 걸림 소대 (Uncoordinated Platoons: 반대 위상에서 출발하여 적신호에 걸려 대기하는 차량들)
+            if (bandUp && bandUp.width > 0) {
+                const uncoordDepT = rep * cycle + ((upBaseStart + cycle * 0.5) % cycle);
+                for (let m = 0; m < 3; m++) {
+                    const depT = uncoordDepT + m * 2.5;
+                    const traj = TSDAnalyzer.buildVehicleTrajectory(members, distances, speeds, axis, 'up', dayIdx, pIdx, cycle, depT);
+                    const st = TSDAnalyzer.getVehicleStateAtTime(traj, T_cur, getY, true, m);
+                    if (st) {
+                        const carX = tToX(T_cur);
+                        const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                        drawCar(carX, st.y, prevX, st.prevY, true, st.isStopped, st.waitTimeRem, m);
                     }
                 }
             }
@@ -926,23 +1112,34 @@ class TSDEngine {
             const platoonDepT = rep * cycle + downBaseStart;
             for (let m = 0; m < 4; m++) {
                 const depT = platoonDepT + m * 2.2;
-                const tau = T_cur - depT;
-                if (tau >= 0 && tau <= totalTT) {
-                    const pos = getInterpPos(tau, false);
-                    if (pos) {
-                        const curCarX = tToX(T_cur);
-                        const trailTau = Math.max(0, tau - 4.5);
-                        const prevPos = getInterpPos(trailTau, false);
-                        const prevCarX = tToX(T_cur - (tau - trailTau));
-                        
-                        let isBlocked = (bandDown.width <= 0);
-                        drawCar(curCarX, pos.y, prevCarX, prevPos ? prevPos.y : pos.y, false, isBlocked);
+                const traj = TSDAnalyzer.buildVehicleTrajectory(members, distances, speeds, axis, 'down', dayIdx, pIdx, cycle, depT);
+                const st = TSDAnalyzer.getVehicleStateAtTime(traj, T_cur, getY, false, m);
+                if (st) {
+                    const carX = tToX(T_cur);
+                    const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                    drawCar(carX, st.y, prevX, st.prevY, false, st.isStopped, st.waitTimeRem, m);
+                }
+            }
+
+            // 비연동 / 적신호 걸림 소대
+            if (bandDown && bandDown.width > 0) {
+                const uncoordDepT = rep * cycle + ((downBaseStart + cycle * 0.5) % cycle);
+                for (let m = 0; m < 3; m++) {
+                    const depT = uncoordDepT + m * 2.5;
+                    const traj = TSDAnalyzer.buildVehicleTrajectory(members, distances, speeds, axis, 'down', dayIdx, pIdx, cycle, depT);
+                    const st = TSDAnalyzer.getVehicleStateAtTime(traj, T_cur, getY, false, m);
+                    if (st) {
+                        const carX = tToX(T_cur);
+                        const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                        drawCar(carX, st.y, prevX, st.prevY, false, st.isStopped, st.waitTimeRem, m);
                     }
                 }
             }
         }
 
-        // 4. 연동 대역(Band) 내부 연속 파티클 펄스 렌더링 (Band Flow Photons)
+        // 4. 연동 대역(Band) 내부 연속 광자 펄스 (Band Flow Photons)
+        // 유효한 녹색 연동 대역 내에서만 빛을 발하며 대각선으로 진행
+        const totalTT = this.state.travelTimes[N - 1] || 1;
         const numPhotons = 8;
         const cycleProgress = ((T_cur % cycle) + cycle) % cycle / cycle;
 
@@ -957,14 +1154,19 @@ class TSDEngine {
                     const tau = frac * totalTT;
                     const depT = rep * cycle + bandUp.start + bandUp.width * 0.5;
                     const t = depT + tau;
-                    const pos = getInterpPos(tau, true);
-                    if (pos) {
-                        const x = tToX(t);
-                        if (x >= cfg.padding.left && x <= cfg.padding.left + chartW) {
-                            ctx.beginPath();
-                            ctx.arc(x, pos.y, 2.5, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+                    // 보간 Y
+                    let i = 0;
+                    while (i < N - 2 && this.state.travelTimes[i + 1] < tau) i++;
+                    const t0 = this.state.travelTimes[i], t1 = this.state.travelTimes[i + 1];
+                    const ratio = (t1 > t0) ? Math.min(1, Math.max(0, (tau - t0) / (t1 - t0))) : 0;
+                    const d = distances[i] + ratio * (distances[i + 1] - distances[i]);
+                    const y = getY(i + ratio, d);
+
+                    const x = tToX(t);
+                    if (x >= cfg.padding.left && x <= cfg.padding.left + chartW) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
                     }
                 }
             }
@@ -982,14 +1184,19 @@ class TSDEngine {
                     const tau = frac * totalTT;
                     const depT = rep * cycle + bandDown.start + bandDown.width * 0.5;
                     const t = depT + tau;
-                    const pos = getInterpPos(tau, false);
-                    if (pos) {
-                        const x = tToX(t);
-                        if (x >= cfg.padding.left && x <= cfg.padding.left + chartW) {
-                            ctx.beginPath();
-                            ctx.arc(x, pos.y, 2.5, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+                    let i = 0;
+                    while (i < N - 2 && this.state.travelTimes[i + 1] < tau) i++;
+                    const t0 = this.state.travelTimes[i], t1 = this.state.travelTimes[i + 1];
+                    const ratio = (t1 > t0) ? Math.min(1, Math.max(0, (tau - t0) / (t1 - t0))) : 0;
+                    const d = distances[i] + ratio * (distances[i + 1] - distances[i]);
+                    const downNodeIdx = (N - 1) - (i + ratio);
+                    const y = getY(downNodeIdx, distances[N - 1] - d);
+
+                    const x = tToX(t);
+                    if (x >= cfg.padding.left && x <= cfg.padding.left + chartW) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
                     }
                 }
             }
