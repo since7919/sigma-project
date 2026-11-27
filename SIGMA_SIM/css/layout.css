@@ -253,3 +253,202 @@
 .tsd-btn-danger:hover { background: rgba(255, 82, 82, 0.2); }
 .tsd-btn-success { background: rgba(0, 230, 118, 0.1); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.3); }
 .tsd-btn-success:hover { background: rgba(0, 230, 118, 0.2); }
+
+/* ── [신규] 시공도 모던 글래스모피즘 & 사이버 슬레이트 테마 ── */
+.tsd-console-panel {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 14, 26, 0.98) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.28) !important;
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.tsd-console-header-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 18px;
+    background: rgba(15, 23, 42, 0.75);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+    backdrop-filter: blur(10px);
+}
+
+/* 세그먼트 컨트롤러 (라디오 대체 탭 필 버튼) */
+.tsd-segmented-control {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(2, 6, 23, 0.65);
+    padding: 2px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    gap: 2px;
+}
+.tsd-segmented-control input[type="radio"] {
+    display: none;
+}
+.tsd-segmented-control label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+.tsd-segmented-control label:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+.tsd-segmented-control input[type="radio"]:checked + span {
+    color: #ffffff;
+}
+.tsd-segmented-control label:has(input[type="radio"]:checked) {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.45);
+}
+
+/* 모던 셀렉트 및 인풋 래퍼 */
+.tsd-modern-select {
+    background: rgba(2, 6, 23, 0.7);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 7px;
+    height: 28px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0 10px;
+    outline: none;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.tsd-modern-select:hover {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+/* 속도 뱃지 인풋 */
+.tsd-speed-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(2, 6, 23, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 7px;
+    height: 28px;
+    padding: 0 8px;
+    gap: 4px;
+}
+.tsd-speed-badge input {
+    width: 32px;
+    border: none;
+    background: transparent;
+    color: #38bdf8;
+    font-weight: 800;
+    font-size: 11.5px;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    outline: none;
+}
+
+/* 일체형 오프셋 미세조정 스테퍼 툴바 */
+.tsd-stepper-group {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(2, 6, 23, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 7px;
+    overflow: hidden;
+    padding: 1px;
+}
+.tsd-stepper-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.tsd-stepper-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+}
+.tsd-stepper-btn:active {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+/* 액션 버튼들 */
+.tsd-act-btn {
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+.tsd-act-btn-cyan {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.38);
+    color: #38bdf8;
+}
+.tsd-act-btn-cyan:hover {
+    background: rgba(56, 189, 248, 0.25);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    border-color: #38bdf8;
+}
+.tsd-act-btn-purple {
+    background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
+}
+.tsd-act-btn-purple:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.55);
+}
+.tsd-act-btn-green {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+.tsd-act-btn-green:hover {
+    background: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+.tsd-act-btn-icon {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    justify-content: center;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    border-radius: 7px;
+}
+.tsd-act-btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+/* 캔버스 뷰포트 */
+.tsd-canvas-viewport {
+    background: #090d16;
+    border: 1px solid rgba(56, 189, 248, 0.18);
+    border-radius: 10px;
+    box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    position: relative;
+}

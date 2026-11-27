@@ -463,27 +463,29 @@ class TSDEngine {
         this.ctx = this.canvas.getContext('2d');
 
         this.config = {
-            padding: { top: 50, bottom: 50, left: 140, right: 20 },
+            padding: { top: 52, bottom: 48, left: 185, right: 28 },
             colors: {
-                bg: '#1e2124',
-                grid: 'rgba(255, 255, 255, 0.08)',
-                accent: '#1976d2',
-                green: '#2e7d32',
-                yellow: '#f9a825',
-                red: '#c62828',
-                bandUp: 'rgba(41, 182, 246, 0.2)',
-                bandDown: 'rgba(102, 187, 106, 0.2)',
-                bandUpStroke: 'rgba(41, 182, 246, 0.8)',
-                bandDownStroke: 'rgba(102, 187, 106, 0.8)',
-                trajUp: 'rgba(41, 182, 246, 0.7)',
-                trajDown: 'rgba(102, 187, 106, 0.7)',
-                wait: '#c62828'
+                bg: '#0a0f1d', // 딥 슬레이트 네이비
+                sidebarBg: 'rgba(15, 23, 42, 0.96)',
+                grid: 'rgba(148, 163, 184, 0.08)',
+                gridMajor: 'rgba(56, 189, 248, 0.25)',
+                accent: '#38bdf8',
+                green: '#10b981',
+                yellow: '#f59e0b',
+                red: '#e11d48',
+                bandUp: 'rgba(14, 165, 233, 0.30)',
+                bandDown: 'rgba(16, 185, 129, 0.30)',
+                bandUpStroke: '#38bdf8',
+                bandDownStroke: '#34d399',
+                trajUp: 'rgba(56, 189, 248, 0.85)',
+                trajDown: 'rgba(52, 211, 153, 0.85)',
+                wait: '#e11d48'
             },
-            trajectories: { up: '#0050c8', down: '#00a0dc' },
+            trajectories: { up: '#38bdf8', down: '#34d399' },
             font: {
-                base: '11px "Outfit", "Inter", sans-serif',
-                bold: 'bold 12px "Outfit", "Inter", sans-serif',
-                mono: '10px "JetBrains Mono", monospace'
+                base: '12px "Outfit", "Inter", sans-serif',
+                bold: 'bold 13px "Outfit", "Inter", sans-serif',
+                mono: '11px "JetBrains Mono", monospace'
             }
         };
 
@@ -841,7 +843,7 @@ class TSDEngine {
 
         ctx.restore();
 
-        // 3) 라벨 (선택 및 GIS 호버 하이라이트 반영)
+        // 3) 라벨 (선택 및 GIS 호버 하이라이트 반영 - 모던 글래스모피즘 카드)
         this.state.members.forEach((j, i) => {
             const y = getY(i, this.state.distances[i]);
             const pIdx = this.state.todIdx;
@@ -850,39 +852,82 @@ class TSDEngine {
             const isSelected = (this.state.selectedJid === j.id);
             const isHovered = (this.state.hoveredJid === j.id);
 
-            // 라벨 배경 (선택/호버 상태별 미려한 배경 및 테두리)
-            ctx.fillStyle = isSelected 
-                ? 'rgba(56, 189, 248, 0.28)' 
-                : (isHovered ? 'rgba(255, 215, 0, 0.20)' : 'rgba(30,33,36,0.95)');
-            ctx.fillRect(0, y - 26, cfg.padding.left - 2, 52);
+            const cardX = 6;
+            const cardY = y - 24;
+            const cardW = cfg.padding.left - 12;
+            const cardH = 48;
 
-            if (isSelected) {
-                ctx.strokeStyle = '#38bdf8';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(1, y - 25, cfg.padding.left - 4, 50);
-            } else if (isHovered) {
-                ctx.strokeStyle = '#ffd700';
-                ctx.lineWidth = 1.5;
-                ctx.strokeRect(1, y - 25, cfg.padding.left - 4, 50);
+            // 라벨 카드 배경
+            ctx.save();
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(cardX, cardY, cardW, cardH, 6);
+            } else {
+                ctx.rect(cardX, cardY, cardW, cardH);
             }
 
-            // 교차로명
-            ctx.textAlign = 'right';
-            ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#ffd700' : '#eeeeee');
-            ctx.font = 'bold 13.5px "Outfit", "Inter", sans-serif';
+            if (isSelected) {
+                ctx.fillStyle = 'rgba(2, 132, 199, 0.32)';
+                ctx.fill();
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+
+                // 좌측 사이언 액센트 바
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(cardX, cardY, 3.5, cardH);
+            } else if (isHovered) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+                ctx.fill();
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(cardX, cardY, 3, cardH);
+            } else {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // 교차로명 (최대 12자까지 온전 수용)
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : '#f8fafc');
+            ctx.font = 'bold 12.5px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
-            if (name.length > 8) name = name.substring(0, 7) + '..';
-            ctx.fillText(name, cfg.padding.left - 12, y - 8);
+            if (name.length > 12) name = name.substring(0, 11) + '..';
+            ctx.fillText(name, cardX + 10, y - 6);
 
+            // 하단 메트릭스: 거리 & 오프셋
             // 거리
-            ctx.fillStyle = isSchematic ? '#a7f3d0' : '#81c784';
-            ctx.font = 'bold 11px "JetBrains Mono", monospace';
-            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cfg.padding.left - 12, y + 8);
+            ctx.fillStyle = isSchematic ? '#6ee7b7' : '#34d399';
+            ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 10, y + 14);
 
-            // 오프셋
-            ctx.fillStyle = curOffset !== 0 ? '#ffb74d' : '#9e9e9e';
-            ctx.font = 'bold 11.5px "JetBrains Mono", monospace';
-            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 12, y + 24);
+            // 오프셋 캡슐 뱃지
+            const offX = cardX + cardW - 54;
+            const offY = y + 3;
+            ctx.fillStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.12)';
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(offX, offY, 46, 15, 4);
+            } else {
+                ctx.rect(offX, offY, 46, 15);
+            }
+            ctx.fill();
+            ctx.strokeStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = curOffset !== 0 ? '#fbbf24' : '#94a3b8';
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + 23, offY + 11);
+
+            ctx.restore();
         });
 
         // 시간축 눈금 및 세로선 (주기 비율 기반)
@@ -896,27 +941,41 @@ class TSDEngine {
                 
                 // 세로선
                 if (isCycleEnd) {
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+                    ctx.lineWidth = 1.5;
                 } else {
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
                     ctx.lineWidth = 1;
                 }
                 ctx.beginPath();
                 ctx.moveTo(x, cfg.padding.top);
-                ctx.lineTo(x, h - cfg.padding.bottom + 5);
+                ctx.lineTo(x, h - cfg.padding.bottom + 6);
                 ctx.stroke();
 
-                // 텍스트 (실제 시간 표시)
+                // 텍스트 (실제 시간 표시 배지)
                 ctx.textAlign = 'center';
                 if (isCycleEnd) {
-                    ctx.fillStyle = '#4fc3f7';
-                    ctx.font = 'bold 13px "JetBrains Mono", monospace';
-                    ctx.fillText(`${Math.round(t)}s (C${Math.round(t/cycle)})`, x, h - cfg.padding.bottom + 22);
+                    const cNum = Math.round(t / cycle);
+                    // 타임 배지
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.18)';
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(x - 30, h - cfg.padding.bottom + 10, 60, 20, 4);
+                    } else {
+                        ctx.rect(x - 30, h - cfg.padding.bottom + 10, 60, 20);
+                    }
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+                    ctx.fillText(`C${cNum} (${Math.round(t)}s)`, x, h - cfg.padding.bottom + 24);
                 } else {
-                    ctx.fillStyle = '#888888';
-                    ctx.font = '11px "JetBrains Mono", monospace';
-                    ctx.fillText(`${Math.round(t)}s`, x, h - cfg.padding.bottom + 20);
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '10px "JetBrains Mono", monospace';
+                    ctx.fillText(`${Math.round(t)}s`, x, h - cfg.padding.bottom + 22);
                 }
             }
         }
@@ -1279,15 +1338,19 @@ class TSDEngine {
         const downEff = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
         const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
 
-        const cardW = 230;
-        const cardH = 56;
+        const cardW = 265;
+        const cardH = 64;
         const cardX = w - cfg.padding.right - cardW - 8;
         const cardY = cfg.padding.top + 8;
 
-        // 반투명 배경 카드 (글래스모피즘)
-        ctx.fillStyle = 'rgba(10, 15, 24, 0.88)';
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.save();
+
+        // 1. 반투명 배경 카드 (모던 글래스모피즘 슬레이트)
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
         ctx.lineWidth = 1;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowBlur = 14;
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
             ctx.roundRect(cardX, cardY, cardW, cardH, 8);
@@ -1296,41 +1359,80 @@ class TSDEngine {
         }
         ctx.fill();
         ctx.stroke();
+        ctx.shadowBlur = 0;
 
-        // 텍스트 헤더
+        // 상단 배지 라인: [MAXBAND EFFICIENCY] & [모드 배지]
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 9px "JetBrains Mono", monospace';
         ctx.textAlign = 'left';
+        ctx.fillText('MAXBAND EFFICIENCY', cardX + 12, cardY + 16);
+
+        const isSchematic = (this.state.scaleMode === 'schematic');
+        const badgeText = isSchematic ? '모식도 (균등)' : '거리비례';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = isSchematic ? 'rgba(56, 189, 248, 0.18)' : 'rgba(148, 163, 184, 0.12)';
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(cardX + cardW - 78, cardY + 6, 68, 16, 4);
+        } else {
+            ctx.rect(cardX + cardW - 78, cardY + 6, 68, 16);
+        }
+        ctx.fill();
+        ctx.strokeStyle = isSchematic ? 'rgba(56, 189, 248, 0.4)' : 'rgba(148, 163, 184, 0.2)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        ctx.fillStyle = isSchematic ? '#38bdf8' : '#94a3b8';
+        ctx.font = 'bold 9px "Outfit", sans-serif';
+        ctx.fillText(badgeText, cardX + cardW - 14, cardY + 18);
+
+        // 좌측 대형 메트릭: 종합 연동 효율 (%)
+        const effColor = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
+        ctx.textAlign = 'left';
+        ctx.fillStyle = effColor;
+        ctx.font = 'bold 21px "JetBrains Mono", monospace';
+        ctx.fillText(`${totEff}%`, cardX + 12, cardY + 44);
+
         ctx.fillStyle = '#94a3b8';
         ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.fillText(`연동효율: `, cardX + 10, cardY + 16);
-        ctx.fillStyle = totEff > 25 ? '#38bdf8' : (totEff > 0 ? '#ffb74d' : '#ef4444');
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillText(`${totEff}% (C:${cycle}s)`, cardX + 60, cardY + 16);
+        ctx.fillText(`C:${cycle}s`, cardX + 12, cardY + 57);
 
-        // 상행 대역폭
-        ctx.fillStyle = this.config.colors.trajUp || '#29b6f6';
-        ctx.font = 'bold 11px "Outfit", sans-serif';
-        ctx.fillText(`⬆️ 상행`, cardX + 10, cardY + 33);
-        ctx.fillStyle = upW > 0 ? '#ffffff' : '#ef4444';
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillText(`${upW.toFixed(1)}s (${upEff}%)`, cardX + 58, cardY + 33);
+        // 세로 구분선
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cardX + 96, cardY + 24);
+        ctx.lineTo(cardX + 96, cardY + 58);
+        ctx.stroke();
 
-        // 하행 대역폭
-        ctx.fillStyle = this.config.colors.trajDown || '#66bb6a';
-        ctx.font = 'bold 11px "Outfit", sans-serif';
-        ctx.fillText(`⬇️ 하행`, cardX + 10, cardY + 48);
-        ctx.fillStyle = downW > 0 ? '#ffffff' : '#ef4444';
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillText(`${downW.toFixed(1)}s (${downEff}%)`, cardX + 58, cardY + 48);
+        // 우측: 상행 & 하행 대역폭 지표
+        // 상행
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 10px "Outfit", sans-serif';
+        ctx.fillText('▲ 상행', cardX + 106, cardY + 38);
 
-        // 모드 배지 (모식도 vs 거리비례)
-        const isSchematic = (this.state.scaleMode === 'schematic');
-        const badgeText = isSchematic ? '모식도(균등)' : '거리비례';
-        ctx.textAlign = 'right';
-        ctx.fillStyle = isSchematic ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)';
-        ctx.fillRect(cardX + cardW - 74, cardY + 6, 68, 16);
-        ctx.fillStyle = isSchematic ? '#38bdf8' : '#888888';
-        ctx.font = 'bold 9.5px "Outfit", sans-serif';
-        ctx.fillText(badgeText, cardX + cardW - 10, cardY + 18);
+        ctx.fillStyle = upW > 0 ? '#f8fafc' : '#f43f5e';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText(`${upW.toFixed(1)}s`, cardX + 144, cardY + 38);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillText(`(${upEff}%)`, cardX + 195, cardY + 38);
+
+        // 하행
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 10px "Outfit", sans-serif';
+        ctx.fillText('▼ 하행', cardX + 106, cardY + 55);
+
+        ctx.fillStyle = downW > 0 ? '#f8fafc' : '#f43f5e';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText(`${downW.toFixed(1)}s`, cardX + 144, cardY + 55);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillText(`(${downEff}%)`, cardX + 195, cardY + 55);
+
+        ctx.restore();
     }
 
     // ── 듀얼 링(Dual-Ring) ──
@@ -1349,7 +1451,7 @@ class TSDEngine {
         const ctx = this.ctx, cfg = this.config;
 
         // 배경
-        ctx.fillStyle = 'rgba(40,44,48,0.65)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
         ctx.fillRect(cfg.padding.left, y - ringH - gap - 1, chartW, (ringH + gap) * 2 + 2);
 
         const drawRing = (splits, yellows, movs, isBottom) => {
@@ -1377,36 +1479,36 @@ class TSDEngine {
 
                     if (proceedMovs.includes(curMov)) {
                         // 진행 가능 이동류: 녹색/청록 + 황색
-                        ctx.fillStyle = isBottom ? '#42a5f5' : '#66bb6a'; // uniform brightness
+                        ctx.fillStyle = isBottom ? '#0284c7' : '#10b981'; // vibrant neon green / cyan
                         if (isContinuous) {
                             // 연속 현시인 경우 황색 무시하고 전체 녹색
                             this.drawSegment(xS, yPos, xE - xS, ringH);
                         } else {
                             this.drawSegment(xS, yPos, xG - xS, ringH);
                             if (yellowTime > 0) {
-                                ctx.fillStyle = '#ffee58';
+                                ctx.fillStyle = '#f59e0b';
                                 this.drawSegment(xG, yPos, xE - xG, ringH);
                             }
                         }
                     } else if (blockedMovs.includes(curMov)) {
                         // 교차 방향 이동류: 적색
-                        ctx.fillStyle = '#ef5350'; // uniform brightness
+                        ctx.fillStyle = '#e11d48'; // modern crimson red
                         this.drawSegment(xS, yPos, xE - xS, ringH);
                     } else if (curMov >= 1 && curMov <= 8) {
-                        // 기타 차량(좌회전 등): 중성 청색
-                        ctx.fillStyle = '#5c6bc0'; // uniform brightness
+                        // 기타 차량(좌회전 등): 중성 인디고 블루
+                        ctx.fillStyle = '#6366f1';
                         if (isContinuous) {
                             this.drawSegment(xS, yPos, xE - xS, ringH);
                         } else {
                             this.drawSegment(xS, yPos, xG - xS, ringH);
                             if (yellowTime > 0) {
-                                ctx.fillStyle = '#ffee58'; // uniform brightness
+                                ctx.fillStyle = '#f59e0b';
                                 this.drawSegment(xG, yPos, xE - xG, ringH);
                             }
                         }
                     } else {
                         // 보행자/미설정
-                        ctx.fillStyle = "rgba(220, 30, 30, 0.40)";
+                        ctx.fillStyle = "rgba(225, 29, 72, 0.40)";
                         this.drawSegment(xS, yPos, xE - xS, ringH);
                     }
 
@@ -1423,7 +1525,7 @@ class TSDEngine {
                         });
                     }
 
-                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.22)';
                     ctx.fillRect(xE - 0.5, yPos, 1, ringH);
                 }
                 currentT += splitTime;
