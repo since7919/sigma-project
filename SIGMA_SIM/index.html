@@ -213,18 +213,7 @@
             display: inline-block;
             animation: iconFloat 4s ease-in-out infinite alternate;
         }
-        /* AI 분석 리포트 버튼 & 히어로 배너 프리미엄 효과 */
-        .ai-report-hero-btn {
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 50%, #7c3aed 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.4) !important;
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.45), 0 2px 8px rgba(0, 0, 0, 0.5) !important;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        }
-        .ai-report-hero-btn:hover {
-            filter: brightness(1.15) !important;
-            box-shadow: 0 0 24px rgba(56, 189, 248, 0.7), 0 4px 14px rgba(0, 0, 0, 0.6) !important;
-            transform: translateY(-1.5px) !important;
-        }
+        /* AI 분석 리포트 히어로 배너 프리미엄 효과 */
         .ai-hero-card {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
@@ -2003,14 +1992,7 @@
             <div class="sigma-panel">
                 <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 8px;">
                     <span style="font-weight: 800; font-size: 14.5px; letter-spacing: -0.2px; color: #fff; white-space: nowrap;">📊 통계보기</span>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
-                        <button class="action-btn ai-report-hero-btn" onclick="generateAIReport()" style="border-radius: 8px; padding: 6px 14px; font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffffff; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; letter-spacing: -0.2px;" title="AI 비교 분석 및 그룹 연동 심층 리포트 생성">
-                            <span style="font-size: 15px; filter: drop-shadow(0 0 6px rgba(255,255,255,0.8));">🤖</span>
-                            <span>AI 분석 리포트</span>
-                            <span style="background: rgba(255,255,255,0.25); font-size: 9.5px; padding: 1.5px 5px; border-radius: 4px; font-weight: 900; letter-spacing: 0.5px;">CORE</span>
-                        </button>
-                        <span id="ai-quota-display" style="font-size: 10.5px; color: #94a3b8; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 4px 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"></span>
-                    </div>
+                    <span id="ai-quota-display" style="font-size: 10.5px; color: #94a3b8; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 4px 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; flex-shrink: 0;"></span>
                 </div>
                 <div class="foldable-content">
                     <div id="stat-no-data" class="text-center p-50" style="color:#555;">데이터를 먼저 불러와주세요.</div>
