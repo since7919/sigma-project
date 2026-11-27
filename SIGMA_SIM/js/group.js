@@ -12,6 +12,65 @@ let groupCycleChart = null;
 
 let groupHighlightMarkers = [];
 
+/**
+ * [사용자 요구] 그룹 편집(선택) 상태 완전 해제
+ * - 지도의 그룹 하이라이트 마커(원형, 순번, 명칭) 제거
+ * - 전역 highlightedGroupId 및 GeoJSON 레이어 스타일 초기화
+ * - 연동망(RoadManager) 그룹 하이라이트 초기화
+ * - 현재 편집 그룹(currentEditingGroup) 및 UI 입력란 리셋
+ * - 그룹 목록 테이블 선택 상태 해제
+ */
+window.clearGroupSelection = function() {
+    // 1. 지도상의 그룹 하이라이트 마커(원형, 순번, 교차로명) 제거
+    if (typeof window.clearHighlightGroupMembers === 'function') {
+        window.clearHighlightGroupMembers();
+    } else if (typeof clearHighlightGroupMembers === 'function') {
+        clearHighlightGroupMembers();
+    } else if (Array.isArray(groupHighlightMarkers) && groupHighlightMarkers.length > 0) {
+        groupHighlightMarkers.forEach(m => {
+            if (typeof map !== 'undefined' && map && map.hasLayer(m)) map.removeLayer(m);
+        });
+        groupHighlightMarkers = [];
+    }
+
+    // 2. 전역 상태 및 GeoJSON 레이어 하이라이트 해제
+    if (typeof STATE !== 'undefined') {
+        STATE.highlightedGroupId = null;
+        if (STATE.geoJsonLayer && typeof STATE.geoJsonLayer.setStyle === 'function') {
+            STATE.geoJsonLayer.setStyle({});
+        }
+    }
+
+    // 3. 연동 네트워크 매니저(RoadManager) 그룹 하이라이트 해제
+    if (typeof window.RoadManager !== 'undefined' && window.RoadManager) {
+        if (window.RoadManager.highlightGroupId !== null || window.RoadManager.selectedNode !== null) {
+            window.RoadManager.highlightGroupId = null;
+            window.RoadManager.selectedNode = null;
+            if (typeof window.RoadManager.render === 'function') {
+                window.RoadManager.render();
+            }
+        }
+    }
+
+    // 4. 현재 편집 그룹 컨텍스트 해제
+    currentEditingGroup = null;
+
+    // 5. 그룹 편집 UI 입력란 및 소속 교차로 목록 비우기
+    const inpEdit = document.getElementById('inp-edit-group-id');
+    if (inpEdit) inpEdit.value = '';
+    const nameInp = document.getElementById('inp-group-name');
+    if (nameInp) nameInp.value = '';
+    const memberList = document.getElementById('group-member-list');
+    if (memberList) {
+        memberList.innerHTML = '<div style="font-size: 10px; color: #555; text-align: center; padding: 10px;">선택된 그룹 없음</div>';
+    }
+
+    // 6. 그룹 목록 테이블 갱신 (선택 행 하이라이트 해제)
+    if (typeof renderGroupList === 'function') {
+        renderGroupList();
+    }
+};
+
 /** 시공도 도면 순서 업데이트 */
 function updateJunctionDiagramOrder(jid, val) {
     if (!STATE.junctions[jid]) return;

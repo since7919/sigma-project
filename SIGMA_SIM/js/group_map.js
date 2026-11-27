@@ -61,4 +61,4 @@ function clearHighlightGroupMembers() {
     groupHighlightMarkers.forEach(m => map.removeLayer(m));
     groupHighlightMarkers = [];
 }
-
+window.clearHighlightGroupMembers = clearHighlightGroupMembers;

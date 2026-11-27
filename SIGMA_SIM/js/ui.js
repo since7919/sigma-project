@@ -95,6 +95,13 @@ function openTab(evt, tabName) {
     // [강제 규칙] 유효한 탭 대상이 없는 경우 전환을 무시하여 최소 하나 이상의 탭이 항상 열려있도록 보장
     if (!targetTab) return;
 
+    // [사용자 요구] 그룹 편집(선택) 상태에서 다른 탭으로 넘어가는 경우 자동으로 그룹 선택 상태 취소
+    if (tabName !== 'tab-group') {
+        if (typeof window.clearGroupSelection === 'function') {
+            window.clearGroupSelection();
+        }
+    }
+
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 
