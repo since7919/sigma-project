@@ -19,9 +19,9 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({startOnLoad: false, theme: "dark"});</script>
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
-    <link rel="stylesheet" href="css/style.css?v=1795760000000">
+    <link rel="stylesheet" href="css/style.css?v=1795792000000">
     <link rel="stylesheet" href="css/tables.css">
-    <link rel="stylesheet" href="css/panels.css?v=1795780000000">
+    <link rel="stylesheet" href="css/panels.css?v=1795792000000">
     <link rel="stylesheet" href="css/theme.css?v=1795760000000">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
@@ -643,50 +643,6 @@
         </div>
     </div>
 
-    <!-- [NEW] Bottom Detailed Signal Panel (Image-inspired) -->
-    <div id="bottom-detail-panel" class="bottom-info-panel glass-panel-premium">
-        <div class="panel-header">
-            <div class="panel-title">
-                <span class="status-dot-mini cyan"></span>
-                <span id="panel-title-text">[인천광역시] 신광4거리</span>
-            </div>
-            <div class="panel-controls" style="display: flex; gap: 8px; align-items: center;">
-                <button id="btn-sync-utic-plan" class="btn-neon" style="padding: 4px 12px; font-size: 11px; margin: 0;" onclick="triggerUticPlanSync()">🔄 UTIC 계획 동기화</button>
-                <button class="btn-icon-sm" onclick="toggleBottomPanel()">×</button>
-            </div>
-        </div>
-        <div class="panel-grid">
-            <!-- Left: Table Info -->
-            <div class="panel-section table-section">
-                <table class="table-premium">
-                    <thead>
-                        <tr>
-                            <th>방향</th>
-                            <th>출력형태</th>
-                            <th>신호상태</th>
-                            <th>잔여</th>
-                            <th>표출</th>
-                        </tr>
-                    </thead>
-                    <tbody id="api-table-body">
-                        <!-- API 데이터가 동적으로 삽입됨 -->
-                    </tbody>
-                </table>
-            </div>
-            <!-- Right: System Info -->
-            <div class="panel-section stats-section">
-                <div class="stat-group">
-                    <div class="stat-row"><span>제어번호</span><b id="stat-int-no">1001</b></div>
-                    <div class="stat-row"><span>신호주기</span><b id="stat-cycle">128</b></div>
-                    <div class="stat-row"><span>통신상태</span><b class="text-cyan">정상</b></div>
-                </div>
-                <div class="stat-group">
-                    <div class="stat-row"><span>전이/감응</span><b>OFF / OFF</b></div>
-                    <div class="stat-row"><span>교차로시각</span><span id="stat-time">2026-05-10 08:02:57</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
     <div id="legend-cycle-colors">
         <div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid #555; padding-bottom:3px;">신호주기 (초)
         </div>
@@ -2402,8 +2358,8 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1795780000000"></script>
-    <script src="js/sim_controller.js?v=1795780000000"></script>
+    <script src="js/ui.js?v=1795792000000"></script>
+    <script src="js/sim_controller.js?v=1795792000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1795563000000"></script>
@@ -2417,7 +2373,7 @@
     <script src="js/group_map.js?v=1795750000000"></script>
     <script src="js/group.js?v=1795750000000"></script>
     <script src="js/tsd.js?v=1795490000000"></script>
-    <script src="js/simulation.js?v=1795106000000"></script> <!-- 이 부분이 핵심입니다 -->
+    <script src="js/simulation.js?v=1795792000000"></script> <!-- 이 부분이 핵심입니다 -->
     <script src="js/stats.js?v=1795770000000"></script>
     <script src="js/insight_modal.js?v=1795770000000"></script>
     <script src="js/ai_report.js?v=1795561000000"></script>

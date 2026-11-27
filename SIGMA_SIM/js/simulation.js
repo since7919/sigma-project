@@ -13,7 +13,6 @@ let realtimeInterval = null;
 window.toggleSignalSource = function() {
     STATE.signalSource = (STATE.signalSource === 'REALTIME') ? 'SIMULATION' : 'REALTIME';
     const btn = document.getElementById('btn-signal-source');
-    const bottomPanel = document.getElementById('bottom-detail-panel');
     
     if (btn) {
         if (STATE.signalSource === 'REALTIME') {
@@ -21,7 +20,6 @@ window.toggleSignalSource = function() {
             btn.style.borderColor = '#ff003c';
             btn.style.color = '#ff003c';
             btn.style.textShadow = '0 0 5px #ff003c';
-            if (bottomPanel) bottomPanel.classList.add('active');
             
             startRealtimePolling();
             
@@ -1035,8 +1033,7 @@ function renderDetailedAPIPanel(j, steps, t) {
 }
 
 window.toggleBottomPanel = function() {
-    const panel = document.getElementById('bottom-detail-panel');
-    if (panel) panel.classList.toggle('active');
+    // 하단 UTIC 상세 패널 제거됨 (no-op)
 };
 
 /**
@@ -1079,10 +1076,6 @@ window.selectApiJunction = function(id, name, lat, lng) {
     if (STATE.signalSource === 'REALTIME') {
         fetchRealtimeSignals();
     }
-    
-    // 4. 하단 패널 활성화
-    const panel = document.getElementById('bottom-detail-panel');
-    if (panel) panel.classList.add('active');
 };
 
 
