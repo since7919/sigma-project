@@ -71,16 +71,7 @@ window.clearGroupSelection = function() {
     }
 };
 
-/** 시공도 도면 순서 업데이트 */
-function updateJunctionDiagramOrder(jid, val) {
-    if (!STATE.junctions[jid]) return;
-    if (!STATE.junctions[jid].extra) STATE.junctions[jid].extra = {};
-    STATE.junctions[jid].extra.diagramOrder = parseInt(val);
-    console.log(`[DiagramOrder] Junction ${jid} set to ${STATE.junctions[jid].extra.diagramOrder}`);
-
-    // 순서 변경 시 목록 재정렬 및 렌더링 (차트 리프레시는 불필요하므로 false 전달)
-    loadGroupInfo(false);
-}
+// updateJunctionDiagramOrder는 하단 단일 표준 구현체(loadGroupInfo 동기화 버전) 사용
 
 /** 시공도 포함 여부 토글 */
 function toggleJunctionTsdInclusion(jid, isChecked) {
@@ -459,9 +450,9 @@ function viewJunctionTODInGroup(jid) {
 window.toggleGroupTodPlanGroup = function(group) {
     if (typeof STATE !== 'undefined') {
         STATE._groupTodPlanGroup = group;
-        renderGroupTODTable();
-        updateGroupDayUI();
     }
+    updateGroupTodColumnVisibility();
+    updateGroupDayUI();
 };
 
 function updateGroupDayUI() {
@@ -533,6 +524,11 @@ function updateGroupDayUI() {
         `;
     });
     chartContainer.innerHTML = `<div style="display:flex; align-items:center; gap:6px;">${chartHtml}</div>`;
+    
+    // 테이블 요일 컬럼 가시성(1~5 vs 6~10) 동기화
+    if (typeof updateGroupTodColumnVisibility === 'function') {
+        updateGroupTodColumnVisibility();
+    }
 }
 
 function toggleChartGroupDay(idx) {
@@ -1353,13 +1349,11 @@ function updateGroupWeeklyPlanData(idx, val) {
 }
 
 
-window.toggleGroupTodPlanGroup = function(idx) {
-    STATE._groupTodPlanGroup = idx;
-    if(typeof window.updateGroupDayUI === 'function') window.updateGroupDayUI();
-};
-
-window.updateGroupDayUI = function() {
-    const grp = STATE._groupTodPlanGroup || 1;
+/**
+ * 그룹 TOD 테이블 요일 컬럼 가시성 필터링 (일반맵 1~5 vs 시차맵 6~10)
+ */
+function updateGroupTodColumnVisibility() {
+    const grp = (typeof STATE !== 'undefined' && STATE._groupTodPlanGroup) || 1;
     const startIdx = (grp - 1) * 5;
     const endIdx = startIdx + 4;
     
@@ -1397,7 +1391,8 @@ window.updateGroupDayUI = function() {
     const btn2 = document.getElementById('btn-gtod-group-2');
     if (btn1) btn1.style.backgroundColor = (grp === 1) ? '#0ea5e9' : '#334155';
     if (btn2) btn2.style.backgroundColor = (grp === 2) ? '#0ea5e9' : '#334155';
-};
+}
+window.updateGroupTodColumnVisibility = updateGroupTodColumnVisibility;
 
 /**
  * 일계획 Drag & Drop 복사/삭제 기능

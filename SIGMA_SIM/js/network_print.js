@@ -890,9 +890,70 @@ function isAABBOverlap(r1, r2, padding = 1.5) {
 }
 
 /**
+ * [성능 최적화] 라벨 2D 공간 격자 인덱스 (Spatial Hash Grid)
+ * - 수천 개 라벨 간 충돌 검사를 O(N)에서 O(1) 수준으로 극대화
+ */
+class LabelSpatialIndex {
+    constructor(width = 1200, height = 750, cellSize = 70) {
+        this.cellSize = cellSize;
+        this.cols = Math.ceil(width / cellSize) + 2;
+        this.rows = Math.ceil(height / cellSize) + 2;
+        this.grid = new Array(this.cols * this.rows);
+        for (let i = 0; i < this.grid.length; i++) this.grid[i] = [];
+        this.boxes = [];
+    }
+
+    _getBounds(x, y, w, h) {
+        const c1 = Math.max(0, Math.floor(x / this.cellSize));
+        const c2 = Math.min(this.cols - 1, Math.floor((x + w) / this.cellSize));
+        const r1 = Math.max(0, Math.floor(y / this.cellSize));
+        const r2 = Math.min(this.rows - 1, Math.floor((y + h) / this.cellSize));
+        return { c1, c2, r1, r2 };
+    }
+
+    insert(box) {
+        this.boxes.push(box);
+        const { c1, c2, r1, r2 } = this._getBounds(box.x, box.y, box.w, box.h);
+        for (let r = r1; r <= r2; r++) {
+            const offset = r * this.cols;
+            for (let c = c1; c <= c2; c++) {
+                this.grid[offset + c].push(box);
+            }
+        }
+    }
+
+    isColliding(box, padding = 1.5, mapW = 1200, mapH = 750) {
+        if (box.x < 4 || box.y < 4 || (box.x + box.w) > (mapW - 4) || (box.y + box.h) > (mapH - 4)) {
+            return true;
+        }
+        const { c1, c2, r1, r2 } = this._getBounds(box.x, box.y, box.w, box.h);
+        const bx = box.x, by = box.y, bw = box.w, bh = box.h;
+        for (let r = r1; r <= r2; r++) {
+            const offset = r * this.cols;
+            for (let c = c1; c <= c2; c++) {
+                const cell = this.grid[offset + c];
+                for (let i = 0; i < cell.length; i++) {
+                    const p = cell[i];
+                    if (!(bx + bw + padding < p.x ||
+                          p.x + p.w + padding < bx ||
+                          by + bh + padding < p.y ||
+                          p.y + p.h + padding < by)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+}
+
+/**
  * 라벨 사각 영역이 화면 경계를 벗어나거나 이미 배치된 다른 라벨과 겹치는지 정밀 검사
  */
 function isBoxColliding(box, placedBoxes, padding = 1.8, mapW = 1200, mapH = 750) {
+    if (placedBoxes && typeof placedBoxes.isColliding === 'function') {
+        return placedBoxes.isColliding(box, padding, mapW, mapH);
+    }
     if (box.x < 4 || box.y < 4 || (box.x + box.w) > (mapW - 4) || (box.y + box.h) > (mapH - 4)) {
         return true;
     }
@@ -978,24 +1039,35 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
 
     if (points.length === 0) return [];
 
-    // 2. 노드 간 거리 기반 밀집도(Density) 및 클러스터 중심점 계산
+    // 2. [고속화] 노드 간 거리 기반 밀집도(Density) 및 클러스터 중심점 계산 (조기 탈락 바운딩 필터)
     const densityRadius = 32; // px
-    points.forEach(p => {
+    const densityRadiusSq = densityRadius * densityRadius;
+    const ptCount = points.length;
+
+    for (let i = 0; i < ptCount; i++) {
+        const p = points[i];
         let neighborCount = 0;
         let sumX = 0, sumY = 0;
-        points.forEach(other => {
-            const dx = other.origX - p.origX;
-            const dy = other.origY - p.origY;
-            if (Math.hypot(dx, dy) < densityRadius) {
+        const px = p.origX;
+        const py = p.origY;
+
+        for (let j = 0; j < ptCount; j++) {
+            const other = points[j];
+            const dx = other.origX - px;
+            if (dx > densityRadius || dx < -densityRadius) continue;
+            const dy = other.origY - py;
+            if (dy > densityRadius || dy < -densityRadius) continue;
+
+            if (dx * dx + dy * dy <= densityRadiusSq) {
                 neighborCount++;
                 sumX += other.origX;
                 sumY += other.origY;
             }
-        });
+        }
         p.neighborCount = neighborCount;
         p.clusterCenterX = sumX / (neighborCount || 1);
         p.clusterCenterY = sumY / (neighborCount || 1);
-    });
+    }
 
     const fontSize = opts.fontSize || 7.2;
     const isSmart = (opts.labelMode === 'smart');
@@ -1006,7 +1078,8 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
     // 중요 간선 및 중심 교차로부터 먼저 최적 위치 선점하도록 정렬
     const sortedPoints = [...points].sort((a, b) => b.priority - a.priority);
 
-    const placedBoxes = []; // 이미 배치 확정된 라벨 사각형 목록 [{x, y, w, h}]
+    const spatialIndex = new LabelSpatialIndex(mapW, mapH, 70); // [고속화] 공간 격자 인덱스
+    const placedBoxes = []; // 호환성을 위한 배열
     const results = [];
 
     // 나선형 16방위 정밀 탐색 각도
@@ -1051,13 +1124,15 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
             ];
             for (const cand of candidates) {
                 const box = { x: cand.x, y: cand.y, w: rectW, h: rectH };
-                if (!isBoxColliding(box, placedBoxes, 1.5, mapW, mapH)) {
+                if (!isBoxColliding(box, spatialIndex, 1.5, mapW, mapH)) {
                     bestCandidate = cand;
                     break;
                 }
             }
             if (bestCandidate) {
-                placedBoxes.push({ x: bestCandidate.x, y: bestCandidate.y, w: rectW, h: rectH });
+                const finalBox = { x: bestCandidate.x, y: bestCandidate.y, w: rectW, h: rectH };
+                spatialIndex.insert(finalBox);
+                placedBoxes.push(finalBox);
                 results.push({
                     node: j, origX: p.origX, origY: p.origY,
                     labelX: bestCandidate.x, labelY: bestCandidate.y,
@@ -1082,7 +1157,7 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
 
             for (const slot of closeSlots) {
                 const testBox = { x: slot.x, y: slot.y, w: rectW, h: rectH };
-                if (!isBoxColliding(testBox, placedBoxes, 1.5, mapW, mapH)) {
+                if (!isBoxColliding(testBox, spatialIndex, 1.5, mapW, mapH)) {
                     bestCandidate = { x: slot.x, y: slot.y, hasLeader: false };
                     break;
                 }
@@ -1124,7 +1199,7 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                         }
 
                         const testBox = { x: testX, y: testY, w: rectW, h: rectH };
-                        if (!isBoxColliding(testBox, placedBoxes, 1.5, mapW, mapH)) {
+                        if (!isBoxColliding(testBox, spatialIndex, 1.5, mapW, mapH)) {
                             // 거리가 32px 미만인 근접 배치는 노드와 시각적으로 바로 매칭되므로 지시선 생략!
                             const distFromNode = Math.hypot(testX + rectW / 2 - p.origX, testY + rectH / 2 - p.origY);
                             bestCandidate = {
@@ -1149,7 +1224,9 @@ function computeLeaderDispersedLabels(nodes, edges, opts, mapInstance) {
                 bestCandidate = { x: fbX, y: fbY, hasLeader: (fbDist >= 34) };
             }
 
-            placedBoxes.push({ x: bestCandidate.x, y: bestCandidate.y, w: rectW, h: rectH });
+            const finalBox = { x: bestCandidate.x, y: bestCandidate.y, w: rectW, h: rectH };
+            spatialIndex.insert(finalBox);
+            placedBoxes.push(finalBox);
             results.push({
                 node: j, origX: p.origX, origY: p.origY,
                 labelX: bestCandidate.x, labelY: bestCandidate.y,

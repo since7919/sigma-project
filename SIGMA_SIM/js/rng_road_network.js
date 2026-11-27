@@ -30,6 +30,8 @@ class RoadNetworkManager {
         this.edges = [];
         this.edgeSet.clear();
         this.isActive = false;
+        this.selectedNode = null;
+        this.highlightGroupId = null;
 
         // [핵심 수정] 잔상 방지를 위해 외부 로드된 레이어(data.js의 geoJsonLayer)도 함께 소탕
         if (typeof STATE !== 'undefined' && STATE.geoJsonLayer && window.map) {
@@ -48,6 +50,14 @@ class RoadNetworkManager {
         if (this.labelLayer && map) {
             map.removeLayer(this.labelLayer);
             this.labelLayer = null;
+        }
+        if (this.previewLayer && map) {
+            map.removeLayer(this.previewLayer);
+            this.previewLayer = null;
+        }
+        if (this._updateTimer) {
+            clearTimeout(this._updateTimer);
+            this._updateTimer = null;
         }
     }
 
@@ -459,8 +469,11 @@ class RoadNetworkManager {
      */
     render() {
         if (!map) return;
-        if (this.layerGroup) map.removeLayer(this.layerGroup);
-        this.layerGroup = L.layerGroup().addTo(map);
+        if (!this.layerGroup) {
+            this.layerGroup = L.layerGroup().addTo(map);
+        } else {
+            this.layerGroup.clearLayers();
+        }
 
         const zoom = map.getZoom();
         const bounds = map.getBounds().pad(0.1);
@@ -629,14 +642,18 @@ class RoadNetworkManager {
         });
 
         // Visual Feedback Layer for Deletion
-        const previewLayer = L.layerGroup().addTo(map);
+        if (!this.previewLayer) {
+            this.previewLayer = L.layerGroup().addTo(map);
+        } else {
+            this.previewLayer.clearLayers();
+        }
         let lastNearest = null;
         let isPreviewLayerEmpty = true;
 
         map.on('mousemove', (e) => {
             if (!this.isActive || !this.isEditMode || !e.originalEvent.altKey) {
-                if (!isPreviewLayerEmpty) {
-                    previewLayer.clearLayers();
+                if (!isPreviewLayerEmpty && this.previewLayer) {
+                    this.previewLayer.clearLayers();
                     isPreviewLayerEmpty = true;
                     lastNearest = null;
                 }
@@ -645,8 +662,8 @@ class RoadNetworkManager {
 
             const nearest = this._findNearestEdge(e.latlng);
             if (nearest && nearest.dist < 15) {
-                if (lastNearest !== nearest.idx) {
-                    previewLayer.clearLayers();
+                if (lastNearest !== nearest.idx && this.previewLayer) {
+                    this.previewLayer.clearLayers();
                     const u = this.nodes[nearest.pair[0]];
                     const v = this.nodes[nearest.pair[1]];
                     L.polyline([[u.lat, u.lng], [v.lat, v.lng]], {
@@ -654,13 +671,13 @@ class RoadNetworkManager {
                         weight: this.baseWeight + 3,
                         opacity: 1,
                         dashArray: '5, 5'
-                    }).addTo(previewLayer);
+                    }).addTo(this.previewLayer);
                     lastNearest = nearest.idx;
                     isPreviewLayerEmpty = false;
                 }
             } else {
-                if (!isPreviewLayerEmpty) {
-                    previewLayer.clearLayers();
+                if (!isPreviewLayerEmpty && this.previewLayer) {
+                    this.previewLayer.clearLayers();
                     isPreviewLayerEmpty = true;
                 }
                 lastNearest = null;
