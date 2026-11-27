@@ -366,6 +366,11 @@ function selectJunction(jid, isMulti = false) {
             window.ArrowEditManager.enter(jid);
         }
 
+        // [신규] GIS 지도 -> 시공도(TSD) 교차로 포커스 동기화
+        if (typeof window.highlightTsdJunction === 'function') {
+            window.highlightTsdJunction(jid);
+        }
+
         // [추가] 현재 활성화된 탭이 있으면 해당 탭의 렌더링 함수를 한번 더 호출 (강제 리프레시)
         const activeTabBtn = document.querySelector('.tabs .tab.active, .menu-item.active');
         if (activeTabBtn) {

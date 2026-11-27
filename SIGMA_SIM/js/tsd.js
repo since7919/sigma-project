@@ -174,6 +174,82 @@ class TSDAnalyzer {
             validCount: (res && res.validCount) ? res.validCount : 0
         };
     }
+
+    /**
+     * [신규] Max Band 양방향 연동 최적 오프셋 자동 산출 엔진
+     * - 기준 교차로(0번) 오프셋 기준, 구간별 주행시간 및 양방향 위상 최적화
+     * - 상행 대역폭 + 하행 대역폭 합계를 극대화하는 최적 오프셋 벡터 산출
+     */
+    static optimizeOffsets(members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, axis = 'ew') {
+        if (!members || members.length < 2 || cycle <= 0) return null;
+        
+        const N = members.length;
+        const currentOffsets = members.map(m => {
+            const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(m, dayIdx, pIdx) : (m.dayPlans && m.dayPlans[dayIdx] ? m.dayPlans[dayIdx][pIdx] : null);
+            return tod ? (tod.offset || 0) : 0;
+        });
+
+        // 1. 초기 상태 점수 평가
+        const initUp = this.calculateBandwidth('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, currentOffsets);
+        const initDown = this.calculateBandwidth('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, currentOffsets);
+        let bestScore = (initUp.width || 0) + (initDown.width || 0);
+        let bestOffsets = [...currentOffsets];
+
+        // 2. 주행시간 기반 이상적 오프셋 및 하프-사이클 교대 위상 후보군 탐색
+        let candidate = [0];
+        const step = cycle > 130 ? 3 : 2;
+
+        for (let i = 1; i < N; i++) {
+            let localBestOffset = 0;
+            let localBestW = -1;
+            
+            for (let off = 0; off < cycle; off += step) {
+                const testOffsets = [...candidate, off];
+                for (let k = i + 1; k < N; k++) testOffsets.push(currentOffsets[k]);
+                
+                const up = this.calculateBandwidth('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testOffsets);
+                const down = this.calculateBandwidth('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testOffsets);
+                const score = (up.width || 0) + (down.width || 0);
+                
+                if (score > localBestW) {
+                    localBestW = score;
+                    localBestOffset = off;
+                }
+            }
+            candidate.push(localBestOffset);
+        }
+
+        // 3. 로컬 힐클라이밍 미세조정 (+-1s, +-2s)
+        for (let iter = 0; iter < 2; iter++) {
+            for (let i = 1; i < N; i++) {
+                const orig = candidate[i];
+                for (let delta of [-2, -1, 1, 2]) {
+                    const testOff = (orig + delta + cycle) % cycle;
+                    candidate[i] = testOff;
+                    const up = this.calculateBandwidth('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, candidate);
+                    const down = this.calculateBandwidth('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, candidate);
+                    const score = (up.width || 0) + (down.width || 0);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestOffsets = [...candidate];
+                    } else {
+                        candidate[i] = orig;
+                    }
+                }
+            }
+        }
+
+        const finalUp = this.calculateBandwidth('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, bestOffsets);
+        const finalDown = this.calculateBandwidth('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, bestOffsets);
+
+        return {
+            offsets: bestOffsets,
+            upWidth: finalUp.width || 0,
+            downWidth: finalDown.width || 0,
+            totalScore: (finalUp.width || 0) + (finalDown.width || 0),
+            initialScore: (initUp.width || 0) + (initDown.width || 0)
+        };
+    }
 }
 
 // ── TSDEngine: 렌더링 & 인터랙션 ──
@@ -215,7 +291,10 @@ class TSDEngine {
             dragJid: null, lastX: 0,
             yCoords: [], todIdx: 0,
             segSpeeds: [],    // 구간별 속도 (km/h), 길이 = members.length - 1
-            travelTimes: []   // 누적 주행시간 (초), 길이 = members.length
+            travelTimes: [],   // 누적 주행시간 (초), 길이 = members.length
+            scaleMode: 'proportional', // 'proportional' (거리 비례) | 'schematic' (균등 간격)
+            selectedJid: null,  // 오프셋 미세조정/선택 교차로 ID
+            hoveredJid: null   // 마우스 호버 교차로 ID (지도 연동용)
         };
 
         this.initEvents();
@@ -239,23 +318,33 @@ class TSDEngine {
     }
 
     initEvents() {
-        const getHitJid = (e) => {
+        const getHitJid = (e, includeLabelArea = false) => {
             const rect = this.canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = (e.clientY - rect.top) / (window.devicePixelRatio || 1);
-            if (mx < this.config.padding.left) return null;
+            if (!includeLabelArea && mx < this.config.padding.left) return null;
             for (let item of this.state.yCoords) {
-                if (Math.abs(my - item.y) < 20) return item.id;
+                if (Math.abs(my - item.y) < 22) return item.id;
             }
             return null;
         };
 
-                this.canvas.addEventListener('mousemove', (e) => {
+        this.canvas.addEventListener('mousemove', (e) => {
             if (this.state.isDragging || this.state.isDraggingOffset) {
                 if(this.tooltip) this.tooltip.style.display = 'none';
                 return;
             }
-            this.canvas.style.cursor = getHitJid(e) ? 'ew-resize' : 'grab';
+            const hitJid = getHitJid(e);
+            this.canvas.style.cursor = hitJid ? 'ew-resize' : 'grab';
+            
+            // [신규] GIS 지도 동기화 호버링
+            const hoverJid = getHitJid(e, true);
+            if (this.state.hoveredJid !== hoverJid) {
+                this.state.hoveredJid = hoverJid;
+                if (typeof window.syncTsdHoverToMap === 'function') {
+                    window.syncTsdHoverToMap(hoverJid);
+                }
+            }
             
             // 툴팁 처리 로직
             if (this.tooltip && this.state.hitRegions) {
@@ -293,16 +382,26 @@ class TSDEngine {
             }
         });
 
-        this.canvas.addEventListener('mouseleave', () => { if(this.tooltip) this.tooltip.style.display = 'none'; });
+        this.canvas.addEventListener('mouseleave', () => { 
+            if(this.tooltip) this.tooltip.style.display = 'none'; 
+            if (this.state.hoveredJid) {
+                this.state.hoveredJid = null;
+                if (typeof window.syncTsdHoverToMap === 'function') window.syncTsdHoverToMap(null);
+            }
+        });
         this.canvas.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
-            const hitJid = getHitJid(e);
+            const hitJid = getHitJid(e, true);
             this.state.lastX = e.clientX;
             if (hitJid) {
+                this.state.selectedJid = hitJid;
                 this.state.isDraggingOffset = true;
                 this.state.dragJid = hitJid;
                 this.canvas.style.cursor = 'ew-resize';
-            } else { this.canvas.style.cursor = 'default'; }
+                this.render(); // 선택 교차로 하이라이트 즉시 갱신
+            } else { 
+                this.canvas.style.cursor = 'default'; 
+            }
             e.preventDefault();
         });
 
@@ -487,12 +586,24 @@ class TSDEngine {
         const bandUp = TSDAnalyzer.calculateBandwidth('up', axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, this.state.todIdx);
         const bandDown = TSDAnalyzer.calculateBandwidth('down', axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, this.state.todIdx);
 
-        // 좌표 변환 헬퍼
+        // 좌표 변환 헬퍼 (거리비례 vs 균등간격 모식도 완벽 지원)
         const xF = chartW / timeHorizon;
         this.state.viewOffsetT = 0;
         const tToX = (t) => cfg.padding.left + (t - this.state.viewOffsetT) * xF;
         const ringMargin = 20; // 듀얼 링이 클리핑되지 않도록 상하 여백 확보
-        const distToY = (d) => cfg.padding.top + ringMargin + (1 - d / (this.state.totalDist || 1)) * (chartH - ringMargin * 2);
+        
+        const isSchematic = (this.state.scaleMode === 'schematic');
+        const numMembers = this.state.members.length;
+        const getY = (idx, dist) => {
+            if (isSchematic && numMembers > 1) {
+                // 균등 간격(모식도): 상단(0번 교차로, Y 작음) ~ 하단(마지막 교차로, Y 큼)
+                const norm = (numMembers - 1 - idx) / (numMembers - 1);
+                return cfg.padding.top + ringMargin + norm * (chartH - ringMargin * 2);
+            }
+            // 실제 거리 비례
+            return cfg.padding.top + ringMargin + (1 - dist / (this.state.totalDist || 1)) * (chartH - ringMargin * 2);
+        };
+        const distToY = (d, idx = 0) => getY(idx, d);
 
         // 클리핑
         ctx.save();
@@ -510,46 +621,60 @@ class TSDEngine {
         // 1) 듀얼 링 신호 바
         this.state.yCoords = [];
         this.state.members.forEach((j, i) => {
-            const y = distToY(this.state.distances[i]);
-            this.state.yCoords.push({ id: j.id, y });
+            const y = getY(i, this.state.distances[i]);
+            this.state.yCoords.push({ id: j.id, y, idx: i });
             ctx.strokeStyle = 'rgba(0,0,0,0.06)';
             ctx.beginPath(); ctx.moveTo(cfg.padding.left, y); ctx.lineTo(w - cfg.padding.right, y); ctx.stroke();
             this.drawDualRingBars(j, y, chartW, timeHorizon, xF, dayIdx, axis);
         });
 
         // 2) 밴드/궤적 오버레이
-        this.drawHybridBand('up', bandUp, timeHorizon, xF, tToX, distToY, dayIdx, axis);
-        this.drawHybridBand('down', bandDown, timeHorizon, xF, tToX, distToY, dayIdx, axis);
+        this.drawHybridBand('up', bandUp, timeHorizon, xF, tToX, getY, dayIdx, axis);
+        this.drawHybridBand('down', bandDown, timeHorizon, xF, tToX, getY, dayIdx, axis);
 
         ctx.restore();
 
-        // 3) 라벨
+        // 3) 라벨 (선택 및 GIS 호버 하이라이트 반영)
         this.state.members.forEach((j, i) => {
-            const y = distToY(this.state.distances[i]);
+            const y = getY(i, this.state.distances[i]);
             const pIdx = this.state.todIdx;
             const _effPlan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : (j.dayPlans && j.dayPlans[dayIdx] ? j.dayPlans[dayIdx][pIdx] : null);
             const curOffset = _effPlan ? (_effPlan.offset || 0) : 0;
+            const isSelected = (this.state.selectedJid === j.id);
+            const isHovered = (this.state.hoveredJid === j.id);
 
-            // 라벨 배경
-            ctx.fillStyle = 'rgba(30,33,36,0.95)';
+            // 라벨 배경 (선택/호버 상태별 미려한 배경 및 테두리)
+            ctx.fillStyle = isSelected 
+                ? 'rgba(56, 189, 248, 0.28)' 
+                : (isHovered ? 'rgba(255, 215, 0, 0.20)' : 'rgba(30,33,36,0.95)');
             ctx.fillRect(0, y - 26, cfg.padding.left - 2, 52);
+
+            if (isSelected) {
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(1, y - 25, cfg.padding.left - 4, 50);
+            } else if (isHovered) {
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(1, y - 25, cfg.padding.left - 4, 50);
+            }
 
             // 교차로명
             ctx.textAlign = 'right';
-            ctx.fillStyle = '#eeeeee';
-            ctx.font = 'bold 14px "Outfit", "Inter", sans-serif';
+            ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#ffd700' : '#eeeeee');
+            ctx.font = 'bold 13.5px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
-            if (name.length > 9) name = name.substring(0, 8) + '..';
+            if (name.length > 8) name = name.substring(0, 7) + '..';
             ctx.fillText(name, cfg.padding.left - 12, y - 8);
 
             // 거리
-            ctx.fillStyle = '#81c784';
-            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.fillStyle = isSchematic ? '#a7f3d0' : '#81c784';
+            ctx.font = 'bold 11px "JetBrains Mono", monospace';
             ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cfg.padding.left - 12, y + 8);
 
             // 오프셋
             ctx.fillStyle = curOffset !== 0 ? '#ffb74d' : '#9e9e9e';
-            ctx.font = 'bold 12px "JetBrains Mono", monospace';
+            ctx.font = 'bold 11.5px "JetBrains Mono", monospace';
             ctx.fillText(`⊕ ${Math.round(curOffset)}s`, cfg.padding.left - 12, y + 24);
         });
 
@@ -589,7 +714,73 @@ class TSDEngine {
             }
         }
 
+        // 4) 실시간 연동 대역폭 & 효율 HUD 카드 렌더링
+        this.drawTsdMetricsHUD(bandUp, bandDown, w, h, chartW, chartH, cfg);
+
         this.updateInfoText(bandUp, bandDown);
+    }
+
+    // ── 실시간 연동 대역폭 & 효율 HUD 카드 (캔버스 우측 상단 오버레이) ──
+    drawTsdMetricsHUD(bandUp, bandDown, w, h, chartW, chartH, cfg) {
+        const ctx = this.ctx, cycle = this.state.cycle || 100;
+        const upW = bandUp ? (bandUp.width || 0) : 0;
+        const downW = bandDown ? (bandDown.width || 0) : 0;
+        const upEff = cycle > 0 ? (upW / cycle * 100).toFixed(1) : "0.0";
+        const downEff = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
+        const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
+
+        const cardW = 230;
+        const cardH = 56;
+        const cardX = w - cfg.padding.right - cardW - 8;
+        const cardY = cfg.padding.top + 8;
+
+        // 반투명 배경 카드 (글래스모피즘)
+        ctx.fillStyle = 'rgba(10, 15, 24, 0.88)';
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(cardX, cardY, cardW, cardH, 8);
+        } else {
+            ctx.rect(cardX, cardY, cardW, cardH);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // 텍스트 헤더
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.fillText(`연동효율: `, cardX + 10, cardY + 16);
+        ctx.fillStyle = totEff > 25 ? '#38bdf8' : (totEff > 0 ? '#ffb74d' : '#ef4444');
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText(`${totEff}% (C:${cycle}s)`, cardX + 60, cardY + 16);
+
+        // 상행 대역폭
+        ctx.fillStyle = this.config.colors.trajUp || '#29b6f6';
+        ctx.font = 'bold 11px "Outfit", sans-serif';
+        ctx.fillText(`⬆️ 상행`, cardX + 10, cardY + 33);
+        ctx.fillStyle = upW > 0 ? '#ffffff' : '#ef4444';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText(`${upW.toFixed(1)}s (${upEff}%)`, cardX + 58, cardY + 33);
+
+        // 하행 대역폭
+        ctx.fillStyle = this.config.colors.trajDown || '#66bb6a';
+        ctx.font = 'bold 11px "Outfit", sans-serif';
+        ctx.fillText(`⬇️ 하행`, cardX + 10, cardY + 48);
+        ctx.fillStyle = downW > 0 ? '#ffffff' : '#ef4444';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText(`${downW.toFixed(1)}s (${downEff}%)`, cardX + 58, cardY + 48);
+
+        // 모드 배지 (모식도 vs 거리비례)
+        const isSchematic = (this.state.scaleMode === 'schematic');
+        const badgeText = isSchematic ? '모식도(균등)' : '거리비례';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = isSchematic ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(cardX + cardW - 74, cardY + 6, 68, 16);
+        ctx.fillStyle = isSchematic ? '#38bdf8' : '#888888';
+        ctx.font = 'bold 9.5px "Outfit", sans-serif';
+        ctx.fillText(badgeText, cardX + cardW - 10, cardY + 18);
     }
 
     // ── 듀얼 링(Dual-Ring) ──
@@ -700,7 +891,7 @@ class TSDEngine {
     }
 
     // ── 하이브리드 밴드/궤적 렌더링 ──
-    drawHybridBand(dir, band, timeHorizon, xF, tToX, distToY, dayIdx, axis) {
+    drawHybridBand(dir, band, timeHorizon, xF, tToX, getY, dayIdx, axis) {
         const ctx = this.ctx, cfg = this.config, cycle = this.state.cycle;
         const members = this.state.members, distances = this.state.distances, totalDist = this.state.totalDist;
         const isUp = (dir === 'up');
@@ -724,7 +915,7 @@ class TSDEngine {
                 for (const i of indices) {
                     const dist = distances[i];
                     const travel = isUp ? this.state.travelTimes[i] : (totalTT - this.state.travelTimes[i]);
-                    const y = distToY(dist);
+                    const y = getY(i, dist);
                     fwdPts.push({ x: tToX(startT + travel), y });
                     bwdPts.push({ x: tToX(startT + band.width + travel), y });
                 }
@@ -762,13 +953,13 @@ class TSDEngine {
                 // 첫 시작점 설정
                 const firstIdx = sortedIdx[0];
                 const firstTravel = isUp ? this.state.travelTimes[firstIdx] : (totalTT - this.state.travelTimes[firstIdx]);
-                ctx.moveTo(tToX(baseT + firstTravel), distToY(distances[firstIdx]));
+                ctx.moveTo(tToX(baseT + firstTravel), getY(firstIdx, distances[firstIdx]));
 
                 for (const idx of sortedIdx) {
                     const nodeDist = distances[idx];
                     const travel = isUp ? this.state.travelTimes[idx] : (totalTT - this.state.travelTimes[idx]);
                     let t = baseT + travel;
-                    ctx.lineTo(tToX(t), distToY(nodeDist));
+                    ctx.lineTo(tToX(t), getY(idx, nodeDist));
 
                     const g = TSDAnalyzer.getGreenWindow(members[idx], axis, dir, dayIdx, pIdx, cycle);
                     if (!g) continue;
@@ -1080,6 +1271,198 @@ window.addEventListener('storage', (e) => {
 if (typeof window !== 'undefined') {
     window.TSDAnalyzer = TSDAnalyzer;
     window.TSDEngine = TSDEngine;
+
+    // [신규] 스케일 모드 토글 (거리비례 vs 균등간격 모식도)
+    window.setTsdScaleMode = function(mode) {
+        if (!TSD_ENGINE) return;
+        TSD_ENGINE.state.scaleMode = mode;
+        TSD_ENGINE.render();
+    };
+
+    // [신규] 오프셋 1초/5초 단위 미세조정 스테퍼
+    window.stepTsdOffset = function(delta) {
+        if (!TSD_ENGINE || !TSD_ENGINE.state.members || TSD_ENGINE.state.members.length === 0) return;
+        const targetJid = TSD_ENGINE.state.selectedJid || TSD_ENGINE.state.members[0].id;
+        const j = STATE.junctions[targetJid];
+        if (!j) return;
+
+        const daySelector = document.getElementById('tsd-day-plan');
+        const dayIdx = daySelector ? parseInt(daySelector.value) : (STATE.currentGroupDayTypeIdx || 0);
+        const pIdx = TSD_ENGINE.state.todIdx || 0;
+        const cycle = TSD_ENGINE.state.cycle || 100;
+
+        if (j.dayPlans && j.dayPlans[dayIdx] && j.dayPlans[dayIdx][pIdx]) {
+            const cur = j.dayPlans[dayIdx][pIdx].offset || 0;
+            const next = ((cur + delta) % cycle + cycle) % cycle;
+            j.dayPlans[dayIdx][pIdx].offset = next;
+            
+            if (typeof renderGroupTODTable === 'function') renderGroupTODTable();
+            TSD_ENGINE.render();
+        }
+    };
+
+    // [신규] 지능형 MaxBand 원클릭 오프셋 자동 최적화
+    window.autoOptimizeTsdOffsets = function() {
+        if (!TSD_ENGINE || !TSD_ENGINE.state.members || TSD_ENGINE.state.members.length < 2) {
+            alert("최적화할 교차로 데이터가 없습니다. 교차로가 2개 이상인 그룹을 먼저 선택하세요.");
+            return;
+        }
+
+        const axisEl = document.querySelector('input[name="tsd-axis"]:checked');
+        const axis = axisEl ? axisEl.value : 'ew';
+        const daySelector = document.getElementById('tsd-day-plan');
+        const dayIdx = daySelector ? parseInt(daySelector.value) : (STATE.currentGroupDayTypeIdx || 0);
+        const pIdx = TSD_ENGINE.state.todIdx || 0;
+        const cycle = TSD_ENGINE.state.cycle || 100;
+
+        const res = TSDAnalyzer.optimizeOffsets(
+            TSD_ENGINE.state.members,
+            TSD_ENGINE.state.distances,
+            TSD_ENGINE.state.totalDist,
+            cycle,
+            TSD_ENGINE.state.travelTimes,
+            dayIdx,
+            pIdx,
+            axis
+        );
+
+        if (!res || !res.offsets) {
+            alert("오프셋 최적화 연산에 실패했습니다.");
+            return;
+        }
+
+        // 최적 오프셋 적용
+        TSD_ENGINE.state.members.forEach((m, i) => {
+            const newOff = res.offsets[i];
+            if (m.dayPlans && m.dayPlans[dayIdx] && m.dayPlans[dayIdx][pIdx]) {
+                m.dayPlans[dayIdx][pIdx].offset = newOff;
+            }
+        });
+
+        if (typeof renderGroupTODTable === 'function') renderGroupTODTable();
+        TSD_ENGINE.render();
+
+        const effUp = cycle > 0 ? (res.upWidth / cycle * 100).toFixed(1) : 0;
+        const effDown = cycle > 0 ? (res.downWidth / cycle * 100).toFixed(1) : 0;
+        alert(`✨ MaxBand 자동 최적화 완료!\n\n• 상행 대역폭: ${res.upWidth.toFixed(1)}초 (${effUp}%)\n• 하행 대역폭: ${res.downWidth.toFixed(1)}초 (${effDown}%)\n• 양방향 총 대역폭: ${res.totalScore.toFixed(1)}초 (기존: ${res.initialScore.toFixed(1)}초)`);
+    };
+
+    // [신규] GIS 지도 동기화 호버링 (시공도 -> 지도)
+    window.syncTsdHoverToMap = function(jid) {
+        if (!STATE || !STATE.junctions) return;
+        if (window._tsdLastHoveredMarker) {
+            try {
+                window._tsdLastHoveredMarker.setStyle({
+                    radius: window._tsdLastHoveredMarker._origRadius || 6,
+                    color: window._tsdLastHoveredMarker._origColor || '#38bdf8',
+                    weight: window._tsdLastHoveredMarker._origWeight || 1.5,
+                    fillColor: window._tsdLastHoveredMarker._origFillColor || '#38bdf8'
+                });
+            } catch(e){}
+            window._tsdLastHoveredMarker = null;
+        }
+
+        if (!jid) return;
+        const j = STATE.junctions[jid];
+        if (!j) return;
+
+        const marker = j.marker || (window.markers && window.markers[jid]);
+        if (marker && typeof marker.setStyle === 'function') {
+            marker._origRadius = marker._origRadius || marker.getRadius?.() || 6;
+            marker._origColor = marker.options?.color;
+            marker._origWeight = marker.options?.weight;
+            marker._origFillColor = marker.options?.fillColor;
+            marker.setStyle({
+                radius: 11,
+                color: '#ffd700',
+                weight: 3,
+                fillColor: '#ffd700'
+            });
+            window._tsdLastHoveredMarker = marker;
+        }
+    };
+
+    // [신규] 지도 클릭 -> 시공도 포커스 하이라이트 (지도 -> 시공도)
+    window.highlightTsdJunction = function(jid) {
+        if (!TSD_ENGINE) return;
+        TSD_ENGINE.state.selectedJid = jid;
+        TSD_ENGINE.render();
+    };
+
+    // [신규] 고해상도 정규 공학 시공도 도면(PNG) 내보내기
+    window.exportTsdEngineeringDiagram = function() {
+        if (!TSD_ENGINE || !TSD_ENGINE.state.members || TSD_ENGINE.state.members.length < 2) {
+            alert("내보낼 시공도 데이터가 없습니다. 교차로가 2개 이상인 그룹을 먼저 선택하세요.");
+            return;
+        }
+
+        const origCanvas = document.getElementById('tsd-canvas');
+        if (!origCanvas) return;
+
+        // 고해상도 오프스크린 캔버스 (1920x1080 Full HD)
+        const expCanvas = document.createElement('canvas');
+        const expW = 1920;
+        const expH = 1080;
+        expCanvas.width = expW;
+        expCanvas.height = expH;
+        const expCtx = expCanvas.getContext('2d');
+
+        // 1. 도면 배경
+        expCtx.fillStyle = '#0a0d14';
+        expCtx.fillRect(0, 0, expW, expH);
+
+        // 2. 상단 엔지니어링 타이틀 블록
+        expCtx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        expCtx.fillRect(24, 20, expW - 48, 80);
+        expCtx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+        expCtx.lineWidth = 1.5;
+        expCtx.strokeRect(24, 20, expW - 48, 80);
+
+        expCtx.fillStyle = '#38bdf8';
+        expCtx.font = 'bold 22px "Outfit", "Inter", sans-serif';
+        expCtx.textAlign = 'left';
+        expCtx.fillText('SIGMA 2.0 — 연동 시공도 분석 도면 (Time-Space Diagram)', 45, 54);
+
+        const group = STATE.groups[TSD_ENGINE.state.gid];
+        const gName = group ? (group.name || `그룹 ${group.id}`) : `그룹 ${TSD_ENGINE.state.gid}`;
+        const daySelector = document.getElementById('tsd-day-plan');
+        const dayName = daySelector ? daySelector.options[daySelector.selectedIndex]?.text : '일계획 1';
+        const timeSelector = document.getElementById('tsd-time-slot');
+        const timeName = timeSelector ? timeSelector.options[timeSelector.selectedIndex]?.text : '기본 시간대';
+        const speed = document.getElementById('tsd-speed')?.value || '50';
+        const cycle = TSD_ENGINE.state.cycle || 100;
+        const modeText = TSD_ENGINE.state.scaleMode === 'schematic' ? '모식도(균등간격)' : '실제 거리비례';
+        const nowStr = new Date().toLocaleString('ko-KR');
+
+        expCtx.fillStyle = '#94a3b8';
+        expCtx.font = '13px "JetBrains Mono", monospace';
+        expCtx.fillText(`[분석대상: ${gName}]  |  [계획: ${dayName} - ${timeName}]  |  [주기: ${cycle}s]  |  [속도: ${speed}km/h]  |  [스케일: ${modeText}]  |  [출력: ${nowStr}]`, 45, 82);
+
+        // 3. 메인 시공도 다이어그램 복사
+        const diagX = 24;
+        const diagY = 114;
+        const diagW = expW - 48;
+        const diagH = expH - 144;
+
+        expCtx.drawImage(origCanvas, diagX, diagY, diagW, diagH);
+
+        // 도면 외곽 테두리
+        expCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        expCtx.lineWidth = 1;
+        expCtx.strokeRect(diagX, diagY, diagW, diagH);
+
+        // 하단 서명 및 워터마크
+        expCtx.fillStyle = '#64748b';
+        expCtx.font = '11px "Outfit", sans-serif';
+        expCtx.textAlign = 'right';
+        expCtx.fillText('Generated by SIGMA Traffic Signal Coordination Engine (v3.2)', expW - 35, expH - 10);
+
+        // 4. 자동 다운로드 트리거
+        const link = document.createElement('a');
+        link.download = `TSD_${gName.replace(/\s+/g, '_')}_${dayName}_${Date.now()}.png`;
+        link.href = expCanvas.toDataURL('image/png');
+        link.click();
+    };
 }
 
 
