@@ -1090,8 +1090,7 @@ function renderAdvancedInsights(junctions, noRender = false) {
             });
         }
 
-        if (j.group && j.group !== 0) {
-            coordinatedJunctions++;
+        if (j.group && j.group !== 0 && j.group !== '0') {
             groupCounts[j.group] = (groupCounts[j.group] || 0) + 1;
         }
 
@@ -1227,10 +1226,21 @@ function renderAdvancedInsights(junctions, noRender = false) {
             shortYellowCount++;
             window.LATEST_INSIGHT_DYNAMIC.clearanceAnomalies.push(`${j.name || j.id} (${[...new Set(aStr)].join(', ')})`);
         }
-        if (maxCycleForJ >= 160) highCycleCount++;
+        // [사용자 요구] 과포화 운영(고주기): 주기 180초 초과 기준
+        if (maxCycleForJ > 180) highCycleCount++;
         if (j.flashEnable) flashOpCount++;
     });
 
+    // [사용자 요구] 전체 망 연동화율: 그룹에 교차로가 1개인 경우 제외 (연동은 2개소 이상일 때 성립)
+    let validCoordinatedJunctions = 0;
+    let validGroupCount = 0;
+    Object.entries(groupCounts).forEach(([gid, cnt]) => {
+        if (cnt >= 2) {
+            validCoordinatedJunctions += cnt;
+            validGroupCount++;
+        }
+    });
+    coordinatedJunctions = validCoordinatedJunctions;
         
     window.LATEST_INSIGHT_DYNAMIC.coordinatedJunctions = coordinatedJunctions;
     window.LATEST_INSIGHT_DYNAMIC.hasSignalMapCount = hasSignalMapCount;
@@ -1244,8 +1254,7 @@ function renderAdvancedInsights(junctions, noRender = false) {
     
     // --- 거시 지표 계산 ---
     const coordRate = totalJunctions > 0 ? ((coordinatedJunctions / totalJunctions) * 100).toFixed(1) : 0;
-    const groupIds = Object.keys(groupCounts);
-    const numGroups = groupIds.length;
+    const numGroups = validGroupCount;
     const avgGroupScale = numGroups > 0 ? (coordinatedJunctions / numGroups).toFixed(1) : 0;
 
     let baseCycle = 0, baseCycleCount = 0;
@@ -1452,12 +1461,12 @@ function renderAdvancedInsights(junctions, noRender = false) {
         <span style="color: #9b59b6; font-size: 13px; font-weight: 700;">🔗 연동 및 현시 (Coordination & Phase)</span>
     </div>`;
     html += `<div class="grid-3col gap-15 mb-15">`;
-    html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, "네트워크 내 연동 그룹 소속 비율", "🌐", "#3498db");
+    html += InsightBox("macro_coord", "전체 망 연동화율", `${coordRate}%`, `(${coordinatedJunctions}개 교차로)`, "유효 연동 그룹(2개소 이상) 소속 비율", "🌐", "#3498db");
     html += InsightBox("macro_scale", "평균 연동 규모", `${avgGroupScale}개`, `(총 ${numGroups}개 연동축)`, "1개 연동 그룹당 묶여있는 교차로 수", "📏", "#9b59b6");
     html += InsightBox("macro_max_scale", "최대 연동축 규모", `${maxGroupScale}개`, "(단일 그룹 최대 교차로 수)", "가장 길게 끊기지 않고 연동되는 거대 간선도로의 규모", "🛣️", "#e74c3c");
     html += `</div>`;
     html += `<div class="grid-3col gap-15 mb-25">`;
-    html += InsightBox("micro_high_cycle", "과포화 운영 (고주기)", `${highCycleCount}개소`, `(네트워크 내 ${highCycleRatio}%)`, "최대 주기 160초 이상 운영 교차로", "🚨", "#e74c3c");
+    html += InsightBox("micro_high_cycle", "과포화 운영 (고주기)", `${highCycleCount}개소`, `(네트워크 내 ${highCycleRatio}%)`, "최대 주기 180초 초과 운영 교차로", "🚨", "#e74c3c");
     html += InsightBox("micro_flash", "심야 점멸 운영", `${flashOpCount}개소`, `(네트워크 내 ${flashOpRatio}%)`, "심야 시간대 황색/적색 점멸 운영 비율", "🌙", "#f1c40f");
     html += InsightBox("micro_balance", "A/B링 길이 무결성", `${finalBalance}%`, "듀얼 링(Dual-Ring) 분할 합계 일치율", "시간 계획 상의 물리적/구조적 오류 부재 비율", "⚖️", "#8e44ad");
     html += `</div>`;

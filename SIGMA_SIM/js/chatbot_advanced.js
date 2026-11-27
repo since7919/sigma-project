@@ -652,7 +652,7 @@ async function processAgentQuery(queryText) {
             `- **총 교차로 수**: [${base || regionName}] ${bStats.totalJunctions || data.length}개소 vs [${target}] ${tStats.totalJunctions || tList.length}개소\n` +
             `- **평균 신호주기**: [${base || regionName}] ${bStats.avgCycle || 0}초 vs [${target}] ${tStats.avgCycle || 0}초\n` +
             `- **연동화율**: [${base || regionName}] ${bStats.coordRate || 0}% vs [${target}] ${tStats.coordRate || 0}%\n` +
-            `- **과포화 운영(160s+)**: [${base || regionName}] ${bStats.highCycleCount || 0}개소 vs [${target}] ${tStats.highCycleCount || 0}개소\n\n` +
+            `- **과포화 운영(180s 초과)**: [${base || regionName}] ${bStats.highCycleCount || 0}개소 vs [${target}] ${tStats.highCycleCount || 0}개소\n\n` +
             `> STATS VIEW 탭에서 [AI 비교 분석 리포트 생성] 버튼을 눌러 정식 PDF 보고서를 출력하실 수 있습니다.`;
 
         return {
