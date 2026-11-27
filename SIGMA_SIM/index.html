@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-quadtree@3"></script>
     <link rel="stylesheet" href="css/style.css?v=1795760000000">
     <link rel="stylesheet" href="css/tables.css">
-    <link rel="stylesheet" href="css/panels.css?v=1795760000000">
+    <link rel="stylesheet" href="css/panels.css?v=1795780000000">
     <link rel="stylesheet" href="css/theme.css?v=1795760000000">
     <link rel="stylesheet" href="css/layout.css">
     <!-- External Styles (Consolidated) -->
@@ -2025,9 +2025,12 @@
 
         <div id="tab-stats" class="tab-content active">
             <div class="sigma-panel">
-                <div class="card-title">
-                    <span style="font-weight: 700; letter-spacing: 0.5px;">📊 데이터 뷰 & 거시/미시 통찰 (Data & Insights)</span>
-                    <button class="action-btn" onclick="generateAIReport()" style="margin-left: 15px; background: rgba(100, 181, 246, 0.1); border: 1px solid #64b5f6; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: bold; cursor: pointer; color: #64b5f6; transition: all 0.2s;">🤖 AI 비교 분석 리포트 생성</button> <span id="ai-quota-display" style="margin-left: 10px; font-size: 11px; color: #aaa; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px;"></span>
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 8px;">
+                    <span style="font-weight: 800; font-size: 14px; letter-spacing: -0.2px; color: #fff; white-space: nowrap;">📊 통계보기</span>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        <button class="action-btn" onclick="generateAIReport()" style="background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; color: #38bdf8; transition: all 0.2s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;" title="AI 비교 분석 보고서 생성">🤖 AI 분석 리포트</button>
+                        <span id="ai-quota-display" style="font-size: 10.5px; color: #94a3b8; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"></span>
+                    </div>
                 </div>
                 <div class="foldable-content">
                     <div id="stat-no-data" class="text-center p-50" style="color:#555;">데이터를 먼저 불러와주세요.</div>
@@ -2399,8 +2402,8 @@
     <script src="js/ui_components.js?v=1791726500000"></script>
     <script src="js/config.js?v=1794635000000"></script>
     <script src="js/utils.js?v=1794750000000"></script>
-    <script src="js/ui.js?v=1795750000000"></script>
-    <script src="js/sim_controller.js?v=1795106000000"></script>
+    <script src="js/ui.js?v=1795780000000"></script>
+    <script src="js/sim_controller.js?v=1795780000000"></script>
     <script src="js/safetyzone.js?v=1792100800000"></script>
     <script src="js/table_popup.js?v=1791726500000"></script>
     <script src="js/map.js?v=1795563000000"></script>

@@ -214,8 +214,8 @@
                 if (typeof window.toggleSignalMode === 'function') window.toggleSignalMode();
             }
         } else {
-            btn.innerHTML = '<span class="handle-icon">🚦</span><span class="handle-text-bottom">신호 시뮬레이터</span>';
-            btn.title = "신호 시뮬레이터 숨기기";
+            btn.innerHTML = '<span class="handle-icon">▼</span><span class="handle-text-bottom">시뮬레이터 숨기기</span>';
+            btn.title = "시뮬레이터 숨기기";
             // 신호시뮬레이터를 열면 실행 시점의 현재 시간(now)으로 설정
             if (typeof window.STATE !== 'undefined') window.STATE.isManualTimeMode = false;
             if (typeof window.goToCurrentTime === 'function') window.goToCurrentTime();
