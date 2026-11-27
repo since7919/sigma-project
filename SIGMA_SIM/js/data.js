@@ -1159,19 +1159,21 @@ function updateQuotaUI() {
     let minColor = remainingMinute <= 5 ? "#ef5350" : (remainingMinute <= 10 ? "#ffb74d" : "#81c784");
     let dayColor = remainingDaily <= 100 ? "#ef5350" : (remainingDaily <= 1000 ? "#ffb74d" : "#81c784");
     
-    const displayEl = document.getElementById('ai-quota-display');
-    if (displayEl) {
-        displayEl.innerHTML = `
-            <span>🕒 API 잔여량: </span>
-            <span style="color: ${dayColor}; font-weight: ${remainingDaily <= 100 ? 'bold' : 'normal'};" title="일일 한도 14,400회 중 ${dayCount.toLocaleString()}회 사용됨 (매일 자정 UTC 초기화)">
-                일일 ${remainingDaily.toLocaleString()}/${QUOTA_DAILY_LIMIT.toLocaleString()}회
-            </span>
-            <span style="color: #666;">|</span>
-            <span style="color: ${minColor}; font-weight: ${remainingMinute <= 5 ? 'bold' : 'normal'};" title="분당 한도 30회 중 ${minCount}회 사용됨 (Groq API 제한)">
-                분당 ${remainingMinute}/${QUOTA_MIN_LIMIT}회
-            </span>
-        `;
-    }
+    const quotaHtml = `
+        <span>🕒 API 잔여량: </span>
+        <span style="color: ${dayColor}; font-weight: ${remainingDaily <= 100 ? 'bold' : 'normal'};" title="일일 한도 14,400회 중 ${dayCount.toLocaleString()}회 사용됨 (매일 자정 UTC 초기화)">
+            일일 ${remainingDaily.toLocaleString()}/${QUOTA_DAILY_LIMIT.toLocaleString()}회
+        </span>
+        <span style="color: #666;">|</span>
+        <span style="color: ${minColor}; font-weight: ${remainingMinute <= 5 ? 'bold' : 'normal'};" title="분당 한도 30회 중 ${minCount}회 사용됨 (Groq API 제한)">
+            분당 ${remainingMinute}/${QUOTA_MIN_LIMIT}회
+        </span>
+    `;
+
+    const quotaTargets = document.querySelectorAll('#ai-quota-display, .ai-quota-target');
+    quotaTargets.forEach(el => {
+        el.innerHTML = quotaHtml;
+    });
 
     const chatQuotaEl = document.getElementById('chatbot-quota-display');
     if (chatQuotaEl) {
