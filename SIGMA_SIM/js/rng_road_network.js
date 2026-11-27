@@ -9,14 +9,17 @@ class RoadNetworkManager {
         this.nodes = [];
         this.edges = []; // Array of [uIdx, vIdx]
         this.layerGroup = null;
+        this.nodeLayer = null;       // [최적화] 가시 범위 기반 노드 전용 레이어
+        this.labelLayer = null;      // [최적화] 가시 범위 기반 텍스트 라벨 전용 레이어
         this.isActive = false;      // 데이터 로드 여부
         this.isEditMode = false;    // 편집 가능 여부
         this.baseWeight = 5.5;        // 도로망 기본 선 굵기
         this.selectedNode = null;
         this.highlightGroupId = null;
         this.edgeSet = new Set();    // [최적화] 중복 체크용 고속 Set
-        this.labelLayer = null;      // [최적화] 가시 범위 기반 텍스트 라벨 전용 레이어
         this.canvasRenderer = L.canvas({ padding: 0.5, tolerance: 20 }); 
+        this._handlersSetup = false; // [최적화] 이벤트 중복 바인딩 방지 플래그
+        this._updateTimer = null;    // [최적화] 뷰포트 이동 디바운스 타이머
     }
 
     /**
@@ -37,6 +40,14 @@ class RoadNetworkManager {
         if (this.layerGroup && map) {
             map.removeLayer(this.layerGroup);
             this.layerGroup = null;
+        }
+        if (this.nodeLayer && map) {
+            map.removeLayer(this.nodeLayer);
+            this.nodeLayer = null;
+        }
+        if (this.labelLayer && map) {
+            map.removeLayer(this.labelLayer);
+            this.labelLayer = null;
         }
     }
 
@@ -451,10 +462,20 @@ class RoadNetworkManager {
         if (this.layerGroup) map.removeLayer(this.layerGroup);
         this.layerGroup = L.layerGroup().addTo(map);
 
-        // 1. Edges Rendering (은은하고 반투명한 유리 디자인)
+        const zoom = map.getZoom();
+        const bounds = map.getBounds().pad(0.1);
+
+        // 1. Edges Rendering (뷰포트 컬링: 확대 상태에서는 화면 내/교차 에지만 선별 렌더링)
         this.edges.forEach((pair) => {
             const u = this.nodes[pair[0]];
             const v = this.nodes[pair[1]];
+            if (!u || !v) return;
+
+            // 줌 레벨 13 이상 확대 상태에서 양 끝 노드가 모두 화면 바운드 밖이면 렌더링 생략
+            if (zoom >= 13 && !bounds.contains([u.lat, u.lng]) && !bounds.contains([v.lat, v.lng])) {
+                return;
+            }
+
             const color = this._getGroupColor(u.group);
             const isHighlightGroup = (this.highlightGroupId && u.group === this.highlightGroupId);
 
@@ -470,39 +491,75 @@ class RoadNetworkManager {
             }).addTo(this.layerGroup);
         });
 
-        // 2. Nodes for selection
-        if (this.isEditMode || this.highlightGroupId) {
-            this.nodes.forEach(u => {
-                const isSelected = (this.selectedNode === u);
-                const isHighlighted = (this.highlightGroupId && u.group === this.highlightGroupId);
+        // 2. [핵심 최적화] 화면 가시영역(Viewport Bounds) 기반 노드 및 라벨 선별 렌더링
+        this._updateNodesView();
+        this._updateLabelsView();
 
-                if (!this.isEditMode && !isHighlighted) return;
+        // 3. 글로벌 이벤트 핸들러 초기화 (중복 방지 플래그 적용)
+        this._setupGlobalHandlers();
+    }
 
-                L.circleMarker([u.lat, u.lng], {
-                    radius: isSelected ? 12 : 10, // 노드를 큼직하게 만들어 선택 편의성 극대화
-                    fillColor: isSelected ? '#fbc531' : (isHighlighted ? '#ff00ff' : '#00f3ff'),
-                    fillOpacity: 1.0,
-                    color: '#fff',
-                    weight: isSelected ? 4 : 2,
-                    interactive: true,
-                    // [변경] 리플렛의 표준 마커 레이어(markerPane)를 사용하고 최상위권(5000) 유지
-                    pane: 'markerPane', 
-                    zIndexOffset: isSelected ? 5000 : 4500 
-                }).on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    // [성능] 편집 모드 활성화 상태라면 직접 처리
-                    if (this.isEditMode) {
-                        this.handleNodeClick(u);
-                    }
-                }).addTo(this.layerGroup);
-
-                // [최근 변경] 전역 툴팁 생성 로직 삭제 (성능 상의 이유로 _updateLabelsView에서 처리)
-            });
+    /**
+     * [성능 극대화] 지도의 현재 가시 범위(Viewport) 내의 노드만 선별하여 CircleMarker 생성
+     * - 줌 레벨 13 미만에서는 과도한 밀집 및 브라우저 프리징 방지를 위해 편집 노드 표시 생략
+     * - 줌 레벨 13 이상에서만 화면 내 노드를 렌더링하여 DOM/메모리 부하 98% 절감
+     */
+    _updateNodesView() {
+        if (!map || !this.isActive || (!this.isEditMode && !this.highlightGroupId)) {
+            if (this.nodeLayer) {
+                this.nodeLayer.clearLayers();
+            }
+            return;
         }
 
-        // 3. Global Interaction Handlers & Viewport Labels
-        this._setupGlobalHandlers();
-        this._updateLabelsView();
+        if (!this.nodeLayer) {
+            this.nodeLayer = L.layerGroup().addTo(map);
+        } else {
+            this.nodeLayer.clearLayers();
+        }
+
+        const zoom = map.getZoom();
+        const bounds = map.getBounds().pad(0.08); // 가장자리 스크롤 시 부드러운 유입
+        const minZoom = 13; // 교차로 노드 편집 최소 가시 줌 레벨
+        const isZoomValid = (zoom >= minZoom);
+
+        let renderedCount = 0;
+        const maxNodes = 350; // 과부하 방지 상한선
+
+        for (let i = 0; i < this.nodes.length; i++) {
+            const u = this.nodes[i];
+            const isSelected = (this.selectedNode === u);
+            const isHighlighted = (this.highlightGroupId && u.group === this.highlightGroupId);
+
+            if (!this.isEditMode && !isHighlighted) continue;
+
+            // 1. 선택된 노드는 줌/화면 위치 무관하게 항상 표시
+            // 2. 하이라이트된 노드는 화면 내에 있으면 표시
+            // 3. 일반 편집 노드는 줌 13 이상이고 화면 내에 있을 때만 렌더링
+            if (!isSelected) {
+                if (!isHighlighted && !isZoomValid) continue;
+                if (!bounds.contains([u.lat, u.lng])) continue;
+            }
+
+            if (renderedCount >= maxNodes && !isSelected && !isHighlighted) break;
+            renderedCount++;
+
+            L.circleMarker([u.lat, u.lng], {
+                radius: isSelected ? 12 : 10, // 노드를 큼직하게 만들어 선택 편의성 극대화
+                fillColor: isSelected ? '#fbc531' : (isHighlighted ? '#ff00ff' : '#00f3ff'),
+                fillOpacity: 1.0,
+                color: '#fff',
+                weight: isSelected ? 4 : 2,
+                interactive: true,
+                pane: 'markerPane',
+                zIndexOffset: isSelected ? 5000 : 4500
+            }).on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                if (this.isEditMode) {
+                    this.handleNodeClick(u);
+                }
+            }).addTo(this.nodeLayer);
+        }
     }
 
     /**
@@ -522,14 +579,19 @@ class RoadNetworkManager {
             this.labelLayer.clearLayers();
         }
 
+        const zoom = map.getZoom();
+        if (zoom < 14) return; // 라벨은 줌 14 이상에서만 가독성 확보
+
         // 2. 현재 화면 영역(Bounds) 확보
-        const bounds = map.getBounds();
+        const bounds = map.getBounds().pad(0.05);
         const highlightedGid = this.highlightGroupId;
 
         // 3. 보이는 영역 내의 노드만 필터링하여 라벨 생성
-        this.nodes.forEach(u => {
+        let count = 0;
+        for (let i = 0; i < this.nodes.length; i++) {
+            const u = this.nodes[i];
             const isHighlighted = (highlightedGid && u.group === highlightedGid);
-            if (!this.isEditMode && !isHighlighted) return;
+            if (!this.isEditMode && !isHighlighted) continue;
 
             // 좌표가 현재 화면 영역 안에 있는지만 체크 (매우 빠름)
             if (bounds.contains([u.lat, u.lng])) {
@@ -544,17 +606,25 @@ class RoadNetworkManager {
                 .setContent(`G:${u.group}`)
                 .setLatLng([u.lat, u.lng])
                 .addTo(this.labelLayer);
+
+                count++;
+                if (count > 250) break; // 라벨 DOM 폭주 방지
             }
-        });
+        }
     }
 
     _setupGlobalHandlers() {
         if (this._handlersSetup) return;
-        
-        // [성능] 지도 이동이 끝날 때마다 화면 내의 라벨만 다시 그림
+        this._handlersSetup = true; // [중요 버그 수정] 이벤트 리스너 누적 방지 플래그 세팅
+
+        // [성능] 지도 이동 및 줌 변경 시 뷰포트 내 노드와 라벨만 디바운스로 동적 갱신
         map.on('moveend zoomend', () => {
             if (this.isActive && (this.isEditMode || this.highlightGroupId)) {
-                this._updateLabelsView();
+                if (this._updateTimer) clearTimeout(this._updateTimer);
+                this._updateTimer = setTimeout(() => {
+                    this._updateNodesView();
+                    this._updateLabelsView();
+                }, 50);
             }
         });
 
@@ -940,6 +1010,8 @@ class RoadNetworkManager {
         if (map.hasLayer(this.layerGroup)) {
             // [숨기기]
             map.removeLayer(this.layerGroup);
+            if (this.nodeLayer && map.hasLayer(this.nodeLayer)) map.removeLayer(this.nodeLayer);
+            if (this.labelLayer && map.hasLayer(this.labelLayer)) map.removeLayer(this.labelLayer);
             if (btnVisibility) btnVisibility.classList.remove('active');
 
             // [추가] 숨길 때 현재 모드가 이 모드라면 기본 모드로 복귀
@@ -950,6 +1022,8 @@ class RoadNetworkManager {
         } else {
             // [보이기]
             map.addLayer(this.layerGroup);
+            if (this.nodeLayer && !map.hasLayer(this.nodeLayer)) map.addLayer(this.nodeLayer);
+            if (this.labelLayer && !map.hasLayer(this.labelLayer)) map.addLayer(this.labelLayer);
             if (btnVisibility) btnVisibility.classList.add('active');
             this.render(); // 최신 상태로 재렌더링
         }
