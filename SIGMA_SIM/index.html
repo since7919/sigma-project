@@ -2172,29 +2172,45 @@
         </div>
     </div>
 </div>                        <div id="stat-unified-dashboard" class="mb-30"></div>
-                        <!-- [신규] 일계획 다중 선택바 -->
-                        <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03);">
-                            <div class="text-dim fs-11 mb-8">📊 비교 분석 일계획 선택 (다중 선택 가능)</div>
-                            <div class="flex-row gap-12 wrap">
-                                <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="0" checked
-                                        onchange="renderStats()"> 일계획 1
+                        <!-- [신규] 일계획 다중 선택바 (1~10번 확장) -->
+                        <div class="sigma-panel mb-20" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 12px 14px;">
+                            <div class="flex-row-between mb-8" style="align-items: center;">
+                                <div class="text-dim fs-11" style="font-weight: 700; color: #94a3b8;">📊 비교 분석 일계획 선택 (1~10번 다중 선택 가능)</div>
+                                <div style="display: flex; gap: 6px;">
+                                    <button type="button" onclick="document.querySelectorAll('.stat-day-chk').forEach((c, i) => c.checked = (i === 0)); renderStats();" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #ccc; font-size: 10px; padding: 2px 7px; border-radius: 4px; cursor: pointer;">기본(1번)</button>
+                                    <button type="button" onclick="document.querySelectorAll('.stat-day-chk').forEach(c => c.checked = true); renderStats();" style="background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.35); color: #38bdf8; font-size: 10px; padding: 2px 7px; border-radius: 4px; cursor: pointer;">전체선택</button>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px 6px;">
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="0" checked onchange="renderStats()"> 일계획 1
                                 </label>
-                                <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="1" onchange="renderStats()"> 일계획
-                                    2
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="1" onchange="renderStats()"> 일계획 2
                                 </label>
-                                <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="2" onchange="renderStats()"> 일계획
-                                    3
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="2" onchange="renderStats()"> 일계획 3
                                 </label>
-                                <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="3" onchange="renderStats()"> 일계획
-                                    4
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="3" onchange="renderStats()"> 일계획 4
                                 </label>
-                                <label class="stat-day-label">
-                                    <input type="checkbox" class="stat-day-chk" value="4" onchange="renderStats()"> 일계획
-                                    5
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="4" onchange="renderStats()"> 일계획 5
+                                </label>
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="5" onchange="renderStats()"> 일계획 6
+                                </label>
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="6" onchange="renderStats()"> 일계획 7
+                                </label>
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="7" onchange="renderStats()"> 일계획 8
+                                </label>
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="8" onchange="renderStats()"> 일계획 9
+                                </label>
+                                <label class="stat-day-label" style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: #e2e8f0; white-space: nowrap;">
+                                    <input type="checkbox" class="stat-day-chk" value="9" onchange="renderStats()"> 일계획 10
                                 </label>
                             </div>
                         </div>
@@ -2203,15 +2219,15 @@
     <div class="sigma-panel mb-30">
         <h5 class="flex-row gap-8 mb-10">📑 시간대별 평균 주기 요약 테이블 <small
                                     class="fw-normal text-dim-dark">(전체 교차로 평균)</small></h5>
-                            <div class="chart-box-bg scroll-x" style="border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="chart-box-bg scroll-x" style="border: 1px solid rgba(255,255,255,0.05); max-height: 240px; overflow-y: auto;">
                                 <div id="stat-cycle-avg-container"></div>
                             </div>
                         </div>
 
-                        <div class="chart-container mb-35" style="position: relative; height:250px;">
-                            <div class="flex-row-between mb-10">
-                                <h5 class="m-0">📉 신호주기 분포 (Cycle Distribution)</h5>
-                                <select id="stat-hour-select" onchange="renderStats()" class="tsd-select">
+                        <div class="chart-container mb-25" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 16px;">
+                            <div class="flex-row-between mb-12" style="align-items: center;">
+                                <h5 class="m-0" style="font-size: 13.5px; font-weight: 700; color: #e2e8f0;">📉 신호주기 분포 (Cycle Distribution)</h5>
+                                <select id="stat-hour-select" onchange="renderStats()" class="tsd-select" style="height: 28px; font-size: 11.5px; padding: 2px 8px;">
                                     <option value="0">00시</option>
                                     <option value="1">01시</option>
                                     <option value="2">02시</option>
@@ -2238,12 +2254,16 @@
                                     <option value="23">23시</option>
                                 </select>
                             </div>
-                            <canvas id="chart-cycle-dist"></canvas>
+                            <div style="position: relative; height: 190px; width: 100%;">
+                                <canvas id="chart-cycle-dist"></canvas>
+                            </div>
                         </div>
 
-                        <div class="chart-container mb-30" style="position: relative; height:250px;">
-                            <h5 class="mb-10">📈 시간대별 평균 주기 (Hourly Avg Cycle)</h5>
-                            <canvas id="chart-hourly-avg"></canvas>
+                        <div class="chart-container mb-30" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 16px;">
+                            <h5 class="mb-12" style="font-size: 13.5px; font-weight: 700; color: #e2e8f0;">📈 시간대별 평균 주기 (Hourly Avg Cycle)</h5>
+                            <div style="position: relative; height: 190px; width: 100%;">
+                                <canvas id="chart-hourly-avg"></canvas>
+                            </div>
                         </div>
 
                         <div id="stat-op-summary-panel" class="sigma-panel mt-20 border-l-4"

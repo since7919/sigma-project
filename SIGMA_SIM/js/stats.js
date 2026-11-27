@@ -426,11 +426,11 @@ function renderStats() {
     if (selectedDayIndices.length === 0) selectedDayIndices.push(0);
     const primaryDayIdx = selectedDayIndices[0];
 
-    // 1. 시간대별 데이터 매트릭스 (5일 x 24시간)
-    const cycleMatrix = Array.from({ length: 5 }, () => Array(24).fill(0));
-    const cycleCountMatrix = Array.from({ length: 5 }, () => Array(24).fill(0));
+    // 1. 시간대별 데이터 매트릭스 (10일 x 24시간 확장)
+    const cycleMatrix = Array.from({ length: 10 }, () => Array(24).fill(0));
+    const cycleCountMatrix = Array.from({ length: 10 }, () => Array(24).fill(0));
 
-    for (let dIdx = 0; dIdx < 5; dIdx++) {
+    for (let dIdx = 0; dIdx < 10; dIdx++) {
         for (let h = 0; h < 24; h++) {
             const sec = h * 3600;
             junctions.forEach(j => {
@@ -445,18 +445,22 @@ function renderStats() {
         }
     }
 
-    // 테이블 렌더링 (SigmaUI 사용)
+    // 테이블 렌더링 (SigmaUI 사용, 1~10번 일계획 지원 및 선택 일계획 하이라이트)
     const statRows = [];
-    for (let dIdx = 0; dIdx < 5; dIdx++) {
+    for (let dIdx = 0; dIdx < 10; dIdx++) {
+        const isSelected = selectedDayIndices.includes(dIdx);
         const cells = [
-            { content: DAY_LABELS[dIdx], style: 'background:rgba(26, 188, 156, 0.1); font-weight:bold; color:#ccc; white-space: nowrap;' }
+            { 
+                content: DAY_LABELS[dIdx] || `일계획 ${dIdx + 1}`, 
+                style: `background:${isSelected ? 'rgba(56, 189, 248, 0.22)' : 'rgba(26, 188, 156, 0.08)'}; font-weight:bold; color:${isSelected ? '#38bdf8' : '#aaa'}; white-space: nowrap;` 
+            }
         ];
         for (let h = 0; h < 24; h++) {
             const cnt = cycleCountMatrix[dIdx][h];
             const val = cnt > 0 ? Math.round(cycleMatrix[dIdx][h] / cnt) : '-';
             cells.push({
                 content: val,
-                style: `padding: 6px 0; color: ${val === '-' ? '#444' : 'var(--accent)'}; font-weight: ${val === '-' ? 'normal' : 'bold'}; font-size: 11.5px; white-space: nowrap; text-align: center;`
+                style: `padding: 5px 0; color: ${val === '-' ? '#444' : (isSelected ? 'var(--accent)' : '#888')}; font-weight: ${val === '-' ? 'normal' : 'bold'}; font-size: 11px; white-space: nowrap; text-align: center;`
             });
         }
         statRows.push({ cells });
@@ -496,7 +500,13 @@ function renderStats() {
         return { label: DAY_LABELS[dIdx], data: cycleCounts, backgroundColor: DAY_COLORS[dIdx], borderColor: 'transparent', borderWidth: 0 };
     });
 
-    updateChart('chart-cycle-dist', 'bar', { labels: cycleRangeLabels.map(l => l + 's'), datasets: distDatasets });
+    updateChart('chart-cycle-dist', 'bar', { 
+        labels: cycleRangeLabels.map(l => l + 's'), 
+        datasets: distDatasets 
+    }, { 
+        paddingBottom: 4,
+        legend: { display: selectedDayIndices.length > 1 } 
+    });
 
     // 3. 시간대별 평균 주기 그래프
     const lineDatasets = selectedDayIndices.map(dIdx => {
@@ -684,10 +694,24 @@ function updateChart(id, type, data, axisOpts) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 4,
+                    bottom: axisOpts.paddingBottom !== undefined ? axisOpts.paddingBottom : 4,
+                    left: 2,
+                    right: 6
+                }
+            },
             plugins: {
                 legend: {
                     display: axisOpts.legend?.display || false,
-                    labels: { color: '#ccc', font: { size: 10 } }
+                    labels: { color: '#ccc', font: { size: 10 }, boxWidth: 10, padding: 8 }
+                },
+                tooltip: {
+                    padding: 8,
+                    cornerRadius: 6,
+                    titleFont: { size: 11, weight: 'bold' },
+                    bodyFont: { size: 11 }
                 }
             },
             scales: {
@@ -695,14 +719,24 @@ function updateChart(id, type, data, axisOpts) {
                     beginAtZero: axisOpts.yMin === 0,
                     min: axisOpts.yMin !== undefined ? axisOpts.yMin : undefined,
                     max: axisOpts.yMax !== undefined ? axisOpts.yMax : undefined,
-                    grid: { color: '#222' },
+                    grid: { color: 'rgba(255, 255, 255, 0.06)' },
                     ticks: {
-                        color: '#888',
+                        color: '#94a3b8',
                         font: { size: 10 },
                         stepSize: axisOpts.yStep !== undefined ? axisOpts.yStep : undefined
                     }
                 },
-                x: { grid: { display: false }, ticks: { color: '#888', font: { size: 10 } } }
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: '#94a3b8',
+                        font: { size: 9 },
+                        maxRotation: 45,
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 22
+                    }
+                }
             }
         }
     });
