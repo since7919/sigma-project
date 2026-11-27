@@ -2011,6 +2011,10 @@ function openTsdPopup() {
         distances: TSD_ENGINE.state.distances,
         totalDist: TSD_ENGINE.state.totalDist,
         travelTimes: TSD_ENGINE.state.travelTimes,
+        scaleMode: TSD_ENGINE.state.scaleMode || 'proportional',
+        segSpeeds: TSD_ENGINE.state.segSpeeds || [],
+        speed: parseFloat(document.getElementById('tsd-speed')?.value) || 50,
+        axis: document.querySelector('input[name="tsd-axis"]:checked')?.value || 'ew',
         offsets: _tsdOffsetSnapshot,
         timestamp: Date.now()
     };
@@ -2034,6 +2038,10 @@ function _injectToPopup(popup) {
         distances: TSD_ENGINE.state.distances,
         totalDist: TSD_ENGINE.state.totalDist,
         travelTimes: TSD_ENGINE.state.travelTimes,
+        scaleMode: TSD_ENGINE.state.scaleMode || 'proportional',
+        segSpeeds: TSD_ENGINE.state.segSpeeds || [],
+        speed: parseFloat(document.getElementById('tsd-speed')?.value) || 50,
+        axis: document.querySelector('input[name="tsd-axis"]:checked')?.value || 'ew',
         offsets: _tsdOffsetSnapshot,
         timestamp: Date.now()
     };

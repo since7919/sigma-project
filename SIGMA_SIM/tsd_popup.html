@@ -1,188 +1,732 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-
 <meta charset="UTF-8">
-<title>시공도 비교 — SIGMA TSD Viewer</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>시공도 비교 분석 — SIGMA TSD Inspector</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#1e2124; font-family:'Outfit','Inter',sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+body {
+  background:#0a0f1d;
+  color:#f8fafc;
+  font-family:'Outfit','Inter',sans-serif;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  user-select:none;
+}
 
+/* ── 상단 메인 헤더 툴바 ── */
 #header {
-  display:flex; align-items:center; justify-content:space-between; padding:6px 16px;
-  background:#1a1f2e; border-bottom:2px solid #333; flex-shrink:0; gap:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 18px;
+  background:rgba(15, 23, 42, 0.95);
+  border-bottom:1px solid rgba(56, 189, 248, 0.22);
+  box-shadow:0 4px 16px rgba(0, 0, 0, 0.4);
+  flex-shrink:0;
+  gap:14px;
+  z-index:100;
 }
-#header .title { font-size:13px; font-weight:800; color:#33ccff; letter-spacing:0.04em; }
-#header .controls { display:flex; align-items:center; gap:10px; flex-shrink:0; }
-#header label { font-size:11px; color:#aaa; }
-#header input[type=number] {
-  width:46px; background:#111; border:1px solid #444; color:#33ccff; font-weight:800;
-  font-size:11px; text-align:center; border-radius:3px; padding:3px 0;
+.header-left {
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
-.radio-group { display:flex; background:#111; border:1px solid #333; border-radius:3px; overflow:hidden; }
-.radio-group label { padding:3px 10px; cursor:pointer; font-size:10px; color:#aaa; }
-.radio-group input { display:none; }
-.radio-group input:checked + span { color:#33ccff; font-weight:700; }
-.btn { padding:4px 12px; border-radius:3px; font-size:10px; font-weight:800; cursor:pointer; border:none; transition:0.15s; }
-.btn-reset { background:#2a1a10; color:#ff8a65; border:1px solid #553; }
-.btn-apply { background:#0a2a0a; color:#4caf50; border:1px solid #2a4; }
+.title-badge {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.title-badge .logo {
+  font-size:16px;
+  filter:drop-shadow(0 0 6px #38bdf8);
+}
+.title-badge .title {
+  font-size:13.5px;
+  font-weight:800;
+  color:#f8fafc;
+  letter-spacing:0.03em;
+}
+.title-badge .tag {
+  background:rgba(56, 189, 248, 0.15);
+  border:1px solid rgba(56, 189, 248, 0.35);
+  color:#38bdf8;
+  font-size:10px;
+  font-weight:700;
+  padding:2px 7px;
+  border-radius:4px;
+}
 
-/* 메인 콘텐츠: 좌우 분할 */
-#main { display:flex; flex:1; overflow:hidden; }
+.controls {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* 세그먼트 컨트롤러 */
+.seg-group {
+  display:flex;
+  background:rgba(15, 23, 42, 0.9);
+  border:1px solid rgba(148, 163, 184, 0.22);
+  border-radius:6px;
+  padding:2.5px;
+  gap:2px;
+}
+.seg-btn {
+  background:transparent;
+  border:none;
+  color:#94a3b8;
+  font-size:11px;
+  font-weight:700;
+  font-family:'Outfit', sans-serif;
+  padding:4px 10px;
+  border-radius:4px;
+  cursor:pointer;
+  transition:all 0.15s ease;
+}
+.seg-btn:hover {
+  color:#f8fafc;
+}
+.seg-btn.active {
+  background:linear-gradient(135deg, rgba(2, 132, 199, 0.9) 0%, rgba(14, 165, 233, 0.9) 100%);
+  color:#ffffff;
+  box-shadow:0 1px 6px rgba(56, 189, 248, 0.4);
+}
+
+/* 속도 뱃지 */
+.speed-badge {
+  display:flex;
+  align-items:center;
+  background:rgba(15, 23, 42, 0.9);
+  border:1px solid rgba(148, 163, 184, 0.22);
+  border-radius:6px;
+  padding:2.5px 8px;
+  gap:6px;
+  font-size:11px;
+  font-weight:600;
+  color:#94a3b8;
+}
+.speed-input {
+  width:42px;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:#38bdf8;
+  font-family:'JetBrains Mono', monospace;
+  font-weight:700;
+  font-size:12px;
+  text-align:center;
+}
+
+/* 액션 버튼군 */
+.btn-act {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 11px;
+  border-radius:6px;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family:'Outfit', sans-serif;
+  border:1px solid transparent;
+  outline:none;
+}
+.btn-act:active {
+  transform:scale(0.97);
+}
+
+/* 개별 버튼 테마 */
+.btn-platoon {
+  background:rgba(56, 189, 248, 0.12);
+  color:#38bdf8;
+  border-color:rgba(56, 189, 248, 0.35);
+}
+.btn-platoon:hover {
+  background:rgba(56, 189, 248, 0.22);
+  box-shadow:0 0 10px rgba(56, 189, 248, 0.3);
+}
+.btn-platoon.active {
+  background:linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color:#ffffff;
+  border-color:#38bdf8;
+  box-shadow:0 0 14px rgba(56, 189, 248, 0.55);
+}
+
+.btn-optimize {
+  background:linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(99, 102, 241, 0.25) 100%);
+  color:#38bdf8;
+  border-color:rgba(56, 189, 248, 0.4);
+}
+.btn-optimize:hover {
+  background:linear-gradient(135deg, rgba(14, 165, 233, 0.35) 0%, rgba(99, 102, 241, 0.4) 100%);
+  box-shadow:0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+/* 스테퍼 그룹 */
+.stepper-group {
+  display:flex;
+  align-items:center;
+  background:rgba(15, 23, 42, 0.9);
+  border:1px solid rgba(148, 163, 184, 0.22);
+  border-radius:6px;
+  overflow:hidden;
+}
+.stepper-btn {
+  background:transparent;
+  border:none;
+  color:#cbd5e1;
+  font-size:10px;
+  font-weight:700;
+  font-family:'JetBrains Mono', monospace;
+  padding:4.5px 7px;
+  cursor:pointer;
+  transition:all 0.12s;
+  border-right:1px solid rgba(148, 163, 184, 0.15);
+}
+.stepper-btn:last-child {
+  border-right:none;
+}
+.stepper-btn:hover {
+  background:rgba(56, 189, 248, 0.18);
+  color:#38bdf8;
+}
+
+.btn-export {
+  background:rgba(16, 185, 129, 0.12);
+  color:#34d399;
+  border-color:rgba(16, 185, 129, 0.3);
+}
+.btn-export:hover {
+  background:rgba(16, 185, 129, 0.22);
+  box-shadow:0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-reset {
+  background:rgba(239, 68, 68, 0.12);
+  color:#f87171;
+  border-color:rgba(239, 68, 68, 0.3);
+}
+.btn-reset:hover {
+  background:rgba(239, 68, 68, 0.22);
+  box-shadow:0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.btn-apply {
+  background:linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color:#ffffff;
+  border-color:#34d399;
+  box-shadow:0 2px 10px rgba(16, 185, 129, 0.35);
+}
+.btn-apply:hover {
+  background:linear-gradient(135deg, #047857 0%, #059669 100%);
+  box-shadow:0 4px 14px rgba(16, 185, 129, 0.5);
+}
+
+/* ── 메인 콘텐츠: 좌우 2단 패널 ── */
+#main {
+  display:flex;
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
 
 .panel {
-  flex:1; display:flex; flex-direction:column; overflow:hidden;
-  border-right:2px solid #333; position:relative;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+  background:#0a0f1d;
 }
-.panel:last-child { border-right:none; }
-.panel-header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:5px 14px; flex-shrink:0; font-size:11px; font-weight:700;
+.panel:first-child {
+  border-right:1px solid rgba(56, 189, 248, 0.2);
 }
-.panel-left .panel-header { background:#152b19; color:#4caf50; border-bottom:2px solid #1b4d22; }
-.panel-right .panel-header { background:#16233d; color:#42a5f5; border-bottom:2px solid #203f75; }
-.panel-info { font-size:10px; font-weight:600; color:#aaa; }
-.canvas-wrap { flex:1; position:relative; overflow:hidden; }
-canvas { width:100%; height:100%; display:block; }
 
-#footer {
-  display:flex; align-items:center; gap:18px; padding:5px 16px;
-  background:#1a1f2e; border-top:1px solid #333; font-size:10px; color:#777; flex-shrink:0;
+.panel-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:7px 16px;
+  flex-shrink:0;
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:0.02em;
 }
-.ldot { display:inline-block; width:14px; height:4px; vertical-align:middle; margin-right:3px; border-radius:1px; }
+.panel-left .panel-header {
+  background:rgba(16, 185, 129, 0.08);
+  color:#34d399;
+  border-bottom:1px solid rgba(16, 185, 129, 0.25);
+}
+.panel-right .panel-header {
+  background:rgba(56, 189, 248, 0.08);
+  color:#38bdf8;
+  border-bottom:1px solid rgba(56, 189, 248, 0.25);
+}
+.panel-title {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.panel-info {
+  font-size:11px;
+  font-family:'JetBrains Mono', monospace;
+  font-weight:600;
+}
+
+.canvas-wrap {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+canvas {
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+/* ── 하단 푸터 ── */
+#footer {
+  display:flex;
+  align-items:center;
+  gap:20px;
+  padding:6px 18px;
+  background:rgba(15, 23, 42, 0.95);
+  border-top:1px solid rgba(148, 163, 184, 0.15);
+  font-size:11px;
+  color:#94a3b8;
+  flex-shrink:0;
+  z-index:90;
+}
+.legend-item {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.legend-dot {
+  width:12px;
+  height:6px;
+  border-radius:2px;
+}
+.footer-note {
+  margin-left:auto;
+  color:#64748b;
+  font-size:10.5px;
+}
+
+/* 툴팁 */
+#tsd-tooltip {
+  position:absolute;
+  pointer-events:none;
+  background:rgba(15, 23, 42, 0.96);
+  color:#f8fafc;
+  padding:8px 12px;
+  border-radius:6px;
+  font-size:11.5px;
+  font-family:'Outfit', sans-serif;
+  z-index:9999;
+  display:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  border:1px solid rgba(56, 189, 248, 0.3);
+  backdrop-filter:blur(6px);
+}
 </style>
 </head>
 <body>
 
+<!-- 상단 헤더 툴바 -->
 <div id="header">
-  <span class="title">📊 SIGMA — 시공도 비교 분석</span>
-  <div class="controls">
-    <span style="font-size:10px;color:#666;font-weight:700;">연동축</span>
-    <div class="radio-group">
-      <label><input type="radio" name="axis" value="ew" checked onchange="refresh()"><span>E-W</span></label>
-      <label><input type="radio" name="axis" value="ns" onchange="refresh()"><span>S-N</span></label>
+  <div class="header-left">
+    <div class="title-badge">
+      <span class="logo">📈</span>
+      <span class="title">SIGMA 시공도 비교 분석</span>
+      <span class="tag">Dual-Pane Inspector</span>
     </div>
-    <label>속도
-      <input type="number" id="speed" value="50" step="5" onchange="refresh()">
-      <span style="font-size:9px;color:#555;">km/h</span>
-    </label>
-    <button class="btn btn-reset" onclick="resetRight()">↺ 우측 초기화</button>
-    <button class="btn btn-apply" onclick="applyRight()">✓ 우측 적용</button>
+
+    <!-- 연동축 세그먼트 -->
+    <div class="seg-group">
+      <button class="seg-btn active" id="btn-axis-ew" onclick="setAxis('ew')">E-W</button>
+      <button class="seg-btn" id="btn-axis-ns" onclick="setAxis('ns')">S-N</button>
+    </div>
+
+    <!-- 스케일 모드 세그먼트 -->
+    <div class="seg-group">
+      <button class="seg-btn active" id="btn-scale-prop" onclick="setScaleMode('proportional')">거리비례</button>
+      <button class="seg-btn" id="btn-scale-schem" onclick="setScaleMode('schematic')">균등모식도</button>
+    </div>
+
+    <!-- 주행 속도 -->
+    <div class="speed-badge">
+      <span>속도</span>
+      <input type="number" id="tsd-speed" class="speed-input" value="50" step="5" min="20" max="120" onchange="setSpeed(this.value)">
+      <span>km/h</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <!-- 차량군 주행 애니메이션 -->
+    <button class="btn-act btn-platoon" id="btn-platoon" onclick="togglePlatoonAnimation()">
+      <span id="platoon-icon">▶</span>
+      <span id="platoon-text">차량군 주행</span>
+    </button>
+
+    <!-- 원클릭 MaxBand 자동최적화 -->
+    <button class="btn-act btn-optimize" onclick="autoOptimizeRight()">
+      <span>⚡</span>
+      <span>MaxBand 최적화</span>
+    </button>
+
+    <!-- 오프셋 미세조정 스테퍼 -->
+    <div class="stepper-group" title="우측 패널 선택 교차로 오프셋 미세조정">
+      <button class="stepper-btn" onclick="stepRightOffset(-5)">-5s</button>
+      <button class="stepper-btn" onclick="stepRightOffset(-1)">-1s</button>
+      <button class="stepper-btn" onclick="stepRightOffset(1)">+1s</button>
+      <button class="stepper-btn" onclick="stepRightOffset(5)">+5s</button>
+    </div>
+
+    <!-- 도면 출력 -->
+    <button class="btn-act btn-export" onclick="exportComparisonDiagram()">
+      <span>📷</span>
+      <span>비교 도면출력</span>
+    </button>
+
+    <!-- 초기화 & 대시보드 적용 -->
+    <button class="btn-act btn-reset" onclick="resetRight()">↺ 우측 초기화</button>
+    <button class="btn-act btn-apply" onclick="applyRight()">✓ 우측 적용</button>
   </div>
 </div>
 
+<!-- 메인 2단 비교 화면 -->
 <div id="main">
-  <!-- 좌: 현재(원본) -->
+  <!-- 좌측: 현재 오프셋 (원본) -->
   <div class="panel panel-left">
     <div class="panel-header">
-      <span>📌 현재 오프셋 (원본)</span>
-      <span class="panel-info" id="info-left">—</span>
+      <div class="panel-title">
+        <span>📌 현재 오프셋 (대시보드 원본)</span>
+      </div>
+      <div class="panel-info" id="info-left">—</div>
     </div>
-    <div class="canvas-wrap" id="wrap-left"><canvas id="cv-left"></canvas></div>
+    <div class="canvas-wrap" id="wrap-left">
+      <canvas id="cv-left"></canvas>
+    </div>
   </div>
-  <!-- 우: 최적화(편집) -->
+
+  <!-- 우측: 최적화 오프셋 (편집/시뮬레이션) -->
   <div class="panel panel-right">
     <div class="panel-header">
-      <span>🔧 최적화 (드래그로 오프셋 조절)</span>
-      <span class="panel-info" id="info-right">—</span>
+      <div class="panel-title">
+        <span>🔧 최적화 (오프셋 드래그 / 스테퍼 조절)</span>
+      </div>
+      <div class="panel-info" id="info-right">—</div>
     </div>
-    <div class="canvas-wrap" id="wrap-right"><canvas id="cv-right"></canvas></div>
+    <div class="canvas-wrap" id="wrap-right">
+      <canvas id="cv-right"></canvas>
+    </div>
   </div>
 </div>
 
+<!-- 하단 푸터 및 범례 -->
 <div id="footer">
-  <span><span class="ldot" style="background:rgba(0,100,220,0.4);border:1px solid #0050c8;"></span>UP↑</span>
-  <span><span class="ldot" style="background:rgba(0,160,220,0.4);border:1px solid #00a0dc;"></span>DOWN↓</span>
-  <span>● 우측 캔버스에서 드래그로 오프셋 조절 → 좌측과 비교</span>
-  <span style="margin-left:auto;">* [✓ 우측 적용] : 최적화 오프셋을 대시보드에 반영</span>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#38bdf8;box-shadow:0 0 6px #38bdf8;"></span>
+    <span>상행(UP) 대역</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#34d399;box-shadow:0 0 6px #34d399;"></span>
+    <span>하행(DOWN) 대역</span>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#e11d48;box-shadow:0 0 6px #e11d48;"></span>
+    <span>적신호 정차/대기</span>
+  </div>
+  <span style="color:#64748b;">|</span>
+  <span style="color:#cbd5e1;">우측 패널 교차로 클릭 후 <b>[드래그]</b> 또는 <b>[스테퍼]</b>로 오프셋을 미세조정하여 좌측 원본과 실시간 비교하십시오.</span>
+  <div class="footer-note">
+    * [✓ 우측 적용] 클릭 시 최적화 결과가 메인 대시보드에 즉시 반영됩니다.
+  </div>
 </div>
 
+<div id="tsd-tooltip"></div>
+
 <script>
-// ── 상태 ──
+// ─────────────────────────────────────────────────────────────
+// 1. 전역 상태 및 데이터 바인딩
+// ─────────────────────────────────────────────────────────────
 let _parentState = null;
-let _frozenOffsets = {};   // 원본 오프셋 스냅샷 (좌측용)
-let _editOffsets   = {};   // 편집 오프셋 딥카피 (우측용)
+let _frozenOffsets = {};   // 좌측 원본 오프셋 스냅샷
+let _editOffsets   = {};   // 우측 편집 오프셋 딥카피
 let LEFT = null, RIGHT = null;
 
-// [보안 우회] 부모 창과 file:// 프로토콜 보안 문제 해결을 위해 localStorage 이용
+let _axis = 'ew';
+let _scaleMode = 'proportional';
+let _speed = 50;
+let _isPlatoonSimActive = false;
+let _simClock = 0;
+let _lastSimTimestamp = 0;
+let _animFrameId = null;
+
+// [보안 우회] 부모 창과 localStorage 기반 통신
 function initFromTransfer(data) {
     if (!data) return;
-    _parentState = { currentGroupDayTypeIdx: data.dayIdx, junctions: {} };
-    if (data.members) data.members.forEach(m => { _parentState.junctions[m.id] = m; });
-    _frozenOffsets = JSON.parse(JSON.stringify(data.offsets));
-    _editOffsets = JSON.parse(JSON.stringify(data.offsets));
+    _parentState = {
+        currentGroupDayTypeIdx: data.dayIdx || 0,
+        junctions: {}
+    };
+    if (data.members) {
+        data.members.forEach(m => { _parentState.junctions[m.id] = m; });
+    }
+    _frozenOffsets = JSON.parse(JSON.stringify(data.offsets || {}));
+    _editOffsets = JSON.parse(JSON.stringify(data.offsets || {}));
+
+    if (data.axis) setAxis(data.axis, false);
+    if (data.scaleMode) setScaleMode(data.scaleMode, false);
+    if (data.speed) setSpeed(data.speed, false);
+
     if (!LEFT) {
         LEFT = new PopupTSD('cv-left', 'wrap-left', 'info-left', false);
         RIGHT = new PopupTSD('cv-right', 'wrap-right', 'info-right', true);
     }
-    syncStateFromData(LEFT, data); syncStateFromData(RIGHT, data);
+
+    syncStateFromData(LEFT, data);
+    syncStateFromData(RIGHT, data);
     refresh();
 }
+
 function syncStateFromData(eng, data) {
-    if(!eng || !data) return;
-    eng.state.gid = data.gid; eng.state.members = data.members; eng.state.distances = data.distances;
-    eng.state.totalDist = data.totalDist; eng.state.cycle = data.cycle; eng.state.todIdx = data.todIdx;
-    eng.state.travelTimes = data.travelTimes;
+    if (!eng || !data) return;
+    eng.state.gid = data.gid;
+    eng.state.members = data.members || [];
+    eng.state.distances = data.distances || [];
+    eng.state.totalDist = data.totalDist || 0;
+    eng.state.cycle = data.cycle || 100;
+    eng.state.todIdx = data.todIdx || 0;
+    eng.state.travelTimes = data.travelTimes || [];
+    eng.state.segSpeeds = data.segSpeeds || [];
+    eng.state.scaleMode = _scaleMode;
 }
+
 window.addEventListener('load', () => {
     const raw = localStorage.getItem('SIGMA_TSD_TRANSFER');
-    if (raw) try { initFromTransfer(JSON.parse(raw)); } catch (e) { console.error(e); }
+    if (raw) {
+        try { initFromTransfer(JSON.parse(raw)); } catch (e) { console.error(e); }
+    }
 });
+
 window.addEventListener('storage', (e) => {
     if (e.key === 'SIGMA_TSD_TRANSFER' && e.newValue) {
         try { initFromTransfer(JSON.parse(e.newValue)); } catch (e) { console.error(e); }
     }
 });
 
-function getAxis() { const e = document.querySelector('input[name="axis"]:checked'); return e ? e.value : 'ew'; }
-function getSpeed() { return parseFloat(document.getElementById('speed').value) || 50; }
+window.addEventListener('focus', () => {
+    refresh();
+});
 
 function refresh() {
-  const raw = localStorage.getItem('SIGMA_TSD_TRANSFER');
-  if (raw) {
-    try {
-      const data = JSON.parse(raw);
-      if (LEFT) { syncStateFromData(LEFT, data);  LEFT.render();  }
-      if (RIGHT) { syncStateFromData(RIGHT, data); RIGHT.render(); }
-    } catch(e) {}
-  }
+    if (LEFT) { LEFT.state.scaleMode = _scaleMode; LEFT.render(); }
+    if (RIGHT) { RIGHT.state.scaleMode = _scaleMode; RIGHT.render(); }
 }
 
+// ─────────────────────────────────────────────────────────────
+// 2. 툴바 이벤트 핸들러
+// ─────────────────────────────────────────────────────────────
+function setAxis(axis, triggerRefresh = true) {
+    _axis = axis;
+    document.getElementById('btn-axis-ew').classList.toggle('active', axis === 'ew');
+    document.getElementById('btn-axis-ns').classList.toggle('active', axis === 'ns');
+    if (triggerRefresh) refresh();
+}
+
+function setScaleMode(mode, triggerRefresh = true) {
+    _scaleMode = mode;
+    document.getElementById('btn-scale-prop').classList.toggle('active', mode === 'proportional');
+    document.getElementById('btn-scale-schem').classList.toggle('active', mode === 'schematic');
+    if (LEFT) LEFT.state.scaleMode = mode;
+    if (RIGHT) RIGHT.state.scaleMode = mode;
+    if (triggerRefresh) refresh();
+}
+
+function setSpeed(val, triggerRefresh = true) {
+    _speed = parseFloat(val) || 50;
+    const input = document.getElementById('tsd-speed');
+    if (input) input.value = _speed;
+    if (triggerRefresh) refresh();
+}
+
+// ── 차량군 주행 시뮬레이션 루프 (좌/우 완벽 동기화) ──
+function togglePlatoonAnimation() {
+    _isPlatoonSimActive = !_isPlatoonSimActive;
+    const btn = document.getElementById('btn-platoon');
+    const icon = document.getElementById('platoon-icon');
+    const txt = document.getElementById('platoon-text');
+
+    if (_isPlatoonSimActive) {
+        btn.classList.add('active');
+        icon.innerText = '⏸';
+        txt.innerText = '주행 정지';
+        _lastSimTimestamp = performance.now();
+        startPlatoonLoop();
+    } else {
+        btn.classList.remove('active');
+        icon.innerText = '▶';
+        txt.innerText = '차량군 주행';
+        stopPlatoonLoop();
+        refresh();
+    }
+}
+
+function startPlatoonLoop() {
+    if (_animFrameId) cancelAnimationFrame(_animFrameId);
+    const loop = (ts) => {
+        if (!_isPlatoonSimActive) return;
+        const delta = Math.min(0.1, (ts - _lastSimTimestamp) / 1000);
+        _lastSimTimestamp = ts;
+
+        const cycle = (LEFT && LEFT.state.cycle) ? LEFT.state.cycle : 100;
+        const speedMultiplier = 4.0; // 4배속 부드러운 순환
+        _simClock += delta * speedMultiplier;
+        if (_simClock > cycle * 4) _simClock = 0;
+
+        if (LEFT) LEFT.render();
+        if (RIGHT) RIGHT.render();
+
+        _animFrameId = requestAnimationFrame(loop);
+    };
+    _animFrameId = requestAnimationFrame(loop);
+}
+
+function stopPlatoonLoop() {
+    if (_animFrameId) {
+        cancelAnimationFrame(_animFrameId);
+        _animFrameId = null;
+    }
+}
+
+// ── 원클릭 MaxBand 자동최적화 (우측 패널에만 반영) ──
+function autoOptimizeRight() {
+    if (!RIGHT || !RIGHT.state.members || RIGHT.state.members.length < 2) {
+        alert("최적화할 교차로 데이터가 부족합니다.");
+        return;
+    }
+    const mems = RIGHT.state.members;
+    const dists = RIGHT.state.distances;
+    const totalDist = RIGHT.state.totalDist;
+    const cycle = RIGHT.state.cycle;
+    const tt = RIGHT.state.travelTimes;
+    const dayIdx = _parentState ? (_parentState.currentGroupDayTypeIdx || 0) : 0;
+    const pIdx = RIGHT.state.todIdx || 0;
+
+    const opt = Analyzer.optimizeOffsets(mems, dists, totalDist, cycle, tt, dayIdx, pIdx, _axis, _editOffsets);
+    if (!opt) {
+        alert("최적화 계산 실패");
+        return;
+    }
+
+    // 최적화된 오프셋을 _editOffsets에 주입
+    mems.forEach((m, idx) => {
+        if (!_editOffsets[m.id]) _editOffsets[m.id] = [];
+        _editOffsets[m.id][pIdx] = opt.offsets[idx];
+    });
+
+    RIGHT.render();
+    alert(`⚡ MaxBand 최적 오프셋 산출 완료!\n- 상행 대역폭: ${opt.upWidth.toFixed(1)}s\n- 하행 대역폭: ${opt.downWidth.toFixed(1)}s\n- 종합 점수: ${opt.totalScore.toFixed(1)}s`);
+}
+
+// ── 오프셋 미세조정 스테퍼 ──
+function stepRightOffset(delta) {
+    if (!RIGHT || !RIGHT.state.members || RIGHT.state.members.length === 0) return;
+    const targetJid = RIGHT.state.selectedJid || RIGHT.state.members[0].id;
+    const pIdx = RIGHT.state.todIdx || 0;
+    const cycle = RIGHT.state.cycle || 100;
+
+    if (!_editOffsets[targetJid]) _editOffsets[targetJid] = [];
+    let cur = _editOffsets[targetJid][pIdx] !== undefined ? _editOffsets[targetJid][pIdx] : 0;
+    let next = ((cur + delta) % cycle + cycle) % cycle;
+    _editOffsets[targetJid][pIdx] = Math.round(next * 10) / 10;
+
+    RIGHT.render();
+}
+
+// ── 우측 초기화 ──
 function resetRight() {
-  // 우측 편집 오프셋을 원본(좌측)으로 복원
-  _editOffsets = JSON.parse(JSON.stringify(_frozenOffsets));
-  if (RIGHT) RIGHT.render();
+    _editOffsets = JSON.parse(JSON.stringify(_frozenOffsets));
+    if (RIGHT) RIGHT.render();
 }
 
+// ── 우측 대시보드 반영 ──
 function applyRight() {
-  // 우측 편집 오프셋을 대시보드 STATE에 적용
-  if (!_parentState) return;
-  const dayIdx = _parentState.currentGroupDayTypeIdx || 0;
-  
-  const applyData = {
-      offsets: _editOffsets,
-      dayIdx: dayIdx,
-      timestamp: Date.now()
-  };
-  // [보안 우회] window.opener 직접 호출 대신 localStorage 신호 전달
-  localStorage.setItem('SIGMA_TSD_APPLY', JSON.stringify(applyData));
-  alert('최적화 오프셋이 대시보드 반영 대기열에 추가되었습니다.');
+    if (!_parentState) return;
+    const dayIdx = _parentState.currentGroupDayTypeIdx || 0;
+    const applyData = {
+        offsets: _editOffsets,
+        dayIdx: dayIdx,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('SIGMA_TSD_APPLY', JSON.stringify(applyData));
+    alert('✓ 최적화 오프셋이 메인 대시보드에 성공적으로 반영되었습니다.');
 }
 
-window.addEventListener('focus', () => { if (LEFT && RIGHT) refresh(); });
+// ── 고해상도 비교 도면(PNG) 출력 ──
+function exportComparisonDiagram() {
+    if (!LEFT || !RIGHT) return;
+    const cvL = LEFT.canvas, cvR = RIGHT.canvas;
+    const w = cvL.width + cvR.width + 40;
+    const h = cvL.height + 120;
 
-// ── 공통 알고리즘 ──
+    const outCv = document.createElement('canvas');
+    outCv.width = w; outCv.height = h;
+    const ctx = outCv.getContext('2d');
+
+    // 1. 다크 슬레이트 배경
+    ctx.fillStyle = '#0a0f1d';
+    ctx.fillRect(0, 0, w, h);
+
+    // 2. 상단 헤더 타이틀 배너
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.fillRect(0, 0, w, 100);
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 100); ctx.lineTo(w, 100); ctx.stroke();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 26px "Outfit", sans-serif';
+    ctx.fillText('SIGMA TRAFFIC SIGNAL COORDINATION — TIME-SPACE COMPARISON REPORT', 40, 48);
+
+    const now = new Date().toLocaleString();
+    const cycle = LEFT.state.cycle || 100;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px "JetBrains Mono", monospace';
+    ctx.fillText(`Axis: ${_axis.toUpperCase()} | Speed: ${_speed} km/h | Cycle: ${cycle}s | Date: ${now}`, 40, 78);
+
+    // 3. 좌측 원본 캔버스 복사
+    ctx.drawImage(cvL, 20, 110);
+    // 4. 우측 최적화 캔버스 복사
+    ctx.drawImage(cvR, cvL.width + 20, 110);
+
+    // 5. 다운로드 트리거
+    const link = document.createElement('a');
+    link.download = `SIGMA_TSD_Comparison_${Date.now()}.png`;
+    link.href = outCv.toDataURL('image/png');
+    link.click();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. MaxBand 분석 엔진 (Analyzer)
+// ─────────────────────────────────────────────────────────────
 class Analyzer {
-  static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
-        const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
+    static getGreenWindow(j, axis, dir, dayIdx, pIdx, cycle, offsetOverride) {
+        const sm = (j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null;
         if (!sm) return [];
 
-        const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
+        const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
         if (!tod) return [];
         const offset = (offsetOverride !== undefined) ? offsetOverride : (tod.offset || 0);
 
@@ -191,22 +735,17 @@ class Analyzer {
         let targetRing = -1;
         if ((sm.movA || []).includes(targetMov)) targetRing = 0;
         else if ((sm.movB || []).includes(targetMov)) targetRing = 1;
-        
         if (targetRing === -1) return [];
 
         const splits = (targetRing === 0) ? (tod.splitA || []) : (tod.splitB || []);
         const yellows = (targetRing === 0) ? (sm.yellowA || []) : (sm.yellowB || []);
         const movs = (targetRing === 0) ? (sm.movA || []) : (sm.movB || []);
 
-        // 1. Build list of active blocks based on actual time
         let currentT = 0;
         const blocks = [];
         for (let i = 0; i < splits.length; i++) {
             const split = splits[i] || 0;
-            if (split <= 0) {
-                // If split is 0, time doesn't advance.
-                continue;
-            }
+            if (split <= 0) continue;
             if (movs[i] === targetMov) {
                 blocks.push({
                     start: currentT,
@@ -216,19 +755,15 @@ class Analyzer {
             }
             currentT += split;
         }
-
         if (blocks.length === 0) return [];
 
-        // 2. Merge contiguous blocks
         const mergedBlocks = [];
         let currentBlock = Object.assign({}, blocks[0]);
-
         for (let i = 1; i < blocks.length; i++) {
             const b = blocks[i];
-            // If the next block starts EXACTLY when the current one ends, merge them!
             if (Math.abs(b.start - currentBlock.end) < 0.1) {
                 currentBlock.end = b.end;
-                currentBlock.yellowTime = b.yellowTime; // Only the LAST phase's yellow matters
+                currentBlock.yellowTime = b.yellowTime;
             } else {
                 mergedBlocks.push(currentBlock);
                 currentBlock = Object.assign({}, b);
@@ -236,20 +771,15 @@ class Analyzer {
         }
         mergedBlocks.push(currentBlock);
 
-        // 3. Subtract yellow time and handle wrap-around if the first and last blocks connect across the cycle!
-        // (e.g. if a movement is in the last phase and the first phase)
         if (mergedBlocks.length > 1) {
             const first = mergedBlocks[0];
             const last = mergedBlocks[mergedBlocks.length - 1];
             if (Math.abs(last.end - cycle) < 0.1 && Math.abs(first.start - 0) < 0.1) {
-                // They connect across the cycle boundary!
                 first.start = last.start - cycle;
-                first.yellowTime = first.yellowTime; // The yellow time of the first block (which is chronologically the end)
-                mergedBlocks.pop(); // Remove the last block since it's merged into the first
+                mergedBlocks.pop();
             }
         }
 
-        // 4. Format into final windows
         const windows = [];
         for (const mb of mergedBlocks) {
             const gLen = Math.max(0, (mb.end - mb.start) - mb.yellowTime);
@@ -258,438 +788,1030 @@ class Analyzer {
                 windows.push({ gStart, gLen });
             }
         }
-
         return windows;
     }
-  static calcBand(dir,axis,members,distances,totalDist,cycle,travelTimes,dayIdx,pIdx,offsets) {
-    if(!members||members.length<2||cycle<=0) return {width:0,start:0,vc:0};
-    const totalTT = travelTimes[travelTimes.length - 1] || 1;
-    const vn=[];
-    for(let i=0;i<members.length;i++){
-      const off = offsets[members[i].id] ? offsets[members[i].id][pIdx] : undefined;
-      const greens = this.getGreenWindow(members[i],axis,dir,dayIdx,pIdx,cycle,off);
-      if(greens && greens.length>0) vn.push({idx:i,tt:travelTimes[i],greens:greens});
+
+    static calcBand(dir, axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, offsets) {
+        if (!members || members.length < 2 || cycle <= 0) return { width: 0, start: 0, validCount: 0 };
+        const totalTT = travelTimes[travelTimes.length - 1] || 1;
+        const vn = [];
+        for (let i = 0; i < members.length; i++) {
+            const off = (offsets && offsets[members[i].id]) ? offsets[members[i].id][pIdx] : undefined;
+            const greens = this.getGreenWindow(members[i], axis, dir, dayIdx, pIdx, cycle, off);
+            if (greens && greens.length > 0) vn.push({ idx: i, tt: travelTimes[i], greens: greens });
+        }
+        if (vn.length < 2) return { width: 0, start: 0, validCount: vn.length };
+
+        let bW = 0, bS = 0;
+        for (let t = 0; t < cycle; t += 0.25) {
+            let minR = cycle, ok = true;
+            for (const n of vn) {
+                const tr = (dir === 'up') ? n.tt : (totalTT - n.tt);
+                const arr = ((t + tr) % cycle + cycle) % cycle;
+                let maxRem = -1;
+                for (const g of n.greens) {
+                    const gS = g.gStart, gE = (gS + g.gLen) % cycle;
+                    const isG = (gS < gE) ? (arr >= gS && arr < gE) : (arr >= gS || arr < gE);
+                    if (isG) {
+                        const rem = (gS < gE) ? (gE - arr) : (arr >= gS ? cycle - arr + gE : gE - arr);
+                        if (rem > maxRem) maxRem = rem;
+                    }
+                }
+                if (maxRem < 0) { ok = false; break; }
+                if (maxRem < minR) minR = maxRem;
+            }
+            if (ok && minR > bW) { bW = minR; bS = t; }
+        }
+        return { width: bW, start: bS, validCount: vn.length };
     }
-    if(vn.length<2) return {width:0,start:0,vc:vn.length};
-    let bW=0,bS=0;
-    for(let t=0;t<cycle;t+=0.25){
-      let minR=cycle,ok=true;
-      for(const n of vn){
-        const tr=(dir==='up')?(n.tt):((totalTT-n.tt));
-        const arr=((t+tr)%cycle+cycle)%cycle;
-        let maxRem = -1;
-        for(const g of n.greens){
-            const gS=g.gStart, gE=(gS+g.gLen)%cycle;
-            const isG=(gS<gE)?(arr>=gS&&arr<gE):(arr>=gS||arr<gE);
-            if(isG){
-                const rem = (gS<gE)?(gE-arr):(arr>=gS?cycle-arr+gE:gE-arr);
-                if(rem>maxRem) maxRem = rem;
+
+    static checkSignalAtArrival(member, axis, dir, dayIdx, pIdx, cycle, arrT, offsetOverride) {
+        const greens = this.getGreenWindow(member, axis, dir, dayIdx, pIdx, cycle, offsetOverride);
+        if (!greens || greens.length === 0) return { isGreen: true, waitTime: 0, nextGreenT: arrT };
+
+        const tMod = ((arrT % cycle) + cycle) % cycle;
+        let isGreen = false;
+        let minWait = cycle;
+
+        for (const g of greens) {
+            const gS = g.gStart, gE = (gS + g.gLen) % cycle;
+            const inWindow = (gS < gE) ? (tMod >= gS && tMod < gE) : (tMod >= gS || tMod < gE);
+            if (inWindow) {
+                isGreen = true;
+                minWait = 0;
+                break;
+            }
+            let wait = (gS - tMod);
+            if (wait <= 0) wait += cycle;
+            if (wait < minWait) minWait = wait;
+        }
+
+        if (isGreen) return { isGreen: true, waitTime: 0, nextGreenT: arrT };
+        return { isGreen: false, waitTime: minWait, nextGreenT: arrT + minWait };
+    }
+
+    static buildVehicleTrajectory(members, distances, segSpeeds, axis, dir, dayIdx, pIdx, cycle, depT0, offsets) {
+        const isUp = (dir === 'up');
+        const sortedIndices = isUp ? members.map((_, i) => i) : members.map((_, i) => i).reverse();
+        const segments = [];
+        let curT = depT0;
+
+        const firstIdx = sortedIndices[0];
+        const off0 = offsets ? offsets[members[firstIdx].id]?.[pIdx] : undefined;
+        const firstSig = this.checkSignalAtArrival(members[firstIdx], axis, dir, dayIdx, pIdx, cycle, curT, off0);
+        if (!firstSig.isGreen && firstSig.waitTime > 0) {
+            segments.push({
+                type: 'stop',
+                t0: curT,
+                t1: curT + firstSig.waitTime,
+                nodeIdx: firstIdx,
+                dist: distances[firstIdx]
+            });
+            curT += firstSig.waitTime;
+        }
+
+        for (let step = 0; step < sortedIndices.length - 1; step++) {
+            const fromIdx = sortedIndices[step];
+            const toIdx = sortedIndices[step + 1];
+            const segDist = Math.abs(distances[toIdx] - distances[fromIdx]);
+            const spd = _speed;
+            const v = spd / 3.6;
+            const travelTime = (v > 0) ? (segDist / v) : 1;
+
+            const tMoveStart = curT;
+            const tMoveEnd = curT + travelTime;
+            segments.push({
+                type: 'move',
+                t0: tMoveStart,
+                t1: tMoveEnd,
+                fromNode: fromIdx,
+                toNode: toIdx,
+                fromDist: distances[fromIdx],
+                toDist: distances[toIdx],
+                travelTime: travelTime
+            });
+            curT = tMoveEnd;
+
+            if (step < sortedIndices.length - 1) {
+                const offTo = offsets ? offsets[members[toIdx].id]?.[pIdx] : undefined;
+                const sig = this.checkSignalAtArrival(members[toIdx], axis, dir, dayIdx, pIdx, cycle, curT, offTo);
+                if (!sig.isGreen && sig.waitTime > 0) {
+                    segments.push({
+                        type: 'stop',
+                        t0: curT,
+                        t1: curT + sig.waitTime,
+                        nodeIdx: toIdx,
+                        dist: distances[toIdx]
+                    });
+                    curT += sig.waitTime;
+                }
             }
         }
-        if(maxRem<0){ok=false;break;}
-        if(maxRem<minR) minR=maxRem;
-      }
-      if(ok&&minR>bW){bW=minR;bS=t;}
+        return { depT: depT0, arrT: curT, segments: segments };
     }
-    return {width:bW,start:bS,vc:vn.length};
-  }
+
+    static getVehicleStateAtTime(traj, T_cur, getY, isUp, m = 0) {
+        if (!traj || T_cur < traj.depT || T_cur > traj.arrT) return null;
+        for (const seg of traj.segments) {
+            if (T_cur >= seg.t0 && T_cur <= seg.t1) {
+                if (seg.type === 'stop') {
+                    const baseY = getY(seg.nodeIdx, seg.dist);
+                    const queueY = baseY + (isUp ? (m * 8 + 3) : (-m * 8 - 3));
+                    return {
+                        isStopped: true,
+                        nodeIdx: seg.nodeIdx,
+                        dist: seg.dist,
+                        y: queueY,
+                        baseY: baseY,
+                        waitTimeRem: Math.max(0, seg.t1 - T_cur),
+                        totalWait: seg.t1 - seg.t0
+                    };
+                } else if (seg.type === 'move') {
+                    const dur = seg.t1 - seg.t0;
+                    const ratio = dur > 0 ? Math.min(1, Math.max(0, (T_cur - seg.t0) / dur)) : 0;
+                    const curDist = seg.fromDist + ratio * (seg.toDist - seg.fromDist);
+                    const interpNode = seg.fromNode + ratio * (seg.toNode - seg.fromNode);
+                    const y = getY(interpNode, curDist);
+
+                    const prevRatio = Math.max(0, ratio - 0.2);
+                    const prevDist = seg.fromDist + prevRatio * (seg.toDist - seg.fromDist);
+                    const prevInterpNode = seg.fromNode + prevRatio * (seg.toNode - seg.fromNode);
+                    const prevY = getY(prevInterpNode, prevDist);
+
+                    return {
+                        isStopped: false,
+                        fromNode: seg.fromNode,
+                        toNode: seg.toNode,
+                        dist: curDist,
+                        y: y,
+                        prevY: prevY,
+                        ratio: ratio
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    static optimizeOffsets(members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, axis, currentOffsetsMap) {
+        if (!members || members.length < 2 || cycle <= 0) return null;
+        const N = members.length;
+        const currentOffsets = members.map(m => (currentOffsetsMap[m.id] ? currentOffsetsMap[m.id][pIdx] || 0 : 0));
+
+        let candidate = [0];
+        const step = cycle > 130 ? 3 : 2;
+
+        for (let i = 1; i < N; i++) {
+            let localBestOffset = 0, localBestW = -1;
+            for (let off = 0; off < cycle; off += step) {
+                const testMap = {};
+                for (let k = 0; k < candidate.length; k++) testMap[members[k].id] = { [pIdx]: candidate[k] };
+                testMap[members[i].id] = { [pIdx]: off };
+                for (let k = i + 1; k < N; k++) testMap[members[k].id] = { [pIdx]: currentOffsets[k] };
+
+                const up = this.calcBand('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testMap);
+                const down = this.calcBand('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testMap);
+                const score = (up.width || 0) + (down.width || 0);
+                if (score > localBestW) {
+                    localBestW = score;
+                    localBestOffset = off;
+                }
+            }
+            candidate.push(localBestOffset);
+        }
+
+        // 로컬 힐클라이밍 미세조정
+        let bestOffsets = [...candidate];
+        let bestScore = -1;
+        const makeMap = (arr) => {
+            const m = {};
+            members.forEach((mem, idx) => { m[mem.id] = { [pIdx]: arr[idx] }; });
+            return m;
+        };
+
+        for (let iter = 0; iter < 2; iter++) {
+            for (let i = 1; i < N; i++) {
+                const orig = candidate[i];
+                for (let delta of [-2, -1, 1, 2]) {
+                    candidate[i] = (orig + delta + cycle) % cycle;
+                    const testMap = makeMap(candidate);
+                    const up = this.calcBand('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testMap);
+                    const down = this.calcBand('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, testMap);
+                    const score = (up.width || 0) + (down.width || 0);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestOffsets = [...candidate];
+                    } else {
+                        candidate[i] = orig;
+                    }
+                }
+            }
+        }
+
+        const finalMap = makeMap(bestOffsets);
+        const finalUp = this.calcBand('up', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, finalMap);
+        const finalDown = this.calcBand('down', axis, members, distances, totalDist, cycle, travelTimes, dayIdx, pIdx, finalMap);
+
+        return {
+            offsets: bestOffsets,
+            upWidth: finalUp.width || 0,
+            downWidth: finalDown.width || 0,
+            totalScore: (finalUp.width || 0) + (finalDown.width || 0)
+        };
+    }
 }
 
-// ── PopupTSD 엔진 ──
+// ─────────────────────────────────────────────────────────────
+// 4. PopupTSD 엔진 클래스
+// ─────────────────────────────────────────────────────────────
 class PopupTSD {
-  constructor(canvasId, wrapId, infoId, editable) {
-    this.canvas = document.getElementById(canvasId);
-    this.ctx    = this.canvas.getContext('2d');
-    this.wrapId = wrapId;
-    this.infoId = infoId;
-    this.editable = editable;
-    this.cfg = {
-      pad: {top:40, bottom:40, left:140, right:20},
-      green:'#2e7d32', red:'#c62828', yellow:'#f9a825',
-      blue:'rgba(60,130,200,0.70)', blueFill:'rgba(41, 182, 246, 0.2)',
-      bandUpS:'rgba(41, 182, 246, 0.8)', bandDnS:'rgba(102, 187, 106, 0.8)',
-      trajUp:'rgba(41, 182, 246, 0.7)', trajDn:'rgba(102, 187, 106, 0.7)',
-      blocked:'#c62828', wait:'#c62828',
-    };
-    this.state = { gid:null,members:[],distances:[],totalDist:0,cycle:100,todIdx:0,
-      viewOffsetT:0, isDragging:false, isDraggingOffset:false, dragJid:null, lastX:0, yCoords:[] };
-    this._initEvents();
-    window.addEventListener('resize', () => this.render());
-  }
+    constructor(canvasId, wrapId, infoId, editable) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.wrapId = wrapId;
+        this.infoId = infoId;
+        this.editable = editable;
 
-  _getOffsets() { return this.editable ? _editOffsets : _frozenOffsets; }
-  _getOffset(jid, pIdx) {
-    const o = this._getOffsets();
-    return (o[jid] && o[jid][pIdx] !== undefined) ? o[jid][pIdx] : 0;
-  }
-
-  _initEvents() {
-    const getHit = (e) => {
-      const r=this.canvas.getBoundingClientRect();
-      const mx=e.clientX-r.left, my=(e.clientY-r.top)/(window.devicePixelRatio||1);
-      if(mx<this.cfg.pad.left) return null;
-      for(const it of this.state.yCoords) if(Math.abs(my-it.y)<20) return it.id;
-      return null;
-    };
-    this.canvas.addEventListener('mousemove', e => {
-      const hit = getHit(e);
-      if (this.state.isDragging || this.state.isDraggingOffset) {
-          const tt = document.getElementById('tsd-tooltip');
-          if (tt) tt.style.display = 'none';
-          return;
-      }
-      this.canvas.style.cursor = (this.editable && hit) ? 'ew-resize' : 'grab';
-      
-      const tt = document.getElementById('tsd-tooltip');
-      if (tt && this.state.hitRegions) {
-          const r = this.canvas.getBoundingClientRect();
-          const mx = (e.clientX - r.left) / (this.canvas.clientWidth / (this.canvas.width / (window.devicePixelRatio || 1)));
-          const my = (e.clientY - r.top) / (this.canvas.clientHeight / (this.canvas.height / (window.devicePixelRatio || 1)));
-          let found = null;
-          for (let i = this.state.hitRegions.length - 1; i >= 0; i--) {
-              const region = this.state.hitRegions[i];
-              if (mx >= region.x && mx <= region.x + region.w && my >= region.y && my <= region.y + region.h) {
-                  found = region;
-                  break;
-              }
-          }
-          if (found && found.split > 0 && found.mov > 0) {
-              tt.style.display = 'block';
-              tt.style.left = (e.pageX + 15) + 'px';
-              tt.style.top = (e.pageY + 15) + 'px';
-              let typeText = "차량";
-              if (found.mov >= 101 && found.mov <= 116) typeText = "보행";
-              tt.innerHTML = `
-                  <div><strong>이동류:</strong> ${found.mov === 100 ? 'W' : found.mov} (${typeText})</div>
-                  <div><strong>총 현시:</strong> ${found.split}초</div>
-                  <div><strong>녹색:</strong> <span style="color:#81c784">${found.green}초</span></div>
-                  ${found.yellow > 0 ? `<div><strong>황색:</strong> <span style="color:#ffb74d">${found.yellow}초</span></div>` : ''}
-              `;
-          } else {
-              tt.style.display = 'none';
-          }
-      }
-    });
-    this.canvas.addEventListener('mouseleave', () => { const tt = document.getElementById('tsd-tooltip'); if(tt) tt.style.display = 'none'; });
-    this.canvas.addEventListener('mousedown', e => {
-      if(e.button!==0) return;
-      const hit = getHit(e);
-      this.state.lastX = e.clientX;
-      if(this.editable && hit) { this.state.isDraggingOffset=true; this.state.dragJid=hit; this.canvas.style.cursor='ew-resize'; }
-      else { this.canvas.style.cursor='default'; }
-      e.preventDefault();
-    });
-    window.addEventListener('mousemove', e => {
-      if(!this.state.isDragging && !this.state.isDraggingOffset) return;
-      const dx=e.clientX-this.state.lastX;
-      const cW=this.canvas.clientWidth-this.cfg.pad.left-this.cfg.pad.right;
-      const dt=(dx/cW)*(this.state.cycle*4);
-      if(this.state.isDraggingOffset && this.editable) {
-        const pIdx=this.state.todIdx, cycle=this.state.cycle;
-        if(_editOffsets[this.state.dragJid]) {
-          let v = (_editOffsets[this.state.dragJid][pIdx]||0)+dt;
-          v = ((v%cycle)+cycle)%cycle;
-          _editOffsets[this.state.dragJid][pIdx] = Math.round(v*10)/10;
-        }
-      } 
-      this.state.lastX = e.clientX;
-      this.render();
-    });
-    window.addEventListener('mouseup', () => {
-      this.state.isDragging=false; this.state.isDraggingOffset=false;
-      this.state.dragJid=null; this.canvas.style.cursor='grab';
-    });
-    
-  }
-
-  _updateTravelTimes() {
-    const dists = this.state.distances;
-    if (!dists || dists.length < 2) return;
-    const speedInput = document.getElementById('speed');
-    const speed = (speedInput ? parseFloat(speedInput.value) : 50) / 3.6; // m/s
-    const tt = [0];
-    let acc = 0;
-    for (let i = 1; i < dists.length; i++) {
-        const d = dists[i] - dists[i - 1];
-        acc += d / speed;
-        tt.push(acc);
-    }
-    this.state.travelTimes = tt;
-  }
-
-  render() {
-    if(!this.canvas||this.state.members.length<2) return;
-    this._updateTravelTimes();
-    const wrap=document.getElementById(this.wrapId);
-    const dpr=window.devicePixelRatio||1;
-    this.canvas.width=wrap.clientWidth*dpr; this.canvas.height=wrap.clientHeight*dpr;
-    this.ctx.scale(dpr,dpr);
-    const w=wrap.clientWidth, h=wrap.clientHeight;
-    const ctx=this.ctx, P=this.cfg.pad;
-    ctx.fillStyle='#1e2124'; ctx.fillRect(0,0,w,h);
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    ctx.fillRect(0, 0, P.left, h);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(P.left, 0);
-    ctx.lineTo(P.left, h);
-    ctx.stroke();
-
-    const cW=w-P.left-P.right, cH=h-P.top-P.bottom;
-    const cycle = this.state.cycle, tH = cycle * 4;
-    const dayIdx = _parentState ? ((_parentState.currentGroupDayTypeIdx) || 0) : 0;
-    const axis = getAxis();
-    const offsets = this._getOffsets();
-    const pIdx = this.state.todIdx;
-
-    const travelTimes = this.state.travelTimes || new Array(this.state.members.length).fill(0);
-    const bUp = Analyzer.calcBand('up', axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, pIdx, offsets);
-    const bDown = Analyzer.calcBand('down', axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, pIdx, offsets);
-
-    const xF = cW / tH;
-    this.state.viewOffsetT = 0;
-    const tToX = t => P.left + (t - this.state.viewOffsetT) * xF;
-    const rm = 20;
-    const distToY = d => P.top + rm + (1 - d / (this.state.totalDist || 1)) * (cH - rm * 2);
-
-    ctx.save(); ctx.beginPath(); ctx.rect(P.left, P.top, cW, cH); ctx.clip();
-
-    // Grid
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 1;
-    for (let t = -cycle; t < tH + cycle; t += 20) { const x = tToX(t); ctx.beginPath(); ctx.moveTo(x, P.top); ctx.lineTo(x, h - P.bottom); ctx.stroke(); }
-
-    // Signal bars
-    this.state.yCoords = [];
-    this.state.members.forEach((j, i) => {
-      const y = distToY(this.state.distances[i]);
-      this.state.yCoords.push({ id: j.id, y });
-      ctx.strokeStyle = 'rgba(0,0,0,0.04)'; ctx.beginPath(); ctx.moveTo(P.left, y); ctx.lineTo(w - P.right, y); ctx.stroke();
-      this._drawRings(j, y, cW, xF, dayIdx, axis, cycle);
-    });
-
-    // Bands
-    this._drawBand('up', bUp, tH, xF, tToX, distToY, dayIdx, axis, cycle);
-    this._drawBand('down', bDown, tH, xF, tToX, distToY, dayIdx, axis, cycle);
-    ctx.restore();
-
-    // Labels
-    this.state.members.forEach((j,i)=>{
-      const y=distToY(this.state.distances[i]);
-      const off=this._getOffset(j.id,pIdx);
-      ctx.fillStyle='rgba(30,33,36,0.95)';ctx.fillRect(0,y-26,P.left-2,52);
-      ctx.textAlign='right';
-      ctx.fillStyle='#eeeeee';ctx.font='bold 14px "Outfit",sans-serif';
-      let nm=j.name||j.id; if(nm.length>9)nm=nm.substring(0,8)+'..';
-      ctx.fillText(nm,P.left-12,y-8);
-      ctx.fillStyle='#81c784';ctx.font='bold 12px "JetBrains Mono",monospace';
-      ctx.fillText(`▸${Math.round(this.state.distances[i])}m`,P.left-12,y+8);
-      ctx.fillStyle=off!==0?'#ffb74d':'#9e9e9e';ctx.font='bold 12px "JetBrains Mono",monospace';
-      ctx.fillText(`⊕${Math.round(off)}s`,P.left-12,y+24);
-    });
-
-    // Time axis & Grid (주기 비율 기반)
-    const subDivisions = 4;
-    const step = cycle / subDivisions;
-    for(let t=0; t<=tH; t+=step){
-        const x=tToX(t);
-        if(x>P.left && x<w-P.right){
-            const isCycleEnd = (Math.round(t) % cycle === 0);
-            if (isCycleEnd) {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
-            } else {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-                ctx.lineWidth = 1;
+        this.cfg = {
+            pad: { top: 48, bottom: 44, left: 185, right: 24 },
+            colors: {
+                bg: '#0a0f1d',
+                sidebarBg: 'rgba(15, 23, 42, 0.96)',
+                grid: 'rgba(148, 163, 184, 0.08)',
+                gridMajor: 'rgba(56, 189, 248, 0.25)',
+                bandUp: 'rgba(14, 165, 233, 0.28)',
+                bandDown: 'rgba(16, 185, 129, 0.28)',
+                bandUpStroke: '#38bdf8',
+                bandDownStroke: '#34d399',
+                trajUp: 'rgba(56, 189, 248, 0.85)',
+                trajDown: 'rgba(52, 211, 153, 0.85)',
+                wait: '#e11d48'
             }
-            ctx.beginPath();
-            ctx.moveTo(x, P.top);
-            ctx.lineTo(x, h - P.bottom + 5);
-            ctx.stroke();
-            
-            ctx.textAlign='center';
-            if (isCycleEnd) {
-                ctx.fillStyle = '#4fc3f7';
-                ctx.font = 'bold 13px "JetBrains Mono", monospace';
-                ctx.fillText(`${Math.round(t)}s (C${Math.round(t/cycle)})`, x, h - P.bottom + 22);
-            } else {
-                ctx.fillStyle = '#888888';
-                ctx.font = '11px "JetBrains Mono", monospace';
-                ctx.fillText(`${Math.round(t)}s`, x, h - P.bottom + 20);
-            }
-        }
+        };
+
+        this.state = {
+            gid: null, members: [], distances: [], totalDist: 0,
+            cycle: 100, todIdx: 0, viewOffsetT: 0,
+            isDragging: false, isDraggingOffset: false,
+            dragJid: null, lastX: 0, yCoords: [],
+            selectedJid: null, hoveredJid: null,
+            scaleMode: 'proportional',
+            travelTimes: [], hitRegions: []
+        };
+
+        this._initEvents();
+        window.addEventListener('resize', () => this.render());
     }
 
-    this._updateInfo(bUp,bDown,cycle);
-  }
+    _getOffsets() {
+        return this.editable ? _editOffsets : _frozenOffsets;
+    }
 
-  _drawRings(j,y,cW,xF,dayIdx,axis,cycle) {
-    const pIdx=this.state.todIdx;
-    const tod = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : ((j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null);
-    if(!tod) return;
-    const sm = typeof getEffectiveSignalMap === "function" ? getEffectiveSignalMap(j, dayIdx, pIdx) : ((j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null);
-    if(!sm) return;
-    const offset=this._getOffset(j.id,pIdx);
-    const rH=12,gap=0.5,P=this.cfg.pad,ctx=this.ctx;
-    const proceed=(axis==='ew')?[2,6]:[4,8], blocked=(axis==='ew')?[4,8]:[2,6];
+    _getOffset(jid, pIdx) {
+        const o = this._getOffsets();
+        return (o[jid] && o[jid][pIdx] !== undefined) ? o[jid][pIdx] : 0;
+    }
 
-    ctx.fillStyle='rgba(40,44,48,0.65)';ctx.fillRect(P.left,y-rH-gap-1,cW,(rH+gap)*2+2);
-
-    const ring=(sp,yl,mv,bot)=>{
-      if(!sp||!sp.length) return;
-      const yP=bot?(y+gap):(y-gap-rH); let cur=0;
-      sp.forEach((st,idx)=>{
-        if(st<=0){cur+=st;return;}
-        const yt=(yl&&yl[idx])?yl[idx]:0, gt=Math.max(0,st-yt);
-        const mov=(mv&&mv[idx])?mv[idx]:0;
-        
-        const nextMov = (mv && mv[idx+1] !== undefined) ? mv[idx+1] : -1;
-        const isContinuous = (mov !== 0 && mov === nextMov);
-
-        for(let rep=-3;rep<=3;rep++){
-          const t0=offset+cur+rep*cycle-this.state.viewOffsetT;
-          const xS=P.left+t0*xF, xG=P.left+(t0+gt)*xF, xE=P.left+(t0+st)*xF;
-          if(xE<P.left||xS>P.left+cW) continue;
-          
-          if(proceed.includes(mov)){
-            ctx.fillStyle=bot?'#42a5f5':'#66bb6a'; 
-            if(isContinuous) { this._seg(xS,yP,xE-xS,rH,cW); }
-            else { 
-                this._seg(xS,yP,xG-xS,rH,cW);
-                if(yt>0){ctx.fillStyle='#ffee58';this._seg(xG,yP,xE-xG,rH,cW);}
+    _initEvents() {
+        const getHit = (e, includeLabelArea = false) => {
+            const r = this.canvas.getBoundingClientRect();
+            const mx = e.clientX - r.left;
+            const my = (e.clientY - r.top) / (window.devicePixelRatio || 1);
+            if (!includeLabelArea && mx < this.cfg.pad.left) return null;
+            for (const it of this.state.yCoords) {
+                if (Math.abs(my - it.y) < 22) return it.id;
             }
-          } else if(blocked.includes(mov)){
-            ctx.fillStyle='#ef5350';this._seg(xS,yP,xE-xS,rH,cW);
-          } else if(mov>=1&&mov<=8){
-            ctx.fillStyle='#5c6bc0';
-            if(isContinuous) { this._seg(xS,yP,xE-xS,rH,cW); }
-            else {
-                this._seg(xS,yP,xG-xS,rH,cW);
-                if(yt>0){ctx.fillStyle='#ffee58';this._seg(xG,yP,xE-xG,rH,cW);}
+            return null;
+        };
+
+        this.canvas.addEventListener('mousemove', e => {
+            if (this.state.isDragging || this.state.isDraggingOffset) {
+                const tt = document.getElementById('tsd-tooltip');
+                if (tt) tt.style.display = 'none';
+                return;
             }
-          } else {
-            ctx.fillStyle="rgba(220, 30, 30, 0.40)";
-            if(isContinuous) { this._seg(xS,yP,xE-xS,rH,cW); }
-            else {
-                this._seg(xS,yP,xG-xS,rH,cW);
-                if(yt>0){ctx.fillStyle='#ffee58';this._seg(xG,yP,xE-xG,rH,cW);}
+            const hit = getHit(e);
+            this.canvas.style.cursor = (this.editable && hit) ? 'ew-resize' : 'pointer';
+
+            const hoverJid = getHit(e, true);
+            if (this.state.hoveredJid !== hoverJid) {
+                this.state.hoveredJid = hoverJid;
+                this.render();
             }
-          }
 
-          const segW = isContinuous ? (xE - xS) : (xG - xS);
-          if (segW > 14 && mov > 0) {
-              const mx = xS + segW / 2;
-              const my = yP + rH / 2;
-              ctx.save();
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 10px "JetBrains Mono", monospace';
-              ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-              ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-              ctx.lineWidth = 2;
-              ctx.strokeText(mov >= 100 ? 'W' : mov, mx, my);
-              ctx.fillText(mov >= 100 ? 'W' : mov, mx, my);
-              ctx.restore();
-          }
+            // 툴팁 렌더링
+            const tt = document.getElementById('tsd-tooltip');
+            if (tt && this.state.hitRegions) {
+                const r = this.canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                const mx = (e.clientX - r.left);
+                const my = (e.clientY - r.top);
+                let found = null;
+                for (let i = this.state.hitRegions.length - 1; i >= 0; i--) {
+                    const reg = this.state.hitRegions[i];
+                    if (mx >= reg.x && mx <= reg.x + reg.w && my >= reg.y && my <= reg.y + reg.h) {
+                        found = reg;
+                        break;
+                    }
+                }
+                if (found && found.split > 0 && found.mov > 0) {
+                    tt.style.display = 'block';
+                    tt.style.left = (e.pageX + 15) + 'px';
+                    tt.style.top = (e.pageY + 15) + 'px';
+                    tt.innerHTML = `
+                        <div style="font-weight:700;color:#38bdf8;margin-bottom:3px;">신호 현시 정보</div>
+                        <div><b>이동류:</b> ${found.mov >= 100 ? 'W' : found.mov}</div>
+                        <div><b>스플릿:</b> ${found.split}초</div>
+                        <div><b>녹색:</b> <span style="color:#34d399">${found.green}초</span></div>
+                        ${found.yellow > 0 ? `<div><b>황색:</b> <span style="color:#fbbf24">${found.yellow}초</span></div>` : ''}
+                    `;
+                } else {
+                    tt.style.display = 'none';
+                }
+            }
+        });
 
-          ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(xE-0.5,yP,1,rH);
+        this.canvas.addEventListener('mouseleave', () => {
+            const tt = document.getElementById('tsd-tooltip');
+            if (tt) tt.style.display = 'none';
+            if (this.state.hoveredJid) {
+                this.state.hoveredJid = null;
+                this.render();
+            }
+        });
+
+        this.canvas.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            const hit = getHit(e);
+            const labelHit = getHit(e, true);
+            if (labelHit) {
+                this.state.selectedJid = labelHit;
+                if (RIGHT) RIGHT.state.selectedJid = labelHit;
+                this.render();
+            }
+
+            this.state.lastX = e.clientX;
+            if (this.editable && hit) {
+                this.state.isDraggingOffset = true;
+                this.state.dragJid = hit;
+                this.canvas.style.cursor = 'ew-resize';
+            }
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!this.state.isDraggingOffset || !this.editable) return;
+            const dx = e.clientX - this.state.lastX;
+            const cW = this.canvas.clientWidth - this.cfg.pad.left - this.cfg.pad.right;
+            const dt = (dx / cW) * (this.state.cycle * 4);
+
+            const pIdx = this.state.todIdx, cycle = this.state.cycle;
+            if (_editOffsets[this.state.dragJid]) {
+                let v = (_editOffsets[this.state.dragJid][pIdx] || 0) + dt;
+                v = ((v % cycle) + cycle) % cycle;
+                _editOffsets[this.state.dragJid][pIdx] = Math.round(v * 10) / 10;
+            }
+            this.state.lastX = e.clientX;
+            this.render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            this.state.isDraggingOffset = false;
+            this.state.dragJid = null;
+            this.canvas.style.cursor = 'pointer';
+        });
+    }
+
+    _updateTravelTimes() {
+        const dists = this.state.distances;
+        if (!dists || dists.length < 2) return;
+        const v = _speed / 3.6;
+        const tt = [0];
+        let acc = 0;
+        for (let i = 1; i < dists.length; i++) {
+            const d = dists[i] - dists[i - 1];
+            acc += (v > 0) ? (d / v) : 1;
+            tt.push(acc);
         }
-        cur+=st;
-      });
-    };
-    ring(tod.splitA,sm.yellowA,sm.movA,false);
-    ring(tod.splitB,sm.yellowB,sm.movB,true);
-    
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-    ctx.setLineDash([2, 3]);
-    ctx.beginPath();
-    ctx.moveTo(P.left, y);
-    ctx.lineTo(P.left + cW, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+        this.state.travelTimes = tt;
+    }
 
-  _drawBand(dir, band, timeHorizon, xF, tToX, distToY, dayIdx, axis, cycle) {
-    const ctx = this.ctx, members = this.state.members, distances = this.state.distances, totalDist = this.state.totalDist;
-    const isUp = dir === 'up';
-    const travelTimes = this.state.travelTimes || new Array(this.state.members.length).fill(0);
-    const totalTT = travelTimes[travelTimes.length - 1] || 1;
+    render() {
+        if (!this.canvas || this.state.members.length < 2) return;
+        this._updateTravelTimes();
+        const wrap = document.getElementById(this.wrapId);
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = wrap.clientWidth * dpr;
+        this.canvas.height = wrap.clientHeight * dpr;
+        this.ctx.scale(dpr, dpr);
 
-    if(band.width>0){
-      const fill=isUp?'rgba(0,100,220,0.12)':'rgba(0,160,220,0.12)';
-      const stroke=isUp?this.cfg.bandUpS:this.cfg.bandDnS;
-      for(let rep=-3;rep<=3;rep++){
-        const sT=band.start+rep*cycle;
-        const fwd=[],bwd=[];
-        const idx=isUp?members.map((_,i)=>i):members.map((_,i)=>i).reverse();
-        for(const i of idx){
-          const tr=isUp ? travelTimes[i] : (totalTT - travelTimes[i]);
-          const y=distToY(distances[i]);
-          fwd.push({x:tToX(sT+tr),y}); bwd.push({x:tToX(sT+band.width+tr),y});
-        }
-        ctx.fillStyle=fill;ctx.beginPath();
-        fwd.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
-        for(let i=bwd.length-1;i>=0;i--)ctx.lineTo(bwd[i].x,bwd[i].y);
-        ctx.closePath();ctx.fill();
-        ctx.strokeStyle=stroke;ctx.lineWidth=2;
-        ctx.beginPath();fwd.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
-        ctx.beginPath();bwd.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));ctx.stroke();
-      }
-    } else {
-      const tC=isUp?this.cfg.trajUp:this.cfg.trajDn;
-      const pIdx=this.state.todIdx, offsets=this._getOffsets();
-      const sIdx=isUp?members.map((_,i)=>i):members.map((_,i)=>i).reverse();
-      for(let rep=-1;rep<=2;rep++){
-        const baseT = rep*cycle+10;
-        ctx.beginPath();ctx.strokeStyle=tC;ctx.lineWidth=1.5;
-        
-        const firstIdx = sIdx[0];
-        const firstTr = isUp ? travelTimes[firstIdx] : (totalTT - travelTimes[firstIdx]);
-        ctx.moveTo(tToX(baseT + firstTr), distToY(distances[firstIdx]));
+        const w = wrap.clientWidth, h = wrap.clientHeight;
+        const ctx = this.ctx, P = this.cfg.pad;
+        ctx.fillStyle = this.cfg.colors.bg;
+        ctx.fillRect(0, 0, w, h);
 
-        for (const i of sIdx) {
-          const nd=distances[i];
-          const tr = isUp ? travelTimes[i] : (totalTT - travelTimes[i]);
-          let t = baseT + tr;
-          ctx.lineTo(tToX(t),distToY(nd));
-          const off=offsets[members[i].id]?offsets[members[i].id][pIdx]:undefined;
-          const g=Analyzer.getGreenWindow(members[i],axis,dir,dayIdx,pIdx,cycle,off);
-          if(!g) continue;
-          const arr=((t%cycle)+cycle)%cycle;
-          const gS=g.gStart,gE=(gS+g.gLen)%cycle;
-          const isG=(gS<gE)?(arr>=gS&&arr<gE):(arr>=gS||arr<gE);
-          if(!isG){
-            ctx.stroke();
-            let w2=(gS<gE)?((arr<gS)?gS-arr:cycle-arr+gS):((arr>=gE&&arr<gS)?gS-arr:0);
-            if(w2<=0)w2=1;
-            ctx.beginPath();ctx.strokeStyle=this.cfg.wait;ctx.lineWidth=2;ctx.setLineDash([3,2]);
-            ctx.moveTo(tToX(t),distToY(nd));t+=w2;ctx.lineTo(tToX(t),distToY(nd));ctx.stroke();ctx.setLineDash([]);
-            ctx.fillStyle=this.cfg.wait;ctx.beginPath();ctx.arc(tToX(t-w2),distToY(nd),3,0,Math.PI*2);ctx.fill();
-            ctx.beginPath();ctx.strokeStyle=tC;ctx.lineWidth=1.5;ctx.moveTo(tToX(t),distToY(nd));
-          }
-        }
+        // 좌측 사이드바 배경 카드
+        ctx.fillStyle = this.cfg.colors.sidebarBg;
+        ctx.fillRect(0, 0, P.left, h);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(P.left, 0); ctx.lineTo(P.left, h);
         ctx.stroke();
-      }
+
+        const cW = w - P.left - P.right;
+        const cH = h - P.top - P.bottom;
+        const cycle = this.state.cycle || 100;
+        const timeHorizon = cycle * 4;
+        const dayIdx = _parentState ? (_parentState.currentGroupDayTypeIdx || 0) : 0;
+        const pIdx = this.state.todIdx;
+        const offsets = this._getOffsets();
+
+        const travelTimes = this.state.travelTimes || new Array(this.state.members.length).fill(0);
+        const bUp = Analyzer.calcBand('up', _axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, pIdx, offsets);
+        const bDown = Analyzer.calcBand('down', _axis, this.state.members, this.state.distances, this.state.totalDist, cycle, travelTimes, dayIdx, pIdx, offsets);
+
+        const xF = cW / timeHorizon;
+        const tToX = t => P.left + (t - this.state.viewOffsetT) * xF;
+
+        // Y축 스케일 모드 (거리비례 vs 균등모식도)
+        const isSchematic = (this.state.scaleMode === 'schematic');
+        const N = this.state.members.length;
+        const rm = 24;
+        const getY = (nodeIdx, dist) => {
+            if (isSchematic) {
+                const stepY = (cH - rm * 2) / Math.max(1, N - 1);
+                return P.top + rm + (N - 1 - nodeIdx) * stepY;
+            } else {
+                return P.top + rm + (1 - dist / (this.state.totalDist || 1)) * (cH - rm * 2);
+            }
+        };
+
+        this.state.hitRegions = [];
+
+        // 클리핑 영역 시작
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(P.left, P.top, cW, cH);
+        ctx.clip();
+
+        // 1. 그리드 라인
+        ctx.strokeStyle = this.cfg.colors.grid;
+        ctx.lineWidth = 1;
+        for (let t = 0; t <= timeHorizon; t += cycle / 4) {
+            const x = tToX(t);
+            ctx.beginPath(); ctx.moveTo(x, P.top); ctx.lineTo(x, h - P.bottom); ctx.stroke();
+        }
+
+        // 2. 신호 바 (Dual Ring)
+        this.state.yCoords = [];
+        this.state.members.forEach((j, i) => {
+            const y = getY(i, this.state.distances[i]);
+            this.state.yCoords.push({ id: j.id, y });
+            this._drawDualRingBars(j, y, cW, xF, dayIdx, _axis, cycle);
+        });
+
+        // 3. 밴드 & 궤적선
+        this._drawHybridBand('up', bUp, timeHorizon, xF, tToX, getY, dayIdx, _axis, cycle);
+        this._drawHybridBand('down', bDown, timeHorizon, xF, tToX, getY, dayIdx, _axis, cycle);
+
+        // 4. 차량군 주행 시뮬레이션
+        if (_isPlatoonSimActive) {
+            this._drawPlatoonVehicles(bUp, bDown, cW, cH, tToX, getY, cycle, dayIdx, _axis);
+        }
+
+        ctx.restore(); // 클리핑 해제
+
+        // 5. 좌측 라벨 카드
+        this._drawLabels(getY, pIdx, isSchematic);
+
+        // 6. 시간축 및 그리드 배지
+        this._drawTimeAxis(tToX, timeHorizon, cycle, cW, cH, w, h);
+
+        // 7. 실시간 HUD 카드
+        this._drawHUD(bUp, bDown, w, h, cW, cH, cycle, isSchematic);
+
+        this._updateInfo(bUp, bDown, cycle);
     }
-  }
 
-  _seg(x,y,w,h,cW){
-    if(w<=0)return;const L=this.cfg.pad.left,R=L+cW;
-    const dX=Math.max(L,x),dW=Math.min(R,x+w)-dX;
-    if(dW>0)this.ctx.fillRect(dX,y,dW,h);
-  }
+    _drawLabels(getY, pIdx, isSchematic) {
+        const ctx = this.ctx, P = this.cfg.pad;
+        this.state.members.forEach((j, i) => {
+            const y = getY(i, this.state.distances[i]);
+            const curOffset = this._getOffset(j.id, pIdx);
+            const isSelected = (this.state.selectedJid === j.id);
+            const isHovered = (this.state.hoveredJid === j.id);
 
-  _updateInfo(bUp,bDown,cycle){
-    const el=document.getElementById(this.infoId); if(!el)return;
-    const eUp=Math.round(bUp.width/cycle*100), eDn=Math.round(bDown.width/cycle*100);
-    const uL=bUp.width>0?`<b style="color:#0050c8">↑${Math.round(bUp.width)}s(${eUp}%)</b>`:'<span style="color:#c00">비연동</span>';
-    const dL=bDown.width>0?`<b style="color:#00a0dc">↓${Math.round(bDown.width)}s(${eDn}%)</b>`:'<span style="color:#c00">비연동</span>';
-    el.innerHTML=`${uL} | ${dL}`;
-  }
+            const cardX = 8;
+            const cardY = y - 24;
+            const cardW = P.left - 16;
+            const cardH = 48;
+
+            ctx.save();
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') ctx.roundRect(cardX, cardY, cardW, cardH, 6);
+            else ctx.rect(cardX, cardY, cardW, cardH);
+
+            if (isSelected) {
+                ctx.fillStyle = 'rgba(2, 132, 199, 0.35)';
+                ctx.fill();
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(cardX, cardY, 3.5, cardH);
+            } else if (isHovered) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+                ctx.fill();
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(cardX, cardY, 3, cardH);
+            } else {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // 교차로명
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : '#f8fafc');
+            ctx.font = 'bold 12.5px "Outfit", sans-serif';
+            let name = j.name || j.id;
+            if (name.length > 11) name = name.substring(0, 10) + '..';
+            ctx.fillText(name, cardX + 10, y - 6);
+
+            // 거리
+            ctx.fillStyle = isSchematic ? '#6ee7b7' : '#34d399';
+            ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 10, y + 14);
+
+            // 오프셋 캡슐 배지
+            const offX = cardX + cardW - 54;
+            const offY = y + 3;
+            ctx.fillStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.12)';
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') ctx.roundRect(offX, offY, 46, 15, 4);
+            else ctx.rect(offX, offY, 46, 15);
+            ctx.fill();
+            ctx.strokeStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = curOffset !== 0 ? '#fbbf24' : '#94a3b8';
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + 23, offY + 11);
+
+            ctx.restore();
+        });
+    }
+
+    _drawTimeAxis(tToX, timeHorizon, cycle, cW, cH, w, h) {
+        const ctx = this.ctx, P = this.cfg.pad;
+        const subDivisions = 4;
+        const step = cycle / subDivisions;
+
+        for (let t = 0; t <= timeHorizon; t += step) {
+            const x = tToX(t);
+            if (x >= P.left && x <= w - P.right) {
+                const isCycleEnd = (Math.round(t) % cycle === 0);
+                ctx.strokeStyle = isCycleEnd ? 'rgba(56, 189, 248, 0.35)' : 'rgba(148, 163, 184, 0.08)';
+                ctx.lineWidth = isCycleEnd ? 1.5 : 1;
+                ctx.beginPath();
+                ctx.moveTo(x, P.top);
+                ctx.lineTo(x, h - P.bottom + 6);
+                ctx.stroke();
+
+                ctx.textAlign = 'center';
+                if (isCycleEnd) {
+                    const cNum = Math.round(t / cycle);
+                    ctx.fillStyle = 'rgba(56, 189, 248, 0.18)';
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') ctx.roundRect(x - 28, h - P.bottom + 8, 56, 18, 4);
+                    else ctx.rect(x - 28, h - P.bottom + 8, 56, 18);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+                    ctx.fillText(`C${cNum} (${Math.round(t)}s)`, x, h - P.bottom + 21);
+                } else {
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '10px "JetBrains Mono", monospace';
+                    ctx.fillText(`${Math.round(t)}s`, x, h - P.bottom + 20);
+                }
+            }
+        }
+    }
+
+    _drawHUD(bandUp, bandDown, w, h, cW, cH, cycle, isSchematic) {
+        const ctx = this.ctx, P = this.cfg.pad;
+        const upW = bandUp ? (bandUp.width || 0) : 0;
+        const downW = bandDown ? (bandDown.width || 0) : 0;
+        const upEff = cycle > 0 ? (upW / cycle * 100).toFixed(1) : "0.0";
+        const downEff = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
+        const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
+
+        const cardW = 245;
+        const cardH = 58;
+        const cardX = w - P.right - cardW - 6;
+        const cardY = P.top + 6;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(cardX, cardY, cardW, cardH, 8);
+        else ctx.rect(cardX, cardY, cardW, cardH);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('MAXBAND EFFICIENCY', cardX + 10, cardY + 14);
+
+        const effColor = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
+        ctx.fillStyle = effColor;
+        ctx.font = 'bold 19px "JetBrains Mono", monospace';
+        ctx.fillText(`${totEff}%`, cardX + 10, cardY + 39);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '9.5px "JetBrains Mono", monospace';
+        ctx.fillText(`C:${cycle}s`, cardX + 10, cardY + 51);
+
+        // 구분선
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.beginPath();
+        ctx.moveTo(cardX + 88, cardY + 20); ctx.lineTo(cardX + 88, cardY + 52);
+        ctx.stroke();
+
+        // 지표
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 9.5px "Outfit", sans-serif';
+        ctx.fillText('▲ 상행', cardX + 98, cardY + 34);
+
+        ctx.fillStyle = upW > 0 ? '#f8fafc' : '#f43f5e';
+        ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+        ctx.fillText(`${upW.toFixed(1)}s`, cardX + 134, cardY + 34);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '9.5px "JetBrains Mono", monospace';
+        ctx.fillText(`(${upEff}%)`, cardX + 180, cardY + 34);
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 9.5px "Outfit", sans-serif';
+        ctx.fillText('▼ 하행', cardX + 98, cardY + 49);
+
+        ctx.fillStyle = downW > 0 ? '#f8fafc' : '#f43f5e';
+        ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
+        ctx.fillText(`${downW.toFixed(1)}s`, cardX + 134, cardY + 49);
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '9.5px "JetBrains Mono", monospace';
+        ctx.fillText(`(${downEff}%)`, cardX + 180, cardY + 49);
+
+        ctx.restore();
+    }
+
+    _drawDualRingBars(j, y, cW, xF, dayIdx, axis, cycle) {
+        const pIdx = this.state.todIdx;
+        const tod = (j.dayPlans && j.dayPlans[dayIdx]) ? j.dayPlans[dayIdx][pIdx] : null;
+        if (!tod) return;
+        const sm = (j.signalMaps && j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)]) ? j.signalMaps[((j.dayPlanMapIds && j.dayPlanMapIds[dayIdx]) ? j.dayPlanMapIds[dayIdx] : 0)] : null;
+        if (!sm) return;
+
+        const offset = this._getOffset(j.id, pIdx);
+        const rH = 12, gap = 0.5, P = this.cfg.pad, ctx = this.ctx;
+        const proceed = (axis === 'ew') ? [2, 6] : [4, 8];
+        const blocked = (axis === 'ew') ? [4, 8] : [2, 6];
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+        ctx.fillRect(P.left, y - rH - gap - 1, cW, (rH + gap) * 2 + 2);
+
+        const drawRing = (splits, yellows, movs, isBottom) => {
+            if (!splits || !splits.length) return;
+            const yP = isBottom ? (y + gap) : (y - gap - rH);
+            let cur = 0;
+
+            splits.forEach((splitTime, idx) => {
+                if (splitTime <= 0) { cur += splitTime; return; }
+                const yt = (yellows && yellows[idx]) ? yellows[idx] : 0;
+                const gt = Math.max(0, splitTime - yt);
+                const mov = (movs && movs[idx]) ? movs[idx] : 0;
+
+                const nextMov = (movs && movs[idx + 1] !== undefined) ? movs[idx + 1] : -1;
+                const isContinuous = (mov !== 0 && mov === nextMov);
+
+                for (let rep = -3; rep <= 3; rep++) {
+                    const t0 = offset + cur + rep * cycle - this.state.viewOffsetT;
+                    const xS = P.left + t0 * xF;
+                    const xG = P.left + (t0 + gt) * xF;
+                    const xE = P.left + (t0 + splitTime) * xF;
+                    if (xE < P.left || xS > P.left + cW) continue;
+
+                    if (proceed.includes(mov)) {
+                        ctx.fillStyle = isBottom ? '#0284c7' : '#10b981';
+                        if (isContinuous) {
+                            this._seg(xS, yP, xE - xS, rH, cW);
+                        } else {
+                            this._seg(xS, yP, xG - xS, rH, cW);
+                            if (yt > 0) { ctx.fillStyle = '#f59e0b'; this._seg(xG, yP, xE - xG, rH, cW); }
+                        }
+                    } else if (blocked.includes(mov)) {
+                        ctx.fillStyle = '#e11d48';
+                        this._seg(xS, yP, xE - xS, rH, cW);
+                    } else if (mov >= 1 && mov <= 8) {
+                        ctx.fillStyle = '#6366f1';
+                        if (isContinuous) {
+                            this._seg(xS, yP, xE - xS, rH, cW);
+                        } else {
+                            this._seg(xS, yP, xG - xS, rH, cW);
+                            if (yt > 0) { ctx.fillStyle = '#f59e0b'; this._seg(xG, yP, xE - xG, rH, cW); }
+                        }
+                    } else {
+                        ctx.fillStyle = "rgba(225, 29, 72, 0.40)";
+                        this._seg(xS, yP, xE - xS, rH, cW);
+                    }
+
+                    const segW = isContinuous ? (xE - xS) : (xG - xS);
+                    if (segW > 14 && mov > 0) {
+                        const mx = xS + segW / 2;
+                        const my = yP + rH / 2;
+                        ctx.save();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+                        ctx.lineWidth = 2;
+                        ctx.strokeText(mov >= 100 ? 'W' : mov, mx, my);
+                        ctx.fillText(mov >= 100 ? 'W' : mov, mx, my);
+                        ctx.restore();
+                    }
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                    ctx.fillRect(xE - 0.5, yP, 1, rH);
+                }
+                cur += splitTime;
+            });
+        };
+
+        drawRing(tod.splitA, sm.yellowA, sm.movA, false);
+        drawRing(tod.splitB, sm.yellowB, sm.movB, true);
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(P.left, y); ctx.lineTo(P.left + cW, y); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    _drawHybridBand(dir, band, timeHorizon, xF, tToX, getY, dayIdx, axis, cycle) {
+        const ctx = this.ctx, members = this.state.members, distances = this.state.distances;
+        const isUp = (dir === 'up');
+        const travelTimes = this.state.travelTimes || new Array(members.length).fill(0);
+        const totalTT = travelTimes[travelTimes.length - 1] || 1;
+
+        if (band.width > 0) {
+            const fill = isUp ? this.cfg.colors.bandUp : this.cfg.colors.bandDown;
+            const stroke = isUp ? this.cfg.colors.bandUpStroke : this.cfg.colors.bandDownStroke;
+
+            for (let rep = -3; rep <= 3; rep++) {
+                const sT = band.start + rep * cycle;
+                const fwd = [], bwd = [];
+                const idx = isUp ? members.map((_, i) => i) : members.map((_, i) => i).reverse();
+
+                for (const i of idx) {
+                    const tr = isUp ? travelTimes[i] : (totalTT - travelTimes[i]);
+                    const y = getY(i, distances[i]);
+                    fwd.push({ x: tToX(sT + tr), y });
+                    bwd.push({ x: tToX(sT + band.width + tr), y });
+                }
+
+                ctx.fillStyle = fill;
+                ctx.beginPath();
+                fwd.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+                for (let i = bwd.length - 1; i >= 0; i--) ctx.lineTo(bwd[i].x, bwd[i].y);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = stroke;
+                ctx.lineWidth = 1.6;
+                ctx.beginPath(); fwd.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.stroke();
+                ctx.beginPath(); bwd.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)); ctx.stroke();
+            }
+        } else {
+            const tC = isUp ? this.cfg.colors.trajUp : this.cfg.colors.trajDown;
+            const pIdx = this.state.todIdx, offsets = this._getOffsets();
+            const sIdx = isUp ? members.map((_, i) => i) : members.map((_, i) => i).reverse();
+
+            for (let rep = -1; rep <= 2; rep++) {
+                const baseT = rep * cycle + 10;
+                ctx.beginPath(); ctx.strokeStyle = tC; ctx.lineWidth = 1.5;
+
+                const firstIdx = sIdx[0];
+                const firstTr = isUp ? travelTimes[firstIdx] : (totalTT - travelTimes[firstIdx]);
+                ctx.moveTo(tToX(baseT + firstTr), getY(firstIdx, distances[firstIdx]));
+
+                for (const i of sIdx) {
+                    const nd = distances[i];
+                    const tr = isUp ? travelTimes[i] : (totalTT - travelTimes[i]);
+                    let t = baseT + tr;
+                    ctx.lineTo(tToX(t), getY(i, nd));
+
+                    const off = offsets[members[i].id] ? offsets[members[i].id][pIdx] : undefined;
+                    const g = Analyzer.getGreenWindow(members[i], axis, dir, dayIdx, pIdx, cycle, off);
+                    if (!g || !g.length) continue;
+
+                    const arr = ((t % cycle) + cycle) % cycle;
+                    let isG = false, minWait = cycle;
+                    for (const gw of g) {
+                        const gS = gw.gStart, gE = (gS + gw.gLen) % cycle;
+                        if ((gS < gE) ? (arr >= gS && arr < gE) : (arr >= gS || arr < gE)) {
+                            isG = true; break;
+                        }
+                        let w = (gS - arr); if (w <= 0) w += cycle;
+                        if (w < minWait) minWait = w;
+                    }
+
+                    if (!isG) {
+                        ctx.stroke();
+                        let wait = minWait <= 0 ? 1 : minWait;
+                        ctx.beginPath(); ctx.strokeStyle = this.cfg.colors.wait; ctx.lineWidth = 2; ctx.setLineDash([3, 2]);
+                        ctx.moveTo(tToX(t), getY(i, nd));
+                        t += wait;
+                        ctx.lineTo(tToX(t), getY(i, nd));
+                        ctx.stroke(); ctx.setLineDash([]);
+                        ctx.fillStyle = this.cfg.colors.wait;
+                        ctx.beginPath(); ctx.arc(tToX(t - wait), getY(i, nd), 3, 0, Math.PI * 2); ctx.fill();
+
+                        ctx.beginPath(); ctx.strokeStyle = tC; ctx.lineWidth = 1.5;
+                        ctx.moveTo(tToX(t), getY(i, nd));
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+    }
+
+    _drawPlatoonVehicles(bandUp, bandDown, chartW, chartH, tToX, getY, cycle, dayIdx, axis) {
+        const ctx = this.ctx, P = this.cfg.pad;
+        const T_cur = _simClock;
+        const curX = tToX(T_cur);
+        const members = this.state.members, distances = this.state.distances, pIdx = this.state.todIdx;
+        const offsets = this._getOffsets();
+
+        // 1. 타임라인 수직 스위퍼 바
+        if (curX >= P.left && curX <= P.left + chartW) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(curX, P.top); ctx.lineTo(curX, P.top + chartH);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') ctx.roundRect(curX - 24, P.top - 20, 48, 16, 4);
+            else ctx.rect(curX - 24, P.top - 20, 48, 16);
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8'; ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`T:${Math.round(T_cur)}s`, curX, P.top - 8);
+            ctx.restore();
+        }
+
+        // 2. 차량 렌더링 헬퍼
+        const drawCar = (x, y, prevX, prevY, isUp, isStopped, waitRem, m) => {
+            if (x < P.left - 20 || x > P.left + chartW + 20) return;
+
+            // 주행 잔상 꼬리
+            if (!isStopped && prevX !== undefined && prevY !== undefined) {
+                ctx.save();
+                const tailGrad = ctx.createLinearGradient(prevX, prevY, x, y);
+                const col = isUp ? 'rgba(56, 189, 248,' : 'rgba(74, 222, 128,';
+                tailGrad.addColorStop(0, col + '0)');
+                tailGrad.addColorStop(1, col + '0.75)');
+                ctx.strokeStyle = tailGrad;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(prevX, prevY); ctx.lineTo(x, y); ctx.stroke();
+                ctx.restore();
+            }
+
+            // 차량 본체
+            ctx.save();
+            ctx.translate(x, y);
+
+            if (!isStopped) {
+                // 헤드라이트
+                const beamGrad = ctx.createRadialGradient(isUp ? 7 : -7, 0, 1, isUp ? 18 : -18, 0, 14);
+                beamGrad.addColorStop(0, isUp ? 'rgba(56, 189, 248, 0.4)' : 'rgba(74, 222, 128, 0.4)');
+                beamGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = beamGrad;
+                ctx.beginPath(); ctx.arc(isUp ? 7 : -7, 0, 14, -Math.PI / 3, Math.PI / 3, !isUp); ctx.fill();
+            }
+
+            // 차체 캡슐
+            ctx.shadowColor = isStopped ? '#ef4444' : (isUp ? '#38bdf8' : '#4ade80');
+            ctx.shadowBlur = isStopped ? 12 : 8;
+            ctx.fillStyle = isStopped ? '#b91c1c' : (isUp ? '#0284c7' : '#16a34a');
+            ctx.strokeStyle = isStopped ? '#fca5a5' : '#ffffff';
+            ctx.lineWidth = isStopped ? 1.5 : 1.2;
+
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') ctx.roundRect(-7, -4, 14, 8, 3);
+            else ctx.rect(-7, -4, 14, 8);
+            ctx.fill(); ctx.stroke();
+
+            // 유리창
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-2.5, -2, 5, 4);
+
+            // 브레이크등
+            if (isStopped) {
+                ctx.fillStyle = '#ff1744';
+                ctx.fillRect(isUp ? -7 : 5, -3.5, 2, 7);
+                if (waitRem !== undefined && m === 0) {
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+                    ctx.beginPath();
+                    if (typeof ctx.roundRect === 'function') ctx.roundRect(8, -6, 38, 12, 3);
+                    else ctx.rect(8, -6, 38, 12);
+                    ctx.fill(); ctx.strokeStyle = '#fca5a5'; ctx.stroke();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 8px "JetBrains Mono", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`대기 ${Math.ceil(waitRem)}s`, 27, 3);
+                }
+            }
+            ctx.restore();
+        };
+
+        // 3. 상행 소대
+        const upBaseStart = (bandUp && bandUp.width > 0) ? bandUp.start : 15;
+        for (let rep = -2; rep <= 4; rep++) {
+            const pDepT = rep * cycle + upBaseStart;
+            for (let m = 0; m < 3; m++) {
+                const depT = pDepT + m * 2.2;
+                const traj = Analyzer.buildVehicleTrajectory(members, distances, null, axis, 'up', dayIdx, pIdx, cycle, depT, offsets);
+                const st = Analyzer.getVehicleStateAtTime(traj, T_cur, getY, true, m);
+                if (st) {
+                    const carX = tToX(T_cur);
+                    const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                    drawCar(carX, st.y, prevX, st.prevY, true, st.isStopped, st.waitTimeRem, m);
+                }
+            }
+        }
+
+        // 4. 하행 소대
+        const downBaseStart = (bandDown && bandDown.width > 0) ? bandDown.start : 25;
+        for (let rep = -2; rep <= 4; rep++) {
+            const pDepT = rep * cycle + downBaseStart;
+            for (let m = 0; m < 3; m++) {
+                const depT = pDepT + m * 2.2;
+                const traj = Analyzer.buildVehicleTrajectory(members, distances, null, axis, 'down', dayIdx, pIdx, cycle, depT, offsets);
+                const st = Analyzer.getVehicleStateAtTime(traj, T_cur, getY, false, m);
+                if (st) {
+                    const carX = tToX(T_cur);
+                    const prevX = st.isStopped ? carX : tToX(T_cur - 1.5);
+                    drawCar(carX, st.y, prevX, st.prevY, false, st.isStopped, st.waitTimeRem, m);
+                }
+            }
+        }
+    }
+
+    _seg(x, y, w, h, cW) {
+        if (w <= 0) return;
+        const L = this.cfg.pad.left, R = L + cW;
+        const dX = Math.max(L, x), dW = Math.min(R, x + w) - dX;
+        if (dW > 0) this.ctx.fillRect(dX, y, dW, h);
+    }
+
+    _updateInfo(bUp, bDown, cycle) {
+        const el = document.getElementById(this.infoId);
+        if (!el) return;
+        const eUp = Math.round(bUp.width / cycle * 100);
+        const eDn = Math.round(bDown.width / cycle * 100);
+        const uL = bUp.width > 0 ? `<b style="color:#38bdf8">▲ ${Math.round(bUp.width)}s (${eUp}%)</b>` : '<span style="color:#e11d48">비연동</span>';
+        const dL = bDown.width > 0 ? `<b style="color:#34d399">▼ ${Math.round(bDown.width)}s (${eDn}%)</b>` : '<span style="color:#e11d48">비연동</span>';
+        el.innerHTML = `${uL} &nbsp;|&nbsp; ${dL}`;
+    }
 }
 </script>
-
-<div id="tsd-tooltip" style="position:absolute; pointer-events:none; background-color:rgba(20,20,20,0.9); color:#fff; padding:8px 12px; border-radius:6px; font-size:12px; font-family:'Outfit', sans-serif; z-index:9999; display:none; box-shadow:0 4px 6px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1);"></div>
-
 </body>
 </html>
