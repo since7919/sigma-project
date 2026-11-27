@@ -390,18 +390,18 @@ input[type=number] {
 
 .main-menu {
     position: absolute;
-    top: 15px;
+    top: 10px;
     left: 20px;
     z-index: 1005;
     display: flex;
     flex-wrap: wrap;
     width: fit-content;
     max-width: calc(100vw - var(--sidebar-width) - 40px);
-    gap: 7px;
-    background: rgba(10, 15, 20, 0.85);
+    gap: 4px;
+    background: rgba(10, 15, 20, 0.88);
     backdrop-filter: blur(20px) saturate(180%);
-    padding: 6px 12px;
-    border-radius: 14px;
+    padding: 4px 8px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
     align-items: center;
@@ -437,15 +437,15 @@ body.left-sidebar-open .menu-logo .menu-logo-sub {
 }
 
 body.left-sidebar-open .menu-logo {
-    padding: 0 4px;
-    gap: 6px;
+    padding: 0 3px;
+    gap: 4px;
 }
 
 .menu-sep {
     width: 1px;
-    height: 20px;
+    height: 16px;
     background: rgba(255, 255, 255, 0.15);
-    margin: 0 5px;
+    margin: 0 2px;
 }
 
 

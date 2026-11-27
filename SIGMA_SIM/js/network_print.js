@@ -863,6 +863,18 @@ if (typeof window !== 'undefined' && !window._netPrintEventsBound) {
             }
         });
     });
+    window.addEventListener('resize', () => {
+        if (_activePrintMap) {
+            _activePrintMap.invalidateSize({ animate: false });
+            if (window.triggerSvgOverlayRender) window.triggerSvgOverlayRender();
+        }
+        Object.entries(_activeInsetMaps).forEach(([id, m]) => {
+            if (m) {
+                m.invalidateSize({ animate: false });
+                if (typeof updateInsetMapLabels === 'function') updateInsetMapLabels(id);
+            }
+        });
+    });
 }
 
 /**
@@ -1311,26 +1323,40 @@ async function renderNetworkPrintOverlay(opts) {
     });
     _insetLabelLayers = {};
 
-    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (WYSIWYG: A4/A3 가로·세로 규격 정밀 매핑)
+    // 5. 인쇄 및 브라우저 화면 비율 1:1 완벽 일치 (1920x1080 뷰포트 피팅 및 A3 가로·세로 규격 정밀 매핑)
     const isPortrait = (opts.orientation === 'portrait');
     const isA3 = (opts.pageSize === 'A3');
 
-    let paperWidth, screenMapHeight, aspectRatio, pageSizeRule;
+    // [1920x1080 해상도 화면 뷰포트 맞춤 연산]
+    // 브라우저 뷰포트 높이(vh)를 기준으로 스크롤 없이 도면(툴바 + 헤더 + 지도 + 인셋 3개 + 푸터)이 100% 한눈에 들어오도록 최적화
+    const winH = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 940;
+    const winW = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1920;
+    
+    // 도면 헤더, 푸터, 상하 패딩, 툴바 등 지도 외 고정 부가 요소들의 총 세로 높이 (약 170px)
+    const chromeHeight = 170;
+    const fitMapHeight = Math.max(480, winH - chromeHeight);
 
-    // [A3 국제 표준 규격 ISO 216: 420 × 297mm 정밀 1:1 매핑]
-    // 출력화면 프리뷰와 실제 PDF 출력물의 가로/세로 비율 및 여백을 100% 일치시켜 여백 발생 방지
+    let paperWidth, screenMapHeight, aspectRatio, pageSizeRule, toolbarWidth;
+
     if (isPortrait) {
         // [A3 세로] 용지 전체 297 × 420mm (비율 0.7071)
         pageSizeRule = 'portrait';
-        paperWidth = '850px';
-        screenMapHeight = 1180;
-        aspectRatio = '281 / 388';
+        aspectRatio = '281 / 388'; // A3 세로 표준 유효 지도 영역 비율
+        screenMapHeight = Math.min(fitMapHeight, 740);
+        // 세로 용지 가로 너비 (지도 높이 기준 281/388 비례 + 좌우 여백 32px)
+        const calcW = Math.round(screenMapHeight * (281 / 388)) + 32;
+        paperWidth = `${Math.max(520, calcW)}px`;
+        toolbarWidth = `min(880px, 96vw)`;
     } else {
         // [A3 가로] 용지 전체 420 × 297mm (비율 1.4142)
         pageSizeRule = 'landscape';
-        paperWidth = '1200px';
-        screenMapHeight = 800;
-        aspectRatio = '404 / 265';
+        aspectRatio = '404 / 265'; // A3 가로 표준 유효 지도 영역 비율
+        // 1920x1080 브라우저(뷰포트 약 930~960px)에서 세로 스크롤 없이 상하가 꽉 차도록 피팅
+        screenMapHeight = Math.min(fitMapHeight, 720);
+        // 가로 용지 너비 (지도 높이 기준 404/265 비례 + 좌우 여백 32px)
+        const calcW = Math.round(screenMapHeight * (404 / 265)) + 32;
+        paperWidth = `${Math.min(1180, Math.max(980, calcW))}px`;
+        toolbarWidth = paperWidth;
     }
 
     // document.head에 @page 스타일을 동적 주입하여 브라우저 인쇄창이 생성 즉시 가로(landscape) 방향 100% 인식
@@ -1363,13 +1389,13 @@ async function renderNetworkPrintOverlay(opts) {
             #network-print-overlay {
                 position: fixed;
                 top: 0; left: 0; width: 100vw; height: 100vh;
-                background: rgba(6,9,18,0.95);
+                background: rgba(6,9,18,0.96);
                 z-index: 1000000;
                 overflow-y: auto;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                padding: 12px;
+                padding: 8px 12px;
                 box-sizing: border-box;
             }
             .net-print-paper {
@@ -1377,12 +1403,13 @@ async function renderNetworkPrintOverlay(opts) {
                 color: ${textColor};
                 width: ${paperWidth};
                 max-width: 96vw;
-                padding: 16px 20px;
+                padding: 12px 18px;
                 border-radius: 8px;
                 box-shadow: 0 10px 45px rgba(0,0,0,0.7);
                 border: 1px solid ${borderColor};
                 box-sizing: border-box;
                 position: relative;
+                flex-shrink: 0;
             }
             /* 그레이톤 도로망 캔버스 필터 (알록달록한 배경 완전 배제, 도로망 윤곽 선명화) */
             .leaflet-tile-grayscale, img.leaflet-tile-grayscale {
@@ -1562,7 +1589,7 @@ async function renderNetworkPrintOverlay(opts) {
         </style>
 
         <!-- 상단 실시간 도면 최적화 툴바 (2줄 정렬 & 붕괴 방지 & 횡스크롤바 차단) -->
-        <div class="net-no-print" style="width:${paperWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:6px 12px; margin-bottom:8px; display:flex; flex-direction:column; gap:6px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box; flex-shrink:0 !important; min-height:72px;">
+        <div class="net-no-print" style="width:${toolbarWidth}; max-width:96vw; background:#0f172a; border:1px solid rgba(56,189,248,0.4); border-radius:10px; padding:6px 12px; margin-bottom:6px; display:flex; flex-direction:column; gap:6px; box-shadow:0 8px 25px rgba(0,0,0,0.4); box-sizing:border-box; flex-shrink:0 !important; min-height:72px;">
             <!-- [1행] 도면 기본 규격 (구역, 방향, 규격, 지도, 연동선, 배율) + 메인 액션 버튼 (PDF 인쇄, 닫기) -->
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:6px;">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">

@@ -1475,29 +1475,29 @@ body.left-sidebar-open #sim-controls {
 #zoom-indicator,
 .zoom-level-badge {
     position: absolute;
-    top: 75px;
+    top: 50px;
     left: 20px;
     z-index: 1000;
     background: rgba(18, 18, 18, 0.85);
     color: #00ffff;
-    padding: 6px 14px;
-    border-radius: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 11.5px;
     pointer-events: none;
     border: 1px solid rgba(0, 255, 255, 0.35);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 body.left-sidebar-open #zoom-indicator,
 body.left-sidebar-open .zoom-level-badge {
     left: 340px;
-    top: 92px;
+    top: 50px;
 }
 
 
