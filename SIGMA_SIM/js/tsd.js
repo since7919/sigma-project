@@ -294,9 +294,13 @@ class TSDEngine {
             travelTimes: [],   // 누적 주행시간 (초), 길이 = members.length
             scaleMode: 'proportional', // 'proportional' (거리 비례) | 'schematic' (균등 간격)
             selectedJid: null,  // 오프셋 미세조정/선택 교차로 ID
-            hoveredJid: null   // 마우스 호버 교차로 ID (지도 연동용)
+            hoveredJid: null,   // 마우스 호버 교차로 ID (지도 연동용)
+            isPlatoonSimActive: false, // [신규] 차량군 주행 시뮬레이션 애니메이션 여부
+            simClock: 0,               // 시뮬레이션 가상 시계 (초)
+            lastSimTimestamp: 0        // 프레임 델타 타임스탬프
         };
 
+        this.animFrameId = null;
         this.initEvents();
                 window.addEventListener('resize', () => this.render());
 
@@ -714,10 +718,226 @@ class TSDEngine {
             }
         }
 
-        // 4) 실시간 연동 대역폭 & 효율 HUD 카드 렌더링
+        // 4) [신규] 차량군 주행 시뮬레이션 애니메이션 렌더링
+        if (this.state.isPlatoonSimActive) {
+            this.drawPlatoonVehicles(bandUp, bandDown, chartW, chartH, cfg, tToX, getY, timeHorizon, cycle, dayIdx, axis);
+        }
+
+        // 5) 실시간 연동 대역폭 & 효율 HUD 카드 렌더링
         this.drawTsdMetricsHUD(bandUp, bandDown, w, h, chartW, chartH, cfg);
 
         this.updateInfoText(bandUp, bandDown);
+    }
+
+    // ── [신규] 차량군(Platoon) 주행 및 대기행렬 실시간 시뮬레이션 렌더링 ──
+    drawPlatoonVehicles(bandUp, bandDown, chartW, chartH, cfg, tToX, getY, timeHorizon, cycle, dayIdx, axis) {
+        const ctx = this.ctx;
+        const T_cur = this.state.simClock;
+        const curX = tToX(T_cur);
+        const members = this.state.members;
+        const distances = this.state.distances;
+        const travelTimes = this.state.travelTimes;
+        const N = members.length;
+        if (N < 2 || !travelTimes || travelTimes.length < N) return;
+        const totalTT = travelTimes[N - 1] || 1;
+
+        // 1. 현재 타임라인 수직 스위퍼 광선 바
+        if (curX >= cfg.padding.left && curX <= cfg.padding.left + chartW) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = 'rgba(56, 189, 248, 0.9)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(curX, cfg.padding.top);
+            ctx.lineTo(curX, cfg.padding.top + chartH);
+            ctx.stroke();
+
+            // 상단 타임 배지
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(curX - 26, cfg.padding.top - 22, 52, 18, 4);
+            } else {
+                ctx.rect(curX - 26, cfg.padding.top - 22, 52, 18);
+            }
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`T:${Math.round(T_cur)}s`, curX, cfg.padding.top - 9);
+            ctx.restore();
+        }
+
+        // 보간 헬퍼: 경과시간 tau로부터 (y좌표, 교차로인덱스) 산출
+        const getInterpPos = (tau, isUp) => {
+            if (tau < 0 || tau > totalTT) return null;
+            let i = 0;
+            while (i < N - 2 && travelTimes[i + 1] < tau) i++;
+            const t0 = travelTimes[i], t1 = travelTimes[i + 1];
+            const ratio = (t1 > t0) ? Math.min(1, Math.max(0, (tau - t0) / (t1 - t0))) : 0;
+            const d = distances[i] + ratio * (distances[i + 1] - distances[i]);
+            
+            if (isUp) {
+                const y = getY(i + ratio, d);
+                return { y, currNode: i, nextNode: i + 1, ratio };
+            } else {
+                // 하행: 역방향 (N-1 -> 0)
+                const downNodeIdx = (N - 1) - (i + ratio);
+                const y = getY(downNodeIdx, distances[N - 1] - d);
+                return { y, currNode: (N - 1) - i, nextNode: (N - 1) - (i + 1), ratio };
+            }
+        };
+
+        // 개별 차량 렌더링 헬퍼
+        const drawCar = (x, y, isUp, isBlocked) => {
+            if (x < cfg.padding.left || x > cfg.padding.left + chartW) return;
+            ctx.save();
+            ctx.translate(x, y);
+
+            // 헤드라이트 빔
+            const beamGrad = ctx.createRadialGradient(isUp ? 8 : -8, 0, 1, isUp ? 22 : -22, 0, 16);
+            beamGrad.addColorStop(0, isUp ? 'rgba(56, 189, 248, 0.45)' : 'rgba(74, 222, 128, 0.45)');
+            beamGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = beamGrad;
+            ctx.beginPath();
+            ctx.arc(isUp ? 8 : -8, 0, 16, -Math.PI / 3, Math.PI / 3, !isUp);
+            ctx.fill();
+
+            // 차체 (네온 캡슐)
+            ctx.shadowColor = isBlocked ? '#ef4444' : (isUp ? '#38bdf8' : '#4ade80');
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = isBlocked ? '#dc2626' : (isUp ? '#0284c7' : '#16a34a');
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(-7, -4, 14, 8, 3);
+            } else {
+                ctx.rect(-7, -4, 14, 8);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // 차량 실루엣 내부 윈도우
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-3, -2, 6, 4);
+
+            // 브레이크등 (적색 걸림 시 경고)
+            if (isBlocked) {
+                ctx.fillStyle = '#ffb74d';
+                ctx.fillRect(isUp ? -7 : 5, -3, 2, 6);
+            }
+
+            ctx.restore();
+        };
+
+        // 2. 상행(Up) 차량군 시뮬레이션
+        const upBaseStart = (bandUp && bandUp.width > 0) ? bandUp.start : 15;
+        for (let rep = -1; rep <= 4; rep++) {
+            const platoonDepT = rep * cycle + upBaseStart;
+            // 1개 소대당 4대
+            for (let m = 0; m < 4; m++) {
+                const depT = platoonDepT + m * 2.2;
+                const tau = T_cur - depT;
+                if (tau >= 0 && tau <= totalTT) {
+                    const pos = getInterpPos(tau, true);
+                    if (pos) {
+                        const x = tToX(T_cur);
+                        // 적색 신호 통과 체크 (구간 도달 시 녹색창 확인)
+                        let isBlocked = false;
+                        if (bandUp.width <= 0) isBlocked = true; // 비연동 시 적색 경고
+                        drawCar(x, pos.y, true, isBlocked);
+                    }
+                }
+            }
+        }
+
+        // 3. 하행(Down) 차량군 시뮬레이션
+        const downBaseStart = (bandDown && bandDown.width > 0) ? bandDown.start : 25;
+        for (let rep = -1; rep <= 4; rep++) {
+            const platoonDepT = rep * cycle + downBaseStart;
+            // 1개 소대당 4대
+            for (let m = 0; m < 4; m++) {
+                const depT = platoonDepT + m * 2.2;
+                const tau = T_cur - depT;
+                if (tau >= 0 && tau <= totalTT) {
+                    const pos = getInterpPos(tau, false);
+                    if (pos) {
+                        const x = tToX(T_cur);
+                        let isBlocked = false;
+                        if (bandDown.width <= 0) isBlocked = true;
+                        drawCar(x, pos.y, false, isBlocked);
+                    }
+                }
+            }
+        }
+    }
+
+    // ── 차량군 시뮬레이션 루프 컨트롤러 ──
+    togglePlatoonAnimation() {
+        this.state.isPlatoonSimActive = !this.state.isPlatoonSimActive;
+        const btn = document.getElementById('btn-tsd-platoon');
+        const icon = document.getElementById('tsd-platoon-icon');
+        const txt = document.getElementById('tsd-platoon-text');
+        
+        if (this.state.isPlatoonSimActive) {
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)';
+                btn.style.color = '#ffffff';
+                btn.style.borderColor = '#38bdf8';
+                btn.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
+            }
+            if (icon) icon.innerText = '⏸';
+            if (txt) txt.innerText = '주행 정지';
+            this.state.lastSimTimestamp = performance.now();
+            this.startPlatoonLoop();
+        } else {
+            if (btn) {
+                btn.style.background = 'rgba(56, 189, 248, 0.15)';
+                btn.style.color = '#38bdf8';
+                btn.style.borderColor = 'rgba(56, 189, 248, 0.35)';
+                btn.style.boxShadow = 'none';
+            }
+            if (icon) icon.innerText = '▶';
+            if (txt) txt.innerText = '차량군 주행';
+            this.stopPlatoonLoop();
+            this.render(); // 정지 시 잔상 클리어
+        }
+    }
+
+    startPlatoonLoop() {
+        if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+        const loop = (ts) => {
+            if (!this.state.isPlatoonSimActive) return;
+            const delta = Math.min(0.1, (ts - this.state.lastSimTimestamp) / 1000);
+            this.state.lastSimTimestamp = ts;
+
+            // 시뮬레이션 가상 시계 진행 (실시간 4배속으로 부드러운 순환)
+            const speedMultiplier = 4.0;
+            this.state.simClock += delta * speedMultiplier;
+            const timeHorizon = (this.state.cycle || 100) * 4;
+            if (this.state.simClock > timeHorizon) {
+                this.state.simClock = 0;
+            }
+
+            this.render();
+            this.animFrameId = requestAnimationFrame(loop);
+        };
+        this.animFrameId = requestAnimationFrame(loop);
+    }
+
+    stopPlatoonLoop() {
+        if (this.animFrameId) {
+            cancelAnimationFrame(this.animFrameId);
+            this.animFrameId = null;
+        }
     }
 
     // ── 실시간 연동 대역폭 & 효율 HUD 카드 (캔버스 우측 상단 오버레이) ──
@@ -1271,6 +1491,12 @@ window.addEventListener('storage', (e) => {
 if (typeof window !== 'undefined') {
     window.TSDAnalyzer = TSDAnalyzer;
     window.TSDEngine = TSDEngine;
+
+    // [신규] 차량군(Platoon) 주행 애니메이션 재생/정지 토글
+    window.toggleTsdPlatoonAnimation = function() {
+        if (!TSD_ENGINE) return;
+        TSD_ENGINE.togglePlatoonAnimation();
+    };
 
     // [신규] 스케일 모드 토글 (거리비례 vs 균등간격 모식도)
     window.setTsdScaleMode = function(mode) {
