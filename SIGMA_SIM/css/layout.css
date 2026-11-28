@@ -365,16 +365,16 @@
     flex-wrap: wrap;
 }
 
-/* 1. 세그먼트 컨트롤러 (표준 28px) */
+/* 1. 세그먼트 컨트롤러 (단일 타일 방식, 외부 중첩 테두리 제거) */
 .tsd-segmented-control {
     display: inline-flex;
     align-items: center;
     height: 28px;
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 6px;
     padding: 2px;
-    gap: 2px;
+    gap: 1px;
     box-sizing: border-box;
 }
 .tsd-segmented-control label {
@@ -392,19 +392,24 @@
     align-items: center;
     justify-content: center;
     height: 22px;
-    padding: 0 10px;
-    font-size: 11px;
+    padding: 0 7px;
+    font-size: 10.5px;
     font-weight: 700;
     font-family: 'Outfit', sans-serif;
-    color: #94a3b8;
+    color: #64748b;
     border-radius: 4px;
     transition: all 0.15s ease;
     white-space: nowrap;
 }
+.tsd-segmented-control span:hover {
+    color: #cbd5e1;
+}
+/* 선택된 탭만 깔끔한 단일 솔리드 타일 적용 */
 .tsd-segmented-control input:checked + span {
-    background: linear-gradient(135deg, rgba(2, 132, 199, 0.95) 0%, rgba(14, 165, 233, 0.95) 100%);
+    background: #0284c7;
     color: #ffffff;
-    box-shadow: 0 1px 4px rgba(56, 189, 248, 0.4);
+    font-weight: 800;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 /* 2. 속도 뱃지 (표준 28px) */
@@ -412,19 +417,19 @@
     display: inline-flex;
     align-items: center;
     height: 28px;
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 6px;
-    padding: 0 8px;
-    gap: 5px;
+    padding: 0 6px;
+    gap: 3px;
     box-sizing: border-box;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
     color: #94a3b8;
 }
 .tsd-speed-badge input {
-    width: 34px;
-    height: 22px;
+    width: 28px;
+    height: 20px;
     background: rgba(2, 6, 23, 0.6);
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 4px;
@@ -437,24 +442,40 @@
     padding: 0;
 }
 
-/* 3. 모던 셀렉트 드롭다운 (표준 28px) */
+/* 3. 모던 셀렉트 드롭다운 (표준 28px, 커스텀 SVG 화살표 통일) */
 .tsd-modern-select {
     height: 28px;
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(56, 189, 248, 0.25);
+    background-color: rgba(15, 23, 42, 0.85);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='none' stroke='%2338bdf8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 6px;
     color: #f8fafc;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 700;
-    font-family: 'Outfit', sans-serif;
-    padding: 0 8px;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    padding: 0 19px 0 8px;
     outline: none;
     box-sizing: border-box;
     cursor: pointer;
-    transition: border-color 0.15s;
+    transition: all 0.15s ease;
 }
 .tsd-modern-select:hover {
-    border-color: rgba(56, 189, 248, 0.5);
+    border-color: #38bdf8;
+    background-color: rgba(30, 41, 59, 0.9);
+}
+.tsd-modern-select:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+}
+.tsd-modern-select option {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 6px 10px;
 }
 
 /* 4. 액션 버튼군 (표준 28px) */
