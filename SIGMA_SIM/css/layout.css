@@ -356,12 +356,78 @@
 }
 
 /* 일체형 오프셋 미세조정 스테퍼 툴바 */
+/* ── [초슬림 콤팩트 TSD 컨트롤러 & 세그먼트] ── */
+.tsd-segmented-control {
+    display: inline-flex;
+    background: rgba(2, 6, 23, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 6px;
+    padding: 1.5px;
+    gap: 2px;
+}
+.tsd-segmented-control label {
+    margin: 0;
+    cursor: pointer;
+}
+.tsd-segmented-control input {
+    display: none;
+}
+.tsd-segmented-control span {
+    display: inline-block;
+    padding: 2.5px 7px;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #94a3b8;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+.tsd-segmented-control input:checked + span {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.9) 0%, rgba(14, 165, 233, 0.9) 100%);
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(56, 189, 248, 0.35);
+}
+
+.tsd-speed-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(2, 6, 23, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 6px;
+    padding: 2px 6px;
+    gap: 4px;
+    font-size: 9.5px;
+}
+.tsd-speed-badge input {
+    width: 34px;
+    background: transparent;
+    border: none;
+    color: #38bdf8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    padding: 0;
+}
+
+.tsd-modern-select {
+    background: rgba(2, 6, 23, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    height: 25px;
+    outline: none;
+}
+
 .tsd-stepper-group {
     display: inline-flex;
     align-items: center;
     background: rgba(2, 6, 23, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 7px;
+    border-radius: 6px;
     overflow: hidden;
     padding: 1px;
 }
@@ -370,9 +436,9 @@
     background: transparent;
     color: #94a3b8;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
-    padding: 4px 7px;
+    padding: 2.5px 5.5px;
     cursor: pointer;
     transition: all 0.15s;
 }
@@ -385,58 +451,58 @@
     color: #ffffff;
 }
 
-/* 액션 버튼들 */
+/* 액션 버튼들 (콤팩트 슬림) */
 .tsd-act-btn {
-    height: 28px;
-    padding: 0 11px;
-    border-radius: 7px;
-    font-size: 11px;
+    height: 25px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
     font-weight: 800;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
 }
 .tsd-act-btn-cyan {
     background: rgba(56, 189, 248, 0.12);
-    border: 1px solid rgba(56, 189, 248, 0.38);
+    border: 1px solid rgba(56, 189, 248, 0.35);
     color: #38bdf8;
 }
 .tsd-act-btn-cyan:hover {
     background: rgba(56, 189, 248, 0.25);
-    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
     border-color: #38bdf8;
 }
 .tsd-act-btn-purple {
     background: linear-gradient(135deg, #0284c7 0%, #7c3aed 100%);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
+    box-shadow: 0 1px 6px rgba(124, 58, 237, 0.3);
 }
 .tsd-act-btn-purple:hover {
     filter: brightness(1.15);
-    box-shadow: 0 0 15px rgba(124, 58, 237, 0.55);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.45);
 }
 .tsd-act-btn-green {
     background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.4);
+    border: 1px solid rgba(16, 185, 129, 0.35);
     color: #34d399;
 }
 .tsd-act-btn-green:hover {
     background: rgba(16, 185, 129, 0.25);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
 }
 .tsd-act-btn-icon {
-    width: 28px;
-    height: 28px;
+    width: 25px;
+    height: 25px;
     padding: 0;
     justify-content: center;
     background: rgba(148, 163, 184, 0.08);
     border: 1px solid rgba(148, 163, 184, 0.2);
     color: #cbd5e1;
-    border-radius: 7px;
+    border-radius: 6px;
 }
 .tsd-act-btn-icon:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -453,71 +519,81 @@
     position: relative;
 }
 
-/* ── [신규] 상단 분리형 연동 효율 메트릭 스트립 바 (시공도 그래픽 오버레이 가림 해결) ── */
+/* ── [초슬림 단일행] 연동 효율 메트릭 스트립 바 ── */
 .tsd-metrics-strip {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 6px 12px;
+    gap: 8px;
+    padding: 3px 8px;
     background: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.tsd-metrics-strip::-webkit-scrollbar {
+    display: none;
 }
 .tsd-metric-tot-card {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: rgba(2, 132, 199, 0.18);
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    padding: 3px 10px;
-    border-radius: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
 }
 .tsd-metric-tot-card .lbl {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     color: #94a3b8;
-    letter-spacing: -0.2px;
+    white-space: nowrap;
 }
 .tsd-metric-tot-card .val {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 15px;
+    font-size: 13.5px;
     font-weight: 800;
     color: #38bdf8;
-    text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+    white-space: nowrap;
 }
 .tsd-metrics-group {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 .tsd-metric-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 9px;
+    gap: 4px;
+    padding: 2px 6px;
     background: rgba(30, 41, 59, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 5px;
-    font-size: 11px;
+    border-radius: 4px;
+    font-size: 10px;
     color: #cbd5e1;
+    white-space: nowrap;
 }
 .tsd-metric-pill b {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
 }
 .tsd-metric-mode-badge {
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     background: rgba(56, 189, 248, 0.12);
     color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.3);
+    white-space: nowrap;
+    margin-left: auto;
 }
 
 /* ── [신규] 하단 가이드 및 범례 콘솔 ── */

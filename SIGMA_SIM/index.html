@@ -1937,123 +1937,95 @@
                     
                     <!-- Row 1: Title, Status Indicator & Config Set -->
                     <div class="flex-row-between align-center" style="width: 100%;">
-                        <!-- Title & Status Badge -->
-                        <div class="flex-row gap-10 align-center">
-                            <div class="tsd-act-btn-icon" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;">
-                                <span class="fs-13">📈</span>
-                            </div>
-                            <div style="display: flex; flex-direction: column;">
-                                <div class="flex-row gap-8 align-center">
-                                    <h3 class="m-0 fs-14 fw-800 ls-05 text-white" style="letter-spacing: -0.3px;">연동 시공도 분석 콘솔</h3>
-                                    <span style="font-size: 9.5px; font-weight: 800; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">TSD v3.2</span>
-                                </div>
-                                <div class="flex-row gap-6 align-center" style="margin-top: 2px;">
-                                    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
-                                    <span style="font-size: 10px; color: #94a3b8; font-weight: 600;">MaxBand 최적화 엔진 및 차량군 주행 시뮬레이터</span>
-                                </div>
-                            </div>
+                <div class="panel-header flex-col gap-6" style="padding: 8px 12px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(56, 189, 248, 0.2);">
+                    <!-- Row 1: 타이틀 + 프리셋 + 팝업 버튼 (초슬림 콤팩트) -->
+                    <div class="flex-row-between align-center w-100">
+                        <div class="flex-row gap-8 align-center">
+                            <span class="fs-13">📈</span>
+                            <h3 class="m-0 fs-13 fw-800 ls-05 text-white" style="letter-spacing: -0.2px;">시공도 분석 콘솔</h3>
+                            <span style="font-size: 9px; font-weight: 800; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.5px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">TSD v3.2</span>
                         </div>
                         
-                        <!-- Configuration Preset Selector -->
                         <div class="flex-row gap-6 align-center">
-                            <span style="font-size: 10px; font-weight: 700; color: #a78bfa;">PRESET</span>
-                            <select id="tsd-config-set" onchange="renderTimeSpaceDiagram()" class="tsd-modern-select" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.35); min-width: 72px;">
+                            <span style="font-size: 9.5px; font-weight: 700; color: #a78bfa;">PRESET</span>
+                            <select id="tsd-config-set" onchange="renderTimeSpaceDiagram()" class="tsd-modern-select" style="color: #c084fc; border-color: rgba(192, 132, 252, 0.35); min-width: 62px; height: 23px; padding: 1px 4px; font-size: 9.5px;">
                                 <option value="0">SET 1</option>
                                 <option value="1">SET 2</option>
                                 <option value="2">SET 3</option>
                             </select>
+                            <button type="button" onclick="resetTsdOffsets()" class="tsd-act-btn tsd-act-btn-icon" title="오프셋 초기화" style="color: #f87171; width: 23px; height: 23px; font-size: 10px;">↺</button>
+                            <button type="button" onclick="openTsdPopup()" class="tsd-act-btn tsd-act-btn-icon" title="크게보기 (팝업 윈도우)" style="color: #38bdf8; width: 23px; height: 23px; font-size: 10px;">⛶</button>
                         </div>
                     </div>
 
-                    <!-- Row 2: Parameters & Action Bar (Clean 2-Column Responsive Layout) -->
-                    <div class="flex-row-between align-center" style="width: 100%; flex-wrap: wrap; gap: 10px; padding-top: 4px;">
-                        <!-- Left: Core Controls (방위축, 스케일 모드, 속도, 일계획, 시간대) -->
-                        <div class="flex-row gap-8 align-center" style="flex-wrap: wrap;">
-                            <!-- 방위축 세그먼트 -->
+                    <!-- Row 2: 초슬림 통합 툴바 (파라미터 & 액션 도구 밀착 정렬) -->
+                    <div class="flex-row-between align-center w-100" style="gap: 6px; flex-wrap: wrap;">
+                        <!-- Left: 파라미터 (방위축, 스케일, 속도, 일계획, 시간대) -->
+                        <div class="flex-row gap-5 align-center" style="flex-wrap: wrap;">
+                            <!-- 방위축 -->
                             <div class="tsd-segmented-control" title="연동 진행 방향 기준축 선택">
-                                <label>
-                                    <input type="radio" name="tsd-axis" value="ew" checked onchange="renderTimeSpaceDiagram()">
-                                    <span>E-W (동서)</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="tsd-axis" value="ns" onchange="renderTimeSpaceDiagram()">
-                                    <span>S-N (남북)</span>
-                                </label>
+                                <label><input type="radio" name="tsd-axis" value="ew" checked onchange="renderTimeSpaceDiagram()"><span>E-W</span></label>
+                                <label><input type="radio" name="tsd-axis" value="ns" onchange="renderTimeSpaceDiagram()"><span>S-N</span></label>
                             </div>
 
-                            <!-- 스케일 모드 세그먼트 -->
-                            <div class="tsd-segmented-control" title="시공도 교차로 세로축 거리 스케일">
-                                <label title="실제 지리적 거리 비례">
-                                    <input type="radio" name="tsd-scale-mode" value="proportional" checked onchange="setTsdScaleMode('proportional')">
-                                    <span>거리비례</span>
-                                </label>
-                                <label title="교차로 간격을 균등하게 배치(모식도)">
-                                    <input type="radio" name="tsd-scale-mode" value="schematic" onchange="setTsdScaleMode('schematic')">
-                                    <span>균등모식도</span>
-                                </label>
+                            <!-- 스케일 모드 -->
+                            <div class="tsd-segmented-control" title="시공도 거리 스케일">
+                                <label title="실제 지리적 거리 비례"><input type="radio" name="tsd-scale-mode" value="proportional" checked onchange="setTsdScaleMode('proportional')"><span>거리비례</span></label>
+                                <label title="균등 모식도"><input type="radio" name="tsd-scale-mode" value="schematic" onchange="setTsdScaleMode('schematic')"><span>모식도</span></label>
                             </div>
 
-                            <!-- 구간 설계속도 뱃지 -->
-                            <div class="tsd-speed-badge" title="연동 설계 주행속도 (km/h)">
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700;">속도</span>
+                            <!-- 설계속도 -->
+                            <div class="tsd-speed-badge" title="설계 주행속도 (km/h)">
+                                <span style="font-size: 9px; color: #94a3b8; font-weight: 700;">속도</span>
                                 <input type="number" id="tsd-speed" value="50" step="5" onchange="renderTimeSpaceDiagram()">
-                                <span style="font-size: 9.5px; color: #64748b; font-weight: 700;">km/h</span>
+                                <span style="font-size: 8.5px; color: #64748b; font-weight: 700;">km/h</span>
                             </div>
 
-                            <!-- 일계획 드롭다운 -->
-                            <select id="tsd-day-plan" onchange="updateTsdTimeSlots(); renderTimeSpaceDiagram();" class="tsd-modern-select" style="min-width: 82px;" title="분석할 일계획 선택">
-                                <option value="0">📅 일계획 1</option>
-                                <option value="1">📅 일계획 2</option>
-                                <option value="2">📅 일계획 3</option>
-                                <option value="3">📅 일계획 4</option>
-                                <option value="4">📅 일계획 5</option>
-                                <option value="5">📅 일계획 6</option>
-                                <option value="6">📅 일계획 7</option>
-                                <option value="7">📅 일계획 8</option>
-                                <option value="8">📅 일계획 9</option>
-                                <option value="9">📅 일계획 10</option>
+                            <!-- 일계획 & 시간대 -->
+                            <select id="tsd-day-plan" onchange="updateTsdTimeSlots(); renderTimeSpaceDiagram();" class="tsd-modern-select" style="min-width: 76px; height: 23px; font-size: 9.5px; padding: 1px 4px;" title="일계획 선택">
+                                <option value="0">일계획 1</option>
+                                <option value="1">일계획 2</option>
+                                <option value="2">일계획 3</option>
+                                <option value="3">일계획 4</option>
+                                <option value="4">일계획 5</option>
+                                <option value="5">일계획 6</option>
+                                <option value="6">일계획 7</option>
+                                <option value="7">일계획 8</option>
+                                <option value="8">일계획 9</option>
+                                <option value="9">일계획 10</option>
                             </select>
-
-                            <!-- 시간대 드롭다운 -->
-                            <select id="tsd-time-slot" onchange="renderTimeSpaceDiagram()" class="tsd-modern-select" style="min-width: 80px;" title="분석할 TOD 시간대(Plan) 선택"></select>
+                            <select id="tsd-time-slot" onchange="renderTimeSpaceDiagram()" class="tsd-modern-select" style="min-width: 76px; height: 23px; font-size: 9.5px; padding: 1px 4px;" title="TOD Plan 선택"></select>
                         </div>
-                        
-                        <!-- Right: Actions & Engineering Tools -->
-                        <div class="flex-row gap-6 align-center" style="flex-wrap: wrap;">
-                            <!-- [신규] 차량군 주행 시뮬레이션 애니메이션 토글 -->
-                            <button type="button" id="btn-tsd-platoon" onclick="toggleTsdPlatoonAnimation()" class="tsd-act-btn tsd-act-btn-cyan" title="차량군 주행 및 적신호 정차 대기 실시간 시뮬레이션">
+
+                        <!-- Right: 액션 툴바 (주행, 최적화, 스테퍼, 도면출력) -->
+                        <div class="flex-row gap-4 align-center" style="flex-wrap: wrap;">
+                            <button type="button" id="btn-tsd-platoon" onclick="toggleTsdPlatoonAnimation()" class="tsd-act-btn tsd-act-btn-cyan" title="차량군 주행 시뮬레이션">
                                 <span id="tsd-platoon-icon">▶</span>
-                                <span id="tsd-platoon-text">차량군 주행</span>
+                                <span id="tsd-platoon-text">주행</span>
                             </button>
 
-                            <!-- [신규] 원클릭 MaxBand 자동 최적화 -->
-                            <button type="button" onclick="autoOptimizeTsdOffsets()" class="tsd-act-btn tsd-act-btn-purple" title="양방향 연동 대역폭을 최대화하는 최적 오프셋을 자동 계산합니다">
-                                <span>⚡ MaxBand 최적화</span>
+                            <button type="button" onclick="autoOptimizeTsdOffsets()" class="tsd-act-btn tsd-act-btn-purple" title="MaxBand 자동 최적화">
+                                <span>⚡ 최적화</span>
                             </button>
 
-                            <!-- [신규] 오프셋 미세조정 스테퍼 -->
                             <div class="tsd-stepper-group" title="선택 교차로 오프셋 미세조정">
-                                <button type="button" onclick="stepTsdOffset(-5)" class="tsd-stepper-btn" title="오프셋 -5초">-5s</button>
-                                <button type="button" onclick="stepTsdOffset(-1)" class="tsd-stepper-btn" title="오프셋 -1초">-1s</button>
-                                <span style="font-size: 9px; color: #475569; padding: 0 3px;">|</span>
-                                <button type="button" onclick="stepTsdOffset(1)" class="tsd-stepper-btn" title="오프셋 +1초">+1s</button>
-                                <button type="button" onclick="stepTsdOffset(5)" class="tsd-stepper-btn" title="오프셋 +5초">+5s</button>
+                                <button type="button" onclick="stepTsdOffset(-5)" class="tsd-stepper-btn">-5s</button>
+                                <button type="button" onclick="stepTsdOffset(-1)" class="tsd-stepper-btn">-1s</button>
+                                <span style="font-size: 8px; color: #475569; padding: 0 1px;">|</span>
+                                <button type="button" onclick="stepTsdOffset(1)" class="tsd-stepper-btn">+1s</button>
+                                <button type="button" onclick="stepTsdOffset(5)" class="tsd-stepper-btn">+5s</button>
                             </div>
 
-                            <!-- [신규] 공학 도면 내보내기 -->
-                            <button type="button" onclick="exportTsdEngineeringDiagram()" class="tsd-act-btn tsd-act-btn-green" title="고해상도 정규 공학 시공도 도면(PNG) 내보내기">
-                                <span>📷 도면출력</span>
+                            <button type="button" onclick="exportTsdEngineeringDiagram()" class="tsd-act-btn tsd-act-btn-green" title="공학 도면(PNG) 내보내기">
+                                <span>📷 도면</span>
                             </button>
-
-                            <button type="button" onclick="resetTsdOffsets()" class="tsd-act-btn tsd-act-btn-icon" title="오프셋 초기화" style="color: #f87171;">↺</button>
-                            <button type="button" onclick="openTsdPopup()" class="tsd-act-btn tsd-act-btn-icon" title="크게보기 (팝업 윈도우)" style="color: #38bdf8;">⛶</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Canvas Viewport -->
-                <div class="foldable-content p-12" style="background: rgba(11, 15, 25, 0.98);">
-                    <!-- [신규] 상단 분리형 연동 효율 메트릭 스트립 (캔버스 시공도를 1픽셀도 가리지 않도록 상단 배치) -->
+                <div class="foldable-content p-8" style="background: rgba(11, 15, 25, 0.98);">
+                    <!-- [초슬림 단일행] 연동 효율 메트릭 스트립 바 -->
                     <div id="tsd-metrics-strip" class="tsd-metrics-strip">
                         <div class="tsd-metric-tot-card">
                             <span class="lbl">연동 효율</span>
@@ -2063,19 +2035,19 @@
                             <div class="tsd-metric-pill">
                                 <span style="color: #38bdf8; font-weight: 700;">▲ 상행</span>
                                 <b id="tsd-metric-up" style="color: #f8fafc;">0.0s</b>
-                                <span id="tsd-metric-up-pct" style="color: #64748b; font-size: 10px;">(0%)</span>
+                                <span id="tsd-metric-up-pct" style="color: #64748b; font-size: 9px;">(0%)</span>
                             </div>
                             <div class="tsd-metric-pill">
                                 <span style="color: #34d399; font-weight: 700;">▼ 하행</span>
                                 <b id="tsd-metric-down" style="color: #f8fafc;">0.0s</b>
-                                <span id="tsd-metric-down-pct" style="color: #64748b; font-size: 10px;">(0%)</span>
+                                <span id="tsd-metric-down-pct" style="color: #64748b; font-size: 9px;">(0%)</span>
                             </div>
                             <div class="tsd-metric-pill">
                                 <span style="color: #94a3b8;">주기</span>
                                 <b id="tsd-metric-cycle" style="color: #cbd5e1;">C: 100s</b>
                             </div>
                             <div class="tsd-metric-pill">
-                                <span style="color: #94a3b8;">연동 교차로</span>
+                                <span style="color: #94a3b8;">연동수</span>
                                 <b id="tsd-metric-nodes" style="color: #38bdf8;">0/0개</b>
                             </div>
                             <div class="tsd-metric-mode-badge" id="tsd-metric-mode">
@@ -2084,22 +2056,23 @@
                         </div>
                     </div>
 
-                    <div id="tsd-container" class="tsd-canvas-viewport w-100" style="height: 570px;">
+                    <!-- 캔버스 높이를 570px에서 820px로 대폭 확장! -->
+                    <div id="tsd-container" class="tsd-canvas-viewport w-100" style="height: 820px;">
                         <canvas id="tsd-canvas" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
                     </div>
 
-                    <!-- [신규] 하단 가이드 및 범례 콘솔 (깔끔하고 반응형으로 정돈된 안내창) -->
-                    <div class="tsd-footer-console">
+                    <!-- 하단 범례 및 안내 (초슬림 콤팩트) -->
+                    <div class="tsd-footer-console" style="margin-top: 6px; padding: 5px 10px;">
                         <div class="tsd-legend-pills">
-                            <span class="tsd-legend-pill"><span class="dot" style="background:#38bdf8; box-shadow:0 0 6px #38bdf8;"></span>상행(UP Band): 사이언</span>
-                            <span class="tsd-legend-pill"><span class="dot" style="background:#34d399; box-shadow:0 0 6px #34d399;"></span>하행(DOWN Band): 에메랄드</span>
-                            <span class="tsd-legend-pill"><span class="dot" style="background:#f43f5e; box-shadow:0 0 6px #f43f5e;"></span>적신호 정차 대기</span>
-                            <span class="tsd-legend-pill"><span class="dot" style="background:#fbbf24; box-shadow:0 0 6px #fbbf24;"></span>오프셋 조절</span>
-                            <span class="tsd-legend-pill" style="margin-left: auto; color: #64748b;">Grid: 1/4 주기 간격</span>
+                            <span class="tsd-legend-pill"><span class="dot" style="background:#38bdf8;"></span>상행(UP)</span>
+                            <span class="tsd-legend-pill"><span class="dot" style="background:#34d399;"></span>하행(DOWN)</span>
+                            <span class="tsd-legend-pill"><span class="dot" style="background:#f43f5e;"></span>정차대기</span>
+                            <span class="tsd-legend-pill"><span class="dot" style="background:#fbbf24;"></span>오프셋</span>
+                            <span class="tsd-legend-pill" style="margin-left: auto; color: #64748b; font-size: 9px;">Grid: 1/4 주기</span>
                         </div>
-                        <div class="tsd-help-guide">
+                        <div class="tsd-help-guide" style="font-size: 9.5px;">
                             <span style="color:#38bdf8;">💡</span>
-                            <span>교차로 카드를 클릭하여 조작 대상을 선택한 뒤, <b>[-5s ~ +5s]</b> 스테퍼 또는 마우스 드래그로 오프셋을 미세조정하십시오.</span>
+                            <span>교차로 카드 클릭 후 <b>[-5s ~ +5s]</b> 스테퍼 또는 마우스 드래그로 오프셋을 미세조정하십시오.</span>
                         </div>
                     </div>
                 </div>

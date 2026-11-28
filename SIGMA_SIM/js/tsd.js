@@ -853,34 +853,33 @@ class TSDEngine {
             const isHovered = (this.state.hoveredJid === j.id);
 
             const cardX = 6;
-            const cardY = y - 24;
+            const cardY = y - 19;
             const cardW = cfg.padding.left - 12;
-            const cardH = 48;
+            const cardH = 38;
 
-            // 라벨 카드 배경
+            // 라벨 카드 배경 (콤팩트 슬림)
             ctx.save();
             ctx.beginPath();
             if (typeof ctx.roundRect === 'function') {
-                ctx.roundRect(cardX, cardY, cardW, cardH, 6);
+                ctx.roundRect(cardX, cardY, cardW, cardH, 5);
             } else {
                 ctx.rect(cardX, cardY, cardW, cardH);
             }
 
             if (isSelected) {
-                ctx.fillStyle = 'rgba(2, 132, 199, 0.32)';
+                ctx.fillStyle = 'rgba(2, 132, 199, 0.35)';
                 ctx.fill();
                 ctx.strokeStyle = '#38bdf8';
-                ctx.lineWidth = 1.8;
+                ctx.lineWidth = 1.6;
                 ctx.stroke();
 
-                // 좌측 사이언 액센트 바
                 ctx.fillStyle = '#38bdf8';
                 ctx.fillRect(cardX, cardY, 3.5, cardH);
             } else if (isHovered) {
                 ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
                 ctx.fill();
                 ctx.strokeStyle = '#fbbf24';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.4;
                 ctx.stroke();
 
                 ctx.fillStyle = '#fbbf24';
@@ -893,29 +892,28 @@ class TSDEngine {
                 ctx.stroke();
             }
 
-            // 교차로명 (최대 12자까지 온전 수용)
+            // 교차로명
             ctx.textAlign = 'left';
             ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : '#f8fafc');
-            ctx.font = 'bold 12.5px "Outfit", "Inter", sans-serif';
+            ctx.font = 'bold 11.5px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
-            if (name.length > 12) name = name.substring(0, 11) + '..';
-            ctx.fillText(name, cardX + 10, y - 6);
+            if (name.length > 11) name = name.substring(0, 10) + '..';
+            ctx.fillText(name, cardX + 9, y - 4);
 
             // 하단 메트릭스: 거리 & 오프셋
-            // 거리
             ctx.fillStyle = isSchematic ? '#6ee7b7' : '#34d399';
-            ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
-            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 10, y + 14);
+            ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 9, y + 11);
 
             // 오프셋 캡슐 뱃지
-            const offX = cardX + cardW - 54;
-            const offY = y + 3;
+            const offX = cardX + cardW - 50;
+            const offY = y + 1;
             ctx.fillStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.12)';
             ctx.beginPath();
             if (typeof ctx.roundRect === 'function') {
-                ctx.roundRect(offX, offY, 46, 15, 4);
+                ctx.roundRect(offX, offY, 44, 13, 3);
             } else {
-                ctx.rect(offX, offY, 46, 15);
+                ctx.rect(offX, offY, 44, 13);
             }
             ctx.fill();
             ctx.strokeStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.25)';
@@ -924,8 +922,8 @@ class TSDEngine {
 
             ctx.textAlign = 'center';
             ctx.fillStyle = curOffset !== 0 ? '#fbbf24' : '#94a3b8';
-            ctx.font = 'bold 10px "JetBrains Mono", monospace';
-            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + 23, offY + 11);
+            ctx.font = 'bold 9px "JetBrains Mono", monospace';
+            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + 22, offY + 9.5);
 
             ctx.restore();
         });
@@ -1388,7 +1386,7 @@ class TSDEngine {
 
         const proceedMovs = (axis === 'ew') ? [2, 6] : [4, 8];  // 진행 가능
         const blockedMovs = (axis === 'ew') ? [4, 8] : [2, 6];  // 진행 불가(교차 방향)
-        const ringH = 12, gap = 0.5;
+        const ringH = 10, gap = 0.5;
         const ctx = this.ctx, cfg = this.config;
 
         // 배경
