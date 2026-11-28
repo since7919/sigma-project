@@ -1033,7 +1033,7 @@ class PopupTSD {
         this.editable = editable;
 
         this.cfg = {
-            pad: { top: 48, bottom: 44, left: 185, right: 24 },
+            pad: { top: 32, bottom: 42, left: 185, right: 24 },
             colors: {
                 bg: '#0a0f1d',
                 sidebarBg: 'rgba(15, 23, 42, 0.96)',
@@ -1410,77 +1410,7 @@ class PopupTSD {
     }
 
     _drawHUD(bandUp, bandDown, w, h, cW, cH, cycle, isSchematic) {
-        const ctx = this.ctx, P = this.cfg.pad;
-        const upW = bandUp ? (bandUp.width || 0) : 0;
-        const downW = bandDown ? (bandDown.width || 0) : 0;
-        const upEff = cycle > 0 ? (upW / cycle * 100).toFixed(1) : "0.0";
-        const downEff = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
-        const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
-
-        const cardW = 245;
-        const cardH = 58;
-        const cardX = w - P.right - cardW - 6;
-        const cardY = P.top + 6;
-
-        ctx.save();
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-        ctx.lineWidth = 1;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') ctx.roundRect(cardX, cardY, cardW, cardH, 8);
-        else ctx.rect(cardX, cardY, cardW, cardH);
-        ctx.fill();
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('MAXBAND EFFICIENCY', cardX + 10, cardY + 14);
-
-        const effColor = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
-        ctx.fillStyle = effColor;
-        ctx.font = 'bold 19px "JetBrains Mono", monospace';
-        ctx.fillText(`${totEff}%`, cardX + 10, cardY + 39);
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '9.5px "JetBrains Mono", monospace';
-        ctx.fillText(`C:${cycle}s`, cardX + 10, cardY + 51);
-
-        // 구분선
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
-        ctx.beginPath();
-        ctx.moveTo(cardX + 88, cardY + 20); ctx.lineTo(cardX + 88, cardY + 52);
-        ctx.stroke();
-
-        // 지표
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 9.5px "Outfit", sans-serif';
-        ctx.fillText('▲ 상행', cardX + 98, cardY + 34);
-
-        ctx.fillStyle = upW > 0 ? '#f8fafc' : '#f43f5e';
-        ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
-        ctx.fillText(`${upW.toFixed(1)}s`, cardX + 134, cardY + 34);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '9.5px "JetBrains Mono", monospace';
-        ctx.fillText(`(${upEff}%)`, cardX + 180, cardY + 34);
-
-        ctx.fillStyle = '#34d399';
-        ctx.font = 'bold 9.5px "Outfit", sans-serif';
-        ctx.fillText('▼ 하행', cardX + 98, cardY + 49);
-
-        ctx.fillStyle = downW > 0 ? '#f8fafc' : '#f43f5e';
-        ctx.font = 'bold 10.5px "JetBrains Mono", monospace';
-        ctx.fillText(`${downW.toFixed(1)}s`, cardX + 134, cardY + 49);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '9.5px "JetBrains Mono", monospace';
-        ctx.fillText(`(${downEff}%)`, cardX + 180, cardY + 49);
-
-        ctx.restore();
+        // [핵심] 시공도를 가리는 캔버스 내부 HUD 오버레이는 제거하고, 패널 상단 헤더에 정갈한 정보 뱃지로 실시간 출력
     }
 
     _drawDualRingBars(j, y, cW, xF, dayIdx, axis, cycle) {
@@ -1805,11 +1735,17 @@ class PopupTSD {
     _updateInfo(bUp, bDown, cycle) {
         const el = document.getElementById(this.infoId);
         if (!el) return;
-        const eUp = Math.round(bUp.width / cycle * 100);
-        const eDn = Math.round(bDown.width / cycle * 100);
-        const uL = bUp.width > 0 ? `<b style="color:#38bdf8">▲ ${Math.round(bUp.width)}s (${eUp}%)</b>` : '<span style="color:#e11d48">비연동</span>';
-        const dL = bDown.width > 0 ? `<b style="color:#34d399">▼ ${Math.round(bDown.width)}s (${eDn}%)</b>` : '<span style="color:#e11d48">비연동</span>';
-        el.innerHTML = `${uL} &nbsp;|&nbsp; ${dL}`;
+        const upW = bUp ? (bUp.width || 0) : 0;
+        const downW = bDown ? (bDown.width || 0) : 0;
+        const eUp = cycle > 0 ? (upW / cycle * 100).toFixed(1) : "0.0";
+        const eDn = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
+        const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
+
+        const effColor = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
+        const totBadge = `<span style="background:rgba(2,132,199,0.18); border:1px solid rgba(56,189,248,0.4); padding:2px 7px; border-radius:4px; font-weight:800; color:${effColor}; margin-right:6px;">효율: ${totEff}%</span>`;
+        const uL = upW > 0 ? `<b style="color:#38bdf8">▲ ${upW.toFixed(1)}s (${eUp}%)</b>` : '<span style="color:#e11d48">▲ 비연동</span>';
+        const dL = downW > 0 ? `<b style="color:#34d399">▼ ${downW.toFixed(1)}s (${eDn}%)</b>` : '<span style="color:#e11d48">▼ 비연동</span>';
+        el.innerHTML = `${totBadge} ${uL} &nbsp;|&nbsp; ${dL}`;
     }
 }
 </script>

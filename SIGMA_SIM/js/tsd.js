@@ -463,7 +463,7 @@ class TSDEngine {
         this.ctx = this.canvas.getContext('2d');
 
         this.config = {
-            padding: { top: 52, bottom: 48, left: 185, right: 28 },
+            padding: { top: 32, bottom: 42, left: 185, right: 28 },
             colors: {
                 bg: '#0a0f1d', // 딥 슬레이트 네이비
                 sidebarBg: 'rgba(15, 23, 42, 0.96)',
@@ -1329,110 +1329,51 @@ class TSDEngine {
         }
     }
 
-    // ── 실시간 연동 대역폭 & 효율 HUD 카드 (캔버스 우측 상단 오버레이) ──
+    // ── 실시간 연동 대역폭 & 효율 메트릭 업데이트 (상단 분리형 HTML 스트립 연동, 캔버스 가림 원천 해결) ──
     drawTsdMetricsHUD(bandUp, bandDown, w, h, chartW, chartH, cfg) {
-        const ctx = this.ctx, cycle = this.state.cycle || 100;
+        const cycle = this.state.cycle || 100;
         const upW = bandUp ? (bandUp.width || 0) : 0;
         const downW = bandDown ? (bandDown.width || 0) : 0;
         const upEff = cycle > 0 ? (upW / cycle * 100).toFixed(1) : "0.0";
         const downEff = cycle > 0 ? (downW / cycle * 100).toFixed(1) : "0.0";
         const totEff = cycle > 0 ? ((upW + downW) / (2 * cycle) * 100).toFixed(1) : "0.0";
-
-        const cardW = 265;
-        const cardH = 64;
-        const cardX = w - cfg.padding.right - cardW - 8;
-        const cardY = cfg.padding.top + 8;
-
-        ctx.save();
-
-        // 1. 반투명 배경 카드 (모던 글래스모피즘 슬레이트)
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-        ctx.lineWidth = 1;
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = 14;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(cardX, cardY, cardW, cardH, 8);
-        } else {
-            ctx.rect(cardX, cardY, cardW, cardH);
-        }
-        ctx.fill();
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // 상단 배지 라인: [MAXBAND EFFICIENCY] & [모드 배지]
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 9px "JetBrains Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('MAXBAND EFFICIENCY', cardX + 12, cardY + 16);
-
         const isSchematic = (this.state.scaleMode === 'schematic');
-        const badgeText = isSchematic ? '모식도 (균등)' : '거리비례';
-        ctx.textAlign = 'right';
-        ctx.fillStyle = isSchematic ? 'rgba(56, 189, 248, 0.18)' : 'rgba(148, 163, 184, 0.12)';
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(cardX + cardW - 78, cardY + 6, 68, 16, 4);
-        } else {
-            ctx.rect(cardX + cardW - 78, cardY + 6, 68, 16);
+
+        // 1) 상단 분리형 HTML 메트릭 스트립 바 업데이트
+        const elTot = document.getElementById('tsd-metric-tot');
+        if (elTot) {
+            elTot.innerText = `${totEff}%`;
+            elTot.style.color = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
         }
-        ctx.fill();
-        ctx.strokeStyle = isSchematic ? 'rgba(56, 189, 248, 0.4)' : 'rgba(148, 163, 184, 0.2)';
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
+        const elUp = document.getElementById('tsd-metric-up');
+        if (elUp) elUp.innerText = `${upW.toFixed(1)}s`;
+        const elUpPct = document.getElementById('tsd-metric-up-pct');
+        if (elUpPct) elUpPct.innerText = `(${upEff}%)`;
 
-        ctx.fillStyle = isSchematic ? '#38bdf8' : '#94a3b8';
-        ctx.font = 'bold 9px "Outfit", sans-serif';
-        ctx.fillText(badgeText, cardX + cardW - 14, cardY + 18);
+        const elDown = document.getElementById('tsd-metric-down');
+        if (elDown) elDown.innerText = `${downW.toFixed(1)}s`;
+        const elDownPct = document.getElementById('tsd-metric-down-pct');
+        if (elDownPct) elDownPct.innerText = `(${downEff}%)`;
 
-        // 좌측 대형 메트릭: 종합 연동 효율 (%)
-        const effColor = totEff > 30 ? '#38bdf8' : (totEff > 0 ? '#34d399' : '#f43f5e');
-        ctx.textAlign = 'left';
-        ctx.fillStyle = effColor;
-        ctx.font = 'bold 21px "JetBrains Mono", monospace';
-        ctx.fillText(`${totEff}%`, cardX + 12, cardY + 44);
+        const elCycle = document.getElementById('tsd-metric-cycle');
+        if (elCycle) elCycle.innerText = `C: ${cycle}s`;
 
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.fillText(`C:${cycle}s`, cardX + 12, cardY + 57);
+        const elNodes = document.getElementById('tsd-metric-nodes');
+        if (elNodes) {
+            const vUp = bandUp ? (bandUp.validCount || 0) : 0;
+            const vDown = bandDown ? (bandDown.validCount || 0) : 0;
+            const total = this.state.members ? this.state.members.length : 0;
+            elNodes.innerText = `${Math.max(vUp, vDown)}/${total}개`;
+        }
 
-        // 세로 구분선
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(cardX + 96, cardY + 24);
-        ctx.lineTo(cardX + 96, cardY + 58);
-        ctx.stroke();
+        const elMode = document.getElementById('tsd-metric-mode');
+        if (elMode) {
+            elMode.innerText = isSchematic ? '균등모식도' : '거리비례';
+            elMode.style.color = isSchematic ? '#6ee7b7' : '#38bdf8';
+            elMode.style.borderColor = isSchematic ? 'rgba(110, 231, 183, 0.35)' : 'rgba(56, 189, 248, 0.35)';
+        }
 
-        // 우측: 상행 & 하행 대역폭 지표
-        // 상행
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 10px "Outfit", sans-serif';
-        ctx.fillText('▲ 상행', cardX + 106, cardY + 38);
-
-        ctx.fillStyle = upW > 0 ? '#f8fafc' : '#f43f5e';
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillText(`${upW.toFixed(1)}s`, cardX + 144, cardY + 38);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.fillText(`(${upEff}%)`, cardX + 195, cardY + 38);
-
-        // 하행
-        ctx.fillStyle = '#34d399';
-        ctx.font = 'bold 10px "Outfit", sans-serif';
-        ctx.fillText('▼ 하행', cardX + 106, cardY + 55);
-
-        ctx.fillStyle = downW > 0 ? '#f8fafc' : '#f43f5e';
-        ctx.font = 'bold 11px "JetBrains Mono", monospace';
-        ctx.fillText(`${downW.toFixed(1)}s`, cardX + 144, cardY + 55);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '10px "JetBrains Mono", monospace';
-        ctx.fillText(`(${downEff}%)`, cardX + 195, cardY + 55);
-
-        ctx.restore();
+        // [핵심] 시공도 그래픽을 덮어 가리던 캔버스 내부 HUD 오버레이는 렌더링하지 않음!
     }
 
     // ── 듀얼 링(Dual-Ring) ──
