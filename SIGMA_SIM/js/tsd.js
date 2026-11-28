@@ -532,8 +532,19 @@ class TSDEngine {
             const mx = e.clientX - rect.left;
             const my = (e.clientY - rect.top) / (window.devicePixelRatio || 1);
             if (!includeLabelArea && mx < this.config.padding.left) return null;
-            for (let item of this.state.yCoords) {
-                if (Math.abs(my - item.y) < 22) return item.id;
+            
+            // 좌측 라벨 카드 영역 히트 검출 (스마트 충돌완화 좌표 기준)
+            if (mx < this.config.padding.left && this.state.labelCoords) {
+                for (let item of this.state.labelCoords) {
+                    if (Math.abs(my - item.y) < 16) return item.id;
+                }
+            }
+            
+            // 신호선 영역 히트 검출
+            if (this.state.yCoords) {
+                for (let item of this.state.yCoords) {
+                    if (Math.abs(my - item.y) < 22) return item.id;
+                }
             }
             return null;
         };
@@ -747,6 +758,63 @@ class TSDEngine {
         this.state.travelTimes = tt;
     }
 
+    /**
+     * [신규] 스마트 라벨 충돌 완화 알고리즘 (Smart Label Anti-Collision & Relaxation)
+     * 거리비례 모드에서 교차로가 밀집될 때 라벨 카드들이 서로 겹치지 않도록 최소 간격(minGap)을 보장하고
+     * 원래 물리적 신호선 Y좌표와 베지어 유도선(Leader Line)으로 매끄럽게 연결
+     */
+    _computeLabelYPositions(realYArray, minGap = 34, topBound = 32, bottomBound = 780) {
+        const n = realYArray.length;
+        if (n === 0) return [];
+        if (n === 1) return [Math.max(topBound, Math.min(bottomBound, realYArray[0]))];
+
+        // 1. 위에서 아래로(Y 오름차순) 정렬 인덱스
+        const items = realYArray.map((y, idx) => ({ idx, origY: y, y }))
+            .sort((a, b) => a.origY - b.origY);
+
+        // 전체 필요 높이가 가용 범위를 초과할 경우 minGap을 동적으로 완화 (최소 26px까지)
+        const availH = bottomBound - topBound;
+        const reqH = (n - 1) * minGap;
+        let actualGap = minGap;
+        if (reqH > availH && n > 1) {
+            actualGap = Math.max(26, availH / (n - 1));
+        }
+
+        // 2. 1차 순방향 패스: 위에서 아래로 밀어내기 (Downwards pass)
+        items[0].y = Math.max(topBound, items[0].origY);
+        for (let k = 1; k < n; k++) {
+            if (items[k].y < items[k - 1].y + actualGap) {
+                items[k].y = items[k - 1].y + actualGap;
+            }
+        }
+
+        // 3. 2차 역방향 패스: 하단 경계 초과 시 위로 당기기 (Upwards pass)
+        if (items[n - 1].y > bottomBound) {
+            items[n - 1].y = bottomBound;
+            for (let k = n - 2; k >= 0; k--) {
+                if (items[k].y > items[k + 1].y - actualGap) {
+                    items[k].y = items[k + 1].y - actualGap;
+                }
+            }
+        }
+
+        // 4. 상단 경계 보호
+        if (items[0].y < topBound) {
+            const shift = topBound - items[0].y;
+            for (let k = 0; k < n; k++) {
+                items[k].y += shift;
+            }
+        }
+
+        // 5. 원래 인덱스 순서로 복원
+        const result = new Array(n);
+        for (let k = 0; k < n; k++) {
+            result[items[k].idx] = items[k].y;
+        }
+
+        return result;
+    }
+
     render() {
         if (!this.canvas) return;
         const container = this.canvas.parentElement;
@@ -843,9 +911,18 @@ class TSDEngine {
 
         ctx.restore();
 
-        // 3) 라벨 (선택 및 GIS 호버 하이라이트 반영 - 모던 글래스모피즘 카드)
+        // 3) 라벨 (선택 및 GIS 호버 하이라이트 반영 - 스마트 충돌 완화 & 모던 글래스모피즘 카드)
+        const realYList = this.state.members.map((j, i) => getY(i, this.state.distances[i]));
+        const topBound = cfg.padding.top + 16;
+        const bottomBound = h - cfg.padding.bottom - 16;
+        const labelYList = this._computeLabelYPositions(realYList, 34, topBound, bottomBound);
+        this.state.labelCoords = [];
+
         this.state.members.forEach((j, i) => {
-            const y = getY(i, this.state.distances[i]);
+            const realY = realYList[i];
+            const labelY = labelYList[i];
+            this.state.labelCoords.push({ id: j.id, y: labelY, realY, idx: i });
+
             const pIdx = this.state.todIdx;
             const _effPlan = typeof getEffectiveDayPlan === "function" ? getEffectiveDayPlan(j, dayIdx, pIdx) : (j.dayPlans && j.dayPlans[dayIdx] ? j.dayPlans[dayIdx][pIdx] : null);
             const curOffset = _effPlan ? (_effPlan.offset || 0) : 0;
@@ -853,11 +930,46 @@ class TSDEngine {
             const isHovered = (this.state.hoveredJid === j.id);
 
             const cardX = 6;
-            const cardY = y - 19;
-            const cardW = cfg.padding.left - 12;
-            const cardH = 38;
+            const cardW = cfg.padding.left - 14; // 여백 확보
+            const cardH = 30; // 슬림 콤팩트 카드
+            const cardY = labelY - 15;
 
-            // 라벨 카드 배경 (콤팩트 슬림)
+            // 1. 유도선(Leader Line) 그리기: 라벨 카드 우측에서 실제 신호 바 좌측 연결
+            ctx.save();
+            const startX = cardX + cardW;
+            const startY = labelY;
+            const endX = cfg.padding.left;
+            const endY = realY;
+
+            ctx.beginPath();
+            if (Math.abs(labelY - realY) > 2) {
+                // 부드러운 베지어 곡선 연결선
+                const cp1x = startX + (endX - startX) * 0.45;
+                const cp1y = startY;
+                const cp2x = startX + (endX - startX) * 0.55;
+                const cp2y = endY;
+                ctx.moveTo(startX, startY);
+                ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+                ctx.strokeStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : 'rgba(56, 189, 248, 0.4)');
+                ctx.lineWidth = isSelected ? 1.6 : (isHovered ? 1.4 : 1.0);
+                ctx.stroke();
+
+                // 신호선 시작점 핀 포인트 점 찍기
+                ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : '#0284c7');
+                ctx.beginPath();
+                ctx.arc(endX, endY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // 높이 차이가 거의 없을 때 직선 연결
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : 'rgba(148, 163, 184, 0.25)');
+                ctx.lineWidth = isSelected ? 1.4 : 0.8;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 2. 라벨 카드 배경 렌더링 (모던 글래스모피즘 슬림 카드)
             ctx.save();
             ctx.beginPath();
             if (typeof ctx.roundRect === 'function') {
@@ -876,7 +988,7 @@ class TSDEngine {
                 ctx.fillStyle = '#38bdf8';
                 ctx.fillRect(cardX, cardY, 3.5, cardH);
             } else if (isHovered) {
-                ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
                 ctx.fill();
                 ctx.strokeStyle = '#fbbf24';
                 ctx.lineWidth = 1.4;
@@ -885,45 +997,47 @@ class TSDEngine {
                 ctx.fillStyle = '#fbbf24';
                 ctx.fillRect(cardX, cardY, 3, cardH);
             } else {
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }
 
-            // 교차로명
+            // 1행: 교차로명
             ctx.textAlign = 'left';
             ctx.fillStyle = isSelected ? '#38bdf8' : (isHovered ? '#fbbf24' : '#f8fafc');
-            ctx.font = 'bold 11.5px "Outfit", "Inter", sans-serif';
+            ctx.font = 'bold 11px "Outfit", "Inter", sans-serif';
             let name = j.name || j.id;
             if (name.length > 11) name = name.substring(0, 10) + '..';
-            ctx.fillText(name, cardX + 9, y - 4);
+            ctx.fillText(name, cardX + 8, cardY + 12.5);
 
-            // 하단 메트릭스: 거리 & 오프셋
+            // 2행: 거리 표시 (좌측)
             ctx.fillStyle = isSchematic ? '#6ee7b7' : '#34d399';
             ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
-            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 9, y + 11);
+            ctx.fillText(`▸ ${Math.round(this.state.distances[i])}m`, cardX + 8, cardY + 24.5);
 
-            // 오프셋 캡슐 뱃지
-            const offX = cardX + cardW - 50;
-            const offY = y + 1;
-            ctx.fillStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.12)';
+            // 2행: 오프셋 캡슐 뱃지 (우측 인라인 수납)
+            const offW = 44;
+            const offH = 13;
+            const offX = cardX + cardW - offW - 6;
+            const offY = cardY + 14;
+            ctx.fillStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.22)' : 'rgba(148, 163, 184, 0.12)';
             ctx.beginPath();
             if (typeof ctx.roundRect === 'function') {
-                ctx.roundRect(offX, offY, 44, 13, 3);
+                ctx.roundRect(offX, offY, offW, offH, 3);
             } else {
-                ctx.rect(offX, offY, 44, 13);
+                ctx.rect(offX, offY, offW, offH);
             }
             ctx.fill();
-            ctx.strokeStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.25)';
+            ctx.strokeStyle = curOffset !== 0 ? 'rgba(245, 158, 11, 0.55)' : 'rgba(148, 163, 184, 0.25)';
             ctx.lineWidth = 0.8;
             ctx.stroke();
 
             ctx.textAlign = 'center';
             ctx.fillStyle = curOffset !== 0 ? '#fbbf24' : '#94a3b8';
             ctx.font = 'bold 9px "JetBrains Mono", monospace';
-            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + 22, offY + 9.5);
+            ctx.fillText(`⊕ ${Math.round(curOffset)}s`, offX + offW / 2, offY + 9.5);
 
             ctx.restore();
         });
